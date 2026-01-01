@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 
-export default function InstalarEmpleadoPage({
-  searchParams,
-}: {
-  searchParams: { token?: string };
-}) {
+type Props = {
+  searchParams?: {
+    token?: string;
+  };
+};
+
+export default function InstalarEmpleadoPage({ searchParams }: Props) {
   const token = searchParams?.token;
 
   const [estado, setEstado] = useState<"cargando" | "ok" | "error">("cargando");
@@ -60,8 +62,6 @@ export default function InstalarEmpleadoPage({
         {estado === "ok" && (
           <>
             <p className="text-green-600">{mensaje}</p>
-
-            <p>Puedes instalar la app ahora.</p>
 
             <a
               href="/empleado/dashboard"
