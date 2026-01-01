@@ -1,14 +1,14 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { api } from "@/services/api";
 
-export default function InstalarEmpleadoPage() {
-  const params = useSearchParams();
-  const token = params.get("token");
+export default function InstalarEmpleadoPage({
+  searchParams,
+}: {
+  searchParams: { token?: string };
+}) {
+  const token = searchParams?.token;
 
   const [estado, setEstado] = useState<"cargando" | "ok" | "error">("cargando");
   const [mensaje, setMensaje] = useState("");
@@ -75,7 +75,7 @@ export default function InstalarEmpleadoPage() {
         {estado === "error" && (
           <>
             <p className="text-red-600">{mensaje}</p>
-            <p>Pide al administrador otra invitación.</p>
+            <p>Pide al administrador otra invitación si continúa fallando.</p>
           </>
         )}
       </div>
