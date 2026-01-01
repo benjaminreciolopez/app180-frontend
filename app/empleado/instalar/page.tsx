@@ -1,4 +1,5 @@
 "use client";
+
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
@@ -21,14 +22,11 @@ export default function InstalarEmpleadoPage() {
       }
 
       try {
-        // Generar device_hash único permanente en este navegador
         let device_hash = localStorage.getItem("device_hash");
         if (!device_hash) {
           device_hash = crypto.randomUUID();
           localStorage.setItem("device_hash", device_hash);
         }
-
-        console.log("[install] usando device_hash:", device_hash);
 
         const res = await api.post("/empleado/activate-install", {
           token,
@@ -36,12 +34,8 @@ export default function InstalarEmpleadoPage() {
           user_agent: navigator.userAgent,
         });
 
-        console.log("[install] OK", res.data);
-
         setEstado("ok");
-        setMensaje(
-          "Dispositivo activado correctamente. Ya puedes usar la app."
-        );
+        setMensaje(res.data?.message || "Dispositivo activado correctamente");
       } catch (err: any) {
         console.error(err);
         setEstado("error");
@@ -67,7 +61,7 @@ export default function InstalarEmpleadoPage() {
           <>
             <p className="text-green-600">{mensaje}</p>
 
-            <p>Puedes instalar la app ahora en tu dispositivo.</p>
+            <p>Puedes instalar la app ahora.</p>
 
             <a
               href="/empleado/dashboard"
@@ -81,7 +75,7 @@ export default function InstalarEmpleadoPage() {
         {estado === "error" && (
           <>
             <p className="text-red-600">{mensaje}</p>
-            <p>Pide a tu administrador que te envíe otra invitación.</p>
+            <p>Pide al administrador otra invitación.</p>
           </>
         )}
       </div>
