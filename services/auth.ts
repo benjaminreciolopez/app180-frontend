@@ -1,3 +1,4 @@
+// services/auth.ts
 import { api, setAuthToken } from "./api";
 import { jwtDecode, JwtPayload } from "jwt-decode";
 
@@ -18,18 +19,32 @@ export async function login(
   password: string,
   device_hash?: string
 ) {
+  console.log("[login] enviando credenciales", {
+    email,
+    hasDeviceHash: !!device_hash,
+  });
+
   const res = await api.post("/auth/login", {
     email,
     password,
     device_hash,
   });
 
+  console.log("[login] respuesta backend", res.data);
+
   const { token, user } = res.data;
 
-  localStorage.setItem("token", token);
+  // 👇 AQUÍ se guarda el token
+  if (typeof window !== "undefined") {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+  }
+
   setAuthToken(token);
 
   const decoded = jwtDecode<AppJwtPayload>(token);
+
+  console.log("[login] token decodificado", decoded);
 
   return {
     token,

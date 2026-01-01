@@ -3,6 +3,7 @@
 import { login } from "../services/auth";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,10 +17,15 @@ export default function LoginPage() {
     setError("");
 
     try {
+      console.log("➡️ Enviando login...");
       const result = await login(email, password);
+
+      console.log("📥 Resultado login:", result);
 
       localStorage.setItem("token", result.token);
       localStorage.setItem("user", JSON.stringify(result.decoded));
+
+      console.log("📦 Token guardado:", localStorage.getItem("token"));
 
       if (result.decoded.role === "admin") {
         router.push("/admin/dashboard");
@@ -27,6 +33,7 @@ export default function LoginPage() {
         router.push("/empleado/dashboard");
       }
     } catch (err: any) {
+      console.error("❌ Error login:", err);
       setError(err?.response?.data?.error || "Error al iniciar sesión");
     }
   }

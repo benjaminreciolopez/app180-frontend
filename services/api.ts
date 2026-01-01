@@ -1,3 +1,4 @@
+// services/api.ts
 import axios from "axios";
 
 const API_BASE =
@@ -6,7 +7,8 @@ const API_BASE =
 export const api = axios.create({
   baseURL: API_BASE,
 });
-// Cargar token al iniciar (para refrescos de página)
+
+// Al cargar, intentar poner el token actual
 if (typeof window !== "undefined") {
   const token = localStorage.getItem("token");
   if (token) {
@@ -33,16 +35,20 @@ api.interceptors.response.use(
   (err) => {
     if (typeof window !== "undefined" && err?.response?.status === 401) {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
       window.location.href = "/login";
     }
 
     return Promise.reject(err);
   }
 );
+
+// Para cada petición leemos SIEMPRE el token almacenado
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("token");
     if (token) {
+      config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
