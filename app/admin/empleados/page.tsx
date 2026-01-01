@@ -1,0 +1,140 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/services/api";
+import Link from "next/link";
+
+interface Empleado {
+  id: string;
+  nombre: string;
+  email: string;
+  activo: boolean;
+}
+
+export default function EmpleadosPage() {
+  const [loading, setLoading] = useState(true);
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+
+  async function loadEmpleados() {
+    try {
+      const res = await api.get("/employees");
+      setEmpleados(res.data || []);
+    } catch (err) {
+      console.error("Error cargando empleados", err);
+    }
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadEmpleados();
+  }, []);
+
+  if (loading) return <p>Cargando...</p>;
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Empleados</h1>
+
+      <div className="flex justify-between mb-4">
+        <p>Total: {empleados.length}</p>
+
+        <button
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+          onClick={() => (window.location.href = "/admin/empleados/nuevo")}
+        >
+          + Nuevo empleado
+        </button>
+      </div>
+
+      <table className="w-full bg-white border rounded">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="p-3 text-left">Nombre</th>
+            <th className="p-3 text-left">Email</th>
+            <th className="p-3 text-left">Estado</th>
+            <th className="p-3 text-left">Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {empleados.map((e) => (
+            <tr key={e.id} className="border-b">
+              <td className="p-3">{e.nombre}</td>
+              <td className="p-3">{e.email}</td>
+              <td className="p-3">
+                {e.activo ? (
+                  <span className="text-green-600 font-semibold">Activo</span>
+                ) : (
+                  <span className="text-red-600 font-semibold">Inactivo</span>
+                )}
+              </td>
+
+              <td className="p-3">
+                <Link
+                  href={`/admin/empleados/${e.id}/turno`}
+                  className="px-3 py-1 bg-purple-600 text-white rounded"
+                >
+                  Asignar turno
+                </Link>
+                <button
+                  onClick={async () => {
+                    const res = await api.post(`/employees/${e.id}/invite`);
+                    setInviteUrl(res.data.installUrl);
+                  }}
+                  className="ml-2 px-3 py-1 bg-green-600 text-white rounded"
+                >
+                  Invitar
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {inviteUrl && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded shadow max-w-lg w-full space-y-4">
+            <h2 className="text-xl font-bold">Invitación generada</h2>
+
+            <p>Envia este enlace al empleado para que instale la app:</p>
+
+            <input
+              value={inviteUrl}
+              readOnly
+              className="w-full border px-3 py-2 rounded bg-gray-100"
+              onClick={(e) => e.currentTarget.select()}
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(inviteUrl);
+                  alert("Copiado al portapapeles");
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+              >
+                Copiar enlace
+              </button>
+
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(inviteUrl)}`}
+                target="_blank"
+                className="px-4 py-2 bg-green-600 text-white rounded"
+              >
+                Enviar por WhatsApp
+              </a>
+
+              <button
+                onClick={() => setInviteUrl(null)}
+                className="ml-auto px-4 py-2 bg-gray-400 text-white rounded"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
