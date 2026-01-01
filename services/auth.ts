@@ -24,10 +24,16 @@ export async function login(
     hasDeviceHash: !!device_hash,
   });
 
+  const hash =
+    device_hash ||
+    (typeof window !== "undefined"
+      ? btoa(navigator.userAgent + navigator.language)
+      : undefined);
+
   const res = await api.post("/auth/login", {
     email,
     password,
-    device_hash,
+    device_hash: hash,
   });
 
   console.log("[login] respuesta backend", res.data);
