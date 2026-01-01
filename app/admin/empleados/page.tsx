@@ -15,6 +15,8 @@ export default function EmpleadosPage() {
   const [loading, setLoading] = useState(true);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [loadingInvite, setLoadingInvite] = useState(false);
 
   async function loadEmpleados() {
     try {
@@ -29,6 +31,12 @@ export default function EmpleadosPage() {
 
   useEffect(() => {
     loadEmpleados();
+  }, []);
+
+  useEffect(() => {
+    const close = () => setOpenMenuId(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
   }, []);
 
   if (loading) return <p>Cargando...</p>;
@@ -78,46 +86,73 @@ export default function EmpleadosPage() {
                 >
                   Asignar turno
                 </Link>
-                <div className="inline-block relative">
-                  <button className="ml-2 px-3 py-1 bg-green-600 text-white rounded">
+
+                <div className="inline-block relative ml-2">
+                  <button
+                    className="px-3 py-1 bg-green-600 text-white rounded"
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      setOpenMenuId(openMenuId === e.id ? null : e.id);
+                    }}
+                  >
                     Opciones
                   </button>
 
-                  <div className="absolute bg-white shadow border rounded mt-2 w-48 z-50">
-                    <button
-                      onClick={async () => {
-                        const res = await api.post(`/employees/${e.id}/invite`);
-                        setInviteUrl(res.data.installUrl);
-                      }}
-                      className="block w-full text-left px-3 py-2 hover:bg-gray-100"
+                  {openMenuId === e.id && (
+                    <div
+                      className="absolute bg-white shadow border rounded mt-2 w-56 z-50"
+                      onClick={(ev) => ev.stopPropagation()}
                     >
-                      Invitar / Reenviar invitación
-                    </button>
+                      <button
+                        disabled={loadingInvite}
+                        onClick={async () => {
+                          setLoadingInvite(true);
+                          const res = await api.post(
+                            `/employees/${e.id}/invite`
+                          );
+                          setInviteUrl(res.data.installUrl);
+                          setOpenMenuId(null);
+                          setLoadingInvite(false);
+                        }}
+                        className="block w-full text-left px-3 py-2 hover:bg-gray-100 disabled:opacity-50"
+                      >
+                        {loadingInvite
+                          ? "Generando invitación..."
+                          : "Invitar / Reenviar invitación"}
+                      </button>
 
-                    <button
-                      onClick={async () => {
-                        const res = await api.post(
-                          `/employees/${e.id}/invite?tipo=cambio`
-                        );
-                        setInviteUrl(res.data.installUrl);
-                      }}
-                      className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-orange-600"
-                    >
-                      Autorizar cambio de dispositivo
-                    </button>
-                  </div>
+                      <button
+                        disabled={loadingInvite}
+                        onClick={async () => {
+                          setLoadingInvite(true);
+                          const res = await api.post(
+                            `/employees/${e.id}/invite?tipo=cambio`
+                          );
+                          setInviteUrl(res.data.installUrl);
+                          setOpenMenuId(null);
+                          setLoadingInvite(false);
+                        }}
+                        className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-orange-600 disabled:opacity-50"
+                      >
+                        {loadingInvite
+                          ? "Autorizando..."
+                          : "Autorizar cambio de dispositivo"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
       {inviteUrl && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
           <div className="bg-white p-6 rounded shadow max-w-lg w-full space-y-4">
             <h2 className="text-xl font-bold">Invitación generada</h2>
 
-            <p>Envia este enlace al empleado para que instale la app:</p>
+            <p>Envía este enlace al empleado para que instale la app:</p>
 
             <input
               value={inviteUrl}
