@@ -78,15 +78,35 @@ export default function EmpleadosPage() {
                 >
                   Asignar turno
                 </Link>
-                <button
-                  onClick={async () => {
-                    const res = await api.post(`/employees/${e.id}/invite`);
-                    setInviteUrl(res.data.installUrl);
-                  }}
-                  className="ml-2 px-3 py-1 bg-green-600 text-white rounded"
-                >
-                  Invitar
-                </button>
+                <div className="inline-block relative">
+                  <button className="ml-2 px-3 py-1 bg-green-600 text-white rounded">
+                    Opciones
+                  </button>
+
+                  <div className="absolute bg-white shadow border rounded mt-2 w-48 z-50">
+                    <button
+                      onClick={async () => {
+                        const res = await api.post(`/employees/${e.id}/invite`);
+                        setInviteUrl(res.data.installUrl);
+                      }}
+                      className="block w-full text-left px-3 py-2 hover:bg-gray-100"
+                    >
+                      Invitar / Reenviar invitación
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        const res = await api.post(
+                          `/employees/${e.id}/invite?tipo=cambio`
+                        );
+                        setInviteUrl(res.data.installUrl);
+                      }}
+                      className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-orange-600"
+                    >
+                      Autorizar cambio de dispositivo
+                    </button>
+                  </div>
+                </div>
               </td>
             </tr>
           ))}
