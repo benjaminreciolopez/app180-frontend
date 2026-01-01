@@ -1,16 +1,18 @@
 import type { NextConfig } from "next";
-import withPWA from "next-pwa";
+import withPWAInit from "next-pwa";
 
 const isDev = process.env.NODE_ENV === "development";
 
-const nextConfig: NextConfig = {
-  reactStrictMode: true,
-  turbopack: {},
-};
-
-export default withPWA({
+const withPWA = withPWAInit({
   dest: "public",
-  disable: isDev,
+  disable: isDev, // 🔥 desactivada en dev
   register: true,
   skipWaiting: true,
-})(nextConfig);
+});
+
+const nextConfig: NextConfig = {
+  reactStrictMode: true,
+  turbopack: {}, // 👈 requerido para que Vercel no se queje
+};
+
+export default withPWA(nextConfig);
