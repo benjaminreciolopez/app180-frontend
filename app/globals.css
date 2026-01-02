@@ -46,9 +46,11 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* Paleta clara */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  /* 🔹 Fondo general ligeramente gris para look SaaS */
+  --background: oklch(0.97 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -81,6 +83,7 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Paleta dark */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -115,11 +118,142 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* =======================
+   BASE GLOBAL
+======================= */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold text-foreground;
+  }
+
+  a {
+    @apply text-primary underline-offset-4;
+  }
+
+  a:hover {
+    @apply text-primary/90;
+  }
+}
+
+/* =======================
+   COMPONENTES APP180
+======================= */
+@layer components {
+  /* Shell general (puedes usarlo en el layout) */
+  .app-shell {
+    @apply min-h-screen bg-background text-foreground;
+  }
+
+  .app-main {
+    @apply max-w-6xl mx-auto px-4 py-6 md:py-8;
+  }
+
+  /* Tarjetas */
+  .card {
+    @apply bg-card text-card-foreground border border-border rounded-xl shadow-sm p-5 md:p-6;
+  }
+
+  .card-muted {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .card-header {
+    @apply flex items-center justify-between gap-2 mb-3;
+  }
+
+  .card-title {
+    @apply text-base md:text-lg font-semibold;
+  }
+
+  .card-subtitle {
+    @apply text-xs md:text-sm text-muted-foreground;
+  }
+
+  /* Botones */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium px-4 py-2 gap-2
+           transition-colors disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+
+  .btn-secondary {
+    @apply btn bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  }
+
+  .btn-outline {
+    @apply btn border border-border bg-background text-foreground hover:bg-muted;
+  }
+
+  .btn-danger {
+    @apply btn bg-destructive text-white hover:bg-destructive/90;
+  }
+
+  /* Badges / estados */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .badge-success {
+    @apply badge bg-emerald-50 text-emerald-700;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-50 text-red-700;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-50 text-amber-700;
+  }
+
+  .badge-muted {
+    @apply badge bg-muted text-muted-foreground;
+  }
+
+  /* Tablas admin */
+  .table {
+    @apply w-full border-collapse bg-card text-card-foreground rounded-xl overflow-hidden;
+  }
+
+  .table thead {
+    @apply bg-muted;
+  }
+
+  .table thead th {
+    @apply text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground px-3 py-2;
+  }
+
+  .table tbody td {
+    @apply px-3 py-2 border-t border-border align-middle text-sm;
+  }
+
+  .table tbody tr:hover {
+    @apply bg-muted/60;
+  }
+
+  /* Chips KPI (para los números del dashboard) */
+  .kpi-card {
+    @apply card flex flex-col gap-1;
+  }
+
+  .kpi-value {
+    @apply text-3xl md:text-4xl font-bold;
+  }
+
+  .kpi-label {
+    @apply text-xs md:text-sm text-muted-foreground;
   }
 }

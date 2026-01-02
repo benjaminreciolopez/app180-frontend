@@ -77,26 +77,23 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 space-y-8">
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+    <div className="app-main">
+      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-      {/* TARJETAS */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="bg-white p-6 rounded shadow">
-          <h3 className="text-gray-500 text-sm">Empleados activos</h3>
-          <p className="text-4xl font-bold">{data.empleadosActivos}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="kpi-card">
+          <span className="kpi-label">Empleados activos</span>
+          <span className="kpi-value">{data.empleadosActivos}</span>
         </div>
 
-        <div className="bg-white p-6 rounded shadow">
-          <h3 className="text-gray-500 text-sm">Fichajes hoy</h3>
-          <p className="text-4xl font-bold">{data.fichajesHoy}</p>
+        <div className="kpi-card">
+          <span className="kpi-label">Fichajes de hoy</span>
+          <span className="kpi-value">{data.fichajesHoy}</span>
         </div>
 
-        <div className="bg-white p-6 rounded shadow">
-          <h3 className="text-gray-500 text-sm">Sospechosos hoy</h3>
-          <p className="text-4xl font-bold text-red-600">
-            {data.sospechososHoy}
-          </p>
+        <div className="kpi-card">
+          <span className="kpi-label">Fichajes sospechosos</span>
+          <span className="kpi-value text-red-600">{data.sospechososHoy}</span>
         </div>
       </div>
 
