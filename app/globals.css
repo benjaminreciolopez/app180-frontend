@@ -180,47 +180,47 @@
     @apply text-xs md:text-sm text-muted-foreground;
   }
 
-    /* Botones */
-    .btn {
-      @apply inline-flex items-center justify-center rounded-md
-      px-4 py-2 text-sm font-medium gap-2
-      transition-colors
-      focus:outline-none focus:ring-2 focus:ring-ring
-      disabled:opacity-60 disabled:cursor-not-allowed;
-    }
-
-    .btn-primary {
-      @apply inline-flex items-center justify-center rounded-md
-      px-4 py-2 text-sm font-medium gap-2
-      bg-primary text-primary-foreground
-      hover:bg-primary/90
-      transition-colors;
-    }
-
-    .btn-secondary {
-      @apply inline-flex items-center justify-center rounded-md
-      px-4 py-2 text-sm font-medium gap-2
-      bg-secondary text-secondary-foreground
-      hover:bg-secondary/80
-      transition-colors;
-    }
-
-    .btn-outline {
-      @apply inline-flex items-center justify-center rounded-md
-      px-4 py-2 text-sm font-medium gap-2
-      border border-border bg-background text-foreground
-      hover:bg-muted
-      transition-colors;
-    }
-
-    .btn-danger {
-      @apply inline-flex items-center justify-center rounded-md
-      px-4 py-2 text-sm font-medium gap-2
-      bg-destructive text-white
-      hover:bg-destructive/90
-      transition-colors;
-    }
+  /* Botones */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md
+    px-4 py-2 text-sm font-medium gap-2
+    transition-colors
+    focus:outline-none focus:ring-2 focus:ring-ring
+    disabled:opacity-60 disabled:cursor-not-allowed;
   }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-md
+    px-4 py-2 text-sm font-medium gap-2
+    bg-primary text-primary-foreground
+    hover:bg-primary/90
+    transition-colors;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-md
+    px-4 py-2 text-sm font-medium gap-2
+    bg-secondary text-secondary-foreground
+    hover:bg-secondary/80
+    transition-colors;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center rounded-md
+    px-4 py-2 text-sm font-medium gap-2
+    border border-border bg-background text-foreground
+    hover:bg-muted
+    transition-colors;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center rounded-md
+    px-4 py-2 text-sm font-medium gap-2
+    bg-destructive text-white
+    hover:bg-destructive/90
+    transition-colors;
+  }
+
   /* Badges / estados */
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
