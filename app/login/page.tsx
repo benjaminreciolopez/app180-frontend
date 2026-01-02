@@ -9,8 +9,8 @@ import { login } from "@/services/auth";
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("admin@test.com"); // por comodidad
-  const [password, setPassword] = useState("admin123"); // pon aquí la real si la conoces
+  const [email, setEmail] = useState(""); // por comodidad
+  const [password, setPassword] = useState(""); // pon aquí la real si la conoces
   const [error, setError] = useState<string>("");
 
   async function handleLogin(e: FormEvent) {
@@ -38,6 +38,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-100">
       <form
+        autoComplete="off"
         onSubmit={handleLogin}
         className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md space-y-6"
       >
@@ -47,6 +48,7 @@ export default function LoginPage() {
           <label className="block text-sm font-medium mb-1">Email</label>
           <input
             type="email"
+            autoComplete="username"
             className="border rounded w-full px-3 py-2"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -58,6 +60,7 @@ export default function LoginPage() {
           <label className="block text-sm font-medium mb-1">Contraseña</label>
           <input
             type="password"
+            autoComplete="current-password"
             className="border rounded w-full px-3 py-2"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
