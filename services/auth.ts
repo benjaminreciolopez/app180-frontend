@@ -11,9 +11,6 @@ export interface AppJwtPayload extends JwtPayload {
   device_hash?: string | null;
 }
 
-// =================================
-// LOGIN
-// =================================
 export async function login(
   email: string,
   password: string,
@@ -24,30 +21,42 @@ export async function login(
     hasDeviceHash: !!device_hash,
   });
 
-  let hash: string;
+  let hash: string | undefined;
 
   if (typeof window !== "undefined") {
-    // 1️⃣ Si viene como parámetro → úsalo
+    // 1️⃣ si viene como parámetro → prioridad máxima
     if (device_hash && device_hash !== "") {
       hash = device_hash;
     } else {
-      // 2️⃣ Intentar recuperar existente
+      // 2️⃣ intentar leer de localStorage
       const stored = localStorage.getItem("device_hash");
-
       if (stored && stored !== "") {
         hash = stored;
       } else {
-        // 3️⃣ Si no existe → crear uno válido
-        hash =
-          (crypto as any)?.randomUUID?.() ||
-          Math.random().toString(36).substring(2);
+        // 3️⃣ intentar recuperar desde backend
+        try {
+          const res = await api.get("/empleado/device-hash");
+          if (res.data?.device_hash) {
+            hash = res.data.device_hash;
+            localStorage.setItem("device_hash", hash!);
+          }
+        } catch {
+          // ignorar errores silenciosamente
+        }
 
-        localStorage.setItem("device_hash", hash);
+        // 4️⃣ si sigue sin existir → generar nuevo
+        if (!hash) {
+          hash =
+            (crypto as any)?.randomUUID?.() ||
+            Math.random().toString(36).substring(2);
+
+          localStorage.setItem("device_hash", hash!);
+        }
       }
     }
   } else {
-    // fallback por si se ejecuta SSR
-    hash = "server-generated-device-" + Math.random().toString(36).substring(2);
+    // fallback SSR
+    hash = "server-generated-" + Math.random().toString(36).substring(2);
   }
 
   console.log("[login] usando device_hash", hash);
@@ -55,7 +64,7 @@ export async function login(
   const res = await api.post("/auth/login", {
     email,
     password,
-    device_hash: hash,
+    device_hash: hash!, // <- afirmamos que es string
     user_agent:
       typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
   });
