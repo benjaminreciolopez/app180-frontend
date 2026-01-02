@@ -222,24 +222,29 @@
   }
 
   /* Badges / estados */
+  /* Badges / estados */
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
   }
 
   .badge-success {
-    @apply badge bg-emerald-50 text-emerald-700;
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold
+    bg-emerald-50 text-emerald-700;
   }
 
   .badge-danger {
-    @apply badge bg-red-50 text-red-700;
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold
+    bg-red-50 text-red-700;
   }
 
   .badge-warning {
-    @apply badge bg-amber-50 text-amber-700;
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold
+    bg-amber-50 text-amber-700;
   }
 
   .badge-muted {
-    @apply badge bg-muted text-muted-foreground;
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold
+    bg-muted text-muted-foreground;
   }
 
   /* Tablas admin */
@@ -265,7 +270,8 @@
 
   /* Chips KPI (para los números del dashboard) */
   .kpi-card {
-    @apply card flex flex-col gap-1;
+    @apply bg-card text-card-foreground border border-border rounded-xl shadow-sm
+    p-5 md:p-6 flex flex-col gap-1;
   }
 
   .kpi-value {
