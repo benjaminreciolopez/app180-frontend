@@ -39,31 +39,31 @@ export default function DashboardPage() {
       setLoading(true);
       const res = await api.get("/admin/dashboard");
       setData(res.data);
+      setError(null);
     } catch (err: any) {
       console.error(err);
       setError(err?.response?.data?.error || "No se pudieron cargar los datos");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   useEffect(() => {
     load();
   }, []);
 
-  if (loading) return <p>Cargando dashboard...</p>;
+  if (loading) return <p>Cargando dashboard…</p>;
 
-  if (error || !data)
+  if (error || !data) {
     return (
-      <div>
-        <p className="text-red-600">{error}</p>
-        <button
-          onClick={load}
-          className="px-4 py-2 bg-blue-600 text-white rounded"
-        >
+      <div className="app-main">
+        <p className="text-red-600 mb-4">{error}</p>
+        <button onClick={load} className="btn-primary">
           Reintentar
         </button>
       </div>
     );
+  }
 
   function hora(d: string) {
     return new Date(d).toLocaleTimeString("es-ES", {
@@ -80,6 +80,7 @@ export default function DashboardPage() {
     <div className="app-main">
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
+      {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="kpi-card">
           <span className="kpi-label">Empleados activos</span>
@@ -97,23 +98,24 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* BLOQUES INFERIORES */}
+      <div className="grid gap-6 lg:grid-cols-2 mt-6">
         {/* TRABAJANDO AHORA */}
-        <div className="bg-white p-6 rounded shadow border">
-          <h2 className="text-lg font-semibold mb-3">
-            Empleados fichando ahora
-          </h2>
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title">Empleados fichando ahora</h2>
+          </div>
 
           {!data.trabajandoAhora.length ? (
-            <p className="text-gray-500 text-sm">
+            <p className="text-muted-foreground text-sm">
               Ningún empleado está fichando en este momento
             </p>
           ) : (
-            <ul className="divide-y">
+            <ul className="divide-y divide-border">
               {data.trabajandoAhora.map((t) => (
                 <li key={t.id} className="py-2">
                   <div className="font-semibold">{t.empleado_nombre}</div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Cliente: {t.cliente_nombre || "Sin cliente"} — desde{" "}
                     {hora(t.desde)}
                   </div>
@@ -123,18 +125,20 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* ULTIMOS FICHAJES */}
-        <div className="bg-white p-6 rounded shadow border">
-          <h2 className="text-lg font-semibold mb-3">Últimos fichajes</h2>
+        {/* ÚLTIMOS FICHAJES */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title">Últimos fichajes</h2>
+          </div>
 
           {!data.ultimosFichajes.length ? (
-            <p className="text-gray-500 text-sm">
+            <p className="text-muted-foreground text-sm">
               No hay fichajes registrados aún
             </p>
           ) : (
-            <table className="w-full text-sm">
+            <table className="table">
               <thead>
-                <tr className="border-b text-left text-xs text-gray-500">
+                <tr>
                   <th>Fecha</th>
                   <th>Empleado</th>
                   <th>Cliente</th>
@@ -143,7 +147,7 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {data.ultimosFichajes.map((f) => (
-                  <tr key={f.id} className="border-b last:border-0">
+                  <tr key={f.id}>
                     <td>
                       {fecha(f.created_at)} {hora(f.created_at)}
                     </td>
@@ -151,11 +155,9 @@ export default function DashboardPage() {
                     <td>{f.cliente_nombre || "—"}</td>
                     <td>
                       {f.estado === "ENTRADA" ? (
-                        <span className="text-green-600 font-semibold">
-                          ENTRADA
-                        </span>
+                        <span className="badge badge-success">ENTRADA</span>
                       ) : (
-                        <span>SALIDA</span>
+                        <span className="badge badge-muted">SALIDA</span>
                       )}
                     </td>
                   </tr>
