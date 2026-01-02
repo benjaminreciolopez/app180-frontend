@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { api } from "@/services/api";
+import { useRouter } from "next/navigation";
 
 export default function InstalarCliente({ token }: { token?: string }) {
   const [estado, setEstado] = useState<"cargando" | "ok" | "error">("cargando");
   const [mensaje, setMensaje] = useState("");
+  const router = useRouter();
+
+  const executed = useRef(false); // 👈 protección real
 
   useEffect(() => {
     async function activar() {
+      if (executed.current) return;
+      executed.current = true;
+
       if (!token) {
         setEstado("error");
         setMensaje("Falta token de invitación");
@@ -16,9 +23,14 @@ export default function InstalarCliente({ token }: { token?: string }) {
       }
 
       try {
-        let device_hash = localStorage.getItem("device_hash");
+        // device hash persistente
+        let device_hash: string = localStorage.getItem("device_hash") ?? "";
+
         if (!device_hash) {
-          device_hash = crypto.randomUUID();
+          device_hash =
+            globalThis.crypto?.randomUUID?.() ||
+            Math.random().toString(36).substring(2);
+
           localStorage.setItem("device_hash", device_hash);
         }
 
@@ -30,6 +42,11 @@ export default function InstalarCliente({ token }: { token?: string }) {
 
         setEstado("ok");
         setMensaje(res.data?.message || "Dispositivo activado correctamente");
+
+        // Redirección solo si OK
+        setTimeout(() => {
+          router.replace("/empleado/login");
+        }, 1500);
       } catch (err: any) {
         console.error(err);
         setEstado("error");
@@ -40,7 +57,7 @@ export default function InstalarCliente({ token }: { token?: string }) {
     }
 
     activar();
-  }, [token]);
+  }, [token, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-100">
@@ -54,13 +71,9 @@ export default function InstalarCliente({ token }: { token?: string }) {
         {estado === "ok" && (
           <>
             <p className="text-green-600">{mensaje}</p>
-
-            <a
-              href="/empleado/dashboard"
-              className="px-4 py-2 bg-blue-600 text-white rounded inline-block"
-            >
-              Ir a la aplicación
-            </a>
+            <p className="text-sm text-gray-500">
+              Redirigiendo a la aplicación…
+            </p>
           </>
         )}
 
