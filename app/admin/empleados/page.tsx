@@ -9,6 +9,9 @@ interface Empleado {
   nombre: string;
   email: string;
   activo: boolean;
+  turno_nombre: string | null;
+  dispositivo_activo: boolean | null;
+  device_hash: string | null;
 }
 
 export default function EmpleadosPage() {
@@ -16,7 +19,7 @@ export default function EmpleadosPage() {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [loadingInvite, setLoadingInvite] = useState(false);
+  const [loadingInviteId, setLoadingInviteId] = useState<string | null>(null);
 
   async function loadEmpleados() {
     try {
@@ -62,6 +65,7 @@ export default function EmpleadosPage() {
             <th className="p-3 text-left">Nombre</th>
             <th className="p-3 text-left">Email</th>
             <th className="p-3 text-left">Estado</th>
+            <th className="p-3 text-left">Dispositivo</th>
             <th className="p-3 text-left">Acciones</th>
           </tr>
         </thead>
@@ -71,6 +75,8 @@ export default function EmpleadosPage() {
             <tr key={e.id} className="border-b">
               <td className="p-3">{e.nombre}</td>
               <td className="p-3">{e.email}</td>
+
+              {/* ESTADO EMPLEADO */}
               <td className="p-3">
                 {e.activo ? (
                   <span className="text-green-600 font-semibold">Activo</span>
@@ -79,7 +85,25 @@ export default function EmpleadosPage() {
                 )}
               </td>
 
+              {/* ESTADO DISPOSITIVO */}
               <td className="p-3">
+                {!e.device_hash && (
+                  <span className="text-red-600">Sin dispositivo</span>
+                )}
+
+                {e.device_hash && e.dispositivo_activo && (
+                  <span className="text-green-600 font-semibold">Activo</span>
+                )}
+
+                {e.device_hash && !e.dispositivo_activo && (
+                  <span className="text-orange-600 font-semibold">
+                    Bloqueado
+                  </span>
+                )}
+              </td>
+
+              {/* ACCIONES */}
+              <td className="p-3 whitespace-nowrap">
                 <Link
                   href={`/admin/empleados/${e.id}/turno`}
                   className="px-3 py-1 bg-purple-600 text-white rounded"
@@ -104,37 +128,37 @@ export default function EmpleadosPage() {
                       onClick={(ev) => ev.stopPropagation()}
                     >
                       <button
-                        disabled={loadingInvite}
+                        disabled={loadingInviteId === e.id}
                         onClick={async () => {
-                          setLoadingInvite(true);
+                          setLoadingInviteId(e.id);
                           const res = await api.post(
                             `/employees/${e.id}/invite`
                           );
                           setInviteUrl(res.data.installUrl);
                           setOpenMenuId(null);
-                          setLoadingInvite(false);
+                          setLoadingInviteId(null);
                         }}
                         className="block w-full text-left px-3 py-2 hover:bg-gray-100 disabled:opacity-50"
                       >
-                        {loadingInvite
+                        {loadingInviteId === e.id
                           ? "Generando invitación..."
                           : "Invitar / Reenviar invitación"}
                       </button>
 
                       <button
-                        disabled={loadingInvite}
+                        disabled={loadingInviteId === e.id}
                         onClick={async () => {
-                          setLoadingInvite(true);
+                          setLoadingInviteId(e.id);
                           const res = await api.post(
                             `/employees/${e.id}/invite?tipo=cambio`
                           );
                           setInviteUrl(res.data.installUrl);
                           setOpenMenuId(null);
-                          setLoadingInvite(false);
+                          setLoadingInviteId(null);
                         }}
                         className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-orange-600 disabled:opacity-50"
                       >
-                        {loadingInvite
+                        {loadingInviteId === e.id
                           ? "Autorizando..."
                           : "Autorizar cambio de dispositivo"}
                       </button>
