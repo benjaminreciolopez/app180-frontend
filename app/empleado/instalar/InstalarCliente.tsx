@@ -45,7 +45,7 @@ export default function InstalarCliente({ token }: { token?: string }) {
 
         // Redirección solo si OK
         setTimeout(() => {
-          router.replace("/empleado/login");
+          router.replace("/login");
         }, 1500);
       } catch (err: any) {
         console.error(err);
