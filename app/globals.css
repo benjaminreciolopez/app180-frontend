@@ -182,24 +182,28 @@
 
   /* Botones */
   .btn {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium px-4 py-2 gap-2
-           transition-colors disabled:opacity-60 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center
+      rounded-md px-4 py-2
+      text-sm font-semibold
+      transition-colors
+      focus:outline-none focus:ring-2 focus:ring-ring
+      disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-primary {
-    @apply btn bg-primary text-primary-foreground hover:bg-primary/90;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
   }
 
   .btn-secondary {
-    @apply btn bg-secondary text-secondary-foreground hover:bg-secondary/80;
-  }
-
-  .btn-outline {
-    @apply btn border border-border bg-background text-foreground hover:bg-muted;
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
   }
 
   .btn-danger {
-    @apply btn bg-destructive text-white hover:bg-destructive/90;
+    @apply bg-destructive text-white hover:bg-destructive/90;
+  }
+
+  .btn-outline {
+    @apply border border-border bg-transparent hover:bg-muted;
   }
 
   /* Badges / estados */
@@ -255,30 +259,5 @@
 
   .kpi-label {
     @apply text-xs md:text-sm text-muted-foreground;
-  }
-}
-  .btn {
-    @apply inline-flex items-center justify-center
-      rounded-md px-4 py-2
-      text-sm font-semibold
-      transition-colors
-      focus:outline-none focus:ring-2 focus:ring-ring
-      disabled:opacity-50 disabled:pointer-events-none;
-  }
-
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
-  }
-
-  .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
-  }
-
-  .btn-danger {
-    @apply bg-destructive text-white hover:bg-destructive/90;
-  }
-
-  .btn-outline {
-    @apply border border-border bg-transparent hover:bg-muted;
   }
 }
