@@ -3,16 +3,23 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 
+interface Reporte {
+  id: string;
+  fecha: string;
+  resumen: string;
+  estado: "pendiente" | "aprobado" | "rechazado";
+}
+
 export default function MisReportes() {
   const [loading, setLoading] = useState(true);
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<Reporte[]>([]);
 
   async function load() {
     try {
       const res = await api.get("/reports/mine");
       setReports(res.data || []);
     } catch (e) {
-      console.error(e);
+      console.error("Error cargando reportes", e);
     } finally {
       setLoading(false);
     }
@@ -22,36 +29,42 @@ export default function MisReportes() {
     load();
   }, []);
 
-  if (loading) return <p>Cargando...</p>;
+  if (loading) return <p className="app-main">Cargando…</p>;
+
+  function badgeEstado(estado: Reporte["estado"]) {
+    switch (estado) {
+      case "aprobado":
+        return <span className="badge-success">Aprobado</span>;
+      case "rechazado":
+        return <span className="badge-danger">Rechazado</span>;
+      default:
+        return <span className="badge-warning">Pendiente</span>;
+    }
+  }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Mis reportes</h1>
+    <div className="app-main max-w-3xl space-y-6">
+      <h1 className="text-2xl font-bold">Mis reportes</h1>
 
       {reports.length === 0 ? (
-        <p>No tienes reportes aún</p>
+        <div className="card text-muted-foreground text-sm">
+          No tienes reportes aún.
+        </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {reports.map((r) => (
-            <div key={r.id} className="p-4 border rounded bg-white space-y-1">
-              <div className="font-semibold">{r.fecha}</div>
+            <div key={r.id} className="card space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="font-semibold">
+                  {new Date(r.fecha).toLocaleDateString("es-ES")}
+                </div>
 
-              <div className="text-sm text-gray-700 truncate">{r.resumen}</div>
-
-              <div className="text-sm">
-                Estado:{" "}
-                <b
-                  className={
-                    r.estado === "aprobado"
-                      ? "text-green-600"
-                      : r.estado === "rechazado"
-                      ? "text-red-600"
-                      : "text-yellow-600"
-                  }
-                >
-                  {r.estado}
-                </b>
+                {badgeEstado(r.estado)}
               </div>
+
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {r.resumen}
+              </p>
             </div>
           ))}
         </div>

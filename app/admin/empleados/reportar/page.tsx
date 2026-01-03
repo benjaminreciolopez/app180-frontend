@@ -8,70 +8,127 @@ export default function ReportarPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
   const [resumen, setResumen] = useState("");
   const [horas, setHoras] = useState<number | null>(null);
+
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
 
   async function load() {
     try {
       const res = await api.get("/reports/mine/today");
       if (res.data) {
         setResumen(res.data.resumen || "");
-        setHoras(res.data.horas_trabajadas || null);
+        setHoras(
+          typeof res.data.horas_trabajadas === "number"
+            ? res.data.horas_trabajadas
+            : null
+        );
       }
-    } catch {}
-    setLoading(false);
+    } catch {
+      // silencioso: si no hay reporte aún, está ok
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     load();
   }, []);
 
-  async function guardar(e: any) {
+  async function guardar(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
 
-    await api.post("/reports", {
-      resumen,
-      horas_trabajadas: horas,
-    });
+    setSaving(true);
+    setError(null);
+    setOk(false);
 
-    router.push("/empleado/dashboard");
+    try {
+      // validación mínima (opcional)
+      if (horas !== null && horas < 0) {
+        setError("Las horas no pueden ser negativas.");
+        return;
+      }
+
+      await api.post("/reports", {
+        resumen,
+        horas_trabajadas: horas,
+      });
+
+      setOk(true);
+
+      // redirige al dashboard
+      router.push("/empleado/dashboard");
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.response?.data?.error || "No se pudo guardar el reporte.");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  if (loading) return <p>Cargando...</p>;
+  if (loading) return <p className="app-main">Cargando...</p>;
 
   return (
-    <div className="max-w-xl space-y-4">
+    <div className="app-main max-w-xl space-y-4">
       <h1 className="text-xl font-bold">Reporte del día</h1>
 
-      <form
-        onSubmit={guardar}
-        className="space-y-4 bg-white p-4 border rounded"
-      >
-        <div>
-          <label className="font-semibold">Resumen del trabajo</label>
+      <form onSubmit={guardar} className="card space-y-4">
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        {ok && (
+          <p className="text-sm text-green-600">
+            Reporte guardado correctamente.
+          </p>
+        )}
+
+        <div className="space-y-1">
+          <label className="block text-sm font-medium">
+            Resumen del trabajo
+          </label>
           <textarea
-            className="border w-full px-3 py-2 rounded h-32"
+            className="input h-32 resize-none"
             value={resumen}
             onChange={(e) => setResumen(e.target.value)}
             required
+            placeholder="Describe brevemente lo realizado hoy..."
           />
         </div>
 
-        <div>
-          <label className="font-semibold">Horas trabajadas</label>
+        <div className="space-y-1">
+          <label className="block text-sm font-medium">Horas trabajadas</label>
           <input
             type="number"
-            className="border w-full px-3 py-2 rounded"
+            step="0.25"
+            min="0"
+            className="input"
             value={horas ?? ""}
             onChange={(e) =>
               setHoras(e.target.value ? parseFloat(e.target.value) : null)
             }
+            placeholder="Ej. 8"
           />
+          <p className="text-xs text-muted-foreground">
+            Opcional. Puedes dejarlo vacío si no aplica.
+          </p>
         </div>
 
-        <button className="bg-blue-600 text-white px-4 py-2 rounded">
-          Guardar
-        </button>
+        <div className="flex gap-2">
+          <button type="submit" disabled={saving} className="btn-primary">
+            {saving ? "Guardando..." : "Guardar"}
+          </button>
+
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => router.back()}
+            disabled={saving}
+          >
+            Cancelar
+          </button>
+        </div>
       </form>
     </div>
   );

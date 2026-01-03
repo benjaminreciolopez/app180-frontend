@@ -22,6 +22,7 @@ export function AsignarTurno({ empleado }: { empleado: EmpleadoBasico }) {
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [turnoId, setTurnoId] = useState<string>(empleado.turno_id || "");
   const [saving, setSaving] = useState(false);
+  const [ok, setOk] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -34,19 +35,19 @@ export function AsignarTurno({ empleado }: { empleado: EmpleadoBasico }) {
   async function guardar() {
     if (saving) return;
     setSaving(true);
+    setOk(false);
 
     try {
       await api.put(`/employees/${empleado.id}/turno`, {
         turno_id: turnoId || null,
       });
-      alert("Turno actualizado");
-    } catch (e) {
+      setOk(true);
+    } catch {
       alert("Error al actualizar el turno");
     } finally {
       setSaving(false);
     }
   }
-
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium">Turno asignado</label>
@@ -67,6 +68,11 @@ export function AsignarTurno({ empleado }: { empleado: EmpleadoBasico }) {
       <button onClick={guardar} disabled={saving} className="btn-primary">
         {saving ? "Guardando..." : "Guardar"}
       </button>
+      {ok && (
+        <p className="text-sm text-green-600">
+          Turno actualizado correctamente
+        </p>
+      )}
     </div>
   );
 }

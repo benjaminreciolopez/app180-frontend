@@ -81,7 +81,7 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="kpi-card">
           <span className="kpi-label">Empleados activos</span>
           <span className="kpi-value">{data.empleadosActivos}</span>
@@ -113,7 +113,7 @@ export default function DashboardPage() {
           ) : (
             <ul className="divide-y divide-border">
               {data.trabajandoAhora.map((t) => (
-                <li key={t.id} className="py-2">
+                <li key={t.id} className="py-3">
                   <div className="font-semibold">{t.empleado_nombre}</div>
                   <div className="text-sm text-muted-foreground">
                     Cliente: {t.cliente_nombre || "Sin cliente"} — desde{" "}
@@ -126,6 +126,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ÚLTIMOS FICHAJES */}
+        {/* ÚLTIMOS FICHAJES */}
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">Últimos fichajes</h2>
@@ -136,34 +137,72 @@ export default function DashboardPage() {
               No hay fichajes registrados aún
             </p>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Empleado</th>
-                  <th>Cliente</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              {/* ===== MOBILE (cards) ===== */}
+              <div className="space-y-3 md:hidden">
                 {data.ultimosFichajes.map((f) => (
-                  <tr key={f.id}>
-                    <td>
-                      {fecha(f.created_at)} {hora(f.created_at)}
-                    </td>
-                    <td>{f.empleado_nombre}</td>
-                    <td>{f.cliente_nombre || "—"}</td>
-                    <td>
-                      {f.estado === "ENTRADA" ? (
-                        <span className="badge badge-success">ENTRADA</span>
-                      ) : (
-                        <span className="badge badge-muted">SALIDA</span>
-                      )}
-                    </td>
-                  </tr>
+                  <div
+                    key={f.id}
+                    className="border border-border rounded-lg p-3"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold">{f.empleado_nombre}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {f.cliente_nombre || "Sin cliente"}
+                        </p>
+                      </div>
+
+                      <span
+                        className={
+                          f.estado === "ENTRADA"
+                            ? "badge badge-success"
+                            : "badge badge-muted"
+                        }
+                      >
+                        {f.estado}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {fecha(f.created_at)} · {hora(f.created_at)}
+                    </p>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              {/* ===== DESKTOP (table) ===== */}
+              <div className="hidden md:block">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Empleado</th>
+                      <th>Cliente</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.ultimosFichajes.map((f) => (
+                      <tr key={f.id}>
+                        <td>
+                          {fecha(f.created_at)} {hora(f.created_at)}
+                        </td>
+                        <td>{f.empleado_nombre}</td>
+                        <td>{f.cliente_nombre || "—"}</td>
+                        <td>
+                          {f.estado === "ENTRADA" ? (
+                            <span className="badge badge-success">ENTRADA</span>
+                          ) : (
+                            <span className="badge badge-muted">SALIDA</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>

@@ -9,30 +9,42 @@ export default function NuevoEmpleadoPage() {
 
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function crear(e: any) {
+  async function crear(e: React.FormEvent) {
     e.preventDefault();
 
-    await api.post("/employees", {
-      nombre,
-      email,
-      password,
-    });
+    try {
+      setLoading(true);
 
-    alert("Empleado creado");
-    router.push("/admin/empleados");
+      await api.post("/employees", {
+        nombre,
+        email,
+        // 👇 NO mandamos password
+      });
+
+      alert(
+        "Empleado creado.\n\nContraseña inicial: 123456\nEl empleado deberá cambiarla al iniciar sesión."
+      );
+
+      router.push("/admin/empleados");
+    } catch (err) {
+      console.error(err);
+      alert("Error creando empleado");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="max-w-xl space-y-4">
-      <h1 className="text-xl font-bold">Nuevo empleado</h1>
+    <div className="app-main max-w-xl">
+      <h1 className="text-xl font-bold mb-4">Nuevo empleado</h1>
 
-      <form onSubmit={crear} className="bg-white p-4 border rounded space-y-4">
+      <form onSubmit={crear} className="card space-y-4">
         <div>
-          <label>Nombre</label>
+          <label className="block text-sm font-medium mb-1">Nombre</label>
           <input
-            className="border px-3 py-1 w-full"
+            className="w-full border border-border rounded-md px-3 py-2"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             required
@@ -40,28 +52,25 @@ export default function NuevoEmpleadoPage() {
         </div>
 
         <div>
-          <label>Email</label>
+          <label className="block text-sm font-medium mb-1">Email</label>
           <input
-            className="border px-3 py-1 w-full"
+            type="email"
+            className="w-full border border-border rounded-md px-3 py-2"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
         </div>
 
-        <div>
-          <label>Contraseña inicial</label>
-          <input
-            type="password"
-            className="border px-3 py-1 w-full"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+        {/* INFO PASSWORD */}
+        <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+          <strong>Contraseña inicial:</strong> 123456
+          <br />
+          El empleado deberá cambiarla en su primer inicio de sesión.
         </div>
 
-        <button className="bg-blue-600 text-white px-4 py-2 rounded">
-          Crear
+        <button type="submit" disabled={loading} className="btn-primary w-full">
+          {loading ? "Creando…" : "Crear empleado"}
         </button>
       </form>
     </div>
