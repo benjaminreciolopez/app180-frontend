@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "@/services/api"; // 👈 NUEVO
+import { api } from "@/services/api";
+import { Button } from "@/components/ui/button";
 
 export default function AdminLayout({
   children,
@@ -12,8 +13,9 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [nombre, setNombre] = useState("");
-  const [pendingReports, setPendingReports] = useState<number | null>(null); // 👈 NUEVO
+
+  const [nombre, setNombre] = useState("Administrador");
+  const [pendingReports, setPendingReports] = useState<number | null>(null);
 
   useEffect(() => {
     try {
@@ -25,21 +27,15 @@ export default function AdminLayout({
     } catch {}
   }, []);
 
-  // 👇 Nuevo efecto: cargar contador de reportes pendientes
   useEffect(() => {
     async function loadPending() {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-
         const res = await api.get("/reports/pending-count");
         setPendingReports(res.data?.total ?? 0);
-      } catch (e) {
-        console.error("Error cargando pendientes", e);
+      } catch {
         setPendingReports(null);
       }
     }
-
     loadPending();
   }, []);
 
@@ -55,16 +51,16 @@ export default function AdminLayout({
     { path: "/admin/turnos", label: "Turnos" },
     { path: "/admin/fichajes", label: "Fichajes" },
     { path: "/admin/fichajes/sospechosos", label: "Sospechosos" },
-    { path: "/admin/reportes", label: "Reportes diarios" }, // 👈 ya existía / añadido
+    { path: "/admin/reportes", label: "Reportes diarios" },
   ];
 
   return (
     <div className="flex h-screen">
       {/* SIDEBAR */}
-      <aside className="w-64 bg-neutral-900 text-white p-5 flex flex-col">
+      <aside className="w-64 bg-card border-r border-border p-5 flex flex-col">
         <h2 className="text-xl font-bold tracking-wide">APP180</h2>
 
-        <ul className="mt-8 space-y-3">
+        <ul className="mt-8 space-y-2">
           {menu.map((item) => {
             const isActive = pathname === item.path;
 
@@ -73,19 +69,18 @@ export default function AdminLayout({
                 <Link
                   href={item.path}
                   className={`block px-3 py-2 rounded-md transition ${
-                    isActive ? "bg-blue-600" : "hover:bg-neutral-700"
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span>{item.label}</span>
 
-                    {/* Badge solo en Reportes diarios */}
                     {item.path === "/admin/reportes" &&
                       pendingReports !== null &&
                       pendingReports > 0 && (
-                        <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-600 text-xs px-2 py-0.5">
-                          {pendingReports}
-                        </span>
+                        <span className="badge-danger">{pendingReports}</span>
                       )}
                   </div>
                 </Link>
@@ -94,21 +89,22 @@ export default function AdminLayout({
           })}
         </ul>
 
-        <div className="mt-auto border-t border-neutral-700 pt-4">
-          <p className="text-sm opacity-70 mb-2">Sesión iniciada:</p>
+        <div className="mt-auto border-t border-border pt-4">
+          <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
           <p className="font-semibold">{nombre}</p>
 
-          <button
+          <Button
+            variant="destructive"
+            className="w-full mt-4"
             onClick={logout}
-            className="mt-4 w-full bg-red-600 hover:bg-red-700 px-3 py-2 rounded"
           >
             Cerrar sesión
-          </button>
+          </Button>
         </div>
       </aside>
 
       {/* CONTENT */}
-      <main className="flex-1 bg-neutral-100 p-8 overflow-y-auto">
+      <main className="flex-1 bg-background p-6 overflow-y-auto">
         {children}
       </main>
     </div>
