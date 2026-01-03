@@ -31,6 +31,25 @@ export default function EmpleadosPage() {
 
     setLoading(false);
   }
+  async function cambiarEstadoEmpleado(id: string, activo: boolean) {
+    if (
+      !confirm(
+        activo
+          ? "¿Seguro que quieres ACTIVAR este empleado?"
+          : "¿Seguro que quieres DESACTIVAR este empleado?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await api.patch(`/employees/${id}`, { activo });
+      await loadEmpleados(); // 🔁 refresca tabla
+    } catch (err) {
+      console.error("Error cambiando estado del empleado", err);
+      alert("No se pudo actualizar el estado");
+    }
+  }
 
   useEffect(() => {
     loadEmpleados();
@@ -161,6 +180,17 @@ export default function EmpleadosPage() {
                         {loadingInviteId === e.id
                           ? "Autorizando..."
                           : "Autorizar cambio de dispositivo"}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setOpenMenuId(null);
+                          await cambiarEstadoEmpleado(e.id, !e.activo);
+                        }}
+                        className={`block w-full text-left px-3 py-2 hover:bg-gray-100 ${
+                          e.activo ? "text-red-600" : "text-green-600"
+                        }`}
+                      >
+                        {e.activo ? "Desactivar empleado" : "Activar empleado"}
                       </button>
                     </div>
                   )}
