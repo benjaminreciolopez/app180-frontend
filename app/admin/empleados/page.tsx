@@ -20,6 +20,10 @@ export default function EmpleadosPage() {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [loadingInviteId, setLoadingInviteId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
   async function loadEmpleados() {
     try {
@@ -129,7 +133,19 @@ export default function EmpleadosPage() {
                       className="btn-secondary"
                       onClick={(ev) => {
                         ev.stopPropagation();
-                        setOpenMenuId(openMenuId === e.id ? null : e.id);
+
+                        const rect = ev.currentTarget.getBoundingClientRect();
+
+                        if (openMenuId === e.id) {
+                          setOpenMenuId(null);
+                          setMenuPos(null);
+                        } else {
+                          setOpenMenuId(e.id);
+                          setMenuPos({
+                            top: rect.bottom + window.scrollY,
+                            left: rect.right + window.scrollX,
+                          });
+                        }
                       }}
                     >
                       Opciones
@@ -235,6 +251,74 @@ export default function EmpleadosPage() {
                 Cerrar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {openMenuId && menuPos && (
+        <div
+          className="fixed z-[9999]"
+          style={{
+            top: menuPos.top,
+            left: menuPos.left - 224, // ancho del menú (w-56)
+          }}
+          onClick={(ev) => ev.stopPropagation()}
+        >
+          <div className="bg-card shadow-lg border border-border rounded-md w-56">
+            {(() => {
+              const e = empleados.find((x) => x.id === openMenuId);
+              if (!e) return null;
+
+              return (
+                <>
+                  <button
+                    disabled={loadingInviteId === e.id}
+                    onClick={async () => {
+                      setLoadingInviteId(e.id);
+                      const res = await api.post(`/employees/${e.id}/invite`);
+                      setInviteUrl(res.data.installUrl);
+                      setOpenMenuId(null);
+                      setMenuPos(null);
+                      setLoadingInviteId(null);
+                    }}
+                    className="block w-full text-left px-3 py-2 hover:bg-muted"
+                  >
+                    {loadingInviteId === e.id
+                      ? "Generando invitación..."
+                      : "Invitar / Reenviar"}
+                  </button>
+
+                  <button
+                    disabled={loadingInviteId === e.id}
+                    onClick={async () => {
+                      setLoadingInviteId(e.id);
+                      const res = await api.post(
+                        `/employees/${e.id}/invite?tipo=cambio`
+                      );
+                      setInviteUrl(res.data.installUrl);
+                      setOpenMenuId(null);
+                      setMenuPos(null);
+                      setLoadingInviteId(null);
+                    }}
+                    className="block w-full text-left px-3 py-2 hover:bg-muted text-orange-600"
+                  >
+                    Autorizar cambio dispositivo
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      setOpenMenuId(null);
+                      setMenuPos(null);
+                      await cambiarEstadoEmpleado(e.id, !e.activo);
+                    }}
+                    className={`block w-full text-left px-3 py-2 hover:bg-muted ${
+                      e.activo ? "text-red-600" : "text-green-600"
+                    }`}
+                  >
+                    {e.activo ? "Desactivar empleado" : "Activar empleado"}
+                  </button>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
