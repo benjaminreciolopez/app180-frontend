@@ -9,6 +9,8 @@ export default function ParteEmpleadoPage() {
 
   const [resumen, setResumen] = useState("");
   const [horas, setHoras] = useState<number | null>(null);
+  const bloqueado =
+    report?.estado === "aprobado" || report?.estado === "rechazado";
 
   async function load() {
     try {
@@ -45,8 +47,26 @@ export default function ParteEmpleadoPage() {
   if (loading) return <p>Cargando...</p>;
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="app-main space-y-6 pb-24">
       <h1 className="text-xl font-bold">Parte Diario</h1>
+
+      {report?.estado === "pendiente" && (
+        <p className="text-sm text-yellow-600">
+          Este parte será revisado por tu responsable.
+        </p>
+      )}
+
+      {report?.estado === "aprobado" && (
+        <p className="text-sm text-green-600">
+          Parte aprobado. No se puede modificar.
+        </p>
+      )}
+
+      {report?.estado === "rechazado" && (
+        <p className="text-sm text-red-600">
+          Parte rechazado. Contacta con tu responsable.
+        </p>
+      )}
 
       {report && (
         <div className="p-3 border rounded bg-white">
@@ -74,31 +94,25 @@ export default function ParteEmpleadoPage() {
             ¿Qué has hecho hoy?
           </label>
           <textarea
-            className="border px-3 py-2 w-full"
-            rows={5}
+            disabled={bloqueado}
+            className="border px-3 py-2 w-full disabled:bg-gray-100"
             value={resumen}
             onChange={(e) => setResumen(e.target.value)}
             required
           />
         </div>
+        {!bloqueado && (
+          <button className="w-full bg-blue-600 text-white py-3 rounded text-lg">
+            Guardar parte
+          </button>
+        )}
 
-        <div>
-          <label className="block mb-1 font-semibold">
-            Horas trabajadas hoy
-          </label>
-          <input
-            type="number"
-            className="border px-3 py-1 w-full"
-            value={horas ?? ""}
-            onChange={(e) =>
-              setHoras(e.target.value ? parseFloat(e.target.value) : null)
-            }
-          />
-        </div>
-
-        <button className="bg-blue-600 text-white px-4 py-2 rounded">
-          Guardar
-        </button>
+        {report && (
+          <div className="p-3 border rounded bg-gray-50 text-sm">
+            <b>Horas registradas automáticamente:</b> {report.horas_trabajadas}{" "}
+            h
+          </div>
+        )}
       </form>
     </div>
   );
