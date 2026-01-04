@@ -54,6 +54,11 @@ export default function EmpleadosPage() {
       alert("No se pudo actualizar el estado");
     }
   }
+  useEffect(() => {
+    if (!openMenuId) {
+      setLoadingInviteId(null);
+    }
+  }, [openMenuId]);
 
   useEffect(() => {
     loadEmpleados();
@@ -73,6 +78,7 @@ export default function EmpleadosPage() {
         <h1 className="text-2xl font-bold">Empleados</h1>
 
         <button
+          type="button"
           className="btn-primary w-fit"
           onClick={() => (window.location.href = "/admin/empleados/nuevo")}
         >
@@ -105,6 +111,7 @@ export default function EmpleadosPage() {
                     <span className="badge-danger">Inactivo</span>
                   )}
                 </td>
+                <td>{e.turno_nombre || "Sin turno"}</td>
 
                 <td>
                   {!e.device_hash && (
@@ -130,6 +137,7 @@ export default function EmpleadosPage() {
 
                   <div className="inline-block relative">
                     <button
+                      type="button"
                       className="btn-secondary"
                       onClick={(ev) => {
                         ev.stopPropagation();
@@ -150,61 +158,6 @@ export default function EmpleadosPage() {
                     >
                       Opciones
                     </button>
-
-                    {openMenuId === e.id && (
-                      <div
-                        className="absolute right-0 bg-card shadow-lg border border-border rounded-md mt-2 w-56 z-50"
-                        onClick={(ev) => ev.stopPropagation()}
-                      >
-                        <button
-                          disabled={loadingInviteId === e.id}
-                          onClick={async () => {
-                            setLoadingInviteId(e.id);
-                            const res = await api.post(
-                              `/employees/${e.id}/invite`
-                            );
-                            setInviteUrl(res.data.installUrl);
-                            setOpenMenuId(null);
-                            setLoadingInviteId(null);
-                          }}
-                          className="block w-full text-left px-3 py-2 hover:bg-muted"
-                        >
-                          {loadingInviteId === e.id
-                            ? "Generando invitación..."
-                            : "Invitar / Reenviar"}
-                        </button>
-
-                        <button
-                          disabled={loadingInviteId === e.id}
-                          onClick={async () => {
-                            setLoadingInviteId(e.id);
-                            const res = await api.post(
-                              `/employees/${e.id}/invite?tipo=cambio`
-                            );
-                            setInviteUrl(res.data.installUrl);
-                            setOpenMenuId(null);
-                            setLoadingInviteId(null);
-                          }}
-                          className="block w-full text-left px-3 py-2 hover:bg-muted text-orange-600"
-                        >
-                          Autorizar cambio dispositivo
-                        </button>
-
-                        <button
-                          onClick={async () => {
-                            setOpenMenuId(null);
-                            await cambiarEstadoEmpleado(e.id, !e.activo);
-                          }}
-                          className={`block w-full text-left px-3 py-2 hover:bg-muted ${
-                            e.activo ? "text-red-600" : "text-green-600"
-                          }`}
-                        >
-                          {e.activo
-                            ? "Desactivar empleado"
-                            : "Activar empleado"}
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </td>
               </tr>
@@ -228,6 +181,7 @@ export default function EmpleadosPage() {
 
             <div className="flex flex-wrap gap-2">
               <button
+                type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(inviteUrl);
                 }}
@@ -245,6 +199,7 @@ export default function EmpleadosPage() {
               </a>
 
               <button
+                type="button"
                 onClick={() => setInviteUrl(null)}
                 className="btn-outline ml-auto"
               >
@@ -271,14 +226,18 @@ export default function EmpleadosPage() {
               return (
                 <>
                   <button
+                    type="button"
                     disabled={loadingInviteId === e.id}
                     onClick={async () => {
                       setLoadingInviteId(e.id);
-                      const res = await api.post(`/employees/${e.id}/invite`);
-                      setInviteUrl(res.data.installUrl);
-                      setOpenMenuId(null);
-                      setMenuPos(null);
-                      setLoadingInviteId(null);
+                      try {
+                        const res = await api.post(`/employees/${e.id}/invite`);
+                        setInviteUrl(res.data.installUrl);
+                      } catch {
+                        alert("No se pudo generar la invitación");
+                      } finally {
+                        setLoadingInviteId(null);
+                      }
                     }}
                     className="block w-full text-left px-3 py-2 hover:bg-muted"
                   >
@@ -288,6 +247,7 @@ export default function EmpleadosPage() {
                   </button>
 
                   <button
+                    type="button"
                     disabled={loadingInviteId === e.id}
                     onClick={async () => {
                       setLoadingInviteId(e.id);
@@ -305,6 +265,7 @@ export default function EmpleadosPage() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={async () => {
                       setOpenMenuId(null);
                       setMenuPos(null);

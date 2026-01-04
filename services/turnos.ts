@@ -2,20 +2,11 @@
 import { api } from "./api";
 
 export async function getTurnos() {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-  console.log("TOKEN EN TURNOS:", token);
-
-  const res = await api.get("/turnos", {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-
+  const res = await api.get("/turnos");
   return res.data;
 }
 
 export async function getTurno(id: string) {
-  // backend: router.get("/detalle/:id", getTurno);
   const res = await api.get(`/turnos/detalle/${id}`);
   return res.data;
 }
