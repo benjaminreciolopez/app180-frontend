@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import ForceChangePasswordModal from "@/components/ForceChangePasswordModal";
+import AuthInit from "@/components/AuthInit";
 
 export default function RootLayout({
   children,
@@ -12,6 +13,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className="app-shell">
         <ThemeProvider>
+          <AuthInit />
           {children}
           <ForceChangePasswordModal />
         </ThemeProvider>
