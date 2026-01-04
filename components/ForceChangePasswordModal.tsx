@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, setAuthToken } from "@/services/api";
 
 export default function ForceChangePasswordModal() {
@@ -8,6 +8,23 @@ export default function ForceChangePasswordModal() {
   const [next, setNext] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const raw = localStorage.getItem("user");
+    if (!raw) return;
+
+    try {
+      const user = JSON.parse(raw);
+      if (user.password_forced === true) {
+        setVisible(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  if (!visible) return null;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,6 +44,10 @@ export default function ForceChangePasswordModal() {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
       setAuthToken(token);
+
+      // 🔓 desbloqueado
+      setVisible(false);
+      window.location.reload();
 
       // 🔓 desbloqueado → recargar app
       window.location.reload();
