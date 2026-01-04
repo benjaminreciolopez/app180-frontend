@@ -28,22 +28,36 @@ export function setAuthToken(token?: string | null) {
 }
 
 // ===============================
-// INTERCEPTOR DE ERROR
+// INTERCEPTOR DE ERROR (CLAVE)
 // ===============================
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (typeof window !== "undefined" && err?.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
+    if (typeof window !== "undefined") {
+      const status = err?.response?.status;
+      const code = err?.response?.data?.code;
+
+      // 🔐 BLOQUEO POR PASSWORD FORZADA
+      if (code === "PASSWORD_FORCED") {
+        window.dispatchEvent(new CustomEvent("password-forced"));
+        return Promise.reject(err);
+      }
+
+      // 🔒 TOKEN INVÁLIDO / EXPIRADO
+      if (status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(err);
   }
 );
 
-// Para cada petición leemos SIEMPRE el token almacenado
+// ===============================
+// REQUEST INTERCEPTOR
+// ===============================
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("token");

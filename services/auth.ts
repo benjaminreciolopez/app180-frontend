@@ -9,6 +9,7 @@ export interface AppJwtPayload extends JwtPayload {
   nombre: string;
   empleado_id?: string | null;
   device_hash?: string | null;
+  password_forced?: boolean;
 }
 
 export async function login(
@@ -87,6 +88,8 @@ export async function login(
     token,
     user,
     decoded,
+    mustChangePassword:
+      decoded.role === "empleado" && decoded.password_forced === true,
   };
 }
 
