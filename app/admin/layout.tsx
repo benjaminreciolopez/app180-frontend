@@ -14,20 +14,41 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-  const [nombre, setNombre] = useState("Administrador");
+  const [nombre, setNombre] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
   const [pendingReports, setPendingReports] = useState<number | null>(null);
 
+  // 🔐 VALIDACIÓN DE SESIÓN
   useEffect(() => {
     try {
+      const token = localStorage.getItem("token");
       const userRaw = localStorage.getItem("user");
-      if (userRaw) {
-        const u = JSON.parse(userRaw);
-        setNombre(u.nombre || "Administrador");
-      }
-    } catch {}
-  }, []);
 
+      if (!token || !userRaw) {
+        router.replace("/login");
+        return;
+      }
+
+      const user = JSON.parse(userRaw);
+
+      if (user.role !== "admin") {
+        router.replace("/login");
+        return;
+      }
+
+      setNombre(user.nombre || "Administrador");
+    } catch {
+      router.replace("/login");
+      return;
+    } finally {
+      setChecking(false);
+    }
+  }, [router]);
+
+  // 🔄 CONTADOR REPORTES
   useEffect(() => {
+    if (checking) return;
+
     async function loadPending() {
       try {
         const res = await api.get("/reports/pending-count");
@@ -36,13 +57,18 @@ export default function AdminLayout({
         setPendingReports(null);
       }
     }
+
     loadPending();
-  }, []);
+  }, [checking]);
 
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    router.push("/login");
+    router.replace("/login");
+  }
+
+  if (checking) {
+    return <div className="p-6">Cargando sesión…</div>;
   }
 
   const menu = [
@@ -56,37 +82,31 @@ export default function AdminLayout({
 
   return (
     <div className="flex h-screen">
-      {/* SIDEBAR */}
       <aside className="w-64 bg-card border-r border-border p-5 flex flex-col">
         <h2 className="text-xl font-bold tracking-wide">APP180</h2>
 
         <ul className="mt-8 space-y-2">
-          {menu.map((item) => {
-            const isActive = pathname === item.path;
-
-            return (
-              <li key={item.path}>
-                <Link
-                  href={item.path}
-                  className={`block px-3 py-2 rounded-md transition ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>{item.label}</span>
-
-                    {item.path === "/admin/reportes" &&
-                      pendingReports !== null &&
-                      pendingReports > 0 && (
-                        <span className="badge-danger">{pendingReports}</span>
-                      )}
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
+          {menu.map((item) => (
+            <li key={item.path}>
+              <Link
+                href={item.path}
+                className={`block px-3 py-2 rounded-md transition ${
+                  pathname === item.path
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>{item.label}</span>
+                  {item.path === "/admin/reportes" &&
+                    pendingReports &&
+                    pendingReports > 0 && (
+                      <span className="badge-danger">{pendingReports}</span>
+                    )}
+                </div>
+              </Link>
+            </li>
+          ))}
         </ul>
 
         <div className="mt-auto border-t border-border pt-4">
@@ -103,7 +123,6 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      {/* CONTENT */}
       <main className="flex-1 bg-background p-6 overflow-y-auto">
         {children}
       </main>
