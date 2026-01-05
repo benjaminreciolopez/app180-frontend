@@ -2,16 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
-
-interface Fichaje {
-  id: string;
+interface FichajeAPI {
+  jornada_id: string;
   nombre_empleado: string;
   fecha: string;
-  tipo: string;
+  tipo: "entrada" | "salida" | "descanso_inicio" | "descanso_fin";
   sospechoso?: boolean;
-  sospecha_motivo?: string;
   nota?: string | null;
 }
+
 interface JornadaUI {
   jornada_id: string;
   empleado: string;
@@ -21,7 +20,7 @@ interface JornadaUI {
   estado: "OK" | "Sospechoso";
   motivo?: string | null;
 }
-function agruparPorJornada(fichajes: any[]): JornadaUI[] {
+function agruparPorJornada(fichajes: FichajeAPI[]): JornadaUI[] {
   const map = new Map<string, JornadaUI>();
 
   for (const f of fichajes) {
@@ -39,8 +38,8 @@ function agruparPorJornada(fichajes: any[]): JornadaUI[] {
 
     const j = map.get(f.jornada_id)!;
 
-    if (f.nota && !j.motivo) {
-      j.motivo = f.nota;
+    if (f.nota) {
+      j.motivo = j.motivo ? `${j.motivo} | ${f.nota}` : f.nota;
     }
 
     if (f.tipo === "entrada") j.entrada = f.fecha;
@@ -50,7 +49,9 @@ function agruparPorJornada(fichajes: any[]): JornadaUI[] {
     if (f.sospechoso) j.estado = "Sospechoso";
   }
 
-  return Array.from(map.values()).sort((a, b) => (b.fecha > a.fecha ? 1 : -1));
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+  );
 }
 
 function withLocalOffset(dateStr: string, timeStr: string) {
@@ -157,7 +158,7 @@ export default function FichajesPage() {
 
       const res = await api.get(url);
       const jornadas = agruparPorJornada(res.data || []);
-      setFichajes(jornadas as any);
+      setFichajes(jornadas);
     } catch (e) {
       console.error("Error cargando fichajes", e);
     }
