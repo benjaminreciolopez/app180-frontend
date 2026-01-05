@@ -13,7 +13,7 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-
+  const [menuOpen, setMenuOpen] = useState(false);
   const [nombre, setNombre] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
   const [pendingReports, setPendingReports] = useState<number | null>(null);
@@ -82,7 +82,30 @@ export default function AdminLayout({
 
   return (
     <div className="flex h-screen">
-      <aside className="w-64 bg-card border-r border-border p-5 flex flex-col">
+      {menuOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`
+    fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border p-5
+    transform transition-transform
+    ${menuOpen ? "translate-x-0" : "-translate-x-full"}
+    md:static md:translate-x-0
+  `}
+      >
+        <div className="md:hidden mb-4">
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="text-sm text-muted-foreground"
+          >
+            ✕ Cerrar
+          </button>
+        </div>
+
         <h2 className="text-xl font-bold tracking-wide">APP180</h2>
 
         <ul className="mt-8 space-y-2">
@@ -90,6 +113,7 @@ export default function AdminLayout({
             <li key={item.path}>
               <Link
                 href={item.path}
+                onClick={() => setMenuOpen(false)}
                 className={`block px-3 py-2 rounded-md transition ${
                   pathname === item.path
                     ? "bg-primary text-primary-foreground"
@@ -122,6 +146,16 @@ export default function AdminLayout({
           </Button>
         </div>
       </aside>
+      <div className="md:hidden sticky top-0 bg-background z-20 flex items-center gap-2 p-2 border-b">
+        <button
+          aria-label="Abrir menú"
+          onClick={() => setMenuOpen(true)}
+          className="p-2 border rounded"
+        >
+          ☰
+        </button>
+        <span className="ml-3 font-semibold">APP180</span>
+      </div>
 
       <main className="flex-1 bg-background p-6 overflow-y-auto">
         {children}
