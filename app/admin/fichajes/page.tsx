@@ -6,10 +6,8 @@ import { api } from "@/services/api";
 interface Fichaje {
   id: string;
   nombre_empleado: string;
-  fecha: string;
+  fecha: string; // timestamp completo
   tipo: string;
-  hora_entrada?: string;
-  hora_salida?: string;
   sospechoso?: boolean;
   sospecha_motivo?: string;
 }
@@ -23,25 +21,68 @@ export default function FichajesPage() {
   const [form, setForm] = useState({
     empleado_id: "",
     fecha: "",
-    entrada: "",
-    salida: "",
-    tipo: "",
+    tipo: "entrada", // entrada | salida | completa
+    hora: "",
+    horaEntrada: "",
+    horaSalida: "",
   });
+
   async function loadEmpleados() {
     const res = await api.get("/employees");
     setEmpleados(res.data || []);
   }
   async function registrar() {
     try {
-      await api.post("/fichajes/manual", {
-        empleado_id: form.empleado_id,
-        fecha: form.fecha,
-        tipo: form.tipo,
-        hora_entrada: form.entrada,
-        hora_salida: form.salida || null,
-      });
+      if (!form.empleado_id || !form.fecha) {
+        alert("Empleado y fecha obligatorios");
+        return;
+      }
 
-      alert("Fichaje creado");
+      // 👉 Entrada o salida
+      if (form.tipo !== "completa") {
+        if (!form.hora) {
+          alert("Debes indicar la hora");
+          return;
+        }
+
+        const fechaHora = `${form.fecha}T${form.hora}:00`;
+
+        await api.post("/fichajes/manual", {
+          empleado_id: form.empleado_id,
+          tipo: form.tipo,
+          fecha_hora: fechaHora,
+        });
+      }
+
+      // 👉 Jornada completa (2 fichajes)
+      else {
+        if (!form.horaEntrada || !form.horaSalida) {
+          alert("Debes indicar hora de entrada y salida");
+          return;
+        }
+
+        const entrada = `${form.fecha}T${form.horaEntrada}:00`;
+        const salida = `${form.fecha}T${form.horaSalida}:00`;
+
+        if (entrada >= salida) {
+          alert("La salida debe ser posterior a la entrada");
+          return;
+        }
+
+        await api.post("/fichajes/manual", {
+          empleado_id: form.empleado_id,
+          tipo: "entrada",
+          fecha_hora: entrada,
+        });
+
+        await api.post("/fichajes/manual", {
+          empleado_id: form.empleado_id,
+          tipo: "salida",
+          fecha_hora: salida,
+        });
+      }
+
+      alert("Fichaje creado correctamente");
       setShowModal(false);
       loadFichajes();
     } catch (e) {
@@ -130,12 +171,13 @@ export default function FichajesPage() {
           </tr>
         </thead>
         {showModal && (
-          <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
-            <div className="bg-white p-6 rounded w-[400px]">
-              <h2 className="text-xl font-bold mb-4">Nuevo Fichaje</h2>
+          <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded w-[400px] space-y-3">
+              <h2 className="text-xl font-bold mb-2">Nuevo fichaje manual</h2>
 
+              {/* EMPLEADO */}
               <select
-                className="border p-2 w-full mb-3"
+                className="border p-2 w-full"
                 value={form.empleado_id}
                 onChange={(e) =>
                   setForm({ ...form, empleado_id: e.target.value })
@@ -148,43 +190,76 @@ export default function FichajesPage() {
                   </option>
                 ))}
               </select>
+
+              {/* TIPO */}
               <select
-                className="border p-2 w-full mb-3"
+                className="border p-2 w-full"
                 value={form.tipo}
                 onChange={(e) => setForm({ ...form, tipo: e.target.value })}
               >
-                <option value="">Seleccionar tipo</option>
                 <option value="entrada">Entrada</option>
                 <option value="salida">Salida</option>
-                <option value="descanso_inicio">Inicio descanso</option>
-                <option value="descanso_fin">Fin descanso</option>
+                <option value="completa">Jornada completa</option>
               </select>
 
+              {/* FECHA */}
               <input
                 type="date"
-                className="border p-2 w-full mb-3"
+                className="border p-2 w-full"
                 value={form.fecha}
                 onChange={(e) => setForm({ ...form, fecha: e.target.value })}
               />
 
-              <input
-                type="time"
-                className="border p-2 w-full mb-3"
-                value={form.entrada}
-                onChange={(e) => setForm({ ...form, entrada: e.target.value })}
-              />
+              {/* HORA ÚNICA */}
+              {form.tipo !== "completa" && (
+                <input
+                  type="time"
+                  className="border p-2 w-full"
+                  value={form.hora}
+                  onChange={(e) => setForm({ ...form, hora: e.target.value })}
+                />
+              )}
 
-              <input
-                type="time"
-                className="border p-2 w-full mb-3"
-                value={form.salida}
-                onChange={(e) => setForm({ ...form, salida: e.target.value })}
-              />
+              {/* JORNADA COMPLETA */}
+              {form.tipo === "completa" && (
+                <>
+                  <input
+                    type="time"
+                    className="border p-2 w-full"
+                    placeholder="Hora de entrada"
+                    value={form.horaEntrada}
+                    onChange={(e) =>
+                      setForm({ ...form, horaEntrada: e.target.value })
+                    }
+                  />
 
-              <div className="flex justify-end gap-3">
+                  <input
+                    type="time"
+                    className="border p-2 w-full"
+                    placeholder="Hora de salida"
+                    value={form.horaSalida}
+                    onChange={(e) =>
+                      setForm({ ...form, horaSalida: e.target.value })
+                    }
+                  />
+                </>
+              )}
+
+              {/* ACCIONES */}
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   className="px-3 py-2 bg-gray-300 rounded"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setForm({
+                      empleado_id: "",
+                      fecha: "",
+                      tipo: "entrada",
+                      hora: "",
+                      horaEntrada: "",
+                      horaSalida: "",
+                    });
+                  }}
                 >
                   Cancelar
                 </button>
@@ -206,8 +281,23 @@ export default function FichajesPage() {
               <td className="p-3">{f.nombre_empleado}</td>
               <td className="p-3">{f.fecha}</td>
               <td className="p-3">{f.tipo}</td>
-              <td className="p-3">{f.hora_entrada || "-"}</td>
-              <td className="p-3">{f.hora_salida || "-"}</td>
+              <td className="p-3">
+                {f.tipo === "entrada" || f.tipo === "salida"
+                  ? new Date(f.fecha).toLocaleTimeString("es-ES", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "-"}
+              </td>
+
+              <td className="p-3">
+                {f.tipo === "salida"
+                  ? new Date(f.fecha).toLocaleTimeString("es-ES", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "-"}
+              </td>
               <td className="p-3">
                 {f.sospechoso ? (
                   <span className="text-red-600 font-semibold">Sospechoso</span>
