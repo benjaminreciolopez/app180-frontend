@@ -6,30 +6,28 @@ const API_BASE =
 
 export const api = axios.create({
   baseURL: API_BASE,
+  // ❌ NO withCredentials (usamos JWT en header, no cookies)
 });
 
-// Al cargar, intentar poner el token actual
-if (typeof window !== "undefined") {
-  const token = localStorage.getItem("token");
-  if (token) {
-    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-  }
-}
+// ======================================================
+// REQUEST INTERCEPTOR → AÑADE EL TOKEN SIEMPRE
+// ======================================================
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
 
-// ===============================
-// JWT TOKEN MANAGEMENT
-// ===============================
-export function setAuthToken(token?: string | null) {
-  if (token) {
-    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-  } else {
-    delete api.defaults.headers.common["Authorization"];
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
-}
 
-// ===============================
-// INTERCEPTOR DE ERROR (CLAVE)
-// ===============================
+  return config;
+});
+
+// ======================================================
+// RESPONSE INTERCEPTOR → CONTROL DE SEGURIDAD GLOBAL
+// ======================================================
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -37,7 +35,7 @@ api.interceptors.response.use(
       const status = err?.response?.status;
       const code = err?.response?.data?.code;
 
-      // 🔐 BLOQUEO POR PASSWORD FORZADA
+      // 🔐 PASSWORD FORZADA (empleados)
       if (code === "PASSWORD_FORCED") {
         window.dispatchEvent(new CustomEvent("password-forced"));
         return Promise.reject(err);
@@ -55,17 +53,17 @@ api.interceptors.response.use(
   }
 );
 
-// ===============================
-// REQUEST INTERCEPTOR
-// ===============================
-api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
+// ======================================================
+// HELPER OPCIONAL (login / logout)
+// ======================================================
+export function setAuthToken(token?: string | null) {
+  if (typeof window === "undefined") return;
 
-  return config;
-});
+  if (token) {
+    localStorage.setItem("token", token);
+    api.defaults.headers.common.Authorization = `Bearer ${token}`;
+  } else {
+    localStorage.removeItem("token");
+    delete api.defaults.headers.common.Authorization;
+  }
+}
