@@ -112,8 +112,13 @@ export default function EmpleadosPage() {
                     <span className="badge-danger">Inactivo</span>
                   )}
                 </td>
-                <td>{e.turno_nombre || "Sin turno"}</td>
-                <span className="badge-muted">Sin turno</span>
+                <td>
+                  {e.turno_nombre ? (
+                    <span className="badge-info">{e.turno_nombre}</span>
+                  ) : (
+                    <span className="badge-muted">Sin turno</span>
+                  )}
+                </td>
 
                 <td>
                   {!e.device_hash && (
