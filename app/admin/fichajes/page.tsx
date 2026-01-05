@@ -12,10 +12,59 @@ interface Fichaje {
   sospecha_motivo?: string;
   nota?: string | null;
 }
+interface JornadaUI {
+  jornada_id: string;
+  empleado: string;
+  fecha: string; // YYYY-MM-DD
+  entrada?: string; // ISO
+  salida?: string; // ISO
+  estado: "OK" | "Sospechoso";
+  motivo?: string | null;
+}
+function agruparPorJornada(fichajes: any[]): JornadaUI[] {
+  const map = new Map<string, JornadaUI>();
+
+  for (const f of fichajes) {
+    if (!f.jornada_id) continue;
+
+    if (!map.has(f.jornada_id)) {
+      map.set(f.jornada_id, {
+        jornada_id: f.jornada_id,
+        empleado: f.nombre_empleado,
+        fecha: f.fecha.split("T")[0],
+        estado: f.sospechoso ? "Sospechoso" : "OK",
+        motivo: f.nota,
+      });
+    }
+
+    const j = map.get(f.jornada_id)!;
+
+    if (f.nota && !j.motivo) {
+      j.motivo = f.nota;
+    }
+
+    if (f.tipo === "entrada") j.entrada = f.fecha;
+    if (f.tipo === "salida") j.salida = f.fecha;
+
+    // si alguno es sospechoso, toda la jornada lo es
+    if (f.sospechoso) j.estado = "Sospechoso";
+  }
+
+  return Array.from(map.values()).sort((a, b) => (b.fecha > a.fecha ? 1 : -1));
+}
+
+function withLocalOffset(dateStr: string, timeStr: string) {
+  const d = new Date(`${dateStr}T${timeStr}:00`);
+  const off = -d.getTimezoneOffset(); // minutos
+  const sign = off >= 0 ? "+" : "-";
+  const hh = String(Math.floor(Math.abs(off) / 60)).padStart(2, "0");
+  const mm = String(Math.abs(off) % 60).padStart(2, "0");
+  return `${dateStr}T${timeStr}:00${sign}${hh}:${mm}`;
+}
 
 export default function FichajesPage() {
   const [loading, setLoading] = useState(true);
-  const [fichajes, setFichajes] = useState<Fichaje[]>([]);
+  const [fichajes, setFichajes] = useState<JornadaUI[]>([]);
   const [filtro, setFiltro] = useState("todos");
   const [showModal, setShowModal] = useState(false);
   const [empleados, setEmpleados] = useState<any[]>([]);
@@ -47,7 +96,7 @@ export default function FichajesPage() {
           return;
         }
 
-        const fechaHora = `${form.fecha}T${form.hora}:00`;
+        const fechaHora = withLocalOffset(form.fecha, form.hora);
 
         await api.post("/fichajes/manual", {
           empleado_id: form.empleado_id,
@@ -64,8 +113,8 @@ export default function FichajesPage() {
           return;
         }
 
-        const entrada = `${form.fecha}T${form.horaEntrada}:00`;
-        const salida = `${form.fecha}T${form.horaSalida}:00`;
+        const entrada = withLocalOffset(form.fecha, form.horaEntrada);
+        const salida = withLocalOffset(form.fecha, form.horaSalida);
 
         if (entrada >= salida) {
           alert("La salida debe ser posterior a la entrada");
@@ -107,7 +156,8 @@ export default function FichajesPage() {
       if (filtro === "sospechosos") url = "/fichajes/sospechosos";
 
       const res = await api.get(url);
-      setFichajes(res.data || []);
+      const jornadas = agruparPorJornada(res.data || []);
+      setFichajes(jornadas as any);
     } catch (e) {
       console.error("Error cargando fichajes", e);
     }
@@ -168,7 +218,6 @@ export default function FichajesPage() {
           <tr className="bg-gray-100">
             <th className="p-3 text-left">Empleado</th>
             <th className="p-3 text-left">Fecha</th>
-            <th className="p-3 text-left">Tipo</th>
             <th className="p-3 text-left">Entrada</th>
             <th className="p-3 text-left">Salida</th>
             <th className="p-3 text-left">Estado</th>
@@ -289,13 +338,13 @@ export default function FichajesPage() {
 
         <tbody>
           {fichajes.map((f) => (
-            <tr key={f.id} className="border-b">
-              <td className="p-3">{f.nombre_empleado}</td>
+            <tr key={f.jornada_id} className="border-b">
+              <td className="p-3">{f.empleado}</td>
               <td className="p-3">{f.fecha}</td>
-              <td className="p-3">{f.tipo}</td>
+
               <td className="p-3">
-                {f.tipo === "entrada" || f.tipo === "salida"
-                  ? new Date(f.fecha).toLocaleTimeString("es-ES", {
+                {f.entrada
+                  ? new Date(f.entrada).toLocaleTimeString("es-ES", {
                       hour: "2-digit",
                       minute: "2-digit",
                     })
@@ -303,21 +352,23 @@ export default function FichajesPage() {
               </td>
 
               <td className="p-3">
-                {f.tipo === "salida"
-                  ? new Date(f.fecha).toLocaleTimeString("es-ES", {
+                {f.salida
+                  ? new Date(f.salida).toLocaleTimeString("es-ES", {
                       hour: "2-digit",
                       minute: "2-digit",
                     })
                   : "-"}
               </td>
+
               <td className="p-3">
-                {f.sospechoso ? (
+                {f.estado === "Sospechoso" ? (
                   <span className="text-red-600 font-semibold">Sospechoso</span>
                 ) : (
                   <span className="text-green-600 font-semibold">OK</span>
                 )}
               </td>
-              <td className="p-3">{f.nota || "-"}</td>
+
+              <td className="p-3">{f.motivo || "-"}</td>
             </tr>
           ))}
         </tbody>
