@@ -43,9 +43,18 @@ api.interceptors.response.use(
 
       // 🔒 TOKEN INVÁLIDO / EXPIRADO
       if (status === 401) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
+        const url = err?.config?.url || "";
+
+        // 🔐 SOLO LOGOUT si falla auth REAL
+        if (
+          url.startsWith("/auth") ||
+          url === "/empleado/dashboard" ||
+          url === "/admin/dashboard"
+        ) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+        }
       }
     }
 
