@@ -1,10 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createTurno } from "@/services/turnos";
-import { useRouter } from "next/navigation";
 
-export default function CrearTurnoForm({ onClose }: any) {
+export default function CrearTurnoForm() {
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -26,8 +26,7 @@ export default function CrearTurnoForm({ onClose }: any) {
 
   async function guardar() {
     await createTurno(form);
-    router.refresh(); // refresca página server component
-    onClose();
+    router.push("/admin/turnos"); // 👈 navegación aquí
   }
 
   return (
@@ -158,16 +157,18 @@ export default function CrearTurnoForm({ onClose }: any) {
       </div>
 
       <div className="flex justify-end gap-2 mt-5">
-        <button onClick={onClose} className="px-4 py-2 border rounded">
+        <button
+          onClick={() => router.push("/admin/turnos")}
+          className="px-4 py-2 border rounded"
+        >
           Cancelar
         </button>
-
         <button
           onClick={guardar}
           className="px-4 py-2 bg-green-600 text-white rounded"
         >
           Guardar
-        </button>
+        </button>{" "}
       </div>
     </div>
   );
