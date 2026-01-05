@@ -146,7 +146,7 @@ export default function AdminLayout({
           </Button>
         </div>
       </aside>
-      <div className="md:hidden sticky top-0 bg-background z-20 flex items-center gap-2 p-2 border-b">
+      <div className="md:hidden sticky top-0 bg-background z-20">
         <button
           aria-label="Abrir menú"
           onClick={() => setMenuOpen(true)}
