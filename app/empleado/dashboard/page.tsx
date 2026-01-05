@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { FichajeAction } from "./FichajeAction";
 import type { AccionFichaje } from "./FichajeAction";
-
-/* =========================
-   TIPOS
-========================= */
 
 type FichajeHoy = {
   id: string;
@@ -17,20 +13,32 @@ type FichajeHoy = {
 
 type DashboardData = {
   nombre?: string;
-  turno?: {
-    nombre?: string;
-  };
+  turno?: { nombre?: string | null } | null;
   fichando?: boolean;
   estado_label?: string;
-  estado_color?: string;
+  estado_color?: string; // "green-600" | "red-600" ...
   minutos_trabajados_hoy?: string;
   accion?: AccionFichaje | null;
   fichajes_hoy?: FichajeHoy[];
 };
 
-/* =========================
-   COMPONENTE
-========================= */
+function colorClass(color?: string) {
+  // Evita Tailwind dinámico. Lista cerrada.
+  switch (color) {
+    case "green-600":
+      return "text-green-600";
+    case "red-600":
+      return "text-red-600";
+    case "yellow-600":
+      return "text-yellow-600";
+    case "blue-600":
+      return "text-blue-600";
+    case "gray-500":
+      return "text-gray-500";
+    default:
+      return "text-gray-500";
+  }
+}
 
 export default function EmpleadoDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -43,11 +51,11 @@ export default function EmpleadoDashboard() {
 
     try {
       const res = await api.get("/empleado/dashboard");
-      setData(res.data || {});
+      setData((res.data || {}) as DashboardData);
     } catch (e) {
       console.error(e);
       setError("No se ha podido cargar el dashboard");
-      setData({});
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -57,19 +65,25 @@ export default function EmpleadoDashboard() {
     load();
   }, []);
 
-  if (loading) {
-    return <p className="p-4">Cargando…</p>;
-  }
+  const fichajesHoy = useMemo<FichajeHoy[]>(
+    () => (Array.isArray(data?.fichajes_hoy) ? data!.fichajes_hoy! : []),
+    [data]
+  );
+
+  if (loading) return <p className="p-4">Cargando…</p>;
 
   if (error) {
-    return <div className="p-4 text-red-600 font-semibold">{error}</div>;
+    return (
+      <div className="p-4 space-y-3">
+        <div className="text-red-600 font-semibold">{error}</div>
+        <button className="btn-primary px-4 py-2" onClick={load}>
+          Reintentar
+        </button>
+      </div>
+    );
   }
 
-  if (!data) {
-    return null;
-  }
-
-  const fichajesHoy: FichajeHoy[] = data.fichajes_hoy ?? [];
+  if (!data) return null;
 
   return (
     <div className="app-main space-y-6 pb-24">
@@ -78,7 +92,9 @@ export default function EmpleadoDashboard() {
         <h1 className="text-2xl font-bold">
           Hola, {data.nombre || "Empleado"}
         </h1>
-        <p className="text-muted">Turno: {data.turno?.nombre || "Sin turno"}</p>
+        <p className="text-muted">
+          Turno: {data.turno?.nombre ? data.turno.nombre : "Sin turno"}
+        </p>
       </div>
 
       {/* ESTADO DE HOY */}
@@ -97,19 +113,18 @@ export default function EmpleadoDashboard() {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Turno</span>
-          <span>{data.turno?.nombre || "Sin turno"}</span>
+          <span className="text-sm text-gray-600">Estado</span>
+          <span className={`font-semibold ${colorClass(data.estado_color)}`}>
+            {data.estado_label || "—"}
+          </span>
         </div>
-      </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-2 gap-4">
-        <Stat
-          label="Estado"
-          value={data.estado_label || "-"}
-          color={data.estado_color}
-        />
-        <Stat label="Hoy" value={data.minutos_trabajados_hoy || "0 min"} />
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600">Hoy</span>
+          <span className="font-semibold">
+            {data.minutos_trabajados_hoy || "—"}
+          </span>
+        </div>
       </div>
 
       {/* BOTÓN PRINCIPAL */}
