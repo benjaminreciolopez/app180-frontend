@@ -8,17 +8,14 @@ export default function CrearTurnoButton() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="px-4 py-2 bg-blue-600 text-white rounded"
-      >
-        Crear turno
+      <button onClick={() => setOpen(true)} className="btn-primary">
+        + Nuevo turno
       </button>
 
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
           <div className="bg-white p-6 rounded shadow max-w-lg w-full">
-            <CrearTurnoForm onClose={() => setOpen(false)} />
+            <CrearTurnoForm />
           </div>
         </div>
       )}
