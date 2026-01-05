@@ -24,19 +24,20 @@ function agruparPorJornada(fichajes: FichajeAPI[]): JornadaUI[] {
   const map = new Map<string, JornadaUI>();
 
   for (const f of fichajes) {
-    if (!f.jornada_id) continue;
+    const fechaDia = f.fecha.split("T")[0];
+    const key = f.jornada_id ?? `${f.nombre_empleado}-${fechaDia}`;
 
-    if (!map.has(f.jornada_id)) {
-      map.set(f.jornada_id, {
-        jornada_id: f.jornada_id,
+    if (!map.has(key)) {
+      map.set(key, {
+        jornada_id: key,
         empleado: f.nombre_empleado,
-        fecha: f.fecha.split("T")[0],
+        fecha: fechaDia,
         estado: f.sospechoso ? "Sospechoso" : "OK",
         motivo: f.nota,
       });
     }
 
-    const j = map.get(f.jornada_id)!;
+    const j = map.get(key)!;
 
     if (f.nota) {
       j.motivo = j.motivo ? `${j.motivo} | ${f.nota}` : f.nota;
@@ -45,7 +46,6 @@ function agruparPorJornada(fichajes: FichajeAPI[]): JornadaUI[] {
     if (f.tipo === "entrada") j.entrada = f.fecha;
     if (f.tipo === "salida") j.salida = f.fecha;
 
-    // si alguno es sospechoso, toda la jornada lo es
     if (f.sospechoso) j.estado = "Sospechoso";
   }
 
@@ -53,7 +53,6 @@ function agruparPorJornada(fichajes: FichajeAPI[]): JornadaUI[] {
     (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
   );
 }
-
 function withLocalOffset(dateStr: string, timeStr: string) {
   const d = new Date(`${dateStr}T${timeStr}:00`);
   const off = -d.getTimezoneOffset(); // minutos
@@ -150,6 +149,7 @@ export default function FichajesPage() {
   }, []);
 
   async function loadFichajes() {
+    setLoading(true);
     try {
       let url = "/fichajes";
 
@@ -161,8 +161,9 @@ export default function FichajesPage() {
       setFichajes(jornadas);
     } catch (e) {
       console.error("Error cargando fichajes", e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   useEffect(() => {
