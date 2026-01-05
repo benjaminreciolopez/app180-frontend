@@ -154,7 +154,6 @@ export default function AdminLayout({
         >
           ☰
         </button>
-        <span className="ml-3 font-semibold">APP180</span>
       </div>
 
       <main className="flex-1 bg-background p-6 overflow-y-auto">
