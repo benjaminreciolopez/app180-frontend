@@ -6,10 +6,11 @@ import { api } from "@/services/api";
 interface Fichaje {
   id: string;
   nombre_empleado: string;
-  fecha: string; // timestamp completo
+  fecha: string;
   tipo: string;
   sospechoso?: boolean;
   sospecha_motivo?: string;
+  nota?: string | null;
 }
 
 export default function FichajesPage() {
@@ -25,6 +26,7 @@ export default function FichajesPage() {
     hora: "",
     horaEntrada: "",
     horaSalida: "",
+    motivo: "",
   });
 
   async function loadEmpleados() {
@@ -51,6 +53,7 @@ export default function FichajesPage() {
           empleado_id: form.empleado_id,
           tipo: form.tipo,
           fecha_hora: fechaHora,
+          motivo: form.motivo || null,
         });
       }
 
@@ -73,12 +76,14 @@ export default function FichajesPage() {
           empleado_id: form.empleado_id,
           tipo: "entrada",
           fecha_hora: entrada,
+          motivo: form.motivo || null,
         });
 
         await api.post("/fichajes/manual", {
           empleado_id: form.empleado_id,
           tipo: "salida",
           fecha_hora: salida,
+          motivo: form.motivo || null,
         });
       }
 
@@ -244,6 +249,12 @@ export default function FichajesPage() {
                   />
                 </>
               )}
+              <textarea
+                className="border p-2 w-full"
+                placeholder="Motivo (opcional)"
+                value={form.motivo}
+                onChange={(e) => setForm({ ...form, motivo: e.target.value })}
+              />
 
               {/* ACCIONES */}
               <div className="flex justify-end gap-3 pt-2">
@@ -258,6 +269,7 @@ export default function FichajesPage() {
                       hora: "",
                       horaEntrada: "",
                       horaSalida: "",
+                      motivo: "",
                     });
                   }}
                 >
@@ -305,7 +317,7 @@ export default function FichajesPage() {
                   <span className="text-green-600 font-semibold">OK</span>
                 )}
               </td>
-              <td className="text-red-600">{f.sospecha_motivo}</td>
+              <td className="p-3">{f.nota || "-"}</td>
             </tr>
           ))}
         </tbody>
