@@ -93,6 +93,7 @@ export default function EmpleadosPage() {
               <th>Nombre</th>
               <th>Email</th>
               <th>Estado</th>
+              <th>Turno</th>
               <th>Dispositivo</th>
               <th className="text-right">Acciones</th>
             </tr>
@@ -112,6 +113,7 @@ export default function EmpleadosPage() {
                   )}
                 </td>
                 <td>{e.turno_nombre || "Sin turno"}</td>
+                <span className="badge-muted">Sin turno</span>
 
                 <td>
                   {!e.device_hash && (
