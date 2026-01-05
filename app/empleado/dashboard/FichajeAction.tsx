@@ -2,7 +2,11 @@
 
 import { useFichaje } from "./useFichaje";
 
-type AccionFichaje = "entrada" | "salida" | "descanso_inicio" | "descanso_fin";
+export type AccionFichaje =
+  | "entrada"
+  | "salida"
+  | "descanso_inicio"
+  | "descanso_fin";
 
 export function FichajeAction({
   accion,
