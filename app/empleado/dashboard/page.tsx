@@ -4,11 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { FichajeAction } from "./FichajeAction";
 import type { AccionFichaje } from "./FichajeAction";
+import { useRouter } from "next/navigation";
 
 type FichajeHoy = {
   id: string;
   tipo_label: string;
   hora: string;
+};
+type WorkLogHoy = {
+  id: string;
+  descripcion: string;
+  minutos: number | null;
+  cliente_nombre?: string | null;
 };
 
 type DashboardData = {
@@ -44,6 +51,8 @@ export default function EmpleadoDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [workLogsHoy, setWorkLogsHoy] = useState<WorkLogHoy[]>([]);
+  const router = useRouter();
 
   async function load() {
     setLoading(true);
@@ -60,9 +69,24 @@ export default function EmpleadoDashboard() {
       setLoading(false);
     }
   }
+  async function loadWorkLogsHoy() {
+    try {
+      const hoy = new Date().toISOString().slice(0, 10);
+
+      const res = await api.get("/worklogs/mis", {
+        params: { desde: hoy, hasta: hoy },
+      });
+
+      setWorkLogsHoy(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      console.error("Error cargando work logs hoy", e);
+      setWorkLogsHoy([]);
+    }
+  }
 
   useEffect(() => {
     load();
+    loadWorkLogsHoy();
   }, []);
 
   const fichajesHoy = useMemo<FichajeHoy[]>(
@@ -129,7 +153,13 @@ export default function EmpleadoDashboard() {
 
       {/* BOTÓN PRINCIPAL */}
       <div className="fixed bottom-4 left-4 right-4">
-        <FichajeAction accion={data.accion ?? null} reload={load} />
+        <FichajeAction
+          accion={data.accion ?? null}
+          reload={() => {
+            load();
+            loadWorkLogsHoy();
+          }}
+        />
       </div>
 
       {/* FICHAJES DE HOY */}
@@ -149,29 +179,38 @@ export default function EmpleadoDashboard() {
           </ul>
         )}
       </div>
-    </div>
-  );
-}
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">Trabajos de hoy</h3>
 
-/* =========================
-   COMPONENTES AUXILIARES
-========================= */
+          <button
+            className="btn-primary text-sm px-3 py-1"
+            onClick={() => router.push("/empleado/trabajos")}
+          >
+            Añadir
+          </button>
+        </div>
 
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
-  return (
-    <div className="card">
-      <p className="text-sm text-muted">{label}</p>
-      <p className={`text-xl font-bold ${color ? `text-${color}` : ""}`}>
-        {value}
-      </p>
+        {workLogsHoy.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No hay trabajos registrados hoy
+          </p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {workLogsHoy.map((w) => (
+              <li key={w.id} className="flex justify-between">
+                <span className="truncate">
+                  {w.descripcion}
+                  {w.cliente_nombre && (
+                    <span className="text-gray-500"> · {w.cliente_nombre}</span>
+                  )}
+                </span>
+                <span>{w.minutos ?? "—"} min</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

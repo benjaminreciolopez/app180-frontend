@@ -1,27 +1,20 @@
-"use client";
-
 import { useState } from "react";
 import { api } from "@/services/api";
+import type { AccionFichaje } from "./FichajeAction";
 
-export type AccionFichaje =
-  | "entrada"
-  | "salida"
-  | "descanso_inicio"
-  | "descanso_fin";
-
-export function useFichaje(onSuccess?: () => void) {
+export function useFichaje(reload: () => void) {
   const [loading, setLoading] = useState(false);
 
-  async function fichar(tipo: AccionFichaje) {
-    if (loading) return;
-
+  async function fichar(accion: AccionFichaje) {
     setLoading(true);
     try {
-      await api.post("/fichar", { tipo });
-      onSuccess?.();
-    } catch (e: any) {
-      const msg = e?.response?.data?.error || "No se pudo registrar el fichaje";
-      alert(msg); // luego lo sustituimos por toast
+      await api.post("/fichajes", {
+        tipo: accion,
+      });
+      reload();
+    } catch (err) {
+      console.error("Error fichando", err);
+      alert("No se ha podido registrar el fichaje");
     } finally {
       setLoading(false);
     }

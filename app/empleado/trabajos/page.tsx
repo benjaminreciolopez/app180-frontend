@@ -85,8 +85,15 @@ export default function EmpleadoTrabajosPage() {
         descripcion,
         fecha,
       });
+      if (desde > hasta) {
+        alert("La fecha 'desde' no puede ser mayor que 'hasta'");
+        return;
+      }
       setDescripcion("");
       await load();
+      setMinutos("60");
+      setClientId("");
+      setWorkItemId("");
     } catch (e) {
       console.error(e);
       alert("Error creando trabajo");
