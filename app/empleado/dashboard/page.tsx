@@ -53,6 +53,10 @@ export default function EmpleadoDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [workLogsHoy, setWorkLogsHoy] = useState<WorkLogHoy[]>([]);
   const router = useRouter();
+  const [estadoDia, setEstadoDia] = useState<{
+    laborable: boolean;
+    label?: string;
+  } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -84,9 +88,19 @@ export default function EmpleadoDashboard() {
     }
   }
 
+  async function loadEstadoDia() {
+    try {
+      const res = await api.get("/calendario/hoy");
+      setEstadoDia(res.data);
+    } catch {
+      setEstadoDia({ laborable: true });
+    }
+  }
+
   useEffect(() => {
     load();
     loadWorkLogsHoy();
+    loadEstadoDia();
   }, []);
 
   const fichajesHoy = useMemo<FichajeHoy[]>(
@@ -150,16 +164,23 @@ export default function EmpleadoDashboard() {
           </span>
         </div>
       </div>
+      {estadoDia?.laborable === false && (
+        <div className="p-4 border rounded bg-gray-100 text-sm text-gray-700">
+          Hoy no es un día laborable: <b>{estadoDia.label}</b>
+        </div>
+      )}
 
       {/* BOTÓN PRINCIPAL */}
       <div className="fixed bottom-4 left-4 right-4">
-        <FichajeAction
-          accion={data.accion ?? null}
-          reload={() => {
-            load();
-            loadWorkLogsHoy();
-          }}
-        />
+        {estadoDia?.laborable !== false && (
+          <FichajeAction
+            accion={data.accion ?? null}
+            reload={() => {
+              load();
+              loadWorkLogsHoy();
+            }}
+          />
+        )}
       </div>
 
       {/* FICHAJES DE HOY */}
