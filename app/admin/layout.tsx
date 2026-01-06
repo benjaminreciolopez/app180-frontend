@@ -16,7 +16,6 @@ export default function AdminLayout({
   const [menuOpen, setMenuOpen] = useState(false);
   const [nombre, setNombre] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
-  const [pendingReports, setPendingReports] = useState<number | null>(null);
 
   // 🔐 VALIDACIÓN DE SESIÓN
   useEffect(() => {
@@ -46,20 +45,6 @@ export default function AdminLayout({
   }, [router]);
 
   // 🔄 CONTADOR REPORTES
-  useEffect(() => {
-    if (checking) return;
-
-    async function loadPending() {
-      try {
-        const res = await api.get("/reports/pending-count");
-        setPendingReports(res.data?.total ?? 0);
-      } catch {
-        setPendingReports(null);
-      }
-    }
-
-    loadPending();
-  }, [checking]);
 
   function logout() {
     localStorage.removeItem("token");
@@ -77,7 +62,8 @@ export default function AdminLayout({
     { path: "/admin/turnos", label: "Turnos" },
     { path: "/admin/fichajes", label: "Fichajes" },
     { path: "/admin/fichajes/sospechosos", label: "Sospechosos" },
-    { path: "/admin/reportes", label: "Reportes diarios" },
+    { path: "/admin/partes-dia", label: "Partes del día" },
+    { path: "/admin/trabajos", label: "Trabajos" },
   ];
 
   return (
@@ -122,11 +108,6 @@ export default function AdminLayout({
               >
                 <div className="flex items-center justify-between">
                   <span>{item.label}</span>
-                  {item.path === "/admin/reportes" &&
-                    pendingReports &&
-                    pendingReports > 0 && (
-                      <span className="badge-danger">{pendingReports}</span>
-                    )}
                 </div>
               </Link>
             </li>
