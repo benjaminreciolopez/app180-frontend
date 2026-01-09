@@ -5,6 +5,7 @@ import { api } from "@/services/api";
 import { FichajeAction } from "./FichajeAction";
 import type { AccionFichaje } from "./FichajeAction";
 import { useRouter } from "next/navigation";
+import Drawer from "@/components/ui/Drawer";
 
 type FichajeHoy = {
   id: string;
@@ -139,7 +140,6 @@ export default function EmpleadoDashboard() {
         <p>Hola mundo</p>
       </Drawer>
       <button onClick={() => setOpen(true)}>Abrir</button>
-
       {/* ESTADO DE HOY */}
       <div className="bg-white border rounded p-4 space-y-2">
         <h2 className="font-semibold text-lg">Estado de hoy</h2>
