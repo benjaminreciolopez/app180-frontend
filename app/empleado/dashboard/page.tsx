@@ -6,6 +6,7 @@ import { FichajeAction } from "./FichajeAction";
 import type { AccionFichaje } from "./FichajeAction";
 import { useRouter } from "next/navigation";
 import Drawer from "@/components/ui/Drawer";
+import EmpleadoAusenciasPanel from "@/components/empleado/EmpleadoAusenciasPanel";
 
 type FichajeHoy = {
   id: string;
@@ -136,10 +137,21 @@ export default function EmpleadoDashboard() {
           Turno: {data.turno?.nombre ? data.turno.nombre : "Sin turno"}
         </p>
       </div>
-      <Drawer open={open} onClose={() => setOpen(false)} title="Test">
-        <p>Hola mundo</p>
+      <Drawer open={open} onClose={() => setOpen(false)} title="Ausencias">
+        <EmpleadoAusenciasPanel
+          onDone={() => {
+            // recargas lo que quieras (dashboard + calendario si aplica)
+            load();
+            loadWorkLogsHoy();
+            loadEstadoDia();
+          }}
+          onClose={() => setOpen(false)}
+        />
       </Drawer>
-      <button onClick={() => setOpen(true)}>Abrir</button>
+      ; <button onClick={() => setOpen(true)}>Abrir</button>
+      <button className="btn-secondary px-4 py-2" onClick={() => setOpen(true)}>
+        Solicitar ausencia
+      </button>
       {/* ESTADO DE HOY */}
       <div className="bg-white border rounded p-4 space-y-2">
         <h2 className="font-semibold text-lg">Estado de hoy</h2>
@@ -174,9 +186,9 @@ export default function EmpleadoDashboard() {
           Hoy no es un día laborable: <b>{estadoDia.label}</b>
         </div>
       )}
-
       {/* BOTÓN PRINCIPAL */}
-      <div className="fixed bottom-4 left-4 right-4">
+      <div className="fixed bottom-4 left-4 right-4 z-40 space-y-2">
+        {/* BOTÓN PRINCIPAL */}
         {estadoDia?.laborable !== false && (
           <FichajeAction
             accion={data.accion ?? null}
@@ -186,8 +198,24 @@ export default function EmpleadoDashboard() {
             }}
           />
         )}
-      </div>
 
+        {/* BOTONES SECUNDARIOS */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setOpen(true)}
+            className="bg-white border py-3 rounded-xl text-sm font-medium shadow"
+          >
+            Ausencia
+          </button>
+
+          <button
+            onClick={() => router.push("/empleado/calendario")}
+            className="bg-white border py-3 rounded-xl text-sm font-medium shadow"
+          >
+            Calendario
+          </button>
+        </div>
+      </div>
       {/* FICHAJES DE HOY */}
       <div className="card">
         <h3 className="font-semibold mb-3">Fichajes de hoy</h3>
