@@ -57,6 +57,7 @@ export default function EmpleadoDashboard() {
     laborable: boolean;
     label?: string;
   } | null>(null);
+  const [open, setOpen] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -134,6 +135,10 @@ export default function EmpleadoDashboard() {
           Turno: {data.turno?.nombre ? data.turno.nombre : "Sin turno"}
         </p>
       </div>
+      <Drawer open={open} onClose={() => setOpen(false)} title="Test">
+        <p>Hola mundo</p>
+      </Drawer>
+      <button onClick={() => setOpen(true)}>Abrir</button>
 
       {/* ESTADO DE HOY */}
       <div className="bg-white border rounded p-4 space-y-2">
