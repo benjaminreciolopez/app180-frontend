@@ -14,6 +14,7 @@ import { colorFor } from "../../empleado/calendarioColors";
 import IOSDrawer from "@/components/ui/IOSDrawer";
 import DrawerDetalleAusenciaAdmin from "./DrawerDetalleAusenciaAdmin";
 import DrawerPendientesAdmin from "./DrawerPendientesAdmin";
+import DrawerCrearAusenciaAdmin from "./DrawerCrearAusenciaAdmin";
 
 type ViewMode = "dayGridMonth" | "timeGridWeek";
 
@@ -45,6 +46,7 @@ export default function DrawerCalendarioAdmin() {
   const [view, setView] = useState<ViewMode>("dayGridMonth");
   const [title, setTitle] = useState("");
   const [selected, setSelected] = useState<EventoAdmin | null>(null);
+  const [openCrear, setOpenCrear] = useState(false);
 
   const [estadoFiltro, setEstadoFiltro] = useState<
     "todos" | "pendiente" | "aprobado" | "rechazado"
@@ -181,6 +183,14 @@ export default function DrawerCalendarioAdmin() {
           <option value="aprobado">Aprobados</option>
           <option value="rechazado">Rechazados</option>
         </select>
+        <div>
+          <button
+            onClick={() => setOpenCrear(true)}
+            className="w-full py-3 rounded-xl bg-black text-white text-sm font-semibold"
+          >
+            + Crear ausencia
+          </button>
+        </div>
       </div>
       <button
         onClick={() => setOpenPendientes(true)}
@@ -316,6 +326,27 @@ export default function DrawerCalendarioAdmin() {
               // Para reutilizar tu DrawerDetalleAusenciaAdmin necesitamos mapear campos.
               // Si lo quieres, lo conecto en el siguiente paso.
               console.log("pendiente detalle", p);
+            }}
+          />
+        </IOSDrawer>
+      )}
+      {openCrear && (
+        <IOSDrawer
+          open={true}
+          onClose={() => setOpenCrear(false)}
+          header={{
+            title: "Crear ausencia",
+            canGoBack: true,
+            onBack: () => setOpenCrear(false),
+            onClose: () => setOpenCrear(false),
+          }}
+        >
+          <DrawerCrearAusenciaAdmin
+            empleados={empleados}
+            empleadoDefaultId={empleadoActivo || undefined}
+            onClose={() => setOpenCrear(false)}
+            onCreated={() => {
+              loadEvents();
             }}
           />
         </IOSDrawer>

@@ -63,7 +63,9 @@ export default function DrawerPendientesAdmin({
         );
         return;
       }
-      await api.patch(`/admin/ausencias/${p.id}/aprobar`);
+      await api.patch(`/admin/ausencias/${p.id}/estado`, {
+        estado: "aprobado",
+      });
       await load();
       onUpdated();
     } catch (e: any) {
@@ -84,7 +86,9 @@ export default function DrawerPendientesAdmin({
         );
         return;
       }
-      await api.patch(`/admin/ausencias/${p.id}/rechazar`);
+      await api.patch(`/admin/ausencias/${p.id}/estado`, {
+        estado: "rechazado",
+      });
       await load();
       onUpdated();
     } catch (e: any) {
