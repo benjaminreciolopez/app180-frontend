@@ -344,12 +344,6 @@ export default function EmpleadoDashboardPage() {
           >
             Añadir trabajo
           </button>
-          <button
-            onClick={openDrawer}
-            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm active:bg-black/[0.04]"
-          >
-            Menú
-          </button>
         </div>
       </div>
 
