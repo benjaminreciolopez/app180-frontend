@@ -58,6 +58,7 @@ export default function AdminLayout({
 
   const menu = [
     { path: "/admin/dashboard", label: "Dashboard" },
+    { path: "/admin/calendario", label: "Calendario" },
     { path: "/admin/empleados", label: "Empleados" },
     { path: "/admin/turnos", label: "Turnos" },
     { path: "/admin/fichajes", label: "Fichajes" },
