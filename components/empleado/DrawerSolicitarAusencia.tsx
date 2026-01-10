@@ -60,22 +60,17 @@ export default function DrawerSolicitarAusencia({
     <div className="p-4 space-y-4">
       <div className="rounded-2xl border border-black/5 bg-white p-4 space-y-3">
         <div className="text-[15px] font-semibold text-gray-900">
-          Nueva solicitud
+          {tipo === "vacaciones"
+            ? "Solicitar vacaciones"
+            : "Solicitar baja médica"}
+        </div>
+        <div className="text-xs text-gray-500">
+          {tipo === "vacaciones"
+            ? "Solicita tus días de descanso"
+            : "Indica el periodo de baja médica"}
         </div>
 
         <div className="grid grid-cols-1 gap-3">
-          <label className="text-sm text-gray-700">
-            Tipo
-            <select
-              className="mt-1 w-full border rounded-xl px-3 py-2"
-              value={tipo}
-              onChange={(e) => setTipo(e.target.value as any)}
-            >
-              <option value="vacaciones">Vacaciones</option>
-              <option value="baja_medica">Baja médica</option>
-            </select>
-          </label>
-
           <div className="grid grid-cols-2 gap-2">
             <label className="text-sm text-gray-700">
               Inicio

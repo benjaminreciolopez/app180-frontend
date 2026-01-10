@@ -50,7 +50,7 @@ export default function DrawerMenu({
       />
       <Divider />
       <Row
-        title="Solicitar vacaciones/Baja médica"
+        title="Solicitar Vacaciones / Baja médica"
         subtitle="Enviar solicitud al administrador"
         onClick={onVacaciones}
       />

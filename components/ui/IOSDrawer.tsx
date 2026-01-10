@@ -87,7 +87,10 @@ export default function IOSDrawer({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto">{children}</div>
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto relative">
+          <div className="px-0 py-0 min-h-full flex flex-col">{children}</div>
+        </div>
       </div>
 
       {/* Animación */}
