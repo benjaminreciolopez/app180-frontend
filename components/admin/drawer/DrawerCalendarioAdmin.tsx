@@ -53,7 +53,7 @@ export default function DrawerCalendarioAdmin() {
   // =========================
   async function loadEmpleados() {
     try {
-      const res = await api.get("/admin/empleados");
+      const res = await api.get("/employees");
       const list = Array.isArray(res.data) ? res.data : [];
       setEmpleados(list);
     } catch (e) {
