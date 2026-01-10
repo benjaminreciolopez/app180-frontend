@@ -13,6 +13,7 @@ import { api } from "@/services/api";
 import { colorFor } from "../../empleado/calendarioColors";
 import IOSDrawer from "@/components/ui/IOSDrawer";
 import DrawerDetalleAusenciaAdmin from "./DrawerDetalleAusenciaAdmin";
+import DrawerPendientesAdmin from "./DrawerPendientesAdmin";
 
 type ViewMode = "dayGridMonth" | "timeGridWeek";
 
@@ -39,6 +40,7 @@ export default function DrawerCalendarioAdmin() {
 
   const [events, setEvents] = useState<EventoAdmin[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openPendientes, setOpenPendientes] = useState(false);
 
   const [view, setView] = useState<ViewMode>("dayGridMonth");
   const [title, setTitle] = useState("");
@@ -180,6 +182,12 @@ export default function DrawerCalendarioAdmin() {
           <option value="rechazado">Rechazados</option>
         </select>
       </div>
+      <button
+        onClick={() => setOpenPendientes(true)}
+        className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04]"
+      >
+        Pendientes
+      </button>
 
       <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
         {/* =========================
@@ -287,6 +295,31 @@ export default function DrawerCalendarioAdmin() {
           </IOSDrawer>
         )}
       </div>
+      {openPendientes && (
+        <IOSDrawer
+          open={true}
+          onClose={() => setOpenPendientes(false)}
+          header={{
+            title: "Pendientes",
+            canGoBack: true,
+            onBack: () => setOpenPendientes(false),
+            onClose: () => setOpenPendientes(false),
+          }}
+        >
+          <DrawerPendientesAdmin
+            onClose={() => setOpenPendientes(false)}
+            onUpdated={() => {
+              loadEvents();
+            }}
+            onOpenDetalle={(p) => {
+              // Opcional: abrir drawer detalle con la misma UI.
+              // Para reutilizar tu DrawerDetalleAusenciaAdmin necesitamos mapear campos.
+              // Si lo quieres, lo conecto en el siguiente paso.
+              console.log("pendiente detalle", p);
+            }}
+          />
+        </IOSDrawer>
+      )}
     </div>
   );
 }
