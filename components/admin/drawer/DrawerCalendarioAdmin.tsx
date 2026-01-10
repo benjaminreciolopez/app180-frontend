@@ -76,9 +76,7 @@ export default function DrawerCalendarioAdmin() {
   }, [empleados]);
 
   useEffect(() => {
-    const api = calendarRef.current?.getApi();
-    if (api) {
-      api.refetchEvents?.(); // si lo usas
+    if (calendarRef.current) {
       loadEvents();
     }
   }, [empleadoActivo, estadoFiltro]);
@@ -88,10 +86,7 @@ export default function DrawerCalendarioAdmin() {
   // =========================
   async function loadEvents() {
     const apiCal = calendarRef.current?.getApi();
-    if (!apiCal) {
-      setLoading(false);
-      return;
-    }
+    if (!apiCal) return;
 
     setLoading(true);
 
@@ -264,32 +259,32 @@ export default function DrawerCalendarioAdmin() {
         {/* =========================
             CALENDAR
         ========================= */}
-        <div className="p-2">
-          {loading ? (
-            <div className="p-3 text-sm text-gray-500">
+        <div className="relative">
+          {loading && (
+            <div className="absolute inset-0 bg-white/70 z-10 grid place-items-center text-sm text-gray-500">
               Cargando calendario…
             </div>
-          ) : (
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              locale={esLocale}
-              initialView={view}
-              headerToolbar={false}
-              events={fcEvents as any}
-              height="auto"
-              contentHeight="auto"
-              expandRows
-              datesSet={() => {
-                syncTitle();
-                loadEvents();
-              }}
-              eventClick={(info) => {
-                const ext = info.event.extendedProps as any;
-                if (ext) setSelected(ext as EventoAdmin);
-              }}
-            />
           )}
+
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            locale={esLocale}
+            initialView={view}
+            headerToolbar={false}
+            events={fcEvents as any}
+            height="auto"
+            contentHeight="auto"
+            expandRows
+            datesSet={() => {
+              syncTitle();
+              loadEvents();
+            }}
+            eventClick={(info) => {
+              const ext = info.event.extendedProps as any;
+              if (ext) setSelected(ext as EventoAdmin);
+            }}
+          />
         </div>
 
         {/* =========================
