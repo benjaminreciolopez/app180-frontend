@@ -71,23 +71,23 @@ export default function DrawerSolicitarAusencia({
         </div>
 
         <div className="grid grid-cols-1 gap-3">
-          <div className="grid grid-cols-2 gap-2">
-            <label className="text-[13px] font-medium text-gray-600">
+          <div className="flex gap-3">
+            <label className="flex-1 flex flex-col items-center text-center text-[13px] font-medium text-gray-600">
               Inicio
               <input
                 type="date"
-                className="mt-1 w-full border rounded-xl px-3 py-2"
+                className="mt-1 w-full min-w-0 border rounded-xl px-3 py-2"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
               />
             </label>
 
-            <label className="text-[13px] font-medium text-gray-600">
+            <label className="flex-1 flex flex-col items-center text-center text-[13px] font-medium text-gray-600">
               Fin
               <input
                 type="date"
                 min={fechaInicio}
-                className="mt-1 w-full border rounded-xl px-3 py-2"
+                className="mt-1 w-full min-w-0 border rounded-xl px-3 py-2"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
               />
