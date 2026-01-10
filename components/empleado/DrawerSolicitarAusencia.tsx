@@ -76,7 +76,7 @@ export default function DrawerSolicitarAusencia({
               Inicio
               <input
                 type="date"
-                className="mt-1 w-full min-w-0 border rounded-xl px-3 py-2"
+                className="mt-1 w-full min-w-0 appearance-none border rounded-xl px-3 py-2"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
               />
@@ -87,7 +87,7 @@ export default function DrawerSolicitarAusencia({
               <input
                 type="date"
                 min={fechaInicio}
-                className="mt-1 w-full min-w-0 border rounded-xl px-3 py-2"
+                className="mt-1 w-full min-w-0 appearance-none border rounded-xl px-3 py-2"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
               />
