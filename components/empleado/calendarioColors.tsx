@@ -10,7 +10,7 @@ export const COLOR_MAP: Record<string, string> = {
   no_laborable: "#6b7280",
   pendiente: "#f59e0b",
   aprobado: "#16a34a",
-  rechazado: "#ee3b0e",
+  rechazado: "#e60eee",
 };
 export function colorFor(tipo?: CalendarioTipo | string) {
   if (!tipo) return COLOR_MAP.no_laborable;
