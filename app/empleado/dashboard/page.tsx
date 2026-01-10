@@ -334,21 +334,7 @@ export default function EmpleadoDashboard() {
         )}
 
         {/* Secundarios (si quieres mantenerlos) */}
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="bg-white border py-3 rounded-xl text-sm font-medium shadow"
-          >
-            Ausencias
-          </button>
-
-          <button
-            onClick={() => router.push("/empleado/calendario")}
-            className="bg-white border py-3 rounded-xl text-sm font-medium shadow"
-          >
-            Calendario
-          </button>
-        </div>
+        <div className="grid grid-cols-2 gap-2"></div>
       </div>
 
       {/* Fichajes hoy */}
