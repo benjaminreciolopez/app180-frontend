@@ -76,7 +76,9 @@ export default function DrawerCalendarioAdmin() {
   }, [empleados]);
 
   useEffect(() => {
-    if (calendarRef.current) {
+    const api = calendarRef.current?.getApi();
+    if (api) {
+      api.refetchEvents?.(); // si lo usas
       loadEvents();
     }
   }, [empleadoActivo, estadoFiltro]);
@@ -86,7 +88,10 @@ export default function DrawerCalendarioAdmin() {
   // =========================
   async function loadEvents() {
     const apiCal = calendarRef.current?.getApi();
-    if (!apiCal) return;
+    if (!apiCal) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 
