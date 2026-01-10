@@ -75,8 +75,6 @@ export default function DrawerCalendarioAdmin() {
   // LOAD EVENTS
   // =========================
   async function loadEvents() {
-    if (!empleadoActivo) return;
-
     const apiCal = calendarRef.current?.getApi();
     if (!apiCal) return;
 
