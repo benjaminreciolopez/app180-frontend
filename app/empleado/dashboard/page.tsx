@@ -1,3 +1,4 @@
+// src/app/empleado/dashboard/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -5,18 +6,21 @@ import { api } from "@/services/api";
 import { useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
 
+import FloatingActionButton from "@/components/ui/FloatingActionButton";
+import IOSDrawer from "@/components/ui/IOSDrawer";
+
+import DrawerMenu from "@/components/empleado/drawer/DrawerMenu";
+import DrawerCalendario from "@/components/empleado/DrawerCalendario";
+import DrawerEventoDetalle from "@/components/empleado/DrawerEventoDetalle";
+import DrawerSolicitarAusencia from "@/components/empleado/DrawerSolicitarAusencia";
+import DrawerMisSolicitudes from "@/components/empleado/DrawerMisSolicitudes";
+
+import type { CalendarioEvento } from "@/components/empleado/calendarioTypes";
+
 import { FichajeAction } from "./FichajeAction";
 import type { AccionFichaje } from "./FichajeAction";
 
-import FloatingActionButton from "@/components/ui/FloatingActionButton";
-import Drawer from "@/components/ui/Drawer";
-
-type FichajeHoy = {
-  id: string;
-  tipo_label: string;
-  hora: string;
-};
-
+type FichajeHoy = { id: string; tipo_label: string; hora: string };
 type WorkLogHoy = {
   id: string;
   descripcion: string;
@@ -29,7 +33,7 @@ type DashboardData = {
   turno?: { nombre?: string | null } | null;
   fichando?: boolean;
   estado_label?: string;
-  estado_color?: string; // "green-600" | "red-600" ...
+  estado_color?: string;
   minutos_trabajados_hoy?: string;
   accion?: AccionFichaje | null;
   fichajes_hoy?: FichajeHoy[];
@@ -45,26 +49,22 @@ function colorClass(color?: string) {
       return "text-yellow-600";
     case "blue-600":
       return "text-blue-600";
-    case "gray-500":
-      return "text-gray-500";
     default:
       return "text-gray-500";
   }
 }
 
-type DrawerScreenKey =
+type DrawerKey =
   | "menu"
   | "calendario"
+  | "evento"
   | "vacaciones"
   | "baja"
   | "solicitudes";
 
-type DrawerScreen = {
-  key: DrawerScreenKey;
-  title: string;
-};
+type DrawerScreen = { key: DrawerKey; title: string };
 
-export default function EmpleadoDashboard() {
+export default function EmpleadoDashboardPage() {
   const router = useRouter();
 
   const [data, setData] = useState<DashboardData | null>(null);
@@ -77,29 +77,39 @@ export default function EmpleadoDashboard() {
     label?: string;
   } | null>(null);
 
-  // Drawer iOS
+  // Drawer stack
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [stack, setStack] = useState<DrawerScreen[]>([
     { key: "menu", title: "Opciones" },
   ]);
-
   const current = stack[stack.length - 1];
 
-  function push(screen: DrawerScreen) {
-    setStack((prev) => [...prev, screen]);
-  }
-  function popOrClose() {
-    setStack((prev) => {
-      if (prev.length <= 1) {
-        setDrawerOpen(false);
-        return [{ key: "menu", title: "Opciones" }];
-      }
-      return prev.slice(0, -1);
-    });
+  // seleccionado calendario
+  const [selectedEvent, setSelectedEvent] = useState<CalendarioEvento | null>(
+    null
+  );
+
+  function openDrawer() {
+    setDrawerOpen(true);
+    setStack([{ key: "menu", title: "Opciones" }]);
+    setSelectedEvent(null);
   }
   function closeDrawer() {
     setDrawerOpen(false);
     setStack([{ key: "menu", title: "Opciones" }]);
+    setSelectedEvent(null);
+  }
+  function push(screen: DrawerScreen) {
+    setStack((prev) => [...prev, screen]);
+  }
+  function pop() {
+    setStack((prev) => {
+      if (prev.length <= 1) {
+        closeDrawer();
+        return prev;
+      }
+      return prev.slice(0, -1);
+    });
   }
 
   async function loadDashboard() {
@@ -117,7 +127,7 @@ export default function EmpleadoDashboard() {
     }
   }
 
-  async function loadWorkLogsHoy() {
+  async function loadWorkLogsHoyFn() {
     try {
       const hoy = new Date().toISOString().slice(0, 10);
       const res = await api.get("/worklogs/mis", {
@@ -130,7 +140,7 @@ export default function EmpleadoDashboard() {
     }
   }
 
-  async function loadEstadoDia() {
+  async function loadEstadoDiaFn() {
     try {
       const res = await api.get("/calendario/hoy");
       setEstadoDia(res.data);
@@ -141,8 +151,8 @@ export default function EmpleadoDashboard() {
 
   useEffect(() => {
     loadDashboard();
-    loadWorkLogsHoy();
-    loadEstadoDia();
+    loadWorkLogsHoyFn();
+    loadEstadoDiaFn();
   }, []);
 
   const fichajesHoy = useMemo<FichajeHoy[]>(
@@ -150,6 +160,7 @@ export default function EmpleadoDashboard() {
     [data]
   );
 
+  // ======= Render =======
   if (loading) return <p className="p-4">Cargando…</p>;
 
   if (error) {
@@ -167,113 +178,98 @@ export default function EmpleadoDashboard() {
 
   return (
     <div className="app-main space-y-6 pb-24">
-      {/* Botón flotante iOS */}
-      <FloatingActionButton
-        ariaLabel="Abrir menú"
-        onClick={() => setDrawerOpen(true)}
-      >
+      {/* FAB iOS */}
+      <FloatingActionButton ariaLabel="Abrir menú" onClick={openDrawer}>
         <Menu size={18} className="text-gray-800" />
       </FloatingActionButton>
 
-      {/* Drawer iOS */}
-      <Drawer open={drawerOpen} onClose={closeDrawer}>
-        <div className="h-full flex flex-col bg-gray-50">
-          {/* Header iOS */}
-          <div className="h-14 flex items-center px-4 border-b border-black/5 bg-white">
-            <button
-              onClick={popOrClose}
-              className="text-[15px] font-medium text-blue-600"
-            >
-              {stack.length > 1 ? "Volver" : "Cerrar"}
-            </button>
+      {/* Drawer iOS stack */}
+      <IOSDrawer
+        open={drawerOpen}
+        onClose={closeDrawer}
+        header={{
+          title: current.title,
+          canGoBack: stack.length > 1,
+          onBack: pop,
+          onClose: closeDrawer,
+        }}
+      >
+        {current.key === "menu" ? (
+          <DrawerMenu
+            onCalendario={() =>
+              push({ key: "calendario", title: "Calendario" })
+            }
+            onVacaciones={() =>
+              push({ key: "vacaciones", title: "Solicitar vacaciones" })
+            }
+            onBaja={() => push({ key: "baja", title: "Solicitar baja médica" })}
+            onSolicitudes={() =>
+              push({ key: "solicitudes", title: "Mis solicitudes" })
+            }
+          />
+        ) : null}
 
-            <div className="flex-1 text-center">
-              <div className="text-[15px] font-semibold text-gray-900 truncate">
-                {current.title}
-              </div>
-            </div>
+        {current.key === "calendario" ? (
+          <DrawerCalendario
+            onSelectEvent={(ev) => {
+              setSelectedEvent(ev);
+              push({ key: "evento", title: "Detalle" });
+            }}
+          />
+        ) : null}
 
-            <div className="min-w-[64px]" />
-          </div>
+        {current.key === "evento" && selectedEvent ? (
+          <DrawerEventoDetalle event={selectedEvent} />
+        ) : null}
 
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto">
-            {current.key === "menu" && (
-              <div className="px-3 pt-4 space-y-4">
-                <div className="px-1">
-                  <div className="text-[18px] font-bold text-gray-900">
-                    Opciones
-                  </div>
-                  <div className="text-[13px] text-gray-500 mt-1">
-                    Calendario, vacaciones, bajas y solicitudes.
-                  </div>
-                </div>
+        {current.key === "vacaciones" ? (
+          <DrawerSolicitarAusencia
+            tipoInicial="vacaciones"
+            onDone={() => {
+              // tras enviar: te dejo en calendario (mejor UX)
+              setSelectedEvent(null);
+              setStack([
+                { key: "menu", title: "Opciones" },
+                { key: "calendario", title: "Calendario" },
+              ]);
+              // refresca estados del dashboard por si hoy deja de ser laborable
+              loadEstadoDiaFn();
+            }}
+          />
+        ) : null}
 
-                <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
-                  <MenuRow
-                    title="Calendario laboral"
-                    subtitle="Festivos, vacaciones y bajas"
-                    onClick={() =>
-                      push({ key: "calendario", title: "Calendario" })
-                    }
-                  />
-                  <Divider />
-                  <MenuRow
-                    title="Solicitar vacaciones"
-                    subtitle="Enviar solicitud al administrador"
-                    onClick={() =>
-                      push({ key: "vacaciones", title: "Solicitar vacaciones" })
-                    }
-                  />
-                  <Divider />
-                  <MenuRow
-                    title="Solicitar baja médica"
-                    subtitle="Con adjuntos (PDF/PNG)"
-                    onClick={() =>
-                      push({ key: "baja", title: "Solicitar baja médica" })
-                    }
-                  />
-                  <Divider />
-                  <MenuRow
-                    title="Mis solicitudes"
-                    subtitle="Pendientes, aprobadas, rechazadas"
-                    onClick={() =>
-                      push({ key: "solicitudes", title: "Mis solicitudes" })
-                    }
-                  />
-                </div>
-              </div>
-            )}
+        {current.key === "baja" ? (
+          <DrawerSolicitarAusencia
+            tipoInicial="baja_medica"
+            onDone={() => {
+              setSelectedEvent(null);
+              setStack([
+                { key: "menu", title: "Opciones" },
+                { key: "calendario", title: "Calendario" },
+              ]);
+              loadEstadoDiaFn();
+            }}
+          />
+        ) : null}
 
-            {current.key === "calendario" && (
-              <div className="p-4 text-sm text-gray-600">
-                Aquí montaremos FullCalendar del empleado (con
-                /calendario/usuario).
-              </div>
-            )}
-
-            {current.key === "vacaciones" && (
-              <div className="p-4 text-sm text-gray-600">
-                Aquí irá el formulario iOS de vacaciones (POST
-                /empleado/ausencias).
-              </div>
-            )}
-
-            {current.key === "baja" && (
-              <div className="p-4 text-sm text-gray-600">
-                Aquí irá el formulario iOS de baja + adjuntos (tabla
-                ausencias_adjuntos_180).
-              </div>
-            )}
-
-            {current.key === "solicitudes" && (
-              <div className="p-4 text-sm text-gray-600">
-                Aquí irá el listado de ausencias del empleado.
-              </div>
-            )}
-          </div>
-        </div>
-      </Drawer>
+        {current.key === "solicitudes" ? (
+          <DrawerMisSolicitudes
+            onSelectAusencia={(a) => {
+              // opcional: si luego quieres detalle de solicitud, lo abrimos como evento genérico
+              setSelectedEvent({
+                id: `aus-${a.id}`,
+                tipo: a.tipo,
+                title: a.tipo === "baja_medica" ? "Baja médica" : "Vacaciones",
+                start: a.fecha_inicio,
+                end: a.fecha_fin,
+                allDay: true,
+                estado: a.estado,
+              });
+              push({ key: "evento", title: "Detalle" });
+            }}
+          />
+        ) : null}
+      </IOSDrawer>
 
       {/* Header */}
       <div>
@@ -315,26 +311,46 @@ export default function EmpleadoDashboard() {
         </div>
       </div>
 
-      {estadoDia?.laborable === false && (
+      {estadoDia?.laborable === false ? (
         <div className="p-4 border rounded bg-gray-100 text-sm text-gray-700">
-          Hoy no es un día laborable: <b>{estadoDia.label}</b>
+          Hoy no es un día laborable: <b>{estadoDia.label || "No laborable"}</b>
         </div>
-      )}
+      ) : null}
 
       {/* Botón principal (fichaje) */}
       <div className="fixed bottom-4 left-4 right-4 z-40 space-y-2">
-        {estadoDia?.laborable !== false && (
+        {estadoDia?.laborable !== false ? (
           <FichajeAction
             accion={data.accion ?? null}
             reload={() => {
               loadDashboard();
-              loadWorkLogsHoy();
+              loadWorkLogsHoyFn();
             }}
           />
+        ) : (
+          <button
+            onClick={openDrawer}
+            className="w-full py-4 rounded-2xl bg-white border border-black/10 font-semibold active:bg-black/[0.04]"
+          >
+            Ver calendario / solicitudes
+          </button>
         )}
 
-        {/* Secundarios (si quieres mantenerlos) */}
-        <div className="grid grid-cols-2 gap-2"></div>
+        {/* Acciones rápidas (opcional, pero queda iOS total) */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => router.push("/empleado/trabajos")}
+            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm active:bg-black/[0.04]"
+          >
+            Añadir trabajo
+          </button>
+          <button
+            onClick={openDrawer}
+            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm active:bg-black/[0.04]"
+          >
+            Menú
+          </button>
+        </div>
       </div>
 
       {/* Fichajes hoy */}
@@ -359,7 +375,6 @@ export default function EmpleadoDashboard() {
       <div className="card">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">Trabajos de hoy</h3>
-
           <button
             className="btn-primary text-sm px-3 py-1"
             onClick={() => router.push("/empleado/trabajos")}
@@ -378,9 +393,9 @@ export default function EmpleadoDashboard() {
               <li key={w.id} className="flex justify-between">
                 <span className="truncate">
                   {w.descripcion}
-                  {w.cliente_nombre && (
+                  {w.cliente_nombre ? (
                     <span className="text-gray-500"> · {w.cliente_nombre}</span>
-                  )}
+                  ) : null}
                 </span>
                 <span>{w.minutos ?? "—"} min</span>
               </li>
@@ -390,33 +405,4 @@ export default function EmpleadoDashboard() {
       </div>
     </div>
   );
-}
-
-function MenuRow({
-  title,
-  subtitle,
-  onClick,
-}: {
-  title: string;
-  subtitle?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left px-4 py-3 flex items-center gap-3 active:bg-gray-100 transition"
-    >
-      <div className="flex-1">
-        <div className="text-[15px] font-semibold text-gray-900">{title}</div>
-        {subtitle ? (
-          <div className="text-[13px] text-gray-500 mt-0.5">{subtitle}</div>
-        ) : null}
-      </div>
-      <div className="text-gray-400">›</div>
-    </button>
-  );
-}
-
-function Divider() {
-  return <div className="h-px bg-black/5" />;
 }
