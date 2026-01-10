@@ -30,6 +30,12 @@ export default function CalendarioLegend() {
       <span className="inline-flex items-center gap-2">
         <Dot color={COLOR_MAP.no_laborable} /> No laborable
       </span>
+      <span className="inline-flex items-center gap-2">
+        <Dot color={COLOR_MAP.aprobado} /> Aprobado
+      </span>
+      <span className="inline-flex items-center gap-2">
+        <Dot color={COLOR_MAP.rechazado} /> Rechazado
+      </span>
     </div>
   );
 }
