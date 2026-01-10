@@ -76,7 +76,7 @@ export default function DrawerSolicitarAusencia({
             </select>
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <label className="text-sm text-gray-700">
               Inicio
               <input
