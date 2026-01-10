@@ -80,12 +80,15 @@ export default function DrawerCalendarioAdmin() {
   // =========================
   async function loadEvents() {
     const apiCal = calendarRef.current?.getApi();
-    if (!apiCal) return;
+    if (!apiCal) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
 
     const start = apiCal.view.activeStart.toISOString().slice(0, 10);
     const end = apiCal.view.activeEnd.toISOString().slice(0, 10);
-
-    setLoading(true);
     try {
       const res = await api.get("/admin/calendario/eventos", {
         params: {
@@ -103,6 +106,11 @@ export default function DrawerCalendarioAdmin() {
       setLoading(false);
     }
   }
+  useEffect(() => {
+    setTimeout(() => {
+      syncTitle();
+    }, 0);
+  }, []);
 
   useEffect(() => {
     loadEvents();
