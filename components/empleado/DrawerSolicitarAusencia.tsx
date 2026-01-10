@@ -22,7 +22,7 @@ export default function DrawerSolicitarAusencia({
   tipoInicial: "vacaciones" | "baja_medica";
   onDone: () => void;
 }) {
-  const [tipo, setTipo] = useState<"vacaciones" | "baja_medica">(tipoInicial);
+  const tipo = tipoInicial;
   const [fechaInicio, setFechaInicio] = useState(ymd());
   const [fechaFin, setFechaFin] = useState(ymd());
   const [comentario, setComentario] = useState("");
@@ -58,7 +58,7 @@ export default function DrawerSolicitarAusencia({
 
   return (
     <div className="p-4 space-y-4">
-      <div className="rounded-2xl border border-black/5 bg-white p-4 space-y-3">
+      <div className="rounded-2xl border border-black/10 bg-white p-4 space-y-3 shadow-sm">
         <div className="text-[15px] font-semibold text-gray-900">
           {tipo === "vacaciones"
             ? "Solicitar vacaciones"
@@ -72,7 +72,7 @@ export default function DrawerSolicitarAusencia({
 
         <div className="grid grid-cols-1 gap-3">
           <div className="grid grid-cols-2 gap-2">
-            <label className="text-sm text-gray-700">
+            <label className="text-[13px] font-medium text-gray-600">
               Inicio
               <input
                 type="date"
@@ -82,10 +82,11 @@ export default function DrawerSolicitarAusencia({
               />
             </label>
 
-            <label className="text-sm text-gray-700">
+            <label className="text-[13px] font-medium text-gray-600">
               Fin
               <input
                 type="date"
+                min={fechaInicio}
                 className="mt-1 w-full border rounded-xl px-3 py-2"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
