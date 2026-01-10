@@ -1,33 +1,41 @@
 // src/components/empleado/drawer/DrawerCalendario.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import listPlugin from "@fullcalendar/list";
 import esLocale from "@fullcalendar/core/locales/es";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { api } from "@/services/api";
 import type { CalendarioEvento } from "./calendarioTypes";
 import { colorFor } from "./calendarioColors";
 import CalendarioLegend from "./CalendarioLegend";
 
+type ViewMode = "dayGridMonth" | "timeGridWeek";
+
 export default function DrawerCalendario({
   onSelectEvent,
 }: {
   onSelectEvent: (ev: CalendarioEvento) => void;
 }) {
+  const calendarRef = useRef<FullCalendar | null>(null);
+
   const [events, setEvents] = useState<CalendarioEvento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<ViewMode>("dayGridMonth");
+  const [title, setTitle] = useState("");
 
+  // =========================
+  // LOAD EVENTS
+  // =========================
   async function load() {
     setLoading(true);
     try {
       const res = await api.get("/calendario/usuario");
-      const data = Array.isArray(res.data) ? res.data : [];
-      setEvents(data);
+      setEvents(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error("Error calendario usuario", e);
       setEvents([]);
@@ -40,6 +48,9 @@ export default function DrawerCalendario({
     load();
   }, []);
 
+  // =========================
+  // MAP EVENTS
+  // =========================
   const fcEvents = useMemo(() => {
     return events.map((e) => {
       const col = colorFor(e.tipo);
@@ -56,36 +67,126 @@ export default function DrawerCalendario({
     });
   }, [events]);
 
+  // =========================
+  // CALENDAR CONTROLS
+  // =========================
+  function apiCalendar() {
+    return calendarRef.current?.getApi();
+  }
+
+  function goPrev() {
+    apiCalendar()?.prev();
+    syncTitle();
+  }
+
+  function goNext() {
+    apiCalendar()?.next();
+    syncTitle();
+  }
+
+  function changeView(v: ViewMode) {
+    setView(v);
+    apiCalendar()?.changeView(v);
+    syncTitle();
+  }
+
+  function syncTitle() {
+    const api = apiCalendar();
+    if (!api) return;
+    setTitle(api.view.title.charAt(0).toUpperCase() + api.view.title.slice(1));
+  }
+
+  // =========================
+  // INIT TITLE
+  // =========================
+  useEffect(() => {
+    setTimeout(syncTitle, 0);
+  }, []);
+
   return (
     <div className="p-3 space-y-3">
       <CalendarioLegend />
 
-      <div className="bg-white border border-black/5 rounded-2xl p-2">
-        {loading ? (
-          <div className="p-3 text-sm text-gray-500">Cargando calendario…</div>
-        ) : (
-          <FullCalendar
-            plugins={[
-              dayGridPlugin,
-              timeGridPlugin,
-              interactionPlugin,
-              listPlugin,
-            ]}
-            locale={esLocale}
-            initialView="dayGridMonth"
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
-            }}
-            events={fcEvents as any}
-            height="auto"
-            eventClick={(info) => {
-              const ext = info.event.extendedProps as any;
-              if (ext) onSelectEvent(ext as CalendarioEvento);
-            }}
-          />
-        )}
+      <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
+        {/* =========================
+            HEADER iOS
+        ========================= */}
+        <div className="px-3 h-12 border-b flex items-center justify-between">
+          {/* Left */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={goPrev}
+              className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+              aria-label="Anterior"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              onClick={goNext}
+              className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+              aria-label="Siguiente"
+            >
+              <ChevronRight size={18} />
+            </button>
+
+            <div className="ml-2 font-semibold text-[15px] text-gray-900">
+              {title}
+            </div>
+          </div>
+
+          {/* Right */}
+          <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
+            <button
+              onClick={() => changeView("dayGridMonth")}
+              className={[
+                "px-3 py-1.5",
+                view === "dayGridMonth"
+                  ? "bg-black text-white"
+                  : "bg-white text-gray-700",
+              ].join(" ")}
+            >
+              Mes
+            </button>
+            <button
+              onClick={() => changeView("timeGridWeek")}
+              className={[
+                "px-3 py-1.5",
+                view === "timeGridWeek"
+                  ? "bg-black text-white"
+                  : "bg-white text-gray-700",
+              ].join(" ")}
+            >
+              Semana
+            </button>
+          </div>
+        </div>
+
+        {/* =========================
+            CALENDAR
+        ========================= */}
+        <div className="p-2">
+          {loading ? (
+            <div className="p-3 text-sm text-gray-500">
+              Cargando calendario…
+            </div>
+          ) : (
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              locale={esLocale}
+              initialView={view}
+              headerToolbar={false}
+              events={fcEvents as any}
+              height="auto"
+              contentHeight="auto"
+              expandRows
+              eventClick={(info) => {
+                const ext = info.event.extendedProps as any;
+                if (ext) onSelectEvent(ext as CalendarioEvento);
+              }}
+            />
+          )}
+        </div>
       </div>
 
       <button
