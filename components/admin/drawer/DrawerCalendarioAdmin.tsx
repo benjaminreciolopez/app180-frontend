@@ -75,15 +75,18 @@ export default function DrawerCalendarioAdmin() {
     }
   }, [empleados]);
 
+  useEffect(() => {
+    if (calendarRef.current) {
+      loadEvents();
+    }
+  }, [empleadoActivo, estadoFiltro]);
+
   // =========================
   // LOAD EVENTS
   // =========================
   async function loadEvents() {
     const apiCal = calendarRef.current?.getApi();
-    if (!apiCal) {
-      setLoading(false);
-      return;
-    }
+    if (!apiCal) return;
 
     setLoading(true);
 
@@ -111,10 +114,6 @@ export default function DrawerCalendarioAdmin() {
       syncTitle();
     }, 0);
   }, []);
-
-  useEffect(() => {
-    loadEvents();
-  }, [empleadoActivo, estadoFiltro]);
 
   // =========================
   // MAP EVENTS
