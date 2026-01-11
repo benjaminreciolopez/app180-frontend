@@ -163,10 +163,8 @@ export default function AdminCalendarioBase({ mode }: Props) {
     loadEventsForCurrentView();
   }
 
-  // ============================================================
-  // Header: SOLO título (prev/next + título). Los "plugins" van en
-  // una barra flotante encima del calendario (sticky + z-index).
-  // ============================================================
+  // Header: solo navegación básica (prev/next + título).
+  // Los controles del calendario van debajo de "Recargar".
   const HeaderIOS = (
     <div className="px-3 h-12 border-b flex items-center justify-between">
       <div className="flex items-center gap-1">
@@ -201,13 +199,15 @@ export default function AdminCalendarioBase({ mode }: Props) {
   // - z-index alto
   // - background semitransparente + blur
   // ============================================================
-  const ControlsOverlay = (
-    <div className="sticky top-[calc(3rem+44px)] z-30 bg-background/95 backdrop-blur border-b">
-      <div className="px-3 py-2 flex flex-wrap items-center gap-2 justify-between">
-        {/* Grupo izquierda: título compacto */}
-        <div className="text-sm font-semibold truncate">{title}</div>
+  // ============================================================
+  // Controles del calendario (debajo de "Recargar")
+  // ============================================================
+  const CalendarControls = (
+    <div className="px-3 py-3 border-t border-b bg-background">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {/* Título */}
+        <div className="text-sm font-semibold truncate w-full">{title}</div>
 
-        {/* Grupo derecha: controles */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
             <button
@@ -319,7 +319,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
         {/* Safe-area top */}
         <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
 
-        {/* Header fijo (título) */}
+        {/* Header fijo */}
         <div className="sticky top-0 z-40 bg-background">{HeaderIOS}</div>
 
         {/* Leyenda fija */}
@@ -327,10 +327,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
           <CalendarioLegend />
         </div>
 
-        {/* Barra de controles (plugins) sobre el calendario */}
-        {ControlsOverlay}
-
-        {/* Contenido scrolleable único */}
+        {/* Contenido con scroll */}
         <div className="relative flex-1 min-h-0">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm text-gray-500">
@@ -339,11 +336,10 @@ export default function AdminCalendarioBase({ mode }: Props) {
           )}
 
           <div className="h-full overflow-y-auto">
-            {/* Filtros arriba (si quieres, luego lo pasamos a drawer) */}
             {Filters}
 
-            {/* Spacer para que la barra sticky no tape la parte superior del calendario */}
-            <div className="h-12" />
+            {/* Controles debajo de Recargar */}
+            {CalendarControls}
 
             <FullCalendar
               ref={calendarRef}

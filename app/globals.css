@@ -396,3 +396,16 @@ body {
     font-size: 12px;
   }
 }
+/* FullCalendar overlays siempre por encima */
+.fc-popover,
+.fc-more-popover,
+.fc-tooltip {
+  z-index: 9999 !important;
+}
+
+/* Permitir que los popups salgan del calendario */
+.fc,
+.fc-view-harness,
+.fc-scroller {
+  overflow: visible !important;
+}
