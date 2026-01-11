@@ -409,3 +409,10 @@ body {
 .fc-scroller {
   overflow: visible !important;
 }
+.fc {
+  max-width: 100% !important;
+}
+html,
+body {
+  overflow-x: hidden;
+}

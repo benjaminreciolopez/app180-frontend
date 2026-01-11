@@ -113,10 +113,12 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
   useEffect(() => {
     if (calendarRef.current) loadEventsForCurrentView();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empleadoActivo, estadoFiltro]);
 
   useEffect(() => {
     setTimeout(syncTitle, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fcEvents = useMemo(() => {
@@ -158,20 +160,36 @@ export default function AdminCalendarioBase({ mode }: Props) {
     loadEventsForCurrentView();
   }
 
+  // =========================
+  // MOBILE HEADER (solo título)
+  // =========================
   const HeaderIOS = (
     <div className="px-3 h-12 border-b flex items-center justify-between bg-background">
-      <div className="flex items-center gap-1">
-        <button onClick={goPrev} className="w-9 h-9 grid place-items-center">
+      <div className="flex items-center gap-1 min-w-0">
+        <button
+          onClick={goPrev}
+          className="w-9 h-9 grid place-items-center shrink-0"
+          aria-label="Anterior"
+        >
           <ChevronLeft size={18} />
         </button>
-        <button onClick={goNext} className="w-9 h-9 grid place-items-center">
+        <button
+          onClick={goNext}
+          className="w-9 h-9 grid place-items-center shrink-0"
+          aria-label="Siguiente"
+        >
           <ChevronRight size={18} />
         </button>
-        <div className="ml-2 font-semibold text-[15px] truncate">{title}</div>
+        <div className="ml-2 font-semibold text-[15px] truncate min-w-0">
+          {title}
+        </div>
       </div>
     </div>
   );
 
+  // =========================
+  // FILTERS
+  // =========================
   const Filters = (
     <div className="space-y-3 px-3">
       <div className="bg-white border rounded-2xl px-3 py-3">
@@ -230,16 +248,22 @@ export default function AdminCalendarioBase({ mode }: Props) {
     </div>
   );
 
+  // =========================
+  // CONTROLES DE CALENDARIO
+  // (debajo de Recargar, SIN scroll horizontal)
+  // =========================
   const CalendarControls = (
     <div className="px-3 py-3 border-b bg-background">
       <div className="flex flex-col gap-2">
         <div className="text-sm font-semibold truncate">{title}</div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-full border overflow-hidden text-[13px] font-medium">
+        {/* Grid: siempre cabe */}
+        <div className="grid grid-cols-2 gap-2 items-center">
+          {/* Botones Mes/Semana */}
+          <div className="flex rounded-full border overflow-hidden text-[13px] font-medium w-full">
             <button
               onClick={() => changeView("dayGridMonth")}
-              className={`px-3 py-1.5 ${
+              className={`flex-1 px-3 py-1.5 ${
                 view === "dayGridMonth" ? "bg-black text-white" : "bg-white"
               }`}
             >
@@ -247,7 +271,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
             </button>
             <button
               onClick={() => changeView("timeGridWeek")}
-              className={`px-3 py-1.5 ${
+              className={`flex-1 px-3 py-1.5 ${
                 view === "timeGridWeek" ? "bg-black text-white" : "bg-white"
               }`}
             >
@@ -255,39 +279,62 @@ export default function AdminCalendarioBase({ mode }: Props) {
             </button>
           </div>
 
-          <button onClick={goPrev} className="w-9 h-9 grid place-items-center">
-            <ChevronLeft size={18} />
-          </button>
-          <button onClick={goNext} className="w-9 h-9 grid place-items-center">
-            <ChevronRight size={18} />
-          </button>
+          {/* Prev/Next */}
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={goPrev}
+              className="w-9 h-9 grid place-items-center rounded-full border bg-white shrink-0"
+              aria-label="Anterior"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              onClick={goNext}
+              className="w-9 h-9 grid place-items-center rounded-full border bg-white shrink-0"
+              aria-label="Siguiente"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 
+  // =========================
+  // MOBILE
+  // IMPORTANTE: NO h-screen aquí
+  // y NO overflow-y-auto interno
+  // =========================
   if (mode === "mobile") {
     return (
-      <div className="bg-background h-screen w-full flex flex-col">
+      <div className="bg-background w-full flex flex-col">
+        {/* Safe-area top */}
         <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
 
+        {/* Header sticky */}
         <div className="sticky top-0 z-40">{HeaderIOS}</div>
 
+        {/* Legend sticky */}
         <div className="sticky top-12 z-30 bg-background">
           <CalendarioLegend />
         </div>
 
-        <div className="flex-1 min-h-0 relative">
+        {/* Filtros */}
+        {Filters}
+
+        {/* CONTROLES DEBAJO DE RECARGAR */}
+        {CalendarControls}
+
+        {/* Calendario: aislado para que NO empuje horizontal */}
+        <div className="relative px-2 pb-3 overflow-x-hidden">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">
               Cargando calendario…
             </div>
           )}
 
-          <div className="h-full overflow-y-auto">
-            {Filters}
-            {CalendarControls}
-
+          <div className="overflow-x-hidden">
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -309,8 +356,10 @@ export default function AdminCalendarioBase({ mode }: Props) {
           </div>
         </div>
 
+        {/* Safe-area bottom */}
         <div style={{ paddingBottom: "env(safe-area-inset-bottom)" }} />
 
+        {/* Drawers */}
         {selected && (
           <IOSDrawer
             open
@@ -375,7 +424,9 @@ export default function AdminCalendarioBase({ mode }: Props) {
     );
   }
 
-  // Desktop (lo dejamos como lo tienes, con buen layout)
+  // =========================
+  // DESKTOP (tu versión)
+  // =========================
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
