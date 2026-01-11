@@ -23,13 +23,13 @@ function Item({ color, label }: { color: string; label: string }) {
 export default function CalendarioLegend() {
   return (
     <div className="legend-horizontal text-xs text-gray-700">
-      <Item color={COLOR_MAP.vacaciones} label="Vacaciones" />,
-      <Item color={COLOR_MAP.baja_medica} label="Baja médica" />,
-      <Item color={COLOR_MAP.festivo} label="Festivo" />,
-      <Item color={COLOR_MAP.fichaje} label="Fichaje" />,
-      <Item color={COLOR_MAP.no_laborable} label="No laborable" />,
-      <Item color={COLOR_MAP.aprobado} label="Aprobado" />,
-      <Item color={COLOR_MAP.rechazado} label="Rechazado" />,
+      <Item color={COLOR_MAP.vacaciones} label="Vacaciones" />
+      <Item color={COLOR_MAP.baja_medica} label="Baja médica" />
+      <Item color={COLOR_MAP.festivo} label="Festivo" />
+      <Item color={COLOR_MAP.fichaje} label="Fichaje" />
+      <Item color={COLOR_MAP.no_laborable} label="No laborable" />
+      <Item color={COLOR_MAP.aprobado} label="Aprobado" />
+      <Item color={COLOR_MAP.rechazado} label="Rechazado" />
     </div>
   );
 }
