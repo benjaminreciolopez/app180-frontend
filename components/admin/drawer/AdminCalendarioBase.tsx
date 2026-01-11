@@ -388,7 +388,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Calendario laboral</h1>
-          <div className="mt-2">
+          <div className="shrink-0">
             <CalendarioLegend />
           </div>
         </div>
