@@ -17,11 +17,9 @@ import DrawerDetalleAusenciaAdmin from "@/components/admin/drawer/DrawerDetalleA
 import DrawerPendientesAdmin from "@/components/admin/drawer/DrawerPendientesAdmin";
 import DrawerCrearAusenciaAdmin from "@/components/admin/drawer/DrawerCrearAusenciaAdmin";
 
-type ViewMode = "dayGridMonth" | "timeGridWeek";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
-type Props = {
-  mode: "mobile" | "desktop";
-};
+type ViewMode = "dayGridMonth" | "timeGridWeek";
 
 type Empleado = {
   id: string;
@@ -43,8 +41,8 @@ function cap(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export default function AdminCalendarioBase({ mode }: Props) {
-  console.log("CALENDARIO MODE:", mode);
+export default function AdminCalendarioBase() {
+  const isMobile = useIsMobile();
   const calendarRef = useRef<FullCalendar | null>(null);
 
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
@@ -126,10 +124,9 @@ export default function AdminCalendarioBase({ mode }: Props) {
       const prettyTipo = e.tipo?.replaceAll("_", " ") || "ausencia";
       return {
         id: e.id,
-        title:
-          mode === "desktop"
-            ? `${e.empleado_nombre} · ${prettyTipo} · ${e.estado}`
-            : `${e.empleado_nombre} · ${prettyTipo}`,
+        title: isMobile
+          ? `${e.empleado_nombre} · ${prettyTipo}`
+          : `${e.empleado_nombre} · ${prettyTipo} · ${e.estado}`,
         start: e.start,
         end: e.end,
         allDay: true,
@@ -138,7 +135,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
         extendedProps: e,
       };
     });
-  }, [events, mode]);
+  }, [events, isMobile]);
 
   function goPrev() {
     apiCalendar()?.prev();
@@ -253,17 +250,14 @@ export default function AdminCalendarioBase({ mode }: Props) {
     </div>
   );
 
-  if (mode === "mobile") {
+  if (isMobile) {
     return (
       <div className="fullscreen-page w-full max-w-full overflow-x-hidden">
-        {/* Zona fija superior */}
         <div className="w-full max-w-full overflow-x-hidden">
           <CalendarioLegend />
-          {Filters}
           {CalendarControls}
         </div>
 
-        {/* Zona scrollable (calendario) */}
         <div className="fullscreen-content relative w-full max-w-full overflow-x-hidden">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">
@@ -293,7 +287,6 @@ export default function AdminCalendarioBase({ mode }: Props) {
           />
         </div>
 
-        {/* Drawers */}
         {selected && (
           <IOSDrawer
             open
@@ -330,7 +323,9 @@ export default function AdminCalendarioBase({ mode }: Props) {
             <DrawerPendientesAdmin
               onClose={() => setOpenPendientes(false)}
               onUpdated={() => loadEventsForCurrentView()}
-              onOpenDetalle={(p) => console.log("pendiente detalle", p)}
+              onOpenDetalle={(p) => {
+                console.log("Pendiente detalle:", p);
+              }}
             />
           </IOSDrawer>
         )}
@@ -357,9 +352,8 @@ export default function AdminCalendarioBase({ mode }: Props) {
       </div>
     );
   }
-  // =========================
-  // DESKTOP (tu versión)
-  // =========================
+
+  // DESKTOP
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
@@ -401,14 +395,12 @@ export default function AdminCalendarioBase({ mode }: Props) {
           <button
             onClick={goPrev}
             className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-            aria-label="Anterior"
           >
             <ChevronLeft size={18} />
           </button>
           <button
             onClick={goNext}
             className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-            aria-label="Siguiente"
           >
             <ChevronRight size={18} />
           </button>
@@ -452,7 +444,6 @@ export default function AdminCalendarioBase({ mode }: Props) {
         </div>
       </div>
 
-      {/* Drawers desktop */}
       {selected && (
         <IOSDrawer
           open={true}
@@ -489,7 +480,9 @@ export default function AdminCalendarioBase({ mode }: Props) {
           <DrawerPendientesAdmin
             onClose={() => setOpenPendientes(false)}
             onUpdated={() => loadEventsForCurrentView()}
-            onOpenDetalle={(p) => console.log("pendiente detalle", p)}
+            onOpenDetalle={(p) => {
+              console.log("Pendiente detalle:", p);
+            }}
           />
         </IOSDrawer>
       )}

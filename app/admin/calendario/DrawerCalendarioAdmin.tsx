@@ -22,7 +22,7 @@ export default function DrawerCalendarioAdmin({ open, onClose }: Props) {
         onClose,
       }}
     >
-      <AdminCalendarioBase mode="mobile" />
+      <AdminCalendarioBase />
     </IOSDrawer>
   );
 }

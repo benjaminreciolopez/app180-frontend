@@ -1,4 +1,3 @@
-// src/components/admin/drawer/DrawerCalendarioAdmin.tsx
 "use client";
 
 import IOSDrawer from "@/components/ui/IOSDrawer";
@@ -21,10 +20,9 @@ export default function DrawerCalendarioAdmin({
         onBack: onClose,
         onClose,
       }}
-      // En móvil queremos que sea 100% ancho siempre.
       width="w-full"
     >
-      <AdminCalendarioBase mode="mobile" />
+      <AdminCalendarioBase />
     </IOSDrawer>
   );
 }
