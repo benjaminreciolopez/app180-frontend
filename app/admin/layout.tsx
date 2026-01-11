@@ -64,7 +64,7 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="flex h-[100svh] w-screen overflow-hidden">
+    <div className="flex h-[100svh] w-screen">
       {/* Overlay móvil */}
       {menuOpen && (
         <div
@@ -80,6 +80,7 @@ export default function AdminLayout({
           transform transition-transform
           ${menuOpen ? "translate-x-0" : "-translate-x-full"}
           md:static md:translate-x-0
+          flex flex-col
         `}
       >
         <div className="md:hidden mb-4">
@@ -93,7 +94,7 @@ export default function AdminLayout({
 
         <h2 className="text-xl font-bold tracking-wide">APP180</h2>
 
-        <ul className="mt-8 space-y-2">
+        <ul className="mt-8 space-y-2 flex-1 overflow-y-auto">
           {menu.map((item) => (
             <li key={item.path}>
               <Link
@@ -111,7 +112,7 @@ export default function AdminLayout({
           ))}
         </ul>
 
-        <div className="mt-auto border-t border-border pt-4">
+        <div className="border-t border-border pt-4">
           <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
           <p className="font-semibold">{nombre}</p>
 
@@ -126,9 +127,9 @@ export default function AdminLayout({
       </aside>
 
       {/* Main */}
-      <main className="flex-1 bg-background h-[100svh] overflow-hidden">
+      <main className="flex-1 bg-background h-[100svh] flex flex-col">
         {/* Header móvil */}
-        <div className="md:hidden sticky top-0 z-30 bg-background border-b flex items-center h-12 px-3">
+        <div className="md:hidden sticky top-0 z-30 bg-background border-b flex items-center h-12 px-3 shrink-0">
           <button
             aria-label="Abrir menú"
             onClick={() => setMenuOpen(true)}
@@ -138,10 +139,8 @@ export default function AdminLayout({
           </button>
         </div>
 
-        {/* Contenido */}
-        <div className="h-[calc(100svh-3rem)] md:h-full overflow-hidden md:p-6">
-          {children}
-        </div>
+        {/* Contenido: ÚNICA zona con scroll */}
+        <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
       </main>
     </div>
   );
