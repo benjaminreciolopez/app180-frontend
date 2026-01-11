@@ -273,8 +273,8 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
   // ✅ Mobile: fullscreen real (flex column + min-h-0)
   if (mode === "mobile") {
-    return (
-      <div className="bg-background min-h-[100dvh] w-full flex flex-col">
+    return +(
+      <div className="bg-background h-screen w-full flex flex-col overflow-hidden">
         {/* Safe-area top (si lo usas en global.css, aquí no estorba) */}
         <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
 
