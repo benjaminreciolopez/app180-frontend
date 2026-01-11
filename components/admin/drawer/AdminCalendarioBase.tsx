@@ -251,7 +251,11 @@ export default function AdminCalendarioBase() {
       </div>
     </div>
   );
-
+  return (
+    <div className="fixed top-0 left-0 z-[999999] bg-red-600 text-white p-2 text-xs">
+      DEBUG RENDER: AdminCalendarioBase
+    </div>
+  );
   if (isMobile) {
     return (
       <div className="fullscreen-page w-full max-w-full overflow-x-hidden">
