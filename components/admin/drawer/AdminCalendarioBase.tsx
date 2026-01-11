@@ -331,6 +331,8 @@ export default function AdminCalendarioBase({ mode }: Props) {
               events={fcEvents as any}
               expandRows
               handleWindowResize
+              height="auto"
+              contentHeight="auto"
               datesSet={() => {
                 syncTitle();
                 loadEventsForCurrentView();
