@@ -254,7 +254,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
   if (mode === "mobile") {
     return (
-      <div className="fullscreen-page">
+      <div className="fullscreen-page w-full max-w-full overflow-x-hidden">
         {/* Zona fija superior */}
         <div className="w-full max-w-full overflow-x-hidden">
           <CalendarioLegend />
@@ -262,7 +262,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
           {CalendarControls}
         </div>
 
-        {/* Zona que ocupa el resto */}
+        {/* Zona scrollable (calendario) */}
         <div className="fullscreen-content relative w-full max-w-full overflow-x-hidden">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">

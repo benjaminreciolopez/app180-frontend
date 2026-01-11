@@ -403,37 +403,36 @@ body {
   z-index: 9999 !important;
 }
 
-/* Bloquea desbordes horizontales reales */
+/* 🔒 Bloqueo total de overflow lateral */
 html,
 body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden !important;
 }
-.fc-popover,
-.fc-more-popover,
-.fc-tooltip {
-  z-index: 9999 !important;
-}
 
+/* FullCalendar no puede romper ancho */
 .fc,
-.fc-view-harness {
-  overflow: hidden !important;
-}
-
-.fc .fc-scroller {
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-}
-.fc {
-  width: 100% !important;
-  max-width: 100vw !important;
-}
-
-.fc-view-harness {
-  max-width: 100vw !important;
-}
-
+.fc-view-harness,
 .fc-scrollgrid {
   width: 100% !important;
+  max-width: 100vw !important;
+}
+
+/* Previene empujes raros */
+.fullscreen-page {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.fullscreen-content {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
