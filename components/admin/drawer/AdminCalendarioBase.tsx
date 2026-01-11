@@ -254,38 +254,40 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
   if (mode === "mobile") {
     return (
-      <div className="w-full flex flex-col">
+      <div className="w-full max-w-full flex flex-col overflow-x-hidden">
         <CalendarioLegend />
 
         {Filters}
 
         {CalendarControls}
 
-        <div className="relative">
+        <div className="relative w-full max-w-full overflow-x-hidden">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">
               Cargando calendario…
             </div>
           )}
 
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            locale={esLocale}
-            initialView={view}
-            headerToolbar={false}
-            events={fcEvents as any}
-            expandRows
-            handleWindowResize
-            datesSet={() => {
-              syncTitle();
-              loadEventsForCurrentView();
-            }}
-            eventClick={(info) => {
-              const ext = info.event.extendedProps as any;
-              if (ext) setSelected(ext as EventoAdmin);
-            }}
-          />
+          <div className="w-full max-w-full overflow-x-hidden">
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              locale={esLocale}
+              initialView={view}
+              headerToolbar={false}
+              events={fcEvents as any}
+              expandRows
+              handleWindowResize
+              datesSet={() => {
+                syncTitle();
+                loadEventsForCurrentView();
+              }}
+              eventClick={(info) => {
+                const ext = info.event.extendedProps as any;
+                if (ext) setSelected(ext as EventoAdmin);
+              }}
+            />
+          </div>
         </div>
 
         {selected && (
