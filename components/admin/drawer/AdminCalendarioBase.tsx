@@ -163,6 +163,10 @@ export default function AdminCalendarioBase({ mode }: Props) {
     loadEventsForCurrentView();
   }
 
+  // ============================================================
+  // Header: SOLO título (prev/next + título). Los "plugins" van en
+  // una barra flotante encima del calendario (sticky + z-index).
+  // ============================================================
   const HeaderIOS = (
     <div className="px-3 h-12 border-b flex items-center justify-between">
       <div className="flex items-center gap-1">
@@ -186,28 +190,58 @@ export default function AdminCalendarioBase({ mode }: Props) {
         </div>
       </div>
 
-      <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
+      {/* Aquí ya NO van Mes/Semana ni prev/next */}
+      <div />
+    </div>
+  );
+
+  // ============================================================
+  // Barra "plugins" flotante (Mes/Semana + prev/next)
+  // - Sticky por encima del calendario
+  // - z-index alto
+  // - background semitransparente + blur
+  // ============================================================
+  const ControlsOverlay = (
+    <div className="sticky top-[calc(3rem+44px)] z-30 bg-background/95 backdrop-blur border-b">
+      <div className="px-3 h-12 flex items-center justify-end gap-2">
+        <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
+          <button
+            onClick={() => changeView("dayGridMonth")}
+            className={[
+              "px-3 py-1.5",
+              view === "dayGridMonth"
+                ? "bg-black text-white"
+                : "bg-white text-gray-700",
+            ].join(" ")}
+          >
+            Mes
+          </button>
+          <button
+            onClick={() => changeView("timeGridWeek")}
+            className={[
+              "px-3 py-1.5",
+              view === "timeGridWeek"
+                ? "bg-black text-white"
+                : "bg-white text-gray-700",
+            ].join(" ")}
+          >
+            Semana
+          </button>
+        </div>
+
         <button
-          onClick={() => changeView("dayGridMonth")}
-          className={[
-            "px-3 py-1.5",
-            view === "dayGridMonth"
-              ? "bg-black text-white"
-              : "bg-white text-gray-700",
-          ].join(" ")}
+          onClick={goPrev}
+          className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+          aria-label="Anterior"
         >
-          Mes
+          <ChevronLeft size={18} />
         </button>
         <button
-          onClick={() => changeView("timeGridWeek")}
-          className={[
-            "px-3 py-1.5",
-            view === "timeGridWeek"
-              ? "bg-black text-white"
-              : "bg-white text-gray-700",
-          ].join(" ")}
+          onClick={goNext}
+          className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+          aria-label="Siguiente"
         >
-          Semana
+          <ChevronRight size={18} />
         </button>
       </div>
     </div>
@@ -271,26 +305,39 @@ export default function AdminCalendarioBase({ mode }: Props) {
     </div>
   );
 
-  // ✅ Mobile: fullscreen real (flex column + min-h-0)
+  // ✅ Mobile: fullscreen real (layout + sticky + scroll único)
   if (mode === "mobile") {
-    return +(
+    return (
       <div className="bg-background h-screen w-full flex flex-col overflow-hidden">
-        {/* Safe-area top (si lo usas en global.css, aquí no estorba) */}
+        {/* Safe-area top */}
         <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
 
-        <div className="sticky top-0 z-20 bg-background">{HeaderIOS}</div>
-        <div className="sticky top-12 z-10 bg-background">
+        {/* Header fijo (título) */}
+        <div className="sticky top-0 z-40 bg-background">{HeaderIOS}</div>
+
+        {/* Leyenda fija */}
+        <div className="sticky top-12 z-30 bg-background">
           <CalendarioLegend />
         </div>
+
+        {/* Barra de controles (plugins) sobre el calendario */}
+        {ControlsOverlay}
+
+        {/* Contenido scrolleable único */}
         <div className="relative flex-1 min-h-0">
           {loading && (
-            <div className="absolute inset-0 bg-white/70 z-20 grid place-items-center text-sm text-gray-500">
+            <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm text-gray-500">
               Cargando calendario…
             </div>
           )}
 
           <div className="h-full overflow-y-auto">
+            {/* Filtros arriba (si quieres, luego lo pasamos a drawer) */}
             {Filters}
+
+            {/* Spacer para que la barra sticky no tape la parte superior del calendario */}
+            <div className="h-12" />
+
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -394,57 +441,58 @@ export default function AdminCalendarioBase({ mode }: Props) {
         <div className="flex items-center gap-2">
           <div className="font-semibold text-[15px] text-gray-900">{title}</div>
 
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-12 lg:col-span-3">{Filters}</div>
+          <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
+            <button
+              onClick={() => changeView("dayGridMonth")}
+              className={[
+                "px-3 py-1.5",
+                view === "dayGridMonth"
+                  ? "bg-black text-white"
+                  : "bg-white text-gray-700",
+              ].join(" ")}
+            >
+              Mes
+            </button>
+            <button
+              onClick={() => changeView("timeGridWeek")}
+              className={[
+                "px-3 py-1.5",
+                view === "timeGridWeek"
+                  ? "bg-black text-white"
+                  : "bg-white text-gray-700",
+              ].join(" ")}
+            >
+              Semana
+            </button>
+          </div>
 
-            <div className="col-span-12 lg:col-span-9 bg-white border border-black/5 rounded-2xl overflow-hidden">
-              <div className="relative">
-                {loading && (
-                  <div className="absolute inset-0 bg-white/70 z-10 grid place-items-center text-sm text-gray-500">
-                    Cargando calendario…
-                  </div>
-                )}
-                <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
-                  <button
-                    onClick={() => changeView("dayGridMonth")}
-                    className={[
-                      "px-3 py-1.5",
-                      view === "dayGridMonth"
-                        ? "bg-black text-white"
-                        : "bg-white text-gray-700",
-                    ].join(" ")}
-                  >
-                    Mes
-                  </button>
-                  <button
-                    onClick={() => changeView("timeGridWeek")}
-                    className={[
-                      "px-3 py-1.5",
-                      view === "timeGridWeek"
-                        ? "bg-black text-white"
-                        : "bg-white text-gray-700",
-                    ].join(" ")}
-                  >
-                    Semana
-                  </button>
-                </div>
+          <button
+            onClick={goPrev}
+            className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+            aria-label="Anterior"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            onClick={goNext}
+            className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+            aria-label="Siguiente"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
 
-                <button
-                  onClick={goPrev}
-                  className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-                  aria-label="Anterior"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <button
-                  onClick={goNext}
-                  className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-                  aria-label="Siguiente"
-                >
-                  <ChevronRight size={18} />
-                </button>
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 lg:col-span-3">{Filters}</div>
+
+        <div className="col-span-12 lg:col-span-9 bg-white border border-black/5 rounded-2xl overflow-hidden">
+          <div className="relative">
+            {loading && (
+              <div className="absolute inset-0 bg-white/70 z-10 grid place-items-center text-sm text-gray-500">
+                Cargando calendario…
               </div>
-            </div>
+            )}
 
             <div className="p-4">
               <FullCalendar
