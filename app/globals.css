@@ -370,12 +370,6 @@ body {
   padding: 8px 12px;
 }
 
-.legend-horizontal > * {
-  display: inline-flex;  /* ⬅️ CLAVE */
-  align-items: center;
-  white-space: nowrap;
-  flex: 0 0 auto;        /* ⬅️ no ocupa 100% */
-}
 
 @media (min-width: 768px) {
   .legend-horizontal {
@@ -385,3 +379,9 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
+.legend-horizontal > * {
+  display: inline-flex;  /* ⬅️ CLAVE */
+  align-items: center;
+  white-space: nowrap;
+  flex: 0 0 auto;        /* ⬅️ no ocupa 100% */
+}
