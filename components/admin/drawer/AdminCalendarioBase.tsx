@@ -63,16 +63,6 @@ export default function AdminCalendarioBase({ mode }: Props) {
   const [openPendientes, setOpenPendientes] = useState(false);
   const [openCrear, setOpenCrear] = useState(false);
 
-  async function loadEmpleados() {
-    try {
-      const res = await api.get("/employees");
-      setEmpleados(Array.isArray(res.data) ? res.data : []);
-    } catch (e) {
-      console.error("Error cargando empleados", e);
-      setEmpleados([]);
-    }
-  }
-
   function apiCalendar() {
     return calendarRef.current?.getApi();
   }
@@ -81,6 +71,15 @@ export default function AdminCalendarioBase({ mode }: Props) {
     const api = apiCalendar();
     if (!api) return;
     setTitle(cap(api.view.title));
+  }
+
+  async function loadEmpleados() {
+    try {
+      const res = await api.get("/employees");
+      setEmpleados(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      setEmpleados([]);
+    }
   }
 
   async function loadEventsForCurrentView() {
@@ -101,8 +100,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
         },
       });
       setEvents(Array.isArray(res.data) ? res.data : []);
-    } catch (e) {
-      console.error("Error calendario admin", e);
+    } catch {
       setEvents([]);
     } finally {
       setLoading(false);
@@ -161,31 +159,27 @@ export default function AdminCalendarioBase({ mode }: Props) {
   }
 
   const HeaderIOS = (
-    <div className="px-3 h-12 border-b flex items-center gap-2 bg-background">
-      <button
-        onClick={goPrev}
-        className="w-9 h-9 rounded-full grid place-items-center"
-      >
-        <ChevronLeft size={18} />
-      </button>
-      <button
-        onClick={goNext}
-        className="w-9 h-9 rounded-full grid place-items-center"
-      >
-        <ChevronRight size={18} />
-      </button>
-      <div className="ml-1 font-semibold text-[15px] truncate">{title}</div>
+    <div className="px-3 h-12 border-b flex items-center justify-between bg-background">
+      <div className="flex items-center gap-1">
+        <button onClick={goPrev} className="w-9 h-9 grid place-items-center">
+          <ChevronLeft size={18} />
+        </button>
+        <button onClick={goNext} className="w-9 h-9 grid place-items-center">
+          <ChevronRight size={18} />
+        </button>
+        <div className="ml-2 font-semibold text-[15px] truncate">{title}</div>
+      </div>
     </div>
   );
 
   const Filters = (
     <div className="space-y-3 px-3">
-      <div className="bg-white border border-black/5 rounded-2xl px-3 py-3">
-        <label className="block text-[12px] text-gray-500 mb-1">Empleado</label>
+      <div className="bg-white border rounded-2xl px-3 py-3">
+        <label className="block text-[12px] mb-1">Empleado</label>
         <select
           value={empleadoActivo}
           onChange={(e) => setEmpleadoActivo(e.target.value)}
-          className="w-full text-sm border-none focus:ring-0"
+          className="w-full text-sm"
         >
           <option value="">Todos los empleados</option>
           {empleados.map((e) => (
@@ -196,12 +190,12 @@ export default function AdminCalendarioBase({ mode }: Props) {
         </select>
       </div>
 
-      <div className="bg-white border border-black/5 rounded-2xl px-3 py-3">
-        <label className="block text-[12px] text-gray-500 mb-1">Estado</label>
+      <div className="bg-white border rounded-2xl px-3 py-3">
+        <label className="block text-[12px] mb-1">Estado</label>
         <select
           value={estadoFiltro}
           onChange={(e) => setEstadoFiltro(e.target.value as any)}
-          className="w-full text-sm border-none focus:ring-0"
+          className="w-full text-sm"
         >
           <option value="todos">Todos</option>
           <option value="pendiente">Pendientes</option>
@@ -212,14 +206,14 @@ export default function AdminCalendarioBase({ mode }: Props) {
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button
             onClick={() => setOpenCrear(true)}
-            className="w-full py-3 rounded-xl bg-black text-white text-sm font-semibold"
+            className="py-3 rounded-xl bg-black text-white text-sm font-semibold"
           >
             + Crear
           </button>
 
           <button
             onClick={() => setOpenPendientes(true)}
-            className="w-full py-3 rounded-xl text-sm font-semibold border border-black/10 bg-white"
+            className="py-3 rounded-xl border text-sm font-semibold"
           >
             Pendientes
           </button>
@@ -228,7 +222,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
       <button
         onClick={loadEventsForCurrentView}
-        className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold flex items-center justify-center gap-2"
+        className="w-full py-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2"
       >
         <RefreshCw size={16} />
         Recargar
@@ -239,14 +233,14 @@ export default function AdminCalendarioBase({ mode }: Props) {
   const CalendarControls = (
     <div className="px-3 py-3 border-b bg-background">
       <div className="flex flex-col gap-2">
+        <div className="text-sm font-semibold truncate">{title}</div>
+
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
+          <div className="flex rounded-full border overflow-hidden text-[13px] font-medium">
             <button
               onClick={() => changeView("dayGridMonth")}
               className={`px-3 py-1.5 ${
-                view === "dayGridMonth"
-                  ? "bg-black text-white"
-                  : "bg-white text-gray-700"
+                view === "dayGridMonth" ? "bg-black text-white" : "bg-white"
               }`}
             >
               Mes
@@ -254,26 +248,17 @@ export default function AdminCalendarioBase({ mode }: Props) {
             <button
               onClick={() => changeView("timeGridWeek")}
               className={`px-3 py-1.5 ${
-                view === "timeGridWeek"
-                  ? "bg-black text-white"
-                  : "bg-white text-gray-700"
+                view === "timeGridWeek" ? "bg-black text-white" : "bg-white"
               }`}
             >
               Semana
             </button>
           </div>
 
-          <button
-            onClick={goPrev}
-            className="w-9 h-9 rounded-full grid place-items-center"
-          >
+          <button onClick={goPrev} className="w-9 h-9 grid place-items-center">
             <ChevronLeft size={18} />
           </button>
-
-          <button
-            onClick={goNext}
-            className="w-9 h-9 rounded-full grid place-items-center"
-          >
+          <button onClick={goNext} className="w-9 h-9 grid place-items-center">
             <ChevronRight size={18} />
           </button>
         </div>
@@ -283,21 +268,23 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
   if (mode === "mobile") {
     return (
-      <div className="bg-background h-[100svh] w-full flex flex-col overflow-hidden">
+      <div className="bg-background h-screen w-full flex flex-col">
+        <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
+
         <div className="sticky top-0 z-40">{HeaderIOS}</div>
 
         <div className="sticky top-12 z-30 bg-background">
           <CalendarioLegend />
         </div>
 
-        <div className="relative flex-1 min-h-0">
+        <div className="flex-1 min-h-0 relative">
           {loading && (
-            <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm text-gray-500">
+            <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">
               Cargando calendario…
             </div>
           )}
 
-          <div className="h-full overflow-y-auto overflow-x-hidden">
+          <div className="h-full overflow-y-auto">
             {Filters}
             {CalendarControls}
 
@@ -322,9 +309,11 @@ export default function AdminCalendarioBase({ mode }: Props) {
           </div>
         </div>
 
+        <div style={{ paddingBottom: "env(safe-area-inset-bottom)" }} />
+
         {selected && (
           <IOSDrawer
-            open={true}
+            open
             onClose={() => setSelected(null)}
             header={{
               title: "Detalle de ausencia",
@@ -346,7 +335,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
         {openPendientes && (
           <IOSDrawer
-            open={true}
+            open
             onClose={() => setOpenPendientes(false)}
             header={{
               title: "Pendientes",
@@ -365,7 +354,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
         {openCrear && (
           <IOSDrawer
-            open={true}
+            open
             onClose={() => setOpenCrear(false)}
             header={{
               title: "Crear ausencia",
