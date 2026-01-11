@@ -364,33 +364,33 @@ body {
 
 /* 7) Leyenda horizontal REAL: siempre en fila con scroll suave */
 .legend-horizontal {
-  display: flex;
-  flex-wrap: wrap; /* permite 2 filas */
-  gap: 4px 10px; /* más compacto */
+  display: grid;
+  grid-auto-flow: column; /* fluye en horizontal */
+  grid-template-rows: repeat(2, auto); /* 2 filas */
+  gap: 4px 10px;
   padding: 6px 10px;
-  max-height: 3.2em; /* limita a ~2 filas */
-  overflow: hidden; /* evita que crezca más */
+  overflow-x: auto; /* scroll horizontal */
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
 }
 
 .legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px; /* más compacto */
+  gap: 4px;
   white-space: nowrap;
   flex: 0 0 auto;
-  font-size: 11px; /* opcional: más pequeño en móvil */
+  font-size: 11px;
 }
 
 @media (min-width: 768px) {
   .legend-horizontal {
-    flex-wrap: nowrap; /* una sola línea */
-    max-height: none;
-    overflow-x: auto; /* si no cabe */
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   .legend-item {
-    font-size: 12px; /* vuelve a tamaño normal */
+    font-size: 12px;
   }
 }
