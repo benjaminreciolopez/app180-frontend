@@ -4,6 +4,11 @@ import { ThemeProvider } from "@/components/theme-provider";
 import ForceChangePasswordModal from "@/components/ForceChangePasswordModal";
 import AuthInit from "@/components/AuthInit";
 
+export const metadata: Metadata = {
+  title: "APP180",
+  description: "Gestión de fichajes y reportes",
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -11,7 +16,19 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className="app-shell">
+      <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
+      </head>
+      <body className="app-shell safe-full">
         <ThemeProvider>
           <AuthInit />
           {children}
@@ -21,8 +38,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-export const metadata: Metadata = {
-  title: "APP180",
-  description: "Gestión de fichajes y reportes",
-};
