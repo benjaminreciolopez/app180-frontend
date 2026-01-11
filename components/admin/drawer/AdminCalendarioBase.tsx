@@ -394,58 +394,57 @@ export default function AdminCalendarioBase({ mode }: Props) {
         <div className="flex items-center gap-2">
           <div className="font-semibold text-[15px] text-gray-900">{title}</div>
 
-          <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
-            <button
-              onClick={() => changeView("dayGridMonth")}
-              className={[
-                "px-3 py-1.5",
-                view === "dayGridMonth"
-                  ? "bg-black text-white"
-                  : "bg-white text-gray-700",
-              ].join(" ")}
-            >
-              Mes
-            </button>
-            <button
-              onClick={() => changeView("timeGridWeek")}
-              className={[
-                "px-3 py-1.5",
-                view === "timeGridWeek"
-                  ? "bg-black text-white"
-                  : "bg-white text-gray-700",
-              ].join(" ")}
-            >
-              Semana
-            </button>
-          </div>
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-12 lg:col-span-3">{Filters}</div>
 
-          <button
-            onClick={goPrev}
-            className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-            aria-label="Anterior"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            onClick={goNext}
-            className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-            aria-label="Siguiente"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
+            <div className="col-span-12 lg:col-span-9 bg-white border border-black/5 rounded-2xl overflow-hidden">
+              <div className="relative">
+                {loading && (
+                  <div className="absolute inset-0 bg-white/70 z-10 grid place-items-center text-sm text-gray-500">
+                    Cargando calendario…
+                  </div>
+                )}
+                <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
+                  <button
+                    onClick={() => changeView("dayGridMonth")}
+                    className={[
+                      "px-3 py-1.5",
+                      view === "dayGridMonth"
+                        ? "bg-black text-white"
+                        : "bg-white text-gray-700",
+                    ].join(" ")}
+                  >
+                    Mes
+                  </button>
+                  <button
+                    onClick={() => changeView("timeGridWeek")}
+                    className={[
+                      "px-3 py-1.5",
+                      view === "timeGridWeek"
+                        ? "bg-black text-white"
+                        : "bg-white text-gray-700",
+                    ].join(" ")}
+                  >
+                    Semana
+                  </button>
+                </div>
 
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 lg:col-span-3">{Filters}</div>
-
-        <div className="col-span-12 lg:col-span-9 bg-white border border-black/5 rounded-2xl overflow-hidden">
-          <div className="relative">
-            {loading && (
-              <div className="absolute inset-0 bg-white/70 z-10 grid place-items-center text-sm text-gray-500">
-                Cargando calendario…
+                <button
+                  onClick={goPrev}
+                  className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+                  aria-label="Anterior"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={goNext}
+                  className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+                  aria-label="Siguiente"
+                >
+                  <ChevronRight size={18} />
+                </button>
               </div>
-            )}
+            </div>
 
             <div className="p-4">
               <FullCalendar
