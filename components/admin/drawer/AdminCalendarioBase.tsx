@@ -334,7 +334,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
           </div>
         )}
 
-        <div className={mode === "mobile" ? "px-0 py-2" : "p-4"}>
+        <div className={mode === "mobile" ? "px-0 py-2 min-h-[70vh]" : "p-4"}>
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -342,7 +342,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
             initialView={view}
             headerToolbar={false}
             events={fcEvents as any}
-            height={mode === "desktop" ? "calc(100vh - 220px)" : "auto"}
+            height="100%"
             contentHeight="auto"
             expandRows
             dayMaxEventRows={mode === "desktop" ? 4 : 2}
