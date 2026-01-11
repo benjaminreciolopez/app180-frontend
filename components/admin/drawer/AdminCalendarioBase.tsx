@@ -278,12 +278,10 @@ export default function AdminCalendarioBase({ mode }: Props) {
         {/* Safe-area top (si lo usas en global.css, aquí no estorba) */}
         <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
 
-        <CalendarioLegend />
-        {Filters}
         {HeaderIOS}
-
-        {/* Calendar ocupa TODO lo que queda */}
+        <CalendarioLegend />
         <div className="relative flex-1 min-h-0 overflow-y-auto">
+          {Filters}
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-10 grid place-items-center text-sm text-gray-500">
               Cargando calendario…
