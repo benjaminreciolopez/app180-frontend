@@ -300,37 +300,3 @@
     @apply text-xs md:text-sm text-muted-foreground;
   }
 
-/* =========================
-   FIX iOS / MOBILE LAYOUT
-========================= */
-
-
-@supports (-webkit-touch-callout: none) {
-  body {
-    min-height: -webkit-fill-available;
-  }
-
-  html {
-    height: -webkit-fill-available;
-  }
-}
-html,
-body {
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  margin: 0;
-  overscroll-behavior: none;
-}
-
-/* Safe area helper */
-.safe-full {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* Prevent horizontal overflow */
-* {
-  max-width: 100vw;
-  box-sizing: border-box;
-}
