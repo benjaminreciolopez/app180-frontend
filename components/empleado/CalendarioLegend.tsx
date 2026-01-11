@@ -5,36 +5,31 @@ import { COLOR_MAP } from "./calendarioColors";
 function Dot({ color }: { color: string }) {
   return (
     <span
-      className="inline-block w-2.5 h-2.5 rounded-full"
+      className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
       style={{ backgroundColor: color }}
     />
   );
 }
 
+function Item({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="legend-item">
+      <Dot color={color} />
+      <span>{label}</span>
+    </span>
+  );
+}
+
 export default function CalendarioLegend() {
   return (
-    <div className="legend-horizontal text-xs text-gray-700 flex flex-wrap gap-x-4 gap-y-2">
-      <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={COLOR_MAP.vacaciones} /> Vacaciones
-      </span>
-      <span className="inline-flex items-center gap-2">
-        <Dot color={COLOR_MAP.baja_medica} /> Baja médica
-      </span>
-      <span className="inline-flex items-center gap-2">
-        <Dot color={COLOR_MAP.festivo} /> Festivo
-      </span>
-      <span className="inline-flex items-center gap-2">
-        <Dot color={COLOR_MAP.fichaje} /> Fichaje
-      </span>
-      <span className="inline-flex items-center gap-2">
-        <Dot color={COLOR_MAP.no_laborable} /> No laborable
-      </span>
-      <span className="inline-flex items-center gap-2">
-        <Dot color={COLOR_MAP.aprobado} /> Aprobado
-      </span>
-      <span className="inline-flex items-center gap-2">
-        <Dot color={COLOR_MAP.rechazado} /> Rechazado
-      </span>
+    <div className="legend-horizontal text-xs text-gray-700">
+      <Item color={COLOR_MAP.vacaciones} label="Vacaciones" />
+      <Item color={COLOR_MAP.baja_medica} label="Baja médica" />
+      <Item color={COLOR_MAP.festivo} label="Festivo" />
+      <Item color={COLOR_MAP.fichaje} label="Fichaje" />
+      <Item color={COLOR_MAP.no_laborable} label="No laborable" />
+      <Item color={COLOR_MAP.aprobado} label="Aprobado" />
+      <Item color={COLOR_MAP.rechazado} label="Rechazado" />
     </div>
   );
 }
