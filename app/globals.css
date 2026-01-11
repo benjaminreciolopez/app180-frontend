@@ -365,14 +365,21 @@ body {
 /* 7) Leyenda horizontal REAL: siempre en fila con scroll suave */
 .legend-horizontal {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 12px;
-  overflow-x: auto;
-  white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   padding: 8px 12px;
+  white-space: normal;
 }
 
-.legend-horizontal > * {
-  flex: 0 0 auto;
+@media (min-width: 768px) {
+  .legend-horizontal {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .legend-horizontal > * {
+    flex: 0 0 auto;
+  }
 }
