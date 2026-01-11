@@ -256,14 +256,14 @@ export default function AdminCalendarioBase({ mode }: Props) {
     return (
       <div className="fullscreen-page">
         {/* Zona fija superior */}
-        <div>
+        <div className="w-full max-w-full overflow-x-hidden">
           <CalendarioLegend />
           {Filters}
           {CalendarControls}
         </div>
 
         {/* Zona que ocupa el resto */}
-        <div className="fullscreen-content relative">
+        <div className="fullscreen-content relative w-full max-w-full overflow-x-hidden">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">
               Cargando calendario…

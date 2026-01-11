@@ -403,12 +403,12 @@ body {
   z-index: 9999 !important;
 }
 
-.fc {
-  max-width: 100% !important;
-}
+/* Bloquea desbordes horizontales reales */
 html,
 body {
-  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
 }
 .fc-popover,
 .fc-more-popover,
@@ -419,10 +419,21 @@ body {
 .fc,
 .fc-view-harness {
   overflow: hidden !important;
-  max-width: 100% !important;
 }
 
 .fc .fc-scroller {
   overflow-y: auto !important;
   overflow-x: hidden !important;
+}
+.fc {
+  width: 100% !important;
+  max-width: 100vw !important;
+}
+
+.fc-view-harness {
+  max-width: 100vw !important;
+}
+
+.fc-scrollgrid {
+  width: 100% !important;
 }
