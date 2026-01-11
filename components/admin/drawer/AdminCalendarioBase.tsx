@@ -275,7 +275,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
           className={
             mode === "desktop"
               ? "grid grid-cols-2 gap-2 mt-3"
-              : "mt-3 space-y-2"
+              : "mt-3 grid grid-cols-2 gap-2"
           }
         >
           <button
@@ -320,9 +320,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
     >
       {mode === "mobile" && (
         <>
-          <div className="p-3">
-            <CalendarioLegend />
-          </div>
+          <div className="p-3"></div>
           {HeaderIOS}
         </>
       )}
@@ -364,7 +362,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
   // RENDER
   // =========================
   return (
-    <div className={mode === "desktop" ? "space-y-4" : "space-y-3"}>
+    <div className={mode === "desktop" ? "space-y-4" : "space-y-2"}>
       {mode === "desktop" && (
         <>
           <div className="flex items-start justify-between gap-4">
