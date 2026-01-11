@@ -44,6 +44,7 @@ function cap(s: string) {
 }
 
 export default function AdminCalendarioBase({ mode }: Props) {
+  console.log("CALENDARIO MODE:", mode);
   const calendarRef = useRef<FullCalendar | null>(null);
 
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
@@ -258,6 +259,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
         {/* Zona fija superior */}
         <div className="w-full max-w-full overflow-x-hidden">
           <CalendarioLegend />
+          {Filters}
           {CalendarControls}
         </div>
 
