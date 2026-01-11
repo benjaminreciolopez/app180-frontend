@@ -66,8 +66,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
   async function loadEmpleados() {
     try {
       const res = await api.get("/employees");
-      const list = Array.isArray(res.data) ? res.data : [];
-      setEmpleados(list);
+      setEmpleados(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error("Error cargando empleados", e);
       setEmpleados([]);
@@ -116,12 +115,10 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
   useEffect(() => {
     if (calendarRef.current) loadEventsForCurrentView();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empleadoActivo, estadoFiltro]);
 
   useEffect(() => {
     setTimeout(syncTitle, 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fcEvents = useMemo(() => {
@@ -163,35 +160,24 @@ export default function AdminCalendarioBase({ mode }: Props) {
     loadEventsForCurrentView();
   }
 
-  // Header: solo navegación básica (prev/next + título).
-  // Los controles del calendario van debajo de "Recargar".
   const HeaderIOS = (
-    <div className="px-3 h-12 border-b flex items-center justify-between">
-      <div className="flex items-center gap-1">
-        <button
-          onClick={goPrev}
-          className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-          aria-label="Anterior"
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <button
-          onClick={goNext}
-          className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-          aria-label="Siguiente"
-        >
-          <ChevronRight size={18} />
-        </button>
-
-        <div className="ml-2 font-semibold text-[15px] text-gray-900">
-          {title}
-        </div>
-      </div>
-
-      {/* Aquí ya NO van Mes/Semana ni prev/next */}
-      <div />
+    <div className="px-3 h-12 border-b flex items-center gap-2 bg-background">
+      <button
+        onClick={goPrev}
+        className="w-9 h-9 rounded-full grid place-items-center"
+      >
+        <ChevronLeft size={18} />
+      </button>
+      <button
+        onClick={goNext}
+        className="w-9 h-9 rounded-full grid place-items-center"
+      >
+        <ChevronRight size={18} />
+      </button>
+      <div className="ml-1 font-semibold text-[15px] truncate">{title}</div>
     </div>
   );
+
   const Filters = (
     <div className="space-y-3 px-3">
       <div className="bg-white border border-black/5 rounded-2xl px-3 py-3">
@@ -233,7 +219,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
           <button
             onClick={() => setOpenPendientes(true)}
-            className="w-full py-3 rounded-xl text-sm font-semibold border border-black/10 bg-white active:bg-black/[0.04]"
+            className="w-full py-3 rounded-xl text-sm font-semibold border border-black/10 bg-white"
           >
             Pendientes
           </button>
@@ -242,39 +228,36 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
       <button
         onClick={loadEventsForCurrentView}
-        className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04] flex items-center justify-center gap-2"
+        className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold flex items-center justify-center gap-2"
       >
         <RefreshCw size={16} />
         Recargar
       </button>
     </div>
   );
-  const CalendarControls = (
-    <div className="px-3 py-3 border-b bg-background overflow-x-hidden">
-      <div className="flex flex-col gap-2">
-        <div className="text-sm font-semibold truncate">{title}</div>
 
-        <div className="flex flex-wrap items-center gap-2 max-w-full">
+  const CalendarControls = (
+    <div className="px-3 py-3 border-b bg-background">
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
             <button
               onClick={() => changeView("dayGridMonth")}
-              className={[
-                "px-3 py-1.5 whitespace-nowrap",
+              className={`px-3 py-1.5 ${
                 view === "dayGridMonth"
                   ? "bg-black text-white"
-                  : "bg-white text-gray-700",
-              ].join(" ")}
+                  : "bg-white text-gray-700"
+              }`}
             >
               Mes
             </button>
             <button
               onClick={() => changeView("timeGridWeek")}
-              className={[
-                "px-3 py-1.5 whitespace-nowrap",
+              className={`px-3 py-1.5 ${
                 view === "timeGridWeek"
                   ? "bg-black text-white"
-                  : "bg-white text-gray-700",
-              ].join(" ")}
+                  : "bg-white text-gray-700"
+              }`}
             >
               Semana
             </button>
@@ -282,16 +265,14 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
           <button
             onClick={goPrev}
-            className="w-9 h-9 shrink-0 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-            aria-label="Anterior"
+            className="w-9 h-9 rounded-full grid place-items-center"
           >
             <ChevronLeft size={18} />
           </button>
 
           <button
             onClick={goNext}
-            className="w-9 h-9 shrink-0 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-            aria-label="Siguiente"
+            className="w-9 h-9 rounded-full grid place-items-center"
           >
             <ChevronRight size={18} />
           </button>
@@ -302,10 +283,8 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
   if (mode === "mobile") {
     return (
-      <div className="bg-background h-screen w-full flex flex-col overflow-hidden">
-        <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
-
-        <div className="sticky top-0 z-40 bg-background">{HeaderIOS}</div>
+      <div className="bg-background h-[100svh] w-full flex flex-col overflow-hidden">
+        <div className="sticky top-0 z-40">{HeaderIOS}</div>
 
         <div className="sticky top-12 z-30 bg-background">
           <CalendarioLegend />
@@ -331,8 +310,6 @@ export default function AdminCalendarioBase({ mode }: Props) {
               events={fcEvents as any}
               expandRows
               handleWindowResize
-              height="auto"
-              contentHeight="auto"
               datesSet={() => {
                 syncTitle();
                 loadEventsForCurrentView();
@@ -344,8 +321,6 @@ export default function AdminCalendarioBase({ mode }: Props) {
             />
           </div>
         </div>
-
-        <div style={{ paddingBottom: "env(safe-area-inset-bottom)" }} />
 
         {selected && (
           <IOSDrawer
