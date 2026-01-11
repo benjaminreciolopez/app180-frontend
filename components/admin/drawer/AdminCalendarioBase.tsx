@@ -41,7 +41,7 @@ function cap(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export default function AdminCalendarioBase() {
+export default function AdminCalendarioBaseXXXX() {
   return (
     <div className="fixed top-0 left-0 z-[999999] bg-red-600 text-white p-2 text-xs">
       DEBUG RENDER — AdminCalendarioBase
