@@ -13,7 +13,7 @@ function Dot({ color }: { color: string }) {
 
 export default function CalendarioLegend() {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-700 px-3 py-2">
+    <div className="legend-horizontal text-xs text-gray-700">
       <span className="inline-flex items-center gap-2">
         <Dot color={COLOR_MAP.vacaciones} /> Vacaciones
       </span>
