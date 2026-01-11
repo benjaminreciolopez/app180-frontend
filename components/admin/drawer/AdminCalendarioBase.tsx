@@ -320,7 +320,9 @@ export default function AdminCalendarioBase({ mode }: Props) {
     >
       {mode === "mobile" && (
         <>
-          <div className="p-3"></div>
+          <div className="p-3">
+            <CalendarioLegend />
+          </div>
           {HeaderIOS}
         </>
       )}
@@ -340,7 +342,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
             initialView={view}
             headerToolbar={false}
             events={fcEvents as any}
-            height={mode === "desktop" ? "calc(100vh - 220px)" : "75vh"}
+            height={mode === "desktop" ? "calc(100vh - 220px)" : "auto"}
             contentHeight="auto"
             expandRows
             dayMaxEventRows={mode === "desktop" ? 4 : 2}
@@ -424,14 +426,6 @@ export default function AdminCalendarioBase({ mode }: Props) {
             <div className="col-span-12 lg:col-span-3">{Filters}</div>
             <div className="col-span-12 lg:col-span-9">{CalendarCard}</div>
           </div>
-        </>
-      )}
-
-      {mode === "mobile" && (
-        <>
-          <CalendarioLegend />
-          {Filters}
-          {CalendarCard}
         </>
       )}
 
