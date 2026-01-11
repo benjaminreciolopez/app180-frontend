@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 
 export default function AdminLayout({
@@ -17,7 +16,9 @@ export default function AdminLayout({
   const [nombre, setNombre] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
 
-  // 🔐 VALIDACIÓN DE SESIÓN
+  // ✅ Fullscreen real SOLO en calendario (y subrutas)
+  const isCalendario = pathname?.startsWith("/admin/calendario");
+
   useEffect(() => {
     try {
       const token = localStorage.getItem("token");
@@ -29,7 +30,6 @@ export default function AdminLayout({
       }
 
       const user = JSON.parse(userRaw);
-
       if (user.role !== "admin") {
         router.replace("/login");
         return;
@@ -43,8 +43,6 @@ export default function AdminLayout({
       setChecking(false);
     }
   }, [router]);
-
-  // 🔄 CONTADOR REPORTES
 
   function logout() {
     localStorage.removeItem("token");
@@ -68,7 +66,8 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-[100dvh]">
+      {/* Overlay móvil */}
       {menuOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-30 md:hidden"
@@ -76,13 +75,14 @@ export default function AdminLayout({
         />
       )}
 
+      {/* Sidebar */}
       <aside
-        className={`
-    fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border p-5
-    transform transition-transform
-    ${menuOpen ? "translate-x-0" : "-translate-x-full"}
-    md:static md:translate-x-0
-  `}
+        className={[
+          "fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border p-5",
+          "transform transition-transform",
+          menuOpen ? "translate-x-0" : "-translate-x-full",
+          "md:static md:translate-x-0",
+        ].join(" ")}
       >
         <div className="md:hidden mb-4">
           <button
@@ -101,11 +101,12 @@ export default function AdminLayout({
               <Link
                 href={item.path}
                 onClick={() => setMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md transition ${
+                className={[
+                  "block px-3 py-2 rounded-md transition",
                   pathname === item.path
                     ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                }`}
+                    : "hover:bg-muted",
+                ].join(" ")}
               >
                 <div className="flex items-center justify-between">
                   <span>{item.label}</span>
@@ -128,18 +129,39 @@ export default function AdminLayout({
           </Button>
         </div>
       </aside>
-      <div className="md:hidden sticky top-0 bg-background z-20">
-        <button
-          aria-label="Abrir menú"
-          onClick={() => setMenuOpen(true)}
-          className="p-2 border rounded"
-        >
-          ☰
-        </button>
-      </div>
 
-      <main className="flex-1 bg-background overflow-y-auto min-h-screen px-0 py-0 md:px-6 md:py-6">
-        <div className="h-full overflow-y-auto md:p-6">{children}</div>
+      {/* ✅ Botón ☰ flotante (A) */}
+      <button
+        aria-label="Abrir menú"
+        onClick={() => setMenuOpen(true)}
+        className={[
+          "md:hidden fixed left-3 top-3 z-50",
+          "h-10 w-10 grid place-items-center",
+          "rounded-xl border bg-background/90 backdrop-blur",
+          "shadow-sm",
+        ].join(" ")}
+      >
+        ☰
+      </button>
+
+      {/* Main */}
+      <main
+        className={[
+          "flex-1 bg-background overflow-hidden",
+          "min-h-[100dvh]",
+          // Si es calendario: 0 padding y SIN wrapper interno con padding
+          isCalendario ? "p-0" : "p-0 md:p-6",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "h-full w-full",
+            // En páginas normales, deja scroll aquí
+            isCalendario ? "overflow-hidden" : "overflow-y-auto",
+          ].join(" ")}
+        >
+          {children}
+        </div>
       </main>
     </div>
   );

@@ -1,4 +1,3 @@
-// src/components/empleado/CalendarioLegend.tsx
 "use client";
 
 import { COLOR_MAP } from "./calendarioColors";
@@ -14,14 +13,7 @@ function Dot({ color }: { color: string }) {
 
 export default function CalendarioLegend() {
   return (
-    <div
-      className={[
-        "w-full",
-        "flex flex-wrap items-center gap-x-4 gap-y-2", // ✅ wrap en móvil
-        "text-xs text-gray-700",
-        "px-4 py-2",
-      ].join(" ")}
-    >
+    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-700 px-3 py-2">
       <span className="inline-flex items-center gap-2">
         <Dot color={COLOR_MAP.vacaciones} /> Vacaciones
       </span>
