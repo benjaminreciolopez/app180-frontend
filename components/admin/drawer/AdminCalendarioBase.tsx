@@ -43,6 +43,8 @@ function cap(s: string) {
 
 export default function AdminCalendarioBase() {
   const isMobile = useIsMobile();
+  console.log("IS MOBILE:", isMobile);
+
   const calendarRef = useRef<FullCalendar | null>(null);
 
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
@@ -254,6 +256,10 @@ export default function AdminCalendarioBase() {
     return (
       <div className="fullscreen-page w-full max-w-full overflow-x-hidden">
         <div className="w-full max-w-full overflow-x-hidden">
+          <div className="text-xs p-2 bg-red-100">
+            isMobile: {String(isMobile)}
+          </div>
+
           <CalendarioLegend />
           {CalendarControls}
         </div>
