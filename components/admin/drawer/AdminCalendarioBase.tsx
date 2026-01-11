@@ -254,42 +254,45 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
   if (mode === "mobile") {
     return (
-      <div className="w-full max-w-full flex flex-col overflow-x-hidden">
-        <CalendarioLegend />
+      <div className="fullscreen-page">
+        {/* Zona fija superior */}
+        <div>
+          <CalendarioLegend />
+          {Filters}
+          {CalendarControls}
+        </div>
 
-        {Filters}
-
-        {CalendarControls}
-
-        <div className="relative w-full max-w-full overflow-x-hidden">
+        {/* Zona que ocupa el resto */}
+        <div className="fullscreen-content relative">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">
               Cargando calendario…
             </div>
           )}
 
-          <div className="w-full max-w-full overflow-x-hidden">
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              locale={esLocale}
-              initialView={view}
-              headerToolbar={false}
-              events={fcEvents as any}
-              expandRows
-              handleWindowResize
-              datesSet={() => {
-                syncTitle();
-                loadEventsForCurrentView();
-              }}
-              eventClick={(info) => {
-                const ext = info.event.extendedProps as any;
-                if (ext) setSelected(ext as EventoAdmin);
-              }}
-            />
-          </div>
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            locale={esLocale}
+            initialView={view}
+            headerToolbar={false}
+            events={fcEvents as any}
+            height="100%"
+            contentHeight="auto"
+            expandRows
+            handleWindowResize
+            datesSet={() => {
+              syncTitle();
+              loadEventsForCurrentView();
+            }}
+            eventClick={(info) => {
+              const ext = info.event.extendedProps as any;
+              if (ext) setSelected(ext as EventoAdmin);
+            }}
+          />
         </div>
 
+        {/* Drawers */}
         {selected && (
           <IOSDrawer
             open
