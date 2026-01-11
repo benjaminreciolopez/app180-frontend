@@ -4,14 +4,16 @@
     for (const reg of regs) {
       await reg.unregister();
     }
+    console.log("All service workers unregistered");
   }
 
-  if (window.caches) {
+  if ("caches" in window) {
     const keys = await caches.keys();
     for (const key of keys) {
       await caches.delete(key);
     }
+    console.log("All caches cleared");
   }
 
-  console.log("🔥 SW eliminado");
+  location.reload(true);
 })();
