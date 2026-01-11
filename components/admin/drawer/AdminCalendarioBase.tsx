@@ -203,46 +203,53 @@ export default function AdminCalendarioBase({ mode }: Props) {
   // ============================================================
   const ControlsOverlay = (
     <div className="sticky top-[calc(3rem+44px)] z-30 bg-background/95 backdrop-blur border-b">
-      <div className="px-3 h-12 flex items-center justify-end gap-2">
-        <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
+      <div className="px-3 py-2 flex flex-wrap items-center gap-2 justify-between">
+        {/* Grupo izquierda: título compacto */}
+        <div className="text-sm font-semibold truncate">{title}</div>
+
+        {/* Grupo derecha: controles */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
+            <button
+              onClick={() => changeView("dayGridMonth")}
+              className={[
+                "px-3 py-1.5",
+                view === "dayGridMonth"
+                  ? "bg-black text-white"
+                  : "bg-white text-gray-700",
+              ].join(" ")}
+            >
+              Mes
+            </button>
+            <button
+              onClick={() => changeView("timeGridWeek")}
+              className={[
+                "px-3 py-1.5",
+                view === "timeGridWeek"
+                  ? "bg-black text-white"
+                  : "bg-white text-gray-700",
+              ].join(" ")}
+            >
+              Semana
+            </button>
+          </div>
+
           <button
-            onClick={() => changeView("dayGridMonth")}
-            className={[
-              "px-3 py-1.5",
-              view === "dayGridMonth"
-                ? "bg-black text-white"
-                : "bg-white text-gray-700",
-            ].join(" ")}
+            onClick={goPrev}
+            className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+            aria-label="Anterior"
           >
-            Mes
+            <ChevronLeft size={18} />
           </button>
+
           <button
-            onClick={() => changeView("timeGridWeek")}
-            className={[
-              "px-3 py-1.5",
-              view === "timeGridWeek"
-                ? "bg-black text-white"
-                : "bg-white text-gray-700",
-            ].join(" ")}
+            onClick={goNext}
+            className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+            aria-label="Siguiente"
           >
-            Semana
+            <ChevronRight size={18} />
           </button>
         </div>
-
-        <button
-          onClick={goPrev}
-          className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-          aria-label="Anterior"
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <button
-          onClick={goNext}
-          className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-          aria-label="Siguiente"
-        >
-          <ChevronRight size={18} />
-        </button>
       </div>
     </div>
   );
