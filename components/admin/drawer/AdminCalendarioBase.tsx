@@ -113,12 +113,10 @@ export default function AdminCalendarioBase({ mode }: Props) {
 
   useEffect(() => {
     if (calendarRef.current) loadEventsForCurrentView();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empleadoActivo, estadoFiltro]);
 
   useEffect(() => {
     setTimeout(syncTitle, 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fcEvents = useMemo(() => {
@@ -160,38 +158,8 @@ export default function AdminCalendarioBase({ mode }: Props) {
     loadEventsForCurrentView();
   }
 
-  // =========================
-  // MOBILE HEADER (solo título)
-  // =========================
-  const HeaderIOS = (
-    <div className="px-3 h-12 border-b flex items-center justify-between bg-background">
-      <div className="flex items-center gap-1 min-w-0">
-        <button
-          onClick={goPrev}
-          className="w-9 h-9 grid place-items-center shrink-0"
-          aria-label="Anterior"
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <button
-          onClick={goNext}
-          className="w-9 h-9 grid place-items-center shrink-0"
-          aria-label="Siguiente"
-        >
-          <ChevronRight size={18} />
-        </button>
-        <div className="ml-2 font-semibold text-[15px] truncate min-w-0">
-          {title}
-        </div>
-      </div>
-    </div>
-  );
-
-  // =========================
-  // FILTERS
-  // =========================
   const Filters = (
-    <div className="space-y-3 px-3">
+    <div className="space-y-3 px-3 pt-3">
       <div className="bg-white border rounded-2xl px-3 py-3">
         <label className="block text-[12px] mb-1">Empleado</label>
         <select
@@ -248,22 +216,16 @@ export default function AdminCalendarioBase({ mode }: Props) {
     </div>
   );
 
-  // =========================
-  // CONTROLES DE CALENDARIO
-  // (debajo de Recargar, SIN scroll horizontal)
-  // =========================
   const CalendarControls = (
     <div className="px-3 py-3 border-b bg-background">
       <div className="flex flex-col gap-2">
         <div className="text-sm font-semibold truncate">{title}</div>
 
-        {/* Grid: siempre cabe */}
-        <div className="grid grid-cols-2 gap-2 items-center">
-          {/* Botones Mes/Semana */}
-          <div className="flex rounded-full border overflow-hidden text-[13px] font-medium w-full">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-full border overflow-hidden text-[13px] font-medium">
             <button
               onClick={() => changeView("dayGridMonth")}
-              className={`flex-1 px-3 py-1.5 ${
+              className={`px-3 py-1.5 ${
                 view === "dayGridMonth" ? "bg-black text-white" : "bg-white"
               }`}
             >
@@ -271,7 +233,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
             </button>
             <button
               onClick={() => changeView("timeGridWeek")}
-              className={`flex-1 px-3 py-1.5 ${
+              className={`px-3 py-1.5 ${
                 view === "timeGridWeek" ? "bg-black text-white" : "bg-white"
               }`}
             >
@@ -279,87 +241,53 @@ export default function AdminCalendarioBase({ mode }: Props) {
             </button>
           </div>
 
-          {/* Prev/Next */}
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={goPrev}
-              className="w-9 h-9 grid place-items-center rounded-full border bg-white shrink-0"
-              aria-label="Anterior"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              onClick={goNext}
-              className="w-9 h-9 grid place-items-center rounded-full border bg-white shrink-0"
-              aria-label="Siguiente"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
+          <button onClick={goPrev} className="w-9 h-9 grid place-items-center">
+            <ChevronLeft size={18} />
+          </button>
+          <button onClick={goNext} className="w-9 h-9 grid place-items-center">
+            <ChevronRight size={18} />
+          </button>
         </div>
       </div>
     </div>
   );
 
-  // =========================
-  // MOBILE
-  // IMPORTANTE: NO h-screen aquí
-  // y NO overflow-y-auto interno
-  // =========================
   if (mode === "mobile") {
     return (
-      <div className="bg-background w-full flex flex-col">
-        {/* Safe-area top */}
-        <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
+      <div className="w-full flex flex-col">
+        <CalendarioLegend />
 
-        {/* Header sticky */}
-        <div className="sticky top-0 z-40">{HeaderIOS}</div>
-
-        {/* Legend sticky */}
-        <div className="sticky top-12 z-30 bg-background">
-          <CalendarioLegend />
-        </div>
-
-        {/* Filtros */}
         {Filters}
 
-        {/* CONTROLES DEBAJO DE RECARGAR */}
         {CalendarControls}
 
-        {/* Calendario: aislado para que NO empuje horizontal */}
-        <div className="relative px-2 pb-3 overflow-x-hidden">
+        <div className="relative">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">
               Cargando calendario…
             </div>
           )}
 
-          <div className="overflow-x-hidden">
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              locale={esLocale}
-              initialView={view}
-              headerToolbar={false}
-              events={fcEvents as any}
-              expandRows
-              handleWindowResize
-              datesSet={() => {
-                syncTitle();
-                loadEventsForCurrentView();
-              }}
-              eventClick={(info) => {
-                const ext = info.event.extendedProps as any;
-                if (ext) setSelected(ext as EventoAdmin);
-              }}
-            />
-          </div>
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            locale={esLocale}
+            initialView={view}
+            headerToolbar={false}
+            events={fcEvents as any}
+            expandRows
+            handleWindowResize
+            datesSet={() => {
+              syncTitle();
+              loadEventsForCurrentView();
+            }}
+            eventClick={(info) => {
+              const ext = info.event.extendedProps as any;
+              if (ext) setSelected(ext as EventoAdmin);
+            }}
+          />
         </div>
 
-        {/* Safe-area bottom */}
-        <div style={{ paddingBottom: "env(safe-area-inset-bottom)" }} />
-
-        {/* Drawers */}
         {selected && (
           <IOSDrawer
             open
@@ -423,7 +351,6 @@ export default function AdminCalendarioBase({ mode }: Props) {
       </div>
     );
   }
-
   // =========================
   // DESKTOP (tu versión)
   // =========================
