@@ -19,6 +19,8 @@ export default function RootLayout({
       <head>
         <script src="/kill-sw.js"></script>
         <script src="/force-reload.js"></script>
+        <script src="/force-refresh.js"></script>
+
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta
