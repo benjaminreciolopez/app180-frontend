@@ -14,26 +14,33 @@ function Dot({ color }: { color: string }) {
 
 export default function CalendarioLegend() {
   return (
-    <div className="flex gap-4 overflow-x-auto whitespace-nowrap text-xs text-gray-700 py-2 px-3">
-      <span className="inline-flex items-center gap-2 shrink-0">
+    <div
+      className={[
+        "w-full",
+        "flex flex-wrap items-center gap-x-4 gap-y-2", // ✅ wrap en móvil
+        "text-xs text-gray-700",
+        "px-4 py-2",
+      ].join(" ")}
+    >
+      <span className="inline-flex items-center gap-2">
         <Dot color={COLOR_MAP.vacaciones} /> Vacaciones
       </span>
-      <span className="inline-flex items-center gap-2 shrink-0">
+      <span className="inline-flex items-center gap-2">
         <Dot color={COLOR_MAP.baja_medica} /> Baja médica
       </span>
-      <span className="inline-flex items-center gap-2 shrink-0">
+      <span className="inline-flex items-center gap-2">
         <Dot color={COLOR_MAP.festivo} /> Festivo
       </span>
-      <span className="inline-flex items-center gap-2 shrink-0">
+      <span className="inline-flex items-center gap-2">
         <Dot color={COLOR_MAP.fichaje} /> Fichaje
       </span>
-      <span className="inline-flex items-center gap-2 shrink-0">
+      <span className="inline-flex items-center gap-2">
         <Dot color={COLOR_MAP.no_laborable} /> No laborable
       </span>
-      <span className="inline-flex items-center gap-2 shrink-0">
+      <span className="inline-flex items-center gap-2">
         <Dot color={COLOR_MAP.aprobado} /> Aprobado
       </span>
-      <span className="inline-flex items-center gap-2 shrink-0">
+      <span className="inline-flex items-center gap-2">
         <Dot color={COLOR_MAP.rechazado} /> Rechazado
       </span>
     </div>
