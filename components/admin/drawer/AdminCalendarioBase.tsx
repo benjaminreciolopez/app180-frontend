@@ -251,15 +251,22 @@ export default function AdminCalendarioBase() {
       </div>
     </div>
   );
-  return (
-    <div className="fixed top-0 left-0 z-[999999] bg-red-600 text-white p-2 text-xs">
-      DEBUG RENDER: AdminCalendarioBase
-    </div>
-  );
+
+  // Evita render hasta que sepamos si es móvil o no
+  if (isMobile === null) {
+    return (
+      <div className="w-full h-screen grid place-items-center text-sm text-gray-400">
+        Cargando…
+      </div>
+    );
+  }
+
   if (isMobile) {
     return (
       <div className="fullscreen-page w-full max-w-full overflow-x-hidden">
+        {/* Zona fija superior */}
         <div className="w-full max-w-full overflow-x-hidden">
+          {/* DEBUG temporal */}
           <div className="text-xs p-2 bg-red-100">
             isMobile: {String(isMobile)}
           </div>
@@ -268,6 +275,7 @@ export default function AdminCalendarioBase() {
           {CalendarControls}
         </div>
 
+        {/* Zona que ocupa el resto (calendario) */}
         <div className="fullscreen-content relative w-full max-w-full overflow-x-hidden">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">
@@ -297,6 +305,7 @@ export default function AdminCalendarioBase() {
           />
         </div>
 
+        {/* Drawers */}
         {selected && (
           <IOSDrawer
             open
