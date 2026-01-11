@@ -1,14 +1,16 @@
+// src/components/admin/drawer/DrawerCalendarioAdmin.tsx
 "use client";
 
 import IOSDrawer from "@/components/ui/IOSDrawer";
-import CalendarioDesktop from "./CalendarioDesktop";
+import AdminCalendarioBase from "@/components/admin/drawer/AdminCalendarioBase";
 
-type Props = {
+export default function DrawerCalendarioAdmin({
+  open,
+  onClose,
+}: {
   open: boolean;
   onClose: () => void;
-};
-
-export default function DrawerCalendarioAdmin({ open, onClose }: Props) {
+}) {
   return (
     <IOSDrawer
       open={open}
@@ -20,7 +22,7 @@ export default function DrawerCalendarioAdmin({ open, onClose }: Props) {
         onClose,
       }}
     >
-      <CalendarioDesktop />
+      <AdminCalendarioBase mode="mobile" />
     </IOSDrawer>
   );
 }
