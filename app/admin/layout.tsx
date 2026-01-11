@@ -138,8 +138,8 @@ export default function AdminLayout({
         </button>
       </div>
 
-      <main className="flex-1 bg-background p-6 overflow-y-auto">
-        {children}
+      <main className="flex-1 bg-background overflow-hidden flex flex-col">
+        <div className="p-6 h-full overflow-y-auto">{children}</div>
       </main>
     </div>
   );
