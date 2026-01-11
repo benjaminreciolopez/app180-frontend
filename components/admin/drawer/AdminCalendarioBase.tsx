@@ -274,7 +274,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
   // ✅ Mobile: fullscreen real (flex column + min-h-0)
   if (mode === "mobile") {
     return (
-      <div className="bg-background h-[100dvh] w-full overflow-hidden flex flex-col">
+      <div className="bg-background min-h-[100dvh] w-full flex flex-col">
         {/* Safe-area top (si lo usas en global.css, aquí no estorba) */}
         <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
 
@@ -283,7 +283,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
         {HeaderIOS}
 
         {/* Calendar ocupa TODO lo que queda */}
-        <div className="relative flex-1 min-h-0">
+        <div className="relative flex-1 min-h-0 overflow-y-auto">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-10 grid place-items-center text-sm text-gray-500">
               Cargando calendario…
