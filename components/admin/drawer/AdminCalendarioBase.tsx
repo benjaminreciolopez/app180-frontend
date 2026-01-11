@@ -278,17 +278,19 @@ export default function AdminCalendarioBase({ mode }: Props) {
         {/* Safe-area top (si lo usas en global.css, aquí no estorba) */}
         <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
 
-        {HeaderIOS}
-        <CalendarioLegend />
-        <div className="relative flex-1 min-h-0 overflow-y-auto">
-          {Filters}
+        <div className="sticky top-0 z-20 bg-background">{HeaderIOS}</div>
+        <div className="sticky top-12 z-10 bg-background">
+          <CalendarioLegend />
+        </div>
+        <div className="relative flex-1 min-h-0">
           {loading && (
-            <div className="absolute inset-0 bg-white/70 z-10 grid place-items-center text-sm text-gray-500">
+            <div className="absolute inset-0 bg-white/70 z-20 grid place-items-center text-sm text-gray-500">
               Cargando calendario…
             </div>
           )}
 
-          <div className="h-full w-full px-0">
+          <div className="h-full overflow-y-auto">
+            {Filters}
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -296,8 +298,6 @@ export default function AdminCalendarioBase({ mode }: Props) {
               initialView={view}
               headerToolbar={false}
               events={fcEvents as any}
-              height="100%"
-              contentHeight="100%"
               expandRows
               handleWindowResize
               datesSet={() => {
