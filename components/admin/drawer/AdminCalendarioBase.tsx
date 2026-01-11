@@ -258,7 +258,6 @@ export default function AdminCalendarioBase({ mode }: Props) {
         {/* Zona fija superior */}
         <div className="w-full max-w-full overflow-x-hidden">
           <CalendarioLegend />
-          {Filters}
           {CalendarControls}
         </div>
 
