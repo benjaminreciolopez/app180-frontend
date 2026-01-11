@@ -1,5 +1,3 @@
-// app/admin/calendario/page.tsx
-
 "use client";
 
 import AdminCalendarioBase from "@/components/admin/drawer/AdminCalendarioBase";
