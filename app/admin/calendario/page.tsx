@@ -1,28 +1,13 @@
+// app/admin/calendario/page.tsx
+
 "use client";
 
-import { useState } from "react";
-import IOSDrawer from "@/components/ui/IOSDrawer";
-import DrawerCalendarioAdmin from "@/components/admin/drawer/DrawerCalendarioAdmin";
+import AdminCalendarioBase from "@/components/admin/drawer/AdminCalendarioBase";
 
-export default function AdminCalendarioPage() {
-  const [open, setOpen] = useState(false);
-
+export default function CalendarioPage() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Calendario laboral</h1>
-
-      <IOSDrawer
-        open={open}
-        onClose={() => setOpen(false)}
-        header={{
-          title: "Calendario",
-          canGoBack: false,
-          onBack: () => {},
-          onClose: () => setOpen(false),
-        }}
-      >
-        <DrawerCalendarioAdmin />
-      </IOSDrawer>
+    <div className="p-6">
+      <AdminCalendarioBase mode="desktop" />
     </div>
   );
 }
