@@ -403,16 +403,26 @@ body {
   z-index: 9999 !important;
 }
 
-/* Permitir que los popups salgan del calendario */
-.fc,
-.fc-view-harness,
-.fc-scroller {
-  overflow: visible !important;
-}
 .fc {
   max-width: 100% !important;
 }
 html,
 body {
   overflow-x: hidden;
+}
+.fc-popover,
+.fc-more-popover,
+.fc-tooltip {
+  z-index: 9999 !important;
+}
+
+.fc,
+.fc-view-harness {
+  overflow: hidden !important;
+  max-width: 100% !important;
+}
+
+.fc .fc-scroller {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
