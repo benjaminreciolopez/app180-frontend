@@ -144,6 +144,7 @@
   a:hover {
     @apply text-primary/90;
   }
+  
 }
 @keyframes slide-in-right {
   from {
@@ -298,4 +299,18 @@
   .kpi-label {
     @apply text-xs md:text-sm text-muted-foreground;
   }
+
+.safe-full {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+html,
+body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  padding: 0;
+  margin: 0;
 }

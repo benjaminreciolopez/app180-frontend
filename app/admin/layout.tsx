@@ -139,7 +139,7 @@ export default function AdminLayout({
       </div>
 
       <main className="flex-1 bg-background overflow-y-auto min-h-screen px-0 py-0 md:px-6 md:py-6">
-        <div className="p-6 h-full overflow-y-auto">{children}</div>
+        <div className="h-full overflow-y-auto md:p-6">{children}</div>
       </main>
     </div>
   );

@@ -314,7 +314,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
     <div
       className={
         mode === "mobile"
-          ? "bg-white w-screen -mx-4"
+          ? "bg-white w-full"
           : "bg-white border border-black/5 rounded-2xl overflow-hidden"
       }
     >
@@ -334,7 +334,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
           </div>
         )}
 
-        <div className={mode === "mobile" ? "px-0 py-2 min-h-[75vh]" : "p-4"}>
+        <div className={mode === "mobile" ? "px-0 py-2 h-[80vh]" : "p-4"}>
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
