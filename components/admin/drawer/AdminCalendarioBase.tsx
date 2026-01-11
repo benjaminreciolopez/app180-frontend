@@ -7,7 +7,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import esLocale from "@fullcalendar/core/locales/es";
-import { ChevronLeft, ChevronRight, Filter, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 
 import { api } from "@/services/api";
 import { colorFor } from "@/components/empleado/calendarioColors";
@@ -36,8 +36,13 @@ type EventoAdmin = {
   tipo: string;
   estado: string;
   start: string; // YYYY-MM-DD
-  end: string; // YYYY-MM-DD
+  end: string; // YYYY-MM-DD (ojo: FullCalendar allDay usa end exclusivo; backend idealmente manda +1 día)
 };
+
+function cap(s: string) {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 export default function AdminCalendarioBase({ mode }: Props) {
   const calendarRef = useRef<FullCalendar | null>(null);
@@ -59,9 +64,6 @@ export default function AdminCalendarioBase({ mode }: Props) {
   const [openPendientes, setOpenPendientes] = useState(false);
   const [openCrear, setOpenCrear] = useState(false);
 
-  // Mobile-only: filtros en drawer (para que se parezca al empleado)
-  const [openFiltrosMobile, setOpenFiltrosMobile] = useState(false);
-
   // =========================
   // LOAD EMPLEADOS
   // =========================
@@ -77,10 +79,23 @@ export default function AdminCalendarioBase({ mode }: Props) {
   }
 
   // =========================
-  // LOAD EVENTS (por rango visible)
+  // TITLE
+  // =========================
+  function apiCalendar() {
+    return calendarRef.current?.getApi();
+  }
+
+  function syncTitle() {
+    const api = apiCalendar();
+    if (!api) return;
+    setTitle(cap(api.view.title));
+  }
+
+  // =========================
+  // LOAD EVENTS (rango visible)
   // =========================
   async function loadEventsForCurrentView() {
-    const apiCal = calendarRef.current?.getApi();
+    const apiCal = apiCalendar();
     if (!apiCal) return;
 
     const start = apiCal.view.activeStart.toISOString().slice(0, 10);
@@ -112,13 +127,13 @@ export default function AdminCalendarioBase({ mode }: Props) {
     loadEmpleados();
   }, []);
 
-  // Cargar eventos cuando cambian filtros (si el calendario ya existe)
+  // Cargar eventos cuando cambian filtros
   useEffect(() => {
     if (calendarRef.current) loadEventsForCurrentView();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empleadoActivo, estadoFiltro]);
 
-  // Título inicial
+  // Title inicial (cuando ya existe el calendar)
   useEffect(() => {
     setTimeout(syncTitle, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -130,9 +145,13 @@ export default function AdminCalendarioBase({ mode }: Props) {
   const fcEvents = useMemo(() => {
     return events.map((e) => {
       const col = colorFor(e.tipo);
+      const prettyTipo = e.tipo?.replaceAll("_", " ") || "ausencia";
       return {
         id: e.id,
-        title: `${e.empleado_nombre} · ${e.tipo}`,
+        title:
+          mode === "desktop"
+            ? `${e.empleado_nombre} · ${prettyTipo} · ${e.estado}`
+            : `${e.empleado_nombre} · ${prettyTipo}`,
         start: e.start,
         end: e.end,
         allDay: true,
@@ -141,21 +160,11 @@ export default function AdminCalendarioBase({ mode }: Props) {
         extendedProps: e,
       };
     });
-  }, [events]);
+  }, [events, mode]);
 
   // =========================
-  // CALENDAR CONTROLS
+  // CONTROLS
   // =========================
-  function apiCalendar() {
-    return calendarRef.current?.getApi();
-  }
-
-  function syncTitle() {
-    const api = apiCalendar();
-    if (!api) return;
-    setTitle(api.view.title.charAt(0).toUpperCase() + api.view.title.slice(1));
-  }
-
   function goPrev() {
     apiCalendar()?.prev();
     syncTitle();
@@ -176,68 +185,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
   }
 
   // =========================
-  // FILTERS (shared content)
-  // =========================
-  const FiltersContent = (
-    <div className="space-y-3">
-      <div className="bg-white border border-black/5 rounded-xl px-3 py-2">
-        <label className="block text-[12px] text-gray-500 mb-1">Empleado</label>
-        <select
-          value={empleadoActivo}
-          onChange={(e) => setEmpleadoActivo(e.target.value)}
-          className="w-full text-sm border-none focus:ring-0"
-        >
-          <option value="">Todos los empleados</option>
-          {empleados.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.nombre}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="bg-white border border-black/5 rounded-xl px-3 py-2">
-        <label className="block text-[12px] text-gray-500 mb-1">Estado</label>
-        <select
-          value={estadoFiltro}
-          onChange={(e) => setEstadoFiltro(e.target.value as any)}
-          className="w-full text-sm border-none focus:ring-0"
-        >
-          <option value="todos">Todos</option>
-          <option value="pendiente">Pendientes</option>
-          <option value="aprobado">Aprobados</option>
-          <option value="rechazado">Rechazados</option>
-        </select>
-
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          <button
-            onClick={() => setOpenCrear(true)}
-            className="w-full py-3 rounded-xl bg-black text-white text-sm font-semibold"
-          >
-            + Crear ausencia
-          </button>
-
-          <button
-            onClick={() => setOpenPendientes(true)}
-            className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04]"
-          >
-            Pendientes
-          </button>
-        </div>
-      </div>
-
-      <button
-        onClick={loadEventsForCurrentView}
-        className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04] flex items-center justify-center gap-2"
-      >
-        <RefreshCw size={16} />
-        Recargar
-      </button>
-    </div>
-  );
-
-  // =========================
-  // HEADERS
+  // UI - header estilo empleado (móvil)
   // =========================
   const HeaderIOS = (
     <div className="px-3 h-12 border-b flex items-center justify-between">
@@ -262,108 +210,125 @@ export default function AdminCalendarioBase({ mode }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
         <button
-          onClick={() => setOpenFiltrosMobile(true)}
-          className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-          aria-label="Filtros"
+          onClick={() => changeView("dayGridMonth")}
+          className={[
+            "px-3 py-1.5",
+            view === "dayGridMonth"
+              ? "bg-black text-white"
+              : "bg-white text-gray-700",
+          ].join(" ")}
         >
-          <Filter size={18} />
-        </button>
-
-        <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
-          <button
-            onClick={() => changeView("dayGridMonth")}
-            className={[
-              "px-3 py-1.5",
-              view === "dayGridMonth"
-                ? "bg-black text-white"
-                : "bg-white text-gray-700",
-            ].join(" ")}
-          >
-            Mes
-          </button>
-          <button
-            onClick={() => changeView("timeGridWeek")}
-            className={[
-              "px-3 py-1.5",
-              view === "timeGridWeek"
-                ? "bg-black text-white"
-                : "bg-white text-gray-700",
-            ].join(" ")}
-          >
-            Semana
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const HeaderDesktop = (
-    <div className="flex items-center justify-between">
-      <h1 className="text-2xl font-bold">Calendario laboral</h1>
-
-      <div className="flex items-center gap-2">
-        <div className="font-semibold text-[15px] text-gray-900">{title}</div>
-
-        <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
-          <button
-            onClick={() => changeView("dayGridMonth")}
-            className={[
-              "px-3 py-1.5",
-              view === "dayGridMonth"
-                ? "bg-black text-white"
-                : "bg-white text-gray-700",
-            ].join(" ")}
-          >
-            Mes
-          </button>
-          <button
-            onClick={() => changeView("timeGridWeek")}
-            className={[
-              "px-3 py-1.5",
-              view === "timeGridWeek"
-                ? "bg-black text-white"
-                : "bg-white text-gray-700",
-            ].join(" ")}
-          >
-            Semana
-          </button>
-        </div>
-
-        <button
-          onClick={goPrev}
-          className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-          aria-label="Anterior"
-        >
-          <ChevronLeft size={18} />
+          Mes
         </button>
         <button
-          onClick={goNext}
-          className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-          aria-label="Siguiente"
+          onClick={() => changeView("timeGridWeek")}
+          className={[
+            "px-3 py-1.5",
+            view === "timeGridWeek"
+              ? "bg-black text-white"
+              : "bg-white text-gray-700",
+          ].join(" ")}
         >
-          <ChevronRight size={18} />
+          Semana
         </button>
       </div>
     </div>
   );
 
   // =========================
-  // CALENDAR CARD
+  // UI - filtros (móvil = arriba, desktop = columna izquierda)
+  // =========================
+  const Filters = (
+    <div className={mode === "desktop" ? "space-y-3" : "space-y-3"}>
+      <div className="bg-white border border-black/5 rounded-2xl px-3 py-3">
+        <label className="block text-[12px] text-gray-500 mb-1">Empleado</label>
+        <select
+          value={empleadoActivo}
+          onChange={(e) => setEmpleadoActivo(e.target.value)}
+          className="w-full text-sm border-none focus:ring-0"
+        >
+          <option value="">Todos los empleados</option>
+          {empleados.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="bg-white border border-black/5 rounded-2xl px-3 py-3">
+        <label className="block text-[12px] text-gray-500 mb-1">Estado</label>
+        <select
+          value={estadoFiltro}
+          onChange={(e) => setEstadoFiltro(e.target.value as any)}
+          className="w-full text-sm border-none focus:ring-0"
+        >
+          <option value="todos">Todos</option>
+          <option value="pendiente">Pendientes</option>
+          <option value="aprobado">Aprobados</option>
+          <option value="rechazado">Rechazados</option>
+        </select>
+
+        <div
+          className={
+            mode === "desktop"
+              ? "grid grid-cols-2 gap-2 mt-3"
+              : "mt-3 space-y-2"
+          }
+        >
+          <button
+            onClick={() => setOpenCrear(true)}
+            className="w-full py-3 rounded-xl bg-black text-white text-sm font-semibold"
+          >
+            + Crear ausencia
+          </button>
+
+          <button
+            onClick={() => setOpenPendientes(true)}
+            className={[
+              "w-full py-3 rounded-xl text-sm font-semibold",
+              "border border-black/10 bg-white active:bg-black/[0.04]",
+            ].join(" ")}
+          >
+            Pendientes
+          </button>
+        </div>
+      </div>
+
+      <button
+        onClick={loadEventsForCurrentView}
+        className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04] flex items-center justify-center gap-2"
+      >
+        <RefreshCw size={16} />
+        Recargar
+      </button>
+    </div>
+  );
+
+  // =========================
+  // UI - calendario (móvil igual al empleado; desktop grande)
   // =========================
   const CalendarCard = (
-    <div className="bg-white border border-black/5 rounded-2xl overflow-hidden h-full flex flex-col">
-      {mode === "mobile" && HeaderIOS}
+    <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
+      {mode === "mobile" && (
+        <>
+          <div className="p-3">
+            <CalendarioLegend />
+          </div>
+          {HeaderIOS}
+        </>
+      )}
 
-      <div className="relative flex-1">
+      <div className="relative">
         {loading && (
           <div className="absolute inset-0 bg-white/70 z-10 grid place-items-center text-sm text-gray-500">
             Cargando calendario…
           </div>
         )}
 
-        <div className={mode === "mobile" ? "p-2" : "p-3 h-full"}>
+        <div className={mode === "mobile" ? "p-2" : "p-4"}>
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -371,9 +336,10 @@ export default function AdminCalendarioBase({ mode }: Props) {
             initialView={view}
             headerToolbar={false}
             events={fcEvents as any}
-            height={mode === "desktop" ? "100%" : "auto"}
-            contentHeight={mode === "desktop" ? "100%" : "auto"}
+            height={mode === "desktop" ? "calc(100vh - 220px)" : "auto"}
+            contentHeight="auto"
             expandRows
+            dayMaxEventRows={mode === "desktop" ? 4 : 2}
             datesSet={() => {
               syncTitle();
               loadEventsForCurrentView();
@@ -393,63 +359,75 @@ export default function AdminCalendarioBase({ mode }: Props) {
   // =========================
   return (
     <div className={mode === "desktop" ? "space-y-4" : "p-3 space-y-3"}>
-      {/* Leyenda como empleado */}
-      <CalendarioLegend />
-
-      {mode === "desktop" && HeaderDesktop}
-
-      {mode === "desktop" ? (
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-3">{FiltersContent}</div>
-
-          {/* Altura real (clave para que no quede “enano”) */}
-          <div className="col-span-9 min-h-[calc(100vh-220px)]">
-            {CalendarCard}
-          </div>
-        </div>
-      ) : (
+      {mode === "desktop" && (
         <>
-          {/* Mobile: se parece al empleado (calendario protagonista). Filtros van a drawer */}
-          {CalendarCard}
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">Calendario laboral</h1>
+              <div className="mt-2">
+                <CalendarioLegend />
+              </div>
+            </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setOpenCrear(true)}
-              className="w-full py-3 rounded-xl bg-black text-white text-sm font-semibold"
-            >
-              + Crear ausencia
-            </button>
-            <button
-              onClick={() => setOpenPendientes(true)}
-              className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04]"
-            >
-              Pendientes
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="font-semibold text-[15px] text-gray-900">
+                {title}
+              </div>
+
+              <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
+                <button
+                  onClick={() => changeView("dayGridMonth")}
+                  className={[
+                    "px-3 py-1.5",
+                    view === "dayGridMonth"
+                      ? "bg-black text-white"
+                      : "bg-white text-gray-700",
+                  ].join(" ")}
+                >
+                  Mes
+                </button>
+                <button
+                  onClick={() => changeView("timeGridWeek")}
+                  className={[
+                    "px-3 py-1.5",
+                    view === "timeGridWeek"
+                      ? "bg-black text-white"
+                      : "bg-white text-gray-700",
+                  ].join(" ")}
+                >
+                  Semana
+                </button>
+              </div>
+
+              <button
+                onClick={goPrev}
+                className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+                aria-label="Anterior"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                onClick={goNext}
+                className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+                aria-label="Siguiente"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
           </div>
 
-          <button
-            onClick={loadEventsForCurrentView}
-            className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04] flex items-center justify-center gap-2"
-          >
-            <RefreshCw size={16} />
-            Recargar
-          </button>
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-12 lg:col-span-3">{Filters}</div>
+            <div className="col-span-12 lg:col-span-9">{CalendarCard}</div>
+          </div>
+        </>
+      )}
 
-          {/* Drawer filtros mobile */}
-          {openFiltrosMobile && (
-            <IOSDrawer
-              open={true}
-              onClose={() => setOpenFiltrosMobile(false)}
-              header={{
-                title: "Filtros",
-                canGoBack: true,
-                onBack: () => setOpenFiltrosMobile(false),
-                onClose: () => setOpenFiltrosMobile(false),
-              }}
-            >
-              <div className="p-3">{FiltersContent}</div>
-            </IOSDrawer>
-          )}
+      {mode === "mobile" && (
+        <>
+          <CalendarioLegend />
+          {Filters}
+          {CalendarCard}
         </>
       )}
 

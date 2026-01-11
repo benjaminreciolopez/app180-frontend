@@ -21,6 +21,8 @@ export default function DrawerCalendarioAdmin({
         onBack: onClose,
         onClose,
       }}
+      // En móvil queremos que sea 100% ancho siempre.
+      width="w-full"
     >
       <AdminCalendarioBase mode="mobile" />
     </IOSDrawer>
