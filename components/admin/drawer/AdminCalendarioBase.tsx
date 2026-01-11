@@ -311,7 +311,13 @@ export default function AdminCalendarioBase({ mode }: Props) {
   // UI - calendario (móvil igual al empleado; desktop grande)
   // =========================
   const CalendarCard = (
-    <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
+    <div
+      className={
+        mode === "mobile"
+          ? "bg-white w-full"
+          : "bg-white border border-black/5 rounded-2xl overflow-hidden"
+      }
+    >
       {mode === "mobile" && (
         <>
           <div className="p-3">
@@ -328,7 +334,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
           </div>
         )}
 
-        <div className={mode === "mobile" ? "p-2" : "p-4"}>
+        <div className={mode === "mobile" ? "px-0 py-2" : "p-4"}>
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -336,7 +342,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
             initialView={view}
             headerToolbar={false}
             events={fcEvents as any}
-            height={mode === "desktop" ? "calc(100vh - 220px)" : "auto"}
+            height={mode === "desktop" ? "calc(100vh - 220px)" : "75vh"}
             contentHeight="auto"
             expandRows
             dayMaxEventRows={mode === "desktop" ? 4 : 2}
@@ -358,7 +364,7 @@ export default function AdminCalendarioBase({ mode }: Props) {
   // RENDER
   // =========================
   return (
-    <div className={mode === "desktop" ? "space-y-4" : "p-3 space-y-3"}>
+    <div className={mode === "desktop" ? "space-y-4" : "space-y-3"}>
       {mode === "desktop" && (
         <>
           <div className="flex items-start justify-between gap-4">
