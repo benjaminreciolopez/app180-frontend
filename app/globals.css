@@ -365,24 +365,32 @@ body {
 /* 7) Leyenda horizontal REAL: siempre en fila con scroll suave */
 .legend-horizontal {
   display: flex;
-  flex-wrap: nowrap; /* ← una sola línea */
-  gap: 8px 14px;
-  padding: 8px 12px;
-  overflow-x: auto; /* ← scroll en móvil */
-  white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
+  flex-wrap: wrap; /* permite 2 filas */
+  gap: 4px 10px; /* más compacto */
+  padding: 6px 10px;
+  max-height: 3.2em; /* limita a ~2 filas */
+  overflow: hidden; /* evita que crezca más */
 }
 
 .legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px; /* más compacto */
   white-space: nowrap;
   flex: 0 0 auto;
+  font-size: 11px; /* opcional: más pequeño en móvil */
 }
 
 @media (min-width: 768px) {
   .legend-horizontal {
-    overflow-x: visible; /* ya no hace falta scroll */
+    flex-wrap: nowrap; /* una sola línea */
+    max-height: none;
+    overflow-x: auto; /* si no cabe */
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .legend-item {
+    font-size: 12px; /* vuelve a tamaño normal */
   }
 }
