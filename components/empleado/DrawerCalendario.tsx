@@ -88,14 +88,6 @@ export default function DrawerCalendario({
     });
   }, [events]);
 
-  useEffect(() => {
-    const api = calendarRef.current?.getApi();
-    if (api) {
-      api.removeAllEvents();
-      api.addEventSource(fcEvents as any);
-    }
-  }, [fcEvents]);
-
   // =========================
   // CALENDAR CONTROLS
   // =========================
