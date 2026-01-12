@@ -32,6 +32,8 @@ export default function DrawerCalendario({
   // LOAD EVENTS
   // =========================
   async function load() {
+    console.log("🔄 Cargando ausencias...");
+
     setLoading(true);
     try {
       const res = await api.get("/calendario/usuario");
