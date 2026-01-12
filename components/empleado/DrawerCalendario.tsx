@@ -22,6 +22,7 @@ export default function DrawerCalendario({
   onSelectEvent: (ev: CalendarioEvento) => void;
 }) {
   const calendarRef = useRef<FullCalendar | null>(null);
+  const firstLoadRef = useRef(true);
 
   const [events, setEvents] = useState<CalendarioEvento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,10 +56,6 @@ export default function DrawerCalendario({
       setLoading(false);
     }
   }
-
-  // =========================
-  // CARGA INICIAL + PWA
-  // =========================
   useEffect(() => {
     load();
 
@@ -72,7 +69,7 @@ export default function DrawerCalendario({
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("online", onOnline);
 
-    const interval = setInterval(load, 30000);
+    const interval = setInterval(load, 30000); // cada 30s
 
     return () => {
       window.removeEventListener("focus", onFocus);
@@ -130,6 +127,9 @@ export default function DrawerCalendario({
     setTitle(api.view.title.charAt(0).toUpperCase() + api.view.title.slice(1));
   }
 
+  // =========================
+  // INIT TITLE
+  // =========================
   useEffect(() => {
     setTimeout(syncTitle, 0);
   }, []);
@@ -139,17 +139,23 @@ export default function DrawerCalendario({
       <CalendarioLegend />
 
       <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
+        {/* =========================
+            HEADER iOS
+        ========================= */}
         <div className="px-3 h-12 border-b flex items-center justify-between">
+          {/* Left */}
           <div className="flex items-center gap-1">
             <button
               onClick={goPrev}
               className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+              aria-label="Anterior"
             >
               <ChevronLeft size={18} />
             </button>
             <button
               onClick={goNext}
               className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+              aria-label="Siguiente"
             >
               <ChevronRight size={18} />
             </button>
@@ -159,6 +165,7 @@ export default function DrawerCalendario({
             </div>
           </div>
 
+          {/* Right */}
           <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
             <button
               onClick={() => changeView("dayGridMonth")}
@@ -185,6 +192,9 @@ export default function DrawerCalendario({
           </div>
         </div>
 
+        {/* =========================
+            CALENDAR
+        ========================= */}
         <div className="p-2">
           {loading ? (
             <div className="p-3 text-sm text-gray-500">
@@ -202,6 +212,11 @@ export default function DrawerCalendario({
               contentHeight="auto"
               expandRows
               datesSet={(arg) => {
+                if (firstLoadRef.current) {
+                  firstLoadRef.current = false;
+                  return;
+                }
+
                 const desde = arg.startStr.slice(0, 10);
                 const hasta = arg.endStr.slice(0, 10);
                 load(desde, hasta);
@@ -214,7 +229,6 @@ export default function DrawerCalendario({
           )}
         </div>
       </div>
-
       <button
         onClick={() => load()}
         className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04]"
