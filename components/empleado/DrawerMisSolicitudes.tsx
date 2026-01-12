@@ -34,6 +34,8 @@ export default function DrawerMisSolicitudes({
 }: {
   onSelectAusencia?: (a: Ausencia) => void;
 }) {
+  console.log("COMPONENTE DrawerMisSolicitudes MONTADO");
+
   const [items, setItems] = useState<Ausencia[]>([]);
   const [loading, setLoading] = useState(true);
 
