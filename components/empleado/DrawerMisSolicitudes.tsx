@@ -52,6 +52,22 @@ export default function DrawerMisSolicitudes({
 
   useEffect(() => {
     load();
+
+    const onFocus = () => load();
+    const onVisibility = () => {
+      if (!document.hidden) load();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const interval = setInterval(load, 30000); // cada 30s
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      clearInterval(interval);
+    };
   }, []);
 
   return (
