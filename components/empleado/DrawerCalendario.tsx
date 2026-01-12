@@ -22,28 +22,23 @@ export default function DrawerCalendario({
   onSelectEvent: (ev: CalendarioEvento) => void;
 }) {
   const calendarRef = useRef<FullCalendar | null>(null);
+  const lastRangeRef = useRef<{ desde: string; hasta: string } | null>(null);
 
   const [events, setEvents] = useState<CalendarioEvento[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [view, setView] = useState<ViewMode>("dayGridMonth");
   const [title, setTitle] = useState("");
 
-  // =========================
-  // LOAD EVENTS (POR RANGO)
-  // =========================
   async function load(desde: string, hasta: string) {
-    console.log("🔄 Cargando calendario...", { desde, hasta });
+    // Evitar recargar si el rango no ha cambiado
+    const last = lastRangeRef.current;
+    if (last && last.desde === desde && last.hasta === hasta) return;
+    lastRangeRef.current = { desde, hasta };
 
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.append("desde", desde);
-      params.append("hasta", hasta);
-
-      const url = `/calendario/usuario?${params.toString()}`;
-      const res = await api.get(url);
-
-      console.log("📦 DATA CALENDARIO:", res.data);
+      const params = new URLSearchParams({ desde, hasta });
+      const res = await api.get(`/calendario/usuario?${params.toString()}`);
       setEvents(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error("Error calendario usuario", e);
@@ -53,9 +48,6 @@ export default function DrawerCalendario({
     }
   }
 
-  // =========================
-  // MAP EVENTS
-  // =========================
   const fcEvents = useMemo(() => {
     return events.map((e) => {
       const col = colorFor(e.tipo);
@@ -72,11 +64,14 @@ export default function DrawerCalendario({
     });
   }, [events]);
 
-  // =========================
-  // CALENDAR CONTROLS
-  // =========================
   function apiCalendar() {
     return calendarRef.current?.getApi();
+  }
+
+  function syncTitle() {
+    const api = apiCalendar();
+    if (!api) return;
+    setTitle(api.view.title.charAt(0).toUpperCase() + api.view.title.slice(1));
   }
 
   function goPrev() {
@@ -95,14 +90,39 @@ export default function DrawerCalendario({
     syncTitle();
   }
 
-  function syncTitle() {
-    const api = apiCalendar();
-    if (!api) return;
-    setTitle(api.view.title.charAt(0).toUpperCase() + api.view.title.slice(1));
-  }
-
   useEffect(() => {
+    // inicializa título cuando el calendar esté montado
     setTimeout(syncTitle, 0);
+  }, []);
+
+  // Recargas “PWA friendly” SIN bloquear el arranque
+  useEffect(() => {
+    const recargarRangoActual = () => {
+      const api = apiCalendar();
+      if (!api) return;
+      const desde = api.view.activeStart.toISOString().slice(0, 10);
+      const hasta = api.view.activeEnd.toISOString().slice(0, 10);
+      load(desde, hasta);
+    };
+
+    const onFocus = () => recargarRangoActual();
+    const onVisibility = () => {
+      if (!document.hidden) recargarRangoActual();
+    };
+    const onOnline = () => recargarRangoActual();
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("online", onOnline);
+
+    const interval = setInterval(recargarRangoActual, 30000);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("online", onOnline);
+      clearInterval(interval);
+    };
   }, []);
 
   return (
@@ -110,18 +130,19 @@ export default function DrawerCalendario({
       <CalendarioLegend />
 
       <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
-        {/* HEADER */}
         <div className="px-3 h-12 border-b flex items-center justify-between">
           <div className="flex items-center gap-1">
             <button
               onClick={goPrev}
               className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+              aria-label="Anterior"
             >
               <ChevronLeft size={18} />
             </button>
             <button
               onClick={goNext}
               className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
+              aria-label="Siguiente"
             >
               <ChevronRight size={18} />
             </button>
@@ -157,40 +178,40 @@ export default function DrawerCalendario({
           </div>
         </div>
 
-        {/* CALENDAR */}
-        <div className="p-2">
+        <div className="p-2 relative">
           {loading ? (
-            <div className="p-3 text-sm text-gray-500">
-              Cargando calendario…
+            <div className="absolute inset-0 z-10 grid place-items-center bg-white/70">
+              <div className="text-sm text-gray-600">Cargando calendario…</div>
             </div>
-          ) : (
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              locale={esLocale}
-              initialView={view}
-              headerToolbar={false}
-              events={fcEvents as any}
-              height="auto"
-              contentHeight="auto"
-              expandRows
-              datesSet={(arg) => {
-                const desde = arg.startStr.slice(0, 10);
-                const hasta = arg.endStr.slice(0, 10);
-                load(desde, hasta);
-              }}
-              eventClick={(info) => {
-                const ext = info.event.extendedProps as any;
-                if (ext) onSelectEvent(ext as CalendarioEvento);
-              }}
-            />
-          )}
+          ) : null}
+
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            locale={esLocale}
+            initialView={view}
+            headerToolbar={false}
+            events={fcEvents as any}
+            height="auto"
+            contentHeight="auto"
+            expandRows
+            datesSet={(arg) => {
+              syncTitle();
+              const desde = arg.startStr.slice(0, 10);
+              const hasta = arg.endStr.slice(0, 10);
+              load(desde, hasta);
+            }}
+            eventClick={(info) => {
+              const ext = info.event.extendedProps as any;
+              if (ext) onSelectEvent(ext as CalendarioEvento);
+            }}
+          />
         </div>
       </div>
 
       <button
         onClick={() => {
-          const api = calendarRef.current?.getApi();
+          const api = apiCalendar();
           if (!api) return;
           const desde = api.view.activeStart.toISOString().slice(0, 10);
           const hasta = api.view.activeEnd.toISOString().slice(0, 10);
