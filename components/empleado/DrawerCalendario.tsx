@@ -29,7 +29,7 @@ export default function DrawerCalendario({
   const [title, setTitle] = useState("");
 
   // =========================
-  // LOAD EVENTS (con rango)
+  // LOAD EVENTS
   // =========================
   async function load(desde?: string, hasta?: string) {
     console.log("🔄 Cargando calendario...", { desde, hasta });
@@ -55,6 +55,10 @@ export default function DrawerCalendario({
       setLoading(false);
     }
   }
+
+  // =========================
+  // CARGA INICIAL + PWA
+  // =========================
   useEffect(() => {
     load();
 
@@ -68,31 +72,7 @@ export default function DrawerCalendario({
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("online", onOnline);
 
-    const interval = setInterval(load, 30000); // cada 30s
-
-    return () => {
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("online", onOnline);
-      clearInterval(interval);
-    };
-  }, []);
-
-  // =========================
-  // REFRESCOS PWA
-  // =========================
-  useEffect(() => {
-    const onFocus = () => load();
-    const onVisibility = () => {
-      if (!document.hidden) load();
-    };
-    const onOnline = () => load();
-
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("online", onOnline);
-
-    const interval = setInterval(() => load(), 30000);
+    const interval = setInterval(load, 30000);
 
     return () => {
       window.removeEventListener("focus", onFocus);
@@ -150,9 +130,6 @@ export default function DrawerCalendario({
     setTitle(api.view.title.charAt(0).toUpperCase() + api.view.title.slice(1));
   }
 
-  // =========================
-  // INIT TITLE
-  // =========================
   useEffect(() => {
     setTimeout(syncTitle, 0);
   }, []);
@@ -162,23 +139,17 @@ export default function DrawerCalendario({
       <CalendarioLegend />
 
       <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
-        {/* =========================
-            HEADER iOS
-        ========================= */}
         <div className="px-3 h-12 border-b flex items-center justify-between">
-          {/* Left */}
           <div className="flex items-center gap-1">
             <button
               onClick={goPrev}
               className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-              aria-label="Anterior"
             >
               <ChevronLeft size={18} />
             </button>
             <button
               onClick={goNext}
               className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-              aria-label="Siguiente"
             >
               <ChevronRight size={18} />
             </button>
@@ -188,7 +159,6 @@ export default function DrawerCalendario({
             </div>
           </div>
 
-          {/* Right */}
           <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
             <button
               onClick={() => changeView("dayGridMonth")}
@@ -215,9 +185,6 @@ export default function DrawerCalendario({
           </div>
         </div>
 
-        {/* =========================
-            CALENDAR
-        ========================= */}
         <div className="p-2">
           {loading ? (
             <div className="p-3 text-sm text-gray-500">
@@ -225,7 +192,6 @@ export default function DrawerCalendario({
             </div>
           ) : (
             <FullCalendar
-              key={fcEvents.map((e) => e.id).join(",")}
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
               locale={esLocale}
