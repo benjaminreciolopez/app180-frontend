@@ -32,11 +32,16 @@ export default function DrawerCalendario({
   // LOAD EVENTS
   // =========================
   async function load() {
-    console.log("🔄 Cargando ausencias...");
+    console.log("🔄 Cargando ausencias (prueba rango febrero)...");
 
     setLoading(true);
     try {
-      const res = await api.get("/calendario/usuario");
+      const res = await api.get(
+        "/calendario/usuario?desde=2026-02-01&hasta=2026-02-28"
+      );
+
+      console.log("📦 DATA CALENDARIO:", res.data);
+
       setEvents(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error("Error calendario usuario", e);
