@@ -88,6 +88,14 @@ export default function DrawerCalendario({
     });
   }, [events]);
 
+  useEffect(() => {
+    const api = calendarRef.current?.getApi();
+    if (api) {
+      api.removeAllEvents();
+      api.addEventSource(fcEvents as any);
+    }
+  }, [fcEvents]);
+
   // =========================
   // CALENDAR CONTROLS
   // =========================
@@ -192,6 +200,7 @@ export default function DrawerCalendario({
             </div>
           ) : (
             <FullCalendar
+              key={fcEvents.map((e) => e.id).join(",")}
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
               locale={esLocale}

@@ -34,20 +34,16 @@ export default function DrawerMisSolicitudes({
 }: {
   onSelectAusencia?: (a: Ausencia) => void;
 }) {
-  console.log("COMPONENTE DrawerMisSolicitudes MONTADO");
-
   const [items, setItems] = useState<Ausencia[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function load() {
-    alert("LOAD EJECUTADO");
     setLoading(true);
     try {
       const res = await api.get(API_ENDPOINTS.mis);
-      alert("RESPUESTA OK");
       setItems(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
-      alert("ERROR FETCH");
+      console.error("Error mis solicitudes", e);
       setItems([]);
     } finally {
       setLoading(false);
