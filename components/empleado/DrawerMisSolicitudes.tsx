@@ -57,6 +57,8 @@ export default function DrawerMisSolicitudes({
     const onVisibility = () => {
       if (!document.hidden) load();
     };
+    const onOnline = () => load();
+    window.addEventListener("online", onOnline);
 
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
@@ -65,6 +67,7 @@ export default function DrawerMisSolicitudes({
 
     return () => {
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("online", onOnline);
       document.removeEventListener("visibilitychange", onVisibility);
       clearInterval(interval);
     };
