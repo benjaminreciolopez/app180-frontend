@@ -55,6 +55,9 @@ export default function DrawerCalendario({
       setLoading(false);
     }
   }
+  useEffect(() => {
+    load();
+  }, []);
 
   // =========================
   // REFRESCOS PWA
@@ -78,10 +81,6 @@ export default function DrawerCalendario({
       window.removeEventListener("online", onOnline);
       clearInterval(interval);
     };
-  }, []);
-
-  useEffect(() => {
-    load();
   }, []);
 
   // =========================
