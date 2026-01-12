@@ -38,14 +38,14 @@ export default function DrawerMisSolicitudes({
   const [loading, setLoading] = useState(true);
 
   async function load() {
-    console.log("🔄 Pidiendo ausencias al backend...");
+    alert("LOAD EJECUTADO");
     setLoading(true);
     try {
       const res = await api.get(API_ENDPOINTS.mis);
-      console.log("📥 Respuesta backend:", res.data);
+      alert("RESPUESTA OK");
       setItems(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
-      console.error("❌ Error mis solicitudes", e);
+      alert("ERROR FETCH");
       setItems([]);
     } finally {
       setLoading(false);
