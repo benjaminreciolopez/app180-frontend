@@ -46,6 +46,25 @@ export default function DrawerCalendario({
 
   useEffect(() => {
     load();
+
+    const onFocus = () => load();
+    const onVisibility = () => {
+      if (!document.hidden) load();
+    };
+    const onOnline = () => load();
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("online", onOnline);
+
+    const interval = setInterval(load, 30000); // cada 30s
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("online", onOnline);
+      clearInterval(interval);
+    };
   }, []);
 
   // =========================
