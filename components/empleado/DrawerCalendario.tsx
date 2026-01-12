@@ -29,17 +29,22 @@ export default function DrawerCalendario({
   const [title, setTitle] = useState("");
 
   // =========================
-  // LOAD EVENTS
+  // LOAD EVENTS (con rango)
   // =========================
-  async function load() {
-    console.log("🔄 Cargando ausencias (prueba rango febrero)...");
+  async function load(desde?: string, hasta?: string) {
+    console.log("🔄 Cargando calendario...", { desde, hasta });
 
     setLoading(true);
     try {
-      const res = await api.get(
-        "/calendario/usuario?desde=2026-02-01&hasta=2026-02-28"
-      );
+      const params = new URLSearchParams();
+      if (desde) params.append("desde", desde);
+      if (hasta) params.append("hasta", hasta);
 
+      const url = params.toString()
+        ? `/calendario/usuario?${params.toString()}`
+        : "/calendario/usuario";
+
+      const res = await api.get(url);
       console.log("📦 DATA CALENDARIO:", res.data);
 
       setEvents(Array.isArray(res.data) ? res.data : []);
@@ -51,9 +56,10 @@ export default function DrawerCalendario({
     }
   }
 
+  // =========================
+  // REFRESCOS PWA
+  // =========================
   useEffect(() => {
-    load();
-
     const onFocus = () => load();
     const onVisibility = () => {
       if (!document.hidden) load();
@@ -64,7 +70,7 @@ export default function DrawerCalendario({
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("online", onOnline);
 
-    const interval = setInterval(load, 30000); // cada 30s
+    const interval = setInterval(() => load(), 30000);
 
     return () => {
       window.removeEventListener("focus", onFocus);
@@ -207,6 +213,11 @@ export default function DrawerCalendario({
               height="auto"
               contentHeight="auto"
               expandRows
+              datesSet={(arg) => {
+                const desde = arg.startStr.slice(0, 10);
+                const hasta = arg.endStr.slice(0, 10);
+                load(desde, hasta);
+              }}
               eventClick={(info) => {
                 const ext = info.event.extendedProps as any;
                 if (ext) onSelectEvent(ext as CalendarioEvento);
@@ -217,7 +228,7 @@ export default function DrawerCalendario({
       </div>
 
       <button
-        onClick={load}
+        onClick={() => load()}
         className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04]"
       >
         Recargar
