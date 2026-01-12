@@ -80,6 +80,10 @@ export default function DrawerCalendario({
     };
   }, []);
 
+  useEffect(() => {
+    load();
+  }, []);
+
   // =========================
   // MAP EVENTS
   // =========================
