@@ -109,7 +109,7 @@ export default function DrawerSolicitarAusencia({
         <div className="text-xs text-gray-500">
           {tipo === "vacaciones"
             ? "Solicita tus días de descanso"
-            : "Adjunta el parte médico si lo tienes"}
+            : "Puedes adjuntar el parte o justificante médico (opcional)"}
         </div>
 
         <div className="grid grid-cols-1 gap-3">
@@ -152,43 +152,44 @@ export default function DrawerSolicitarAusencia({
       {/* ===================== */}
       {/* ADJUNTOS */}
       {/* ===================== */}
-      <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm space-y-3">
-        <div className="text-sm font-semibold">Justificantes (opcional)</div>
+      {tipo === "baja_medica" && (
+        <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm space-y-3">
+          <div className="text-sm font-semibold">Justificantes (opcional)</div>
 
-        <label className="block">
-          <input
-            type="file"
-            multiple
-            accept="image/*,.pdf"
-            className="hidden"
-            onChange={(e) => onFilesSelected(e.target.files)}
-          />
+          <label className="block">
+            <input
+              type="file"
+              multiple
+              accept="image/*,.pdf"
+              className="hidden"
+              onChange={(e) => onFilesSelected(e.target.files)}
+            />
 
-          <div className="w-full py-3 rounded-xl border border-dashed border-black/20 text-center text-sm text-gray-500 cursor-pointer">
-            Toca para adjuntar PDF o imagen
-          </div>
-        </label>
+            <div className="w-full py-3 rounded-xl border border-dashed border-black/20 text-center text-sm text-gray-500 cursor-pointer">
+              Toca para adjuntar PDF o imagen
+            </div>
+          </label>
 
-        {adjuntos.length > 0 && (
-          <div className="space-y-2">
-            {adjuntos.map((a, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between gap-3 text-sm"
-              >
-                <div className="truncate">{a.file.name}</div>
-                <button
-                  onClick={() => removeAdjunto(i)}
-                  className="px-2 py-1 rounded-lg border text-xs"
+          {adjuntos.length > 0 && (
+            <div className="space-y-2">
+              {adjuntos.map((a, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between gap-3 text-sm"
                 >
-                  Quitar
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
+                  <div className="truncate">{a.file.name}</div>
+                  <button
+                    onClick={() => removeAdjunto(i)}
+                    className="px-2 py-1 rounded-lg border text-xs"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <button
         disabled={saving}
         onClick={enviar}

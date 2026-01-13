@@ -1,8 +1,8 @@
-// src/components/empleado/drawer/DrawerEventoDetalle.tsx
 "use client";
 
 import type { CalendarioEvento } from "./calendarioTypes";
 import { colorFor } from "./calendarioColors";
+import AusenciaAdjuntosPanel from "@/components/ausencias/AusenciaAdjuntosPanel";
 
 function fmt(d: string) {
   try {
@@ -25,6 +25,13 @@ export default function DrawerEventoDetalle({
   event: CalendarioEvento;
 }) {
   const col = colorFor(event.tipo);
+
+  // Solo ausencias (vacaciones/baja_medica) tienen adjuntos
+  const esAusencia =
+    event.tipo === "vacaciones" || event.tipo === "baja_medica";
+  const ausenciaId = (event.id || "").startsWith("aus-")
+    ? (event.id || "").replace("aus-", "")
+    : event.id;
 
   return (
     <div className="p-4 space-y-4">
@@ -70,6 +77,18 @@ export default function DrawerEventoDetalle({
           </div>
         </div>
       </div>
+
+      {esAusencia && ausenciaId ? (
+        <AusenciaAdjuntosPanel
+          ausenciaId={ausenciaId}
+          canDelete={false} // empleado NO borra
+          title={
+            event.tipo === "baja_medica"
+              ? "Partes/justificantes"
+              : "Documentos (opcional)"
+          }
+        />
+      ) : null}
 
       <div className="text-xs text-gray-500">
         Nota: los rangos “todo el día” en calendario suelen venir con el fin
