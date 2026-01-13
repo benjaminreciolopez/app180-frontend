@@ -1,11 +1,16 @@
-// src/components/empleado/drawer/DrawerSolicitarAusencia.tsx
 "use client";
 
 import { useState } from "react";
 import { api } from "@/services/api";
 
 const API_ENDPOINTS = {
-  solicitar: "/empleado/ausencias", // <-- cambia si tu ruta es distinta
+  solicitar: "/empleado/ausencias",
+  subirAdjunto: "/empleado/ausencias/adjuntos", // lo crearemos luego
+};
+
+type AdjuntoTemp = {
+  file: File;
+  url: string;
 };
 
 function ymd(d = new Date()) {
@@ -27,6 +32,28 @@ export default function DrawerSolicitarAusencia({
   const [fechaFin, setFechaFin] = useState(ymd());
   const [comentario, setComentario] = useState("");
   const [saving, setSaving] = useState(false);
+  const [adjuntos, setAdjuntos] = useState<AdjuntoTemp[]>([]);
+
+  function onFilesSelected(files: FileList | null) {
+    if (!files) return;
+
+    const nuevos: AdjuntoTemp[] = [];
+    Array.from(files).forEach((file) => {
+      const url = URL.createObjectURL(file);
+      nuevos.push({ file, url });
+    });
+
+    setAdjuntos((prev) => [...prev, ...nuevos]);
+  }
+
+  function removeAdjunto(i: number) {
+    setAdjuntos((prev) => {
+      const copy = [...prev];
+      URL.revokeObjectURL(copy[i].url);
+      copy.splice(i, 1);
+      return copy;
+    });
+  }
 
   async function enviar() {
     if (!fechaInicio || !fechaFin) {
@@ -40,12 +67,26 @@ export default function DrawerSolicitarAusencia({
 
     setSaving(true);
     try {
-      await api.post(API_ENDPOINTS.solicitar, {
+      const res = await api.post(API_ENDPOINTS.solicitar, {
         tipo,
         fecha_inicio: fechaInicio,
         fecha_fin: fechaFin,
         comentario,
       });
+
+      const ausenciaId = res.data?.id;
+
+      // Subida de adjuntos (cuando tengamos backend)
+      if (ausenciaId && adjuntos.length > 0) {
+        const fd = new FormData();
+        adjuntos.forEach((a) => fd.append("files", a.file));
+        fd.append("ausencia_id", ausenciaId);
+
+        await api.post(API_ENDPOINTS.subirAdjunto, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+
       alert("Solicitud enviada");
       onDone();
     } catch (e: any) {
@@ -64,30 +105,31 @@ export default function DrawerSolicitarAusencia({
             ? "Solicitar vacaciones"
             : "Solicitar baja médica"}
         </div>
+
         <div className="text-xs text-gray-500">
           {tipo === "vacaciones"
             ? "Solicita tus días de descanso"
-            : "Indica el periodo de baja médica"}
+            : "Adjunta el parte médico si lo tienes"}
         </div>
 
         <div className="grid grid-cols-1 gap-3">
           <div className="flex gap-3">
-            <label className="flex-1 flex flex-col items-center text-center text-[13px] font-medium text-gray-600">
+            <label className="flex-1 flex flex-col text-[13px] font-medium text-gray-600">
               Inicio
               <input
                 type="date"
-                className="mt-1 w-full min-w-0 appearance-none border rounded-xl px-3 py-2"
+                className="mt-1 w-full border rounded-xl px-3 py-2"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
               />
             </label>
 
-            <label className="flex-1 flex flex-col items-center text-center text-[13px] font-medium text-gray-600">
+            <label className="flex-1 flex flex-col text-[13px] font-medium text-gray-600">
               Fin
               <input
                 type="date"
                 min={fechaInicio}
-                className="mt-1 w-full min-w-0 appearance-none border rounded-xl px-3 py-2"
+                className="mt-1 w-full border rounded-xl px-3 py-2"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
               />
@@ -107,6 +149,46 @@ export default function DrawerSolicitarAusencia({
         </div>
       </div>
 
+      {/* ===================== */}
+      {/* ADJUNTOS */}
+      {/* ===================== */}
+      <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm space-y-3">
+        <div className="text-sm font-semibold">Justificantes (opcional)</div>
+
+        <label className="block">
+          <input
+            type="file"
+            multiple
+            accept="image/*,.pdf"
+            className="hidden"
+            onChange={(e) => onFilesSelected(e.target.files)}
+          />
+
+          <div className="w-full py-3 rounded-xl border border-dashed border-black/20 text-center text-sm text-gray-500 cursor-pointer">
+            Toca para adjuntar PDF o imagen
+          </div>
+        </label>
+
+        {adjuntos.length > 0 && (
+          <div className="space-y-2">
+            {adjuntos.map((a, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <div className="truncate">{a.file.name}</div>
+                <button
+                  onClick={() => removeAdjunto(i)}
+                  className="px-2 py-1 rounded-lg border text-xs"
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <button
         disabled={saving}
         onClick={enviar}
@@ -116,8 +198,8 @@ export default function DrawerSolicitarAusencia({
       </button>
 
       <div className="text-xs text-gray-500">
-        Si luego quieres adjuntar justificantes (PDF/PNG), lo conectamos con tu
-        tabla <b>ausencias_adjuntos_180</b> en una siguiente pantalla.
+        Los justificantes no son obligatorios, pero pueden acelerar la
+        aprobación.
       </div>
     </div>
   );
