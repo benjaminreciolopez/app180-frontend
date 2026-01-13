@@ -19,6 +19,7 @@ import type { CalendarioEvento } from "@/components/empleado/calendarioTypes";
 
 import { FichajeAction } from "./FichajeAction";
 import type { AccionFichaje } from "./FichajeAction";
+import type { EstadoAusencia } from "@/types/ausencias";
 
 type FichajeHoy = { id: string; tipo_label: string; hora: string };
 type WorkLogHoy = {
@@ -263,7 +264,7 @@ export default function EmpleadoDashboardPage() {
                 start: a.fecha_inicio,
                 end: a.fecha_fin,
                 allDay: true,
-                estado: a.estado,
+                estado: a.estado as EstadoAusencia,
               });
               push({ key: "evento", title: "Detalle" });
             }}
