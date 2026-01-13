@@ -113,13 +113,18 @@ export default function AdminCalendarioBase() {
 
   const fcEvents = useMemo(() => {
     return events.map((e) => {
-      const col = colorFor(e.tipo);
-      const prettyTipo = e.tipo?.replaceAll("_", " ") || "ausencia";
+      const col = colorFor(e.tipo, e.estado);
+
+      const prettyTipo = e.tipo.replace("_", " ");
+
+      const label =
+        e.estado === "rechazado" ? `${prettyTipo} (rechazada)` : prettyTipo;
+
       return {
         id: e.id,
         title: isMobile
-          ? `${e.empleado_nombre} · ${prettyTipo}`
-          : `${e.empleado_nombre} · ${prettyTipo} · ${e.estado}`,
+          ? `${e.empleado_nombre} · ${label}`
+          : `${e.empleado_nombre} · ${label} · ${e.estado}`,
         start: e.start,
         end: e.end,
         allDay: true,

@@ -6,6 +6,7 @@ export type CalendarioTipo =
   | "no_laborable"
   | "laborable"
   | "fichaje";
+export type EstadoAusencia = "pendiente" | "aprobado" | "rechazado";
 
 export type CalendarioEvento = {
   id: string;
@@ -17,7 +18,7 @@ export type CalendarioEvento = {
   end?: string | null; // para allDay inclusivo, backend ya suele sumar +1 día
   allDay?: boolean;
 
-  estado?: "pendiente" | "aprobado" | "rechazado" | string;
+  estado?: EstadoAusencia;
   empleado_id?: string | null;
   cliente_id?: string | null;
 

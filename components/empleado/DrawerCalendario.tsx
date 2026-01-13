@@ -50,10 +50,16 @@ export default function DrawerCalendario({
 
   const fcEvents = useMemo(() => {
     return events.map((e) => {
-      const col = colorFor(e.tipo);
+      const col = colorFor(e.tipo, e.estado);
+
+      const prettyTipo = e.tipo.replace("_", " ");
+
+      const label =
+        e.estado === "rechazado" ? `${prettyTipo} (rechazada)` : prettyTipo;
+
       return {
         id: e.id,
-        title: e.title,
+        title: label,
         start: e.start,
         end: e.end || undefined,
         allDay: e.allDay ?? true,
