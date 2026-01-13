@@ -3,18 +3,7 @@
 import { useState } from "react";
 import { api } from "@/services/api";
 import AusenciaAdjuntosPanel from "@/components/ausencias/AusenciaAdjuntosPanel";
-
-type EventoAdmin = {
-  id: string;
-  empleado_id: string;
-  empleado_nombre: string;
-  tipo: "vacaciones" | "baja_medica";
-  estado: "pendiente" | "aprobado" | "rechazado";
-  start: string;
-  end: string;
-  comentario_empleado?: string | null;
-  comentario_admin?: string | null;
-};
+import type { EventoAdmin } from "@/types/ausencias";
 
 export default function DrawerDetalleAusenciaAdmin({
   evento,

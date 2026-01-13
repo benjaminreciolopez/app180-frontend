@@ -18,22 +18,13 @@ import DrawerPendientesAdmin from "@/components/admin/drawer/DrawerPendientesAdm
 import DrawerCrearAusenciaAdmin from "@/components/admin/drawer/DrawerCrearAusenciaAdmin";
 
 import { useIsMobile } from "@/hooks/useIsMobile";
+import type { EventoAdmin } from "@/types/ausencias";
 
 type ViewMode = "dayGridMonth" | "timeGridWeek";
 
 type Empleado = {
   id: string;
   nombre: string;
-};
-
-type EventoAdmin = {
-  id: string;
-  empleado_id: string;
-  empleado_nombre: string;
-  tipo: string;
-  estado: string;
-  start: string;
-  end: string;
 };
 
 function cap(s: string) {
