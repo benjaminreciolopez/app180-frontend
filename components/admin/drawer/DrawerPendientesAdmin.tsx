@@ -4,18 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
-
-type Pendiente = {
-  id: string;
-  empleado_id: string;
-  empleado_nombre: string;
-  tipo: "vacaciones" | "baja_medica";
-  estado: "pendiente" | "aprobado" | "rechazado";
-  fecha_inicio: string;
-  fecha_fin: string;
-  comentario_empleado?: string | null;
-  creado_en?: string | null;
-};
+import type { Pendiente } from "@/types/ausencias";
 
 function tipoLabel(t: string) {
   return t === "vacaciones" ? "Vacaciones" : "Baja médica";
@@ -57,14 +46,6 @@ export default function DrawerPendientesAdmin({
     if (!confirm("¿Aprobar esta solicitud?")) return;
     setWorkingId(p.id);
     try {
-      // Tus endpoints actuales aprueban/rechazan SOLO vacaciones por tipo.
-      // Para baja_medica: si quieres aprobarla, hay que crear endpoint aprobarBajaMedica.
-      if (p.tipo !== "vacaciones") {
-        alert(
-          "Ahora mismo el backend solo tiene aprobar/rechazar para VACACIONES. Para BAJA MÉDICA te creo el endpoint en el paso 2."
-        );
-        return;
-      }
       await api.patch(`/admin/ausencias/${p.id}/estado`, {
         estado: "aprobado",
       });
@@ -82,12 +63,6 @@ export default function DrawerPendientesAdmin({
     if (!confirm("¿Rechazar esta solicitud?")) return;
     setWorkingId(p.id);
     try {
-      if (p.tipo !== "vacaciones") {
-        alert(
-          "Ahora mismo el backend solo tiene aprobar/rechazar para VACACIONES. Para BAJA MÉDICA te creo el endpoint en el paso 2."
-        );
-        return;
-      }
       await api.patch(`/admin/ausencias/${p.id}/estado`, {
         estado: "rechazado",
       });

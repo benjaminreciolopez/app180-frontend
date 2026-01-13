@@ -1,3 +1,5 @@
+// app180-frontend\components\admin\drawer\DrawerDetalleAusenciaAdmin.tsx
+
 "use client";
 
 import { useState } from "react";
