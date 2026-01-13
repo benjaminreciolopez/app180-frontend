@@ -10,7 +10,6 @@ export const COLOR_MAP: Record<string, string> = {
   no_laborable: "#6b7280",
   pendiente: "#f59e0b",
   aprobado: "#16a34a",
-  // estados
   rechazado: "#bebfc2", // gris
 };
 
