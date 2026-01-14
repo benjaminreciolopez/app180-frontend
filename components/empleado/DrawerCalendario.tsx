@@ -28,10 +28,10 @@ export default function DrawerCalendario({
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<ViewMode>("dayGridMonth");
   const [title, setTitle] = useState("");
-  const uniqueEvents = Array.from(
-    new Map(events.map((e) => [e.id, e])).values()
+  const uniqueEvents = useMemo(
+    () => Array.from(new Map(events.map((e) => [e.id, e])).values()),
+    [events]
   );
-
   async function load(desde: string, hasta: string) {
     // Evitar recargar si el rango no ha cambiado
     const last = lastRangeRef.current;
@@ -54,9 +54,7 @@ export default function DrawerCalendario({
   const fcEvents = useMemo(() => {
     return uniqueEvents.map((e) => {
       const col = colorFor(e.tipo, e.estado);
-
       const prettyTipo = e.tipo.replace("_", " ");
-
       const label =
         e.estado === "rechazado" ? `${prettyTipo} (rechazada)` : prettyTipo;
 
@@ -72,7 +70,6 @@ export default function DrawerCalendario({
       };
     });
   }, [uniqueEvents]);
-
   function apiCalendar() {
     return calendarRef.current?.getApi();
   }

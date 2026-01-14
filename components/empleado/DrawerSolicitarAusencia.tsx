@@ -71,44 +71,43 @@ export default function DrawerSolicitarAusencia({
   async function subirAdjuntosSiHay(id: string) {
     if (!adjuntos.length) return;
 
-    // Si el endpoint aún no existe, evita “romper” el flujo.
-    // En producción: esto sí debe ejecutarse.
     try {
       const fd = new FormData();
-      adjuntos.forEach((a) => fd.append("files", a.file));
-      fd.append("ausencia_id", id);
+      adjuntos.forEach((a) => fd.append("file", a.file));
 
-      await api.post(API_ENDPOINTS.subirAdjunto, fd, {
+      await api.post(`/empleado/ausencias/${id}/adjuntos`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-
-      // Si sube ok, podrías limpiar adjuntos locales
-      // setAdjuntos([]);
     } catch (e: any) {
-      // Importante: NO reintentes creando otra ausencia.
-      // La ausencia ya existe en BD. Solo informa.
       console.error("Error subiendo adjuntos", e);
       alert(
         e?.response?.data?.error ||
-          "La solicitud se ha guardado, pero la subida de adjuntos aún no está disponible. Podrás adjuntarlos más tarde."
+          "La solicitud se ha guardado, pero la subida de adjuntos falló. Puedes intentarlo más tarde."
       );
     }
   }
 
   async function enviar() {
-    if (!fechaInicio || !fechaFin) return alert("Fechas obligatorias");
-    if (fechaInicio > fechaFin)
-      return alert("La fecha de inicio no puede ser mayor que la de fin");
+    if (!fechaInicio || !fechaFin) {
+      alert("Fechas obligatorias");
+      return;
+    }
+
+    if (fechaInicio > fechaFin) {
+      alert("La fecha de inicio no puede ser mayor que la de fin");
+      return;
+    }
 
     setSaving(true);
+
     try {
       const id = await crearAusenciaSiNoExiste();
       await subirAdjuntosSiHay(id);
 
-      alert("Solicitud enviada");
+      alert("Solicitud enviada correctamente");
       onDone();
     } catch (e: any) {
-      console.error(e);
+      console.error("Error enviando solicitud:", e);
       alert(
         e?.response?.data?.error || e?.message || "Error enviando solicitud"
       );
@@ -190,7 +189,7 @@ export default function DrawerSolicitarAusencia({
             <input
               type="file"
               multiple
-              accept="image/*,.pdf"
+              accept="application/pdf,image/png,image/jpeg"
               className="hidden"
               onChange={(e) => onFilesSelected(e.target.files)}
             />
