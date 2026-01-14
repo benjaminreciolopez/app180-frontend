@@ -1,17 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 
 const API_ENDPOINTS = {
   solicitar: "/empleado/ausencias",
-  subirAdjunto: "/empleado/ausencias/adjuntos", // lo crearemos luego
+  subirAdjunto: "/empleado/ausencias/adjuntos", // todavía no existe
 };
 
-type AdjuntoTemp = {
-  file: File;
-  url: string;
-};
+type AdjuntoTemp = { file: File; url: string };
 
 function ymd(d = new Date()) {
   const yyyy = d.getFullYear();
@@ -28,21 +25,21 @@ export default function DrawerSolicitarAusencia({
   onDone: () => void;
 }) {
   const tipo = tipoInicial;
+
   const [fechaInicio, setFechaInicio] = useState(ymd());
   const [fechaFin, setFechaFin] = useState(ymd());
   const [comentario, setComentario] = useState("");
   const [saving, setSaving] = useState(false);
+
   const [adjuntos, setAdjuntos] = useState<AdjuntoTemp[]>([]);
+  const [ausenciaId, setAusenciaId] = useState<string | null>(null);
 
   function onFilesSelected(files: FileList | null) {
     if (!files) return;
-
-    const nuevos: AdjuntoTemp[] = [];
-    Array.from(files).forEach((file) => {
-      const url = URL.createObjectURL(file);
-      nuevos.push({ file, url });
-    });
-
+    const nuevos: AdjuntoTemp[] = Array.from(files).map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
     setAdjuntos((prev) => [...prev, ...nuevos]);
   }
 
@@ -55,47 +52,85 @@ export default function DrawerSolicitarAusencia({
     });
   }
 
+  async function crearAusenciaSiNoExiste() {
+    if (ausenciaId) return ausenciaId;
+
+    const res = await api.post(API_ENDPOINTS.solicitar, {
+      tipo,
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
+      comentario,
+    });
+
+    const id = res.data?.id as string | undefined;
+    if (!id) throw new Error("El backend no devolvió id de ausencia");
+    setAusenciaId(id);
+    return id;
+  }
+
+  async function subirAdjuntosSiHay(id: string) {
+    if (!adjuntos.length) return;
+
+    // Si el endpoint aún no existe, evita “romper” el flujo.
+    // En producción: esto sí debe ejecutarse.
+    try {
+      const fd = new FormData();
+      adjuntos.forEach((a) => fd.append("files", a.file));
+      fd.append("ausencia_id", id);
+
+      await api.post(API_ENDPOINTS.subirAdjunto, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      // Si sube ok, podrías limpiar adjuntos locales
+      // setAdjuntos([]);
+    } catch (e: any) {
+      // Importante: NO reintentes creando otra ausencia.
+      // La ausencia ya existe en BD. Solo informa.
+      console.error("Error subiendo adjuntos", e);
+      alert(
+        e?.response?.data?.error ||
+          "La solicitud se ha guardado, pero la subida de adjuntos aún no está disponible. Podrás adjuntarlos más tarde."
+      );
+    }
+  }
+
   async function enviar() {
-    if (!fechaInicio || !fechaFin) {
-      alert("Fechas obligatorias");
-      return;
-    }
-    if (fechaInicio > fechaFin) {
-      alert("La fecha de inicio no puede ser mayor que la de fin");
-      return;
-    }
+    if (!fechaInicio || !fechaFin) return alert("Fechas obligatorias");
+    if (fechaInicio > fechaFin)
+      return alert("La fecha de inicio no puede ser mayor que la de fin");
 
     setSaving(true);
     try {
-      const res = await api.post(API_ENDPOINTS.solicitar, {
-        tipo,
-        fecha_inicio: fechaInicio,
-        fecha_fin: fechaFin,
-        comentario,
-      });
-
-      const ausenciaId = res.data?.id;
-
-      // Subida de adjuntos (cuando tengamos backend)
-      if (ausenciaId && adjuntos.length > 0) {
-        const fd = new FormData();
-        adjuntos.forEach((a) => fd.append("files", a.file));
-        fd.append("ausencia_id", ausenciaId);
-
-        await api.post(API_ENDPOINTS.subirAdjunto, fd, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-      }
+      const id = await crearAusenciaSiNoExiste();
+      await subirAdjuntosSiHay(id);
 
       alert("Solicitud enviada");
       onDone();
     } catch (e: any) {
       console.error(e);
-      alert(e?.response?.data?.error || "Error enviando solicitud");
+      alert(
+        e?.response?.data?.error || e?.message || "Error enviando solicitud"
+      );
     } finally {
       setSaving(false);
     }
   }
+
+  // Limpieza de objectURL al desmontar
+  useEffect(() => {
+    return () => {
+      adjuntos.forEach((a) => URL.revokeObjectURL(a.url));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const subtitle =
+    tipo === "vacaciones"
+      ? "Solicita tus días de descanso"
+      : ausenciaId
+      ? "Solicitud creada. Puedes adjuntar partes ahora o más tarde."
+      : "Adjunta el parte médico si lo tienes";
 
   return (
     <div className="p-4 space-y-4">
@@ -106,11 +141,7 @@ export default function DrawerSolicitarAusencia({
             : "Solicitar baja médica"}
         </div>
 
-        <div className="text-xs text-gray-500">
-          {tipo === "vacaciones"
-            ? "Solicita tus días de descanso"
-            : "Puedes adjuntar el parte o justificante médico (opcional)"}
-        </div>
+        <div className="text-xs text-gray-500">{subtitle}</div>
 
         <div className="grid grid-cols-1 gap-3">
           <div className="flex gap-3">
@@ -143,18 +174,17 @@ export default function DrawerSolicitarAusencia({
               rows={3}
               value={comentario}
               onChange={(e) => setComentario(e.target.value)}
-              placeholder="Ej: cita médica, viaje, etc."
+              placeholder="Ej: cita médica, etc."
             />
           </label>
         </div>
       </div>
 
-      {/* ===================== */}
-      {/* ADJUNTOS */}
-      {/* ===================== */}
-      {tipo === "baja_medica" && (
+      {tipo === "baja_medica" ? (
         <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm space-y-3">
-          <div className="text-sm font-semibold">Justificantes (opcional)</div>
+          <div className="text-sm font-semibold">
+            Partes/justificantes (opcional)
+          </div>
 
           <label className="block">
             <input
@@ -164,7 +194,6 @@ export default function DrawerSolicitarAusencia({
               className="hidden"
               onChange={(e) => onFilesSelected(e.target.files)}
             />
-
             <div className="w-full py-3 rounded-xl border border-dashed border-black/20 text-center text-sm text-gray-500 cursor-pointer">
               Toca para adjuntar PDF o imagen
             </div>
@@ -189,7 +218,8 @@ export default function DrawerSolicitarAusencia({
             </div>
           )}
         </div>
-      )}
+      ) : null}
+
       <button
         disabled={saving}
         onClick={enviar}
@@ -197,11 +227,6 @@ export default function DrawerSolicitarAusencia({
       >
         {saving ? "Enviando…" : "Enviar solicitud"}
       </button>
-
-      <div className="text-xs text-gray-500">
-        Los justificantes no son obligatorios, pero pueden acelerar la
-        aprobación.
-      </div>
     </div>
   );
 }

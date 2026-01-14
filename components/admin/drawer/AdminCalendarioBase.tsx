@@ -54,6 +54,9 @@ export default function AdminCalendarioBase() {
   const [selected, setSelected] = useState<EventoAdmin | null>(null);
   const [openPendientes, setOpenPendientes] = useState(false);
   const [openCrear, setOpenCrear] = useState(false);
+  const uniqueEvents = useMemo(() => {
+    return Array.from(new Map(events.map((e) => [e.id, e])).values());
+  }, [events]);
 
   function apiCalendar() {
     return calendarRef.current?.getApi();
@@ -112,7 +115,7 @@ export default function AdminCalendarioBase() {
   }, []);
 
   const fcEvents = useMemo(() => {
-    return events.map((e) => {
+    return uniqueEvents.map((e) => {
       const col = colorFor(e.tipo, e.estado);
 
       const prettyTipo = e.tipo.replace("_", " ");
@@ -133,7 +136,7 @@ export default function AdminCalendarioBase() {
         extendedProps: e,
       };
     });
-  }, [events, isMobile]);
+  }, [uniqueEvents, isMobile]);
 
   function goPrev() {
     apiCalendar()?.prev();

@@ -28,6 +28,9 @@ export default function DrawerCalendario({
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<ViewMode>("dayGridMonth");
   const [title, setTitle] = useState("");
+  const uniqueEvents = Array.from(
+    new Map(events.map((e) => [e.id, e])).values()
+  );
 
   async function load(desde: string, hasta: string) {
     // Evitar recargar si el rango no ha cambiado
@@ -49,7 +52,7 @@ export default function DrawerCalendario({
   }
 
   const fcEvents = useMemo(() => {
-    return events.map((e) => {
+    return uniqueEvents.map((e) => {
       const col = colorFor(e.tipo, e.estado);
 
       const prettyTipo = e.tipo.replace("_", " ");
@@ -68,7 +71,7 @@ export default function DrawerCalendario({
         extendedProps: e,
       };
     });
-  }, [events]);
+  }, [uniqueEvents]);
 
   function apiCalendar() {
     return calendarRef.current?.getApi();
