@@ -1,4 +1,4 @@
-// src/app/empleado/dashboard/page.tsx
+// app/empleado/dashboard/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -20,6 +20,7 @@ import type { CalendarioEvento } from "@/components/empleado/calendarioTypes";
 import { FichajeAction } from "./FichajeAction";
 import type { AccionFichaje } from "./FichajeAction";
 import type { EstadoAusencia } from "@/types/ausencias";
+import { useEstadoFichaje } from "./useEstadoFichaje";
 
 type FichajeHoy = { id: string; tipo_label: string; hora: string };
 type WorkLogHoy = {
@@ -36,7 +37,6 @@ type DashboardData = {
   estado_label?: string;
   estado_color?: string;
   minutos_trabajados_hoy?: string;
-  accion?: AccionFichaje | null;
   fichajes_hoy?: FichajeHoy[];
 };
 
@@ -71,6 +71,12 @@ export default function EmpleadoDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const {
+    accion: accionFichaje,
+    estado: estadoFichaje,
+    loading: loadingFichaje,
+    reload: reloadEstadoFichaje,
+  } = useEstadoFichaje();
 
   const [workLogsHoy, setWorkLogsHoy] = useState<WorkLogHoy[]>([]);
   const [estadoDia, setEstadoDia] = useState<{
@@ -290,10 +296,14 @@ export default function EmpleadoDashboardPage() {
           <span className="text-sm text-gray-600">Situación actual</span>
           <span
             className={`font-bold ${
-              data.fichando ? "text-green-600" : "text-gray-500"
+              estadoFichaje === "dentro" ? "text-green-600" : "text-gray-500"
             }`}
           >
-            {data.fichando ? "Trabajando" : "Fuera de jornada"}
+            {estadoFichaje === "dentro"
+              ? "Trabajando"
+              : estadoFichaje === "descanso"
+              ? "En descanso"
+              : "Fuera de jornada"}
           </span>
         </div>
 
@@ -320,24 +330,15 @@ export default function EmpleadoDashboardPage() {
 
       {/* Botón principal (fichaje) */}
       <div className="fixed bottom-4 left-4 right-4 z-40 space-y-2">
-        {estadoDia?.laborable !== false ? (
-          <FichajeAction
-            accion={data.accion ?? null}
-            reload={() => {
-              loadDashboard();
-              loadWorkLogsHoyFn();
-            }}
-          />
-        ) : (
-          <button
-            onClick={openDrawer}
-            className="w-full py-4 rounded-2xl bg-white border border-black/10 font-semibold active:bg-black/[0.04]"
-          >
-            Ver calendario / solicitudes
-          </button>
-        )}
+        <FichajeAction
+          accion={accionFichaje}
+          reload={() => {
+            reloadEstadoFichaje();
+            loadDashboard();
+            loadWorkLogsHoyFn();
+          }}
+        />
 
-        {/* Acciones rápidas (opcional, pero queda iOS total) */}
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => router.push("/empleado/trabajos")}
