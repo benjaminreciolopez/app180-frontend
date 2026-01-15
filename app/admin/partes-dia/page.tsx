@@ -121,9 +121,6 @@ export default function AdminPartesDiaPage() {
       <div className="flex items-end gap-3">
         <div>
           <h1 className="text-2xl font-bold">Partes del día</h1>
-          <p className="text-sm text-gray-500">
-            Resumen diario persistido (employee_daily_report_180)
-          </p>
         </div>
 
         <div className="ml-auto flex gap-2">

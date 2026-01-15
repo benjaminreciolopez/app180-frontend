@@ -65,9 +65,6 @@ export default function AdminTrabajosPage() {
       <div className="flex items-end gap-3">
         <div>
           <h1 className="text-2xl font-bold">Trabajos realizados</h1>
-          <p className="text-sm text-gray-500">
-            Histórico para presupuestar (work_logs_180)
-          </p>
         </div>
 
         <div className="ml-auto flex gap-2">
