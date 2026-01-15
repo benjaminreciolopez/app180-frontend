@@ -1,14 +1,20 @@
 "use client";
 import { useEffect, useState } from "react";
-import { api } from "@/services/api";
+import { api, setAuthToken } from "@/services/api";
 import "leaflet/dist/leaflet.css";
-import { setAuthToken } from "@/services/api";
+
+function fmtLugar(ip: any) {
+  if (!ip) return "—";
+  const parts = [ip.city, ip.region, ip.country].filter(Boolean);
+  return parts.length ? parts.join(", ") : "—";
+}
 
 export default function SospechososPage() {
   const [fichajes, setFichajes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<any>(null);
+  const [selected, setSelected] = useState(false);
   const [detalle, setDetalle] = useState<any>(null);
+  const [motivo, setMotivo] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -24,6 +30,7 @@ export default function SospechososPage() {
     }
     setLoading(false);
   }
+
   async function verDetalle(id: string) {
     try {
       const res = await api.get(`/fichajes/sospechosos/${id}`);
@@ -36,7 +43,14 @@ export default function SospechososPage() {
 
   async function validar(id: string, accion: "confirmar" | "rechazar") {
     try {
-      await api.patch(`/fichajes/sospechosos/${id}`, { accion });
+      await api.patch(`/fichajes/sospechosos/${id}`, {
+        accion,
+        motivo: motivo || null,
+      });
+
+      setMotivo("");
+      setSelected(false);
+      setDetalle(null);
       load();
     } catch {
       alert("Error actualizando fichaje");
@@ -47,16 +61,18 @@ export default function SospechososPage() {
     load();
   }, []);
 
+  // MAPA SOLO SI HAY COORDENADAS
   useEffect(() => {
-    if (!detalle?.ip_info?.actual) return;
+    if (!detalle?.ipInfo?.actual?.lat || !detalle?.ipInfo?.actual?.lng) return;
 
     (async () => {
       const L = await import("leaflet");
       const mapContainer = document.getElementById("map");
-      if (mapContainer) mapContainer.innerHTML = "";
+      if (!mapContainer) return;
+      mapContainer.innerHTML = "";
 
       const map = L.map("map").setView(
-        [detalle.ip_info.actual.lat, detalle.ip_info.actual.lng],
+        [detalle.ipInfo.actual.lat, detalle.ipInfo.actual.lng],
         8
       );
 
@@ -64,20 +80,14 @@ export default function SospechososPage() {
         maxZoom: 18,
       }).addTo(map);
 
-      L.marker([detalle.ip_info.actual.lat, detalle.ip_info.actual.lng])
+      L.marker([detalle.ipInfo.actual.lat, detalle.ipInfo.actual.lng])
         .addTo(map)
-        .bindPopup("Ubicación actual IP");
+        .bindPopup("Ubicación IP actual");
 
-      if (detalle.ip_info?.habitual) {
-        L.marker([detalle.ip_info.habitual.lat, detalle.ip_info.habitual.lng], {
-          icon: L.icon({
-            iconUrl:
-              "https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png",
-            iconSize: [24, 24],
-          }),
-        })
+      if (detalle.ipInfo?.habitual?.lat && detalle.ipInfo?.habitual?.lng) {
+        L.marker([detalle.ipInfo.habitual.lat, detalle.ipInfo.habitual.lng])
           .addTo(map)
-          .bindPopup("Ubicación habitual IP");
+          .bindPopup("Ubicación IP habitual");
       }
 
       return () => {
@@ -147,6 +157,7 @@ export default function SospechososPage() {
           </table>
         </>
       )}
+
       {selected && detalle && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center">
           <div className="bg-white rounded p-6 w-[700px]">
@@ -167,36 +178,69 @@ export default function SospechososPage() {
             <hr className="my-3" />
 
             <p>
-              <b>IP Actual:</b> {detalle.ip_info?.actual?.ip}
+              <b>IP Actual:</b> {detalle.ipInfo?.actual?.ip || "—"}
             </p>
             <p>
-              <b>Ciudad:</b> {detalle.ip_info?.actual?.city}
+              <b>Ubicación:</b> {fmtLugar(detalle.ipInfo?.actual)}
             </p>
             <p>
-              <b>País:</b> {detalle.ip_info?.actual?.country}
+              <b>Proveedor:</b> {detalle.ipInfo?.actual?.provider || "—"}
             </p>
 
             <p className="mt-2">
-              <b>IP Habitual:</b> {detalle.ip_info?.habitual?.ip}
+              <b>IP Habitual:</b> {detalle.ipInfo?.habitual?.ip || "—"}
+            </p>
+            <p>
+              <b>Ubicación habitual:</b> {fmtLugar(detalle.ipInfo?.habitual)}
+            </p>
+            <p>
+              <b>Proveedor:</b> {detalle.ipInfo?.habitual?.provider || "—"}
             </p>
 
             <p className="mt-2 text-red-600 font-bold">
               Distancia estimada:{" "}
-              {detalle.distancia_km ? detalle.distancia_km.toFixed(1) : "N/A"}{" "}
-              km
+              {typeof detalle.distanciaKm === "number"
+                ? `${detalle.distanciaKm.toFixed(1)} km`
+                : "No disponible"}
             </p>
 
-            <div
-              id="map"
-              style={{ height: 300, width: "100%", marginTop: 10 }}
-            ></div>
+            {detalle.ipInfo?.actual?.lat && (
+              <div
+                id="map"
+                style={{ height: 300, width: "100%", marginTop: 10 }}
+              ></div>
+            )}
 
-            <div className="flex justify-end mt-4">
+            <textarea
+              placeholder="Motivo (opcional)"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              className="w-full border p-2 mt-4 rounded"
+            />
+
+            <div className="flex justify-between mt-4">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => validar(detalle.id, "confirmar")}
+                  className="px-4 py-2 bg-green-600 text-white rounded"
+                >
+                  Confirmar
+                </button>
+
+                <button
+                  onClick={() => validar(detalle.id, "rechazar")}
+                  className="px-4 py-2 bg-red-600 text-white rounded"
+                >
+                  Rechazar
+                </button>
+              </div>
+
               <button
                 className="px-4 py-2 bg-gray-400 rounded"
                 onClick={() => {
-                  setSelected(null);
+                  setSelected(false);
                   setDetalle(null);
+                  setMotivo("");
                 }}
               >
                 Cerrar
