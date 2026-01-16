@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "@/services/api";
 import type { AccionFichaje } from "./FichajeAction";
 import { getCurrentPosition } from "@/hooks/useGeolocation";
+import { checkGeoPermission } from "@/hooks/useGeoPermission";
 
 export function useFichaje(reload: () => void) {
   const [loading, setLoading] = useState(false);
@@ -13,11 +14,15 @@ export function useFichaje(reload: () => void) {
       let lng: number | null = null;
 
       try {
-        const pos = await getCurrentPosition();
-        lat = pos.lat;
-        lng = pos.lng;
+        const perm = await checkGeoPermission();
+
+        if (perm === "granted" || perm === "prompt") {
+          const pos = await getCurrentPosition();
+          lat = pos.lat;
+          lng = pos.lng;
+        }
       } catch (err) {
-        console.warn("No se pudo obtener GPS, se usará IP", err);
+        console.warn("GPS no disponible, usando IP");
       }
 
       await api.post("/fichajes", {
