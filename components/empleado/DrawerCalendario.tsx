@@ -49,53 +49,56 @@ function mapDiasToEventos(dias: BackendDia[]): CalendarioEvento[] {
 
   for (const d of dias) {
     const fecha = safeYMD(d.fecha);
+    const minutos = d.minutos_trabajados ?? 0;
 
+    // 1️⃣ Ausencias
     if (d.ausencia_tipo) {
       const tipo = d.ausencia_tipo;
       const pretty = String(tipo).replace("_", " ");
-      const extra =
-        d.minutos_trabajados != null
-          ? ` · ${fmtMin(d.minutos_trabajados)}`
-          : "";
+      const extra = minutos > 0 ? ` · ${fmtMin(minutos)}` : "";
 
       out.push({
         id: buildEventId(tipo, fecha),
         tipo,
         title: `${pretty}${extra}${d.estado ? ` (${d.estado})` : ""}`,
         start: fecha,
-        end: null,
         allDay: true,
         estado: (d.estado as any) || "aprobado",
       });
       continue;
     }
 
+    // 2️⃣ Festivo
     if (d.es_laborable === false) {
-      const extra =
-        d.minutos_trabajados != null
-          ? ` · ${fmtMin(d.minutos_trabajados)}`
-          : "";
-
       out.push({
         id: buildEventId("festivo", fecha),
         tipo: "festivo",
-        title: `Festivo${extra}`,
+        title: "Festivo",
         start: fecha,
-        end: null,
         allDay: true,
       });
+      continue;
     }
-    if (
-      d.es_laborable === true &&
-      d.minutos_trabajados != null &&
-      d.minutos_trabajados > 0
-    ) {
+
+    // 3️⃣ Día trabajado
+    if (d.es_laborable === true && minutos > 0) {
       out.push({
         id: buildEventId("trabajo", fecha),
         tipo: "trabajo",
-        title: `Trabajado · ${fmtMin(d.minutos_trabajados)}`,
+        title: `Trabajado · ${fmtMin(minutos)}`,
         start: fecha,
-        end: null,
+        allDay: true,
+      });
+      continue;
+    }
+
+    // 4️⃣ Día laborable sin actividad
+    if (d.es_laborable === true) {
+      out.push({
+        id: buildEventId("laborable", fecha),
+        tipo: "laborable",
+        title: "Laborable",
+        start: fecha,
         allDay: true,
       });
     }

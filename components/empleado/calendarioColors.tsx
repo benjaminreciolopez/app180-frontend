@@ -2,7 +2,7 @@
 import type { CalendarioTipo } from "./calendarioTypes";
 
 export const COLOR_MAP: Record<string, string> = {
-  laborable: "#16a34a",
+  laborable: "#e5e7eb", // gris claro
   festivo: "#dc2626",
   vacaciones: "#f59e0b",
   baja_medica: "#2563eb",
