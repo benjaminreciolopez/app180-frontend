@@ -28,11 +28,6 @@ export default function DrawerCalendario({
   const [view, setView] = useState<ViewMode>("dayGridMonth");
   const [title, setTitle] = useState("");
 
-  const uniqueEvents = useMemo(
-    () => Array.from(new Map(events.map((e) => [e.id, e])).values()),
-    [events]
-  );
-
   function apiCalendar() {
     return calendarRef.current?.getApi();
   }
@@ -66,7 +61,7 @@ export default function DrawerCalendario({
 
   const fcEvents = useMemo(
     () =>
-      uniqueEvents.map((e) => {
+      events.map((e) => {
         const col = colorFor(e.tipo, e.estado);
         return {
           id: e.id,
@@ -79,7 +74,7 @@ export default function DrawerCalendario({
           textColor: "#fff",
         };
       }),
-    [uniqueEvents]
+    [events]
   );
 
   useEffect(() => {
@@ -89,7 +84,9 @@ export default function DrawerCalendario({
   }, [view]);
 
   useEffect(() => {
-    setTimeout(syncTitle, 0);
+    const api = apiCalendar();
+    if (!api) return;
+    syncTitle();
   }, []);
 
   return (
@@ -147,9 +144,14 @@ export default function DrawerCalendario({
               load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
             }}
             dateClick={(arg) => onSelectDay(arg.dateStr.slice(0, 10))}
+            dayCellClassNames={(arg) => {
+              const isSunday = arg.date.getDay() === 0; // 0 = domingo
+              return isSunday ? ["fc-sunday"] : [];
+            }}
           />
         </div>
       </div>
     </div>
   );
 }
+// app180-frontend/components/empleado/DrawerCalendario.tsx

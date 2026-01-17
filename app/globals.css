@@ -298,6 +298,9 @@
   .kpi-label {
     @apply text-xs md:text-sm text-muted-foreground;
   }
+  .fc-sunday {
+    background-color: #fecaca !important;
+  }
 }
 /* ===========================
    FULLSCREEN REAL (PWA / iOS)

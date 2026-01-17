@@ -59,7 +59,12 @@ export default function DrawerDiaDetalle({
       <div className="text-sm text-gray-500">
         <span className="font-medium text-gray-700">{data.label}</span>
         {" · "}
-        {data.fecha}
+        {new Date(data.fecha).toLocaleDateString("es-ES", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
       </div>
 
       {data.descripcion && (
