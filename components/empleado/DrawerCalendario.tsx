@@ -145,6 +145,7 @@ export default function DrawerCalendario({
     try {
       const params = new URLSearchParams({ desde, hasta });
       const res = await api.get(`/calendario/usuario?${params.toString()}`);
+      console.log("📦 Backend calendario data:", res.data);
       const dias = Array.isArray(res.data) ? res.data : [];
       setEvents(mapDiasToEventos(dias));
     } catch (e) {
