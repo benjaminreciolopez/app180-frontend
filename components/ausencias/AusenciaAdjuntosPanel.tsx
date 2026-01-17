@@ -65,7 +65,7 @@ export default function AusenciaAdjuntosPanel({
     // TODO: GET /ausencias/:id/adjuntos (o el endpoint que decidas)
     // Por ahora: intentar leer de backend si existe (si no, devolver [])
     try {
-      const res = await api.get(`/ausencias/${ausenciaId}/adjuntos`);
+      const res = await api.get(`/empleado/ausencias/${ausenciaId}/adjuntos`);
       const rows: Adjunto[] = Array.isArray(res.data) ? res.data : [];
       return rows.map<UiAdjunto>((r) => ({
         id: r.id,
