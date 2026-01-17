@@ -595,35 +595,6 @@ export default function EmpleadoDashboardPage() {
         </div>
       ) : null}
 
-      {/* Botón principal (fichaje) */}
-      {/* Acciones */}
-      <div className="sticky bottom-4 z-40 space-y-2 bg-white pt-2">
-        <FichajeAction
-          accion={accionFichaje}
-          reload={() => {
-            reloadEstadoFichaje();
-            loadDashboard();
-            loadWorkLogsHoyFn();
-            reloadPlanDia();
-          }}
-        />
-
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => router.push("/empleado/trabajos")}
-            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm active:bg-black/[0.04]"
-          >
-            Añadir trabajo
-          </button>
-          <button
-            onClick={openDrawer}
-            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm active:bg-black/[0.04]"
-          >
-            Menú
-          </button>
-        </div>
-      </div>
-
       {/* Fichajes hoy */}
       <div className="card">
         <h3 className="font-semibold mb-3">Fichajes de hoy</h3>
@@ -673,6 +644,34 @@ export default function EmpleadoDashboardPage() {
             ))}
           </ul>
         )}
+      </div>
+      {/* Botón principal (fichaje) */}
+      {/* Acciones */}
+      <div className="sticky bottom-4 z-40 space-y-2 bg-white pt-2">
+        <FichajeAction
+          accion={accionFichaje}
+          reload={() => {
+            reloadEstadoFichaje();
+            loadDashboard();
+            loadWorkLogsHoyFn();
+            reloadPlanDia();
+          }}
+        />
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => router.push("/empleado/trabajos")}
+            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm active:bg-black/[0.04]"
+          >
+            Añadir trabajo
+          </button>
+          <button
+            onClick={openDrawer}
+            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm active:bg-black/[0.04]"
+          >
+            Menú
+          </button>
+        </div>
       </div>
     </div>
   );
