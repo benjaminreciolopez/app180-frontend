@@ -5,6 +5,14 @@ import { api } from "@/services/api";
 import type { CalendarioEvento } from "../calendarioTypes";
 import { colorFor } from "../calendarioColors";
 
+type DiaDetalleResponse = {
+  fecha: string;
+  laborable: boolean;
+  label: string;
+  descripcion?: string | null;
+  eventos: CalendarioEvento[];
+};
+
 export default function DrawerDiaDetalle({
   ymd,
   onSelectEvent,
@@ -12,90 +20,60 @@ export default function DrawerDiaDetalle({
   ymd: string;
   onSelectEvent: (ev: CalendarioEvento) => void;
 }) {
-  const [events, setEvents] = useState<CalendarioEvento[]>([]);
+  const [data, setData] = useState<DiaDetalleResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       try {
-        const res = await api.get("/calendario/usuario", {
-          params: { desde: ymd, hasta: ymd },
-        });
-
-        const dias = Array.isArray(res.data) ? res.data : [];
-
-        // Convertir día → evento(s)
-        const mapped: CalendarioEvento[] = dias.flatMap((d: any) => {
-          const fecha = String(d.fecha).slice(0, 10);
-          const out: CalendarioEvento[] = [];
-
-          if (d.ausencia_tipo) {
-            out.push({
-              id: `aus-${fecha}`,
-              tipo: d.ausencia_tipo,
-              title:
-                d.ausencia_tipo === "baja_medica"
-                  ? "Baja médica"
-                  : "Vacaciones",
-              start: fecha,
-              allDay: true,
-              estado: d.estado || "aprobado",
-            });
-          } else if (d.es_laborable === false) {
-            out.push({
-              id: `festivo-${fecha}`,
-              tipo: "festivo",
-              title: "Festivo",
-              start: fecha,
-              allDay: true,
-            });
-          } else if (d.minutos_trabajados > 0) {
-            out.push({
-              id: `trabajo-${fecha}`,
-              tipo: "trabajo",
-              title: `Trabajado · ${d.minutos_trabajados} min`,
-              start: fecha,
-              allDay: true,
-            });
-          } else if (d.es_laborable === true) {
-            out.push({
-              id: `laborable-${fecha}`,
-              tipo: "laborable",
-              title: "Laborable",
-              start: fecha,
-              allDay: true,
-            });
-          }
-
-          return out;
-        });
-
-        setEvents(mapped);
+        const res = await api.get<DiaDetalleResponse>(
+          "/calendario/usuario/dia",
+          { params: { fecha: ymd } }
+        );
+        setData(res.data);
       } catch (e) {
-        console.error("Error cargando día", e);
-        setEvents([]);
+        console.error("Error cargando detalle del día", e);
+        setData(null);
       } finally {
         setLoading(false);
       }
     }
 
-    load();
+    if (ymd) load();
   }, [ymd]);
+
+  if (loading) {
+    return <div className="p-4 text-sm text-gray-500">Cargando…</div>;
+  }
+
+  if (!data) {
+    return (
+      <div className="p-4 text-sm text-gray-500">No se pudo cargar el día.</div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-3">
-      <div className="text-sm text-gray-500">Eventos del día {ymd}</div>
+      {/* Cabecera */}
+      <div className="text-sm text-gray-500">
+        <span className="font-medium text-gray-700">{data.label}</span>
+        {" · "}
+        {data.fecha}
+      </div>
 
-      {loading ? (
-        <div className="text-sm text-gray-500">Cargando…</div>
-      ) : events.length === 0 ? (
+      {data.descripcion && (
+        <div className="text-xs text-gray-500">{data.descripcion}</div>
+      )}
+
+      {/* Eventos */}
+      {data.eventos.length === 0 ? (
         <div className="text-sm text-gray-500">
           No hay eventos para este día.
         </div>
       ) : (
         <ul className="space-y-2">
-          {events.map((ev) => {
+          {data.eventos.map((ev) => {
             const col = colorFor(ev.tipo, ev.estado);
             return (
               <li
@@ -111,9 +89,9 @@ export default function DrawerDiaDetalle({
                   <span className="font-medium">{ev.title}</span>
                 </div>
 
-                {ev.estado ? (
+                {ev.estado && (
                   <span className="text-xs text-gray-500">{ev.estado}</span>
-                ) : null}
+                )}
               </li>
             );
           })}
@@ -122,4 +100,3 @@ export default function DrawerDiaDetalle({
     </div>
   );
 }
-// app180-frontend/app/empleado/dashboard/page.tsx

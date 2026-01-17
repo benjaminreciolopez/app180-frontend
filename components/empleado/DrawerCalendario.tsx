@@ -1,4 +1,3 @@
-// src/components/empleado/drawer/DrawerCalendario.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,104 +15,11 @@ import CalendarioLegend from "./CalendarioLegend";
 
 type ViewMode = "dayGridMonth" | "timeGridWeek";
 
-type BackendDia = {
-  fecha: string;
-  es_laborable: boolean;
-  ausencia_tipo?: string | null;
-  estado?: string | null;
-
-  minutos_trabajados?: number | null;
-  avisos_count?: number | null;
-  tiene_incidencias?: boolean | null;
-};
-
-function safeYMD(v: string) {
-  return String(v).slice(0, 10);
-}
-
-function fmtMin(min?: number | null) {
-  if (min == null || Number.isNaN(Number(min))) return "";
-  const m = Math.max(0, Math.floor(Number(min)));
-  const h = Math.floor(m / 60);
-  const r = m % 60;
-  if (h <= 0) return `${r}m`;
-  return `${h}h ${String(r).padStart(2, "0")}m`;
-}
-
-function buildEventId(prefix: string, ymd: string) {
-  return `${prefix}-${ymd}`;
-}
-
-function mapDiasToEventos(dias: BackendDia[]): CalendarioEvento[] {
-  const out: CalendarioEvento[] = [];
-
-  for (const d of dias) {
-    const fecha = safeYMD(d.fecha);
-    const minutos = d.minutos_trabajados ?? 0;
-
-    // 1️⃣ Ausencias
-    if (d.ausencia_tipo) {
-      const tipo = d.ausencia_tipo;
-      const pretty = String(tipo).replace("_", " ");
-      const extra = minutos > 0 ? ` · ${fmtMin(minutos)}` : "";
-
-      out.push({
-        id: buildEventId(tipo, fecha),
-        tipo,
-        title: `${pretty}${extra}${d.estado ? ` (${d.estado})` : ""}`,
-        start: fecha,
-        allDay: true,
-        estado: (d.estado as any) || "aprobado",
-      });
-      continue;
-    }
-
-    // 2️⃣ Festivo
-    if (d.es_laborable === false) {
-      out.push({
-        id: buildEventId("festivo", fecha),
-        tipo: "festivo",
-        title: "Festivo",
-        start: fecha,
-        allDay: true,
-      });
-      continue;
-    }
-
-    // 3️⃣ Día trabajado
-    if (d.es_laborable === true && minutos > 0) {
-      out.push({
-        id: buildEventId("trabajo", fecha),
-        tipo: "trabajo",
-        title: `Trabajado · ${fmtMin(minutos)}`,
-        start: fecha,
-        allDay: true,
-      });
-      continue;
-    }
-
-    // 4️⃣ Día laborable sin actividad
-    if (d.es_laborable === true) {
-      out.push({
-        id: buildEventId("laborable", fecha),
-        tipo: "laborable",
-        title: "Laborable",
-        start: fecha,
-        allDay: true,
-      });
-    }
-  }
-
-  return out;
-}
-
 export default function DrawerCalendario({
   onSelectDay,
 }: {
   onSelectDay: (ymd: string) => void;
 }) {
-  console.log("🟢 DrawerCalendario MONTADO");
-
   const calendarRef = useRef<FullCalendar | null>(null);
   const lastRangeRef = useRef<{ desde: string; hasta: string } | null>(null);
 
@@ -139,7 +45,6 @@ export default function DrawerCalendario({
   }
 
   async function load(desde: string, hasta: string) {
-    console.log("📡 load()", desde, hasta);
     const last = lastRangeRef.current;
     if (last && last.desde === desde && last.hasta === hasta) return;
     lastRangeRef.current = { desde, hasta };
@@ -147,10 +52,10 @@ export default function DrawerCalendario({
     setLoading(true);
     try {
       const params = new URLSearchParams({ desde, hasta });
-      const res = await api.get(`/calendario/usuario?${params.toString()}`);
-      console.log("📦 Backend calendario data:", res.data);
-      const dias = Array.isArray(res.data) ? res.data : [];
-      setEvents(mapDiasToEventos(dias));
+      const res = await api.get(
+        `/calendario/usuario/eventos?${params.toString()}`
+      );
+      setEvents(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error("Error calendario usuario", e);
       setEvents([]);
@@ -176,6 +81,7 @@ export default function DrawerCalendario({
       }),
     [uniqueEvents]
   );
+
   useEffect(() => {
     const api = apiCalendar();
     if (!api) return;
@@ -204,13 +110,17 @@ export default function DrawerCalendario({
 
           <div className="flex rounded-full border overflow-hidden text-sm">
             <button
-              className={view === "dayGridMonth" ? "bg-gray-100" : ""}
+              className={`px-3 py-1 ${
+                view === "dayGridMonth" ? "bg-gray-100" : ""
+              }`}
               onClick={() => setView("dayGridMonth")}
             >
               Mes
             </button>
             <button
-              className={view === "timeGridWeek" ? "bg-gray-100" : ""}
+              className={`px-3 py-1 ${
+                view === "timeGridWeek" ? "bg-gray-100" : ""
+              }`}
               onClick={() => setView("timeGridWeek")}
             >
               Semana
@@ -220,7 +130,7 @@ export default function DrawerCalendario({
 
         <div className="p-2 relative">
           {loading && (
-            <div className="absolute inset-0 grid place-items-center bg-white/70">
+            <div className="absolute inset-0 grid place-items-center bg-white/70 z-10">
               Cargando…
             </div>
           )}
@@ -233,7 +143,6 @@ export default function DrawerCalendario({
             headerToolbar={false}
             events={fcEvents}
             datesSet={(arg) => {
-              console.log("📅 datesSet", arg.startStr, arg.endStr);
               syncTitle();
               load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
             }}
@@ -244,4 +153,3 @@ export default function DrawerCalendario({
     </div>
   );
 }
-// app180-frontend/app/empleado/dashboard/page.tsx

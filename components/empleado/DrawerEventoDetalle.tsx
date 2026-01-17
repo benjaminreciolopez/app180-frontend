@@ -5,18 +5,15 @@ import { colorFor } from "./calendarioColors";
 import AusenciaAdjuntosPanel from "@/components/ausencias/AusenciaAdjuntosPanel";
 
 function fmt(d: string) {
-  try {
-    const date = new Date(d);
-    return date.toLocaleString("es-ES", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return d;
-  }
+  if (!d) return "";
+  const date = new Date(d);
+  return isNaN(date.getTime())
+    ? d
+    : date.toLocaleDateString("es-ES", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
 }
 
 export default function DrawerEventoDetalle({
