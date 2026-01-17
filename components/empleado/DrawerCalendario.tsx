@@ -85,6 +85,20 @@ function mapDiasToEventos(dias: BackendDia[]): CalendarioEvento[] {
         allDay: true,
       });
     }
+    if (
+      d.es_laborable === true &&
+      d.minutos_trabajados != null &&
+      d.minutos_trabajados > 0
+    ) {
+      out.push({
+        id: buildEventId("trabajo", fecha),
+        tipo: "trabajo",
+        title: `Trabajado · ${fmtMin(d.minutos_trabajados)}`,
+        start: fecha,
+        end: null,
+        allDay: true,
+      });
+    }
   }
 
   return out;
@@ -127,7 +141,7 @@ export default function DrawerCalendario({
     setLoading(true);
     try {
       const params = new URLSearchParams({ desde, hasta });
-      const res = await api.get(`/calendario?${params.toString()}`);
+      const res = await api.get(`/calendario/usuario?${params.toString()}`);
       const dias = Array.isArray(res.data) ? res.data : [];
       setEvents(mapDiasToEventos(dias));
     } catch (e) {
@@ -155,6 +169,11 @@ export default function DrawerCalendario({
       }),
     [uniqueEvents]
   );
+  useEffect(() => {
+    const api = apiCalendar();
+    if (!api) return;
+    api.changeView(view);
+  }, [view]);
 
   useEffect(() => {
     setTimeout(syncTitle, 0);
@@ -177,8 +196,18 @@ export default function DrawerCalendario({
           </div>
 
           <div className="flex rounded-full border overflow-hidden text-sm">
-            <button onClick={() => setView("dayGridMonth")}>Mes</button>
-            <button onClick={() => setView("timeGridWeek")}>Semana</button>
+            <button
+              className={view === "dayGridMonth" ? "bg-gray-100" : ""}
+              onClick={() => setView("dayGridMonth")}
+            >
+              Mes
+            </button>
+            <button
+              className={view === "timeGridWeek" ? "bg-gray-100" : ""}
+              onClick={() => setView("timeGridWeek")}
+            >
+              Semana
+            </button>
           </div>
         </div>
 

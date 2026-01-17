@@ -8,6 +8,7 @@ export const COLOR_MAP: Record<string, string> = {
   baja_medica: "#2563eb",
   fichaje: "#111827",
   no_laborable: "#6b7280",
+  trabajo: "#2563eb",
 
   // estados
   pendiente: "#f59e0b",
