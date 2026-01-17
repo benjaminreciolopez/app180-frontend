@@ -596,7 +596,8 @@ export default function EmpleadoDashboardPage() {
       ) : null}
 
       {/* Botón principal (fichaje) */}
-      <div className="sticky bottom-4 z-40 space-y-2">
+      {/* Acciones */}
+      <div className="sticky bottom-4 z-40 space-y-2 bg-white pt-2">
         <FichajeAction
           accion={accionFichaje}
           reload={() => {
