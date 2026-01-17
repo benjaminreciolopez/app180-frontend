@@ -1,3 +1,5 @@
+// app180-frontend/app/admin/layout.tsx
+
 "use client";
 
 import Link from "next/link";
@@ -57,6 +59,7 @@ export default function AdminLayout({
     { path: "/admin/calendario", label: "Calendario" },
     { path: "/admin/empleados", label: "Empleados" },
     { path: "/admin/turnos", label: "Turnos" },
+    { path: "/admin/jornadas", label: "Jornadas" },
     { path: "/admin/fichajes", label: "Fichajes" },
     { path: "/admin/fichajes/sospechosos", label: "Sospechosos" },
     { path: "/admin/partes-dia", label: "Partes del día" },
