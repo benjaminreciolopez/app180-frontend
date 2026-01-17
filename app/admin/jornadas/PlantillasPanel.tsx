@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import type { Bloque, Excepcion, Plantilla, PlantillaDia } from "./types";
 import BloquesEditor from "./BloquesEditor";
+import RenamePlantillaModal from "./RenamePlantillaModal";
+import DeletePlantillaModal from "./DeletePlantillaModal";
 
 const DIAS = [
   { n: 1, label: "Lunes" },
@@ -38,6 +40,8 @@ export default function PlantillasPanel() {
   const [loading, setLoading] = useState(true);
   const [plantillas, setPlantillas] = useState<Plantilla[]>([]);
   const [sel, setSel] = useState<Plantilla | null>(null);
+  const [showRename, setShowRename] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
 
   const [detalle, setDetalle] = useState<{
     plantilla: Plantilla;
@@ -346,13 +350,20 @@ export default function PlantillasPanel() {
 
     if (!nuevo || !nuevo.trim()) return;
 
-    await api.put(`/admin/plantillas/${detalle.plantilla.id}`, {
-      nombre: nuevo.trim(),
-    });
+    setError(null);
 
-    await loadPlantillas();
-    await loadDetalle(detalle.plantilla.id);
+    try {
+      await api.patch(`/admin/plantillas/${detalle.plantilla.id}`, {
+        nombre: nuevo.trim(),
+      });
+
+      await loadPlantillas();
+      await loadDetalle(detalle.plantilla.id);
+    } catch (e) {
+      setError(apiErrorMessage(e));
+    }
   }
+
   async function eliminarPlantilla() {
     if (!detalle?.plantilla?.id) return;
 
@@ -362,12 +373,18 @@ export default function PlantillasPanel() {
 
     if (!ok) return;
 
-    await api.delete(`/admin/plantillas/${detalle.plantilla.id}`);
+    setError(null);
 
-    setSel(null);
-    setDetalle(null);
+    try {
+      await api.delete(`/admin/plantillas/${detalle.plantilla.id}`);
 
-    await loadPlantillas();
+      setSel(null);
+      setDetalle(null);
+
+      await loadPlantillas();
+    } catch (e) {
+      setError(apiErrorMessage(e));
+    }
   }
 
   async function guardarBloquesEx(next: Bloque[]) {
@@ -460,14 +477,14 @@ export default function PlantillasPanel() {
               <div className="flex gap-2">
                 <button
                   className="px-3 py-2 rounded bg-gray-200"
-                  onClick={renombrarPlantilla}
+                  onClick={() => setShowRename(true)}
                 >
                   Renombrar
                 </button>
 
                 <button
                   className="px-3 py-2 rounded bg-red-600 text-white"
-                  onClick={eliminarPlantilla}
+                  onClick={() => setShowDelete(true)}
                 >
                   Eliminar
                 </button>
@@ -515,6 +532,51 @@ export default function PlantillasPanel() {
                   </button>
                 ))}
               </div>
+              {detalle && (
+                <>
+                  <RenamePlantillaModal
+                    open={showRename}
+                    onClose={() => setShowRename(false)}
+                    currentName={detalle.plantilla.nombre}
+                    onConfirm={async (newName) => {
+                      try {
+                        await api.patch(
+                          `/admin/plantillas/${detalle.plantilla.id}`,
+                          {
+                            nombre: newName,
+                          }
+                        );
+
+                        await loadPlantillas();
+                        await loadDetalle(detalle.plantilla.id);
+                        setShowRename(false);
+                      } catch (e) {
+                        setError(apiErrorMessage(e));
+                      }
+                    }}
+                  />
+
+                  <DeletePlantillaModal
+                    open={showDelete}
+                    onClose={() => setShowDelete(false)}
+                    name={detalle.plantilla.nombre}
+                    onConfirm={async () => {
+                      try {
+                        await api.delete(
+                          `/admin/plantillas/${detalle.plantilla.id}`
+                        );
+
+                        setSel(null);
+                        setDetalle(null);
+                        await loadPlantillas();
+                        setShowDelete(false);
+                      } catch (e) {
+                        setError(apiErrorMessage(e));
+                      }
+                    }}
+                  />
+                </>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
