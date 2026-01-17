@@ -7,11 +7,28 @@ function cmpTime(a: string, b: string) {
   return a.localeCompare(b);
 }
 
+function addMinutes(time: string, minutes: number) {
+  const [h, m] = time.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  const nh = Math.min(23, Math.floor(total / 60));
+  const nm = total % 60;
+  return `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}:00`;
+}
+
+function normalizeTime(t: string) {
+  return t.length === 5 ? `${t}:00` : t;
+}
+
 function validate(bloques: Bloque[]) {
   const errs: string[] = [];
   const sorted = [...bloques].sort((x, y) =>
     cmpTime(x.hora_inicio, y.hora_inicio)
   );
+
+  if (sorted.length === 0) {
+    errs.push("Debe existir al menos un bloque");
+    return { errs, sorted };
+  }
 
   for (let i = 0; i < sorted.length; i++) {
     const b = sorted[i];
@@ -19,6 +36,7 @@ function validate(bloques: Bloque[]) {
     if (!b.tipo) errs.push(`Bloque ${i + 1}: tipo obligatorio`);
     if (!b.hora_inicio || !b.hora_fin)
       errs.push(`Bloque ${i + 1}: horas obligatorias`);
+
     if (
       b.hora_inicio &&
       b.hora_fin &&
@@ -29,8 +47,17 @@ function validate(bloques: Bloque[]) {
 
     if (i > 0) {
       const prev = sorted[i - 1];
+
+      // solape
       if (cmpTime(prev.hora_fin, b.hora_inicio) > 0) {
-        errs.push(`Bloque ${i}: solapa con el anterior`);
+        errs.push(`Bloque ${i + 1}: solapa con el anterior`);
+      }
+
+      // contigüidad estricta
+      if (cmpTime(prev.hora_fin, b.hora_inicio) !== 0) {
+        errs.push(
+          `Bloque ${i + 1}: debe empezar exactamente a ${prev.hora_fin}`
+        );
       }
     }
   }
@@ -49,33 +76,66 @@ export default function BloquesEditor({
   onChange: (b: Bloque[]) => void;
   onSave: () => void;
 }) {
-  const { errs } = useMemo(() => validate(bloques), [bloques]);
+  const { errs, sorted } = useMemo(() => validate(bloques), [bloques]);
 
   function add() {
+    if (bloques.length === 0) {
+      onChange([
+        {
+          tipo: "trabajo",
+          hora_inicio: "08:00:00",
+          hora_fin: "09:00:00",
+          obligatorio: true,
+        },
+      ]);
+      return;
+    }
+
+    const last = sorted[sorted.length - 1];
+    const start = last.hora_fin;
+    const end = addMinutes(start.slice(0, 5), 60);
+
     onChange([
-      ...bloques,
+      ...sorted,
       {
         tipo: "trabajo",
-        hora_inicio: "08:00:00",
-        hora_fin: "10:00:00",
+        hora_inicio: start,
+        hora_fin: end,
         obligatorio: true,
       },
     ]);
   }
 
   function update(i: number, patch: Partial<Bloque>) {
-    const next = bloques.map((b, idx) => (idx === i ? { ...b, ...patch } : b));
+    const next = sorted.map((b, idx) => (idx === i ? { ...b, ...patch } : b));
+
+    // Normalizar formato
+    next.forEach((b) => {
+      if (b.hora_inicio) b.hora_inicio = normalizeTime(b.hora_inicio);
+      if (b.hora_fin) b.hora_fin = normalizeTime(b.hora_fin);
+    });
+
+    // Forzar contigüidad
+    for (let j = 1; j < next.length; j++) {
+      next[j].hora_inicio = next[j - 1].hora_fin;
+    }
+
     onChange(next);
   }
 
   function del(i: number) {
-    onChange(bloques.filter((_, idx) => idx !== i));
+    const next = sorted.filter((_, idx) => idx !== i);
+
+    // Reajustar contigüidad
+    for (let j = 1; j < next.length; j++) {
+      next[j].hora_inicio = next[j - 1].hora_fin;
+    }
+
+    onChange(next);
   }
 
   function sort() {
-    onChange(
-      [...bloques].sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio))
-    );
+    onChange(sorted);
   }
 
   return (
@@ -114,7 +174,7 @@ export default function BloquesEditor({
       )}
 
       <div className="space-y-2">
-        {bloques.map((b, i) => (
+        {sorted.map((b, i) => (
           <div
             key={i}
             className="grid grid-cols-1 md:grid-cols-[180px_160px_160px_140px_80px] gap-2 items-end border rounded p-3"
@@ -138,7 +198,8 @@ export default function BloquesEditor({
               <label className="text-xs text-gray-600">Inicio</label>
               <input
                 type="time"
-                className="border p-2 rounded w-full"
+                className="border p-2 rounded w-full bg-gray-100"
+                disabled={i !== 0}
                 value={(b.hora_inicio || "").slice(0, 5)}
                 onChange={(e) =>
                   update(i, { hora_inicio: `${e.target.value}:00` })
@@ -182,12 +243,7 @@ export default function BloquesEditor({
             </div>
           </div>
         ))}
-        {bloques.length === 0 && (
-          <div className="text-sm text-gray-600">Sin bloques.</div>
-        )}
       </div>
     </div>
   );
 }
-
-//app180-frontend/app/admin/jornadas/BloquesEditor.tsx
