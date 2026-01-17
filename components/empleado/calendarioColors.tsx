@@ -20,7 +20,14 @@ export function colorFor(
   tipo?: CalendarioTipo | string,
   estado?: "pendiente" | "aprobado" | "rechazado"
 ) {
-  if (estado && COLOR_MAP[estado]) return COLOR_MAP[estado];
-  if (!tipo) return COLOR_MAP.no_laborable;
-  return COLOR_MAP[tipo] || COLOR_MAP.no_laborable;
+  // Rechazado siempre gris
+  if (estado === "rechazado") return COLOR_MAP.rechazado;
+
+  // Pendiente: color de estado
+  if (estado === "pendiente") return COLOR_MAP.pendiente;
+
+  // Tipo manda
+  if (tipo && COLOR_MAP[tipo]) return COLOR_MAP[tipo];
+
+  return COLOR_MAP.no_laborable;
 }
