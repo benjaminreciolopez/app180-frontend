@@ -49,3 +49,5 @@ export default function JornadasPage() {
     </div>
   );
 }
+
+// app180-frontend/app/admin/jornadas/page.tsx

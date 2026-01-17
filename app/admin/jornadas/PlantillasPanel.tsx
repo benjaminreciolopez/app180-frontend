@@ -375,3 +375,5 @@ export default function PlantillasPanel() {
     </div>
   );
 }
+
+// app180-frontend/app/admin/jornadas/PlantillasPanel.tsx

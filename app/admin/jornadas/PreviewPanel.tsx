@@ -130,3 +130,5 @@ export default function PreviewPanel() {
     </div>
   );
 }
+
+// app180-frontend/app/admin/jornadas/PreviewPanel.tsx
