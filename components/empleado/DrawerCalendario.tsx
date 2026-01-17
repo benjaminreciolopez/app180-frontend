@@ -16,10 +16,84 @@ import CalendarioLegend from "./CalendarioLegend";
 
 type ViewMode = "dayGridMonth" | "timeGridWeek";
 
+type BackendDia = {
+  fecha: string;
+  es_laborable: boolean;
+  ausencia_tipo?: string | null;
+  estado?: string | null;
+
+  minutos_trabajados?: number | null;
+  avisos_count?: number | null;
+  tiene_incidencias?: boolean | null;
+};
+
+function safeYMD(v: string) {
+  return String(v).slice(0, 10);
+}
+
+function fmtMin(min?: number | null) {
+  if (min == null || Number.isNaN(Number(min))) return "";
+  const m = Math.max(0, Math.floor(Number(min)));
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (h <= 0) return `${r}m`;
+  return `${h}h ${String(r).padStart(2, "0")}m`;
+}
+
+function buildEventId(prefix: string, ymd: string) {
+  return `${prefix}-${ymd}`;
+}
+
+function mapDiasToEventos(dias: BackendDia[]): CalendarioEvento[] {
+  const out: CalendarioEvento[] = [];
+
+  for (const d of dias) {
+    const fecha = safeYMD(d.fecha);
+
+    if (d.ausencia_tipo) {
+      const tipo = d.ausencia_tipo;
+      const pretty = String(tipo).replace("_", " ");
+      const extra =
+        d.minutos_trabajados != null
+          ? ` · ${fmtMin(d.minutos_trabajados)}`
+          : "";
+
+      out.push({
+        id: buildEventId(tipo, fecha),
+        tipo,
+        title: `${pretty}${extra}${d.estado ? ` (${d.estado})` : ""}`,
+        start: fecha,
+        end: null,
+        allDay: true,
+        estado: (d.estado as any) || "aprobado",
+      });
+      continue;
+    }
+
+    if (d.es_laborable === false) {
+      const extra =
+        d.minutos_trabajados != null
+          ? ` · ${fmtMin(d.minutos_trabajados)}`
+          : "";
+
+      out.push({
+        id: buildEventId("festivo", fecha),
+        tipo: "festivo",
+        title: `Festivo${extra}`,
+        start: fecha,
+        end: null,
+        allDay: true,
+      });
+    }
+  }
+
+  return out;
+}
+
 export default function DrawerCalendario({
-  onSelectEvent,
+  onSelectDay,
 }: {
-  onSelectEvent: (ev: CalendarioEvento) => void;
+  onSelectDay: (ymd: string) => void;
 }) {
   const calendarRef = useRef<FullCalendar | null>(null);
   const lastRangeRef = useRef<{ desde: string; hasta: string } | null>(null);
@@ -28,12 +102,24 @@ export default function DrawerCalendario({
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<ViewMode>("dayGridMonth");
   const [title, setTitle] = useState("");
+
   const uniqueEvents = useMemo(
     () => Array.from(new Map(events.map((e) => [e.id, e])).values()),
     [events]
   );
+
+  function apiCalendar() {
+    return calendarRef.current?.getApi();
+  }
+
+  function syncTitle() {
+    const api = apiCalendar();
+    if (!api) return;
+    const t = api.view.title || "";
+    setTitle(t ? t.charAt(0).toUpperCase() + t.slice(1) : "");
+  }
+
   async function load(desde: string, hasta: string) {
-    // Evitar recargar si el rango no ha cambiado
     const last = lastRangeRef.current;
     if (last && last.desde === desde && last.hasta === hasta) return;
     lastRangeRef.current = { desde, hasta };
@@ -41,8 +127,9 @@ export default function DrawerCalendario({
     setLoading(true);
     try {
       const params = new URLSearchParams({ desde, hasta });
-      const res = await api.get(`/calendario/usuario?${params.toString()}`);
-      setEvents(Array.isArray(res.data) ? res.data : []);
+      const res = await api.get(`/calendario?${params.toString()}`);
+      const dias = Array.isArray(res.data) ? res.data : [];
+      setEvents(mapDiasToEventos(dias));
     } catch (e) {
       console.error("Error calendario usuario", e);
       setEvents([]);
@@ -51,84 +138,26 @@ export default function DrawerCalendario({
     }
   }
 
-  const fcEvents = useMemo(() => {
-    return uniqueEvents.map((e) => {
-      const col = colorFor(e.tipo, e.estado);
-      const prettyTipo = e.tipo.replace("_", " ");
-      const label =
-        e.estado === "rechazado" ? `${prettyTipo} (rechazada)` : prettyTipo;
-
-      return {
-        id: e.id,
-        title: label,
-        start: e.start,
-        end: e.end || undefined,
-        allDay: e.allDay ?? true,
-        backgroundColor: col,
-        borderColor: col,
-        extendedProps: e,
-      };
-    });
-  }, [uniqueEvents]);
-  function apiCalendar() {
-    return calendarRef.current?.getApi();
-  }
-
-  function syncTitle() {
-    const api = apiCalendar();
-    if (!api) return;
-    setTitle(api.view.title.charAt(0).toUpperCase() + api.view.title.slice(1));
-  }
-
-  function goPrev() {
-    apiCalendar()?.prev();
-    syncTitle();
-  }
-
-  function goNext() {
-    apiCalendar()?.next();
-    syncTitle();
-  }
-
-  function changeView(v: ViewMode) {
-    setView(v);
-    apiCalendar()?.changeView(v);
-    syncTitle();
-  }
+  const fcEvents = useMemo(
+    () =>
+      uniqueEvents.map((e) => {
+        const col = colorFor(e.tipo, e.estado);
+        return {
+          id: e.id,
+          title: e.title,
+          start: e.start,
+          end: e.end || undefined,
+          allDay: e.allDay ?? true,
+          backgroundColor: col,
+          borderColor: col,
+          textColor: "#fff",
+        };
+      }),
+    [uniqueEvents]
+  );
 
   useEffect(() => {
-    // inicializa título cuando el calendar esté montado
     setTimeout(syncTitle, 0);
-  }, []);
-
-  // Recargas “PWA friendly” SIN bloquear el arranque
-  useEffect(() => {
-    const recargarRangoActual = () => {
-      const api = apiCalendar();
-      if (!api) return;
-      const desde = api.view.activeStart.toISOString().slice(0, 10);
-      const hasta = api.view.activeEnd.toISOString().slice(0, 10);
-      load(desde, hasta);
-    };
-
-    const onFocus = () => recargarRangoActual();
-    const onVisibility = () => {
-      if (!document.hidden) recargarRangoActual();
-    };
-    const onOnline = () => recargarRangoActual();
-
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("online", onOnline);
-
-    const interval = setInterval(recargarRangoActual, 30000);
-
-    return () => {
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("online", onOnline);
-      clearInterval(interval);
-    };
   }, []);
 
   return (
@@ -138,58 +167,27 @@ export default function DrawerCalendario({
       <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
         <div className="px-3 h-12 border-b flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <button
-              onClick={goPrev}
-              className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-              aria-label="Anterior"
-            >
+            <button onClick={() => apiCalendar()?.prev()} type="button">
               <ChevronLeft size={18} />
             </button>
-            <button
-              onClick={goNext}
-              className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-              aria-label="Siguiente"
-            >
+            <button onClick={() => apiCalendar()?.next()} type="button">
               <ChevronRight size={18} />
             </button>
-
-            <div className="ml-2 font-semibold text-[15px] text-gray-900">
-              {title}
-            </div>
+            <div className="ml-2 font-semibold">{title}</div>
           </div>
 
-          <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
-            <button
-              onClick={() => changeView("dayGridMonth")}
-              className={[
-                "px-3 py-1.5",
-                view === "dayGridMonth"
-                  ? "bg-black text-white"
-                  : "bg-white text-gray-700",
-              ].join(" ")}
-            >
-              Mes
-            </button>
-            <button
-              onClick={() => changeView("timeGridWeek")}
-              className={[
-                "px-3 py-1.5",
-                view === "timeGridWeek"
-                  ? "bg-black text-white"
-                  : "bg-white text-gray-700",
-              ].join(" ")}
-            >
-              Semana
-            </button>
+          <div className="flex rounded-full border overflow-hidden text-sm">
+            <button onClick={() => setView("dayGridMonth")}>Mes</button>
+            <button onClick={() => setView("timeGridWeek")}>Semana</button>
           </div>
         </div>
 
         <div className="p-2 relative">
-          {loading ? (
-            <div className="absolute inset-0 z-10 grid place-items-center bg-white/70">
-              <div className="text-sm text-gray-600">Cargando calendario…</div>
+          {loading && (
+            <div className="absolute inset-0 grid place-items-center bg-white/70">
+              Cargando…
             </div>
-          ) : null}
+          )}
 
           <FullCalendar
             ref={calendarRef}
@@ -197,36 +195,16 @@ export default function DrawerCalendario({
             locale={esLocale}
             initialView={view}
             headerToolbar={false}
-            events={fcEvents as any}
-            height="auto"
-            contentHeight="auto"
-            expandRows
+            events={fcEvents}
             datesSet={(arg) => {
               syncTitle();
-              const desde = arg.startStr.slice(0, 10);
-              const hasta = arg.endStr.slice(0, 10);
-              load(desde, hasta);
+              load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
             }}
-            eventClick={(info) => {
-              const ext = info.event.extendedProps as any;
-              if (ext) onSelectEvent(ext as CalendarioEvento);
-            }}
+            dateClick={(arg) => onSelectDay(arg.dateStr.slice(0, 10))}
           />
         </div>
       </div>
-
-      <button
-        onClick={() => {
-          const api = apiCalendar();
-          if (!api) return;
-          const desde = api.view.activeStart.toISOString().slice(0, 10);
-          const hasta = api.view.activeEnd.toISOString().slice(0, 10);
-          load(desde, hasta);
-        }}
-        className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04]"
-      >
-        Recargar
-      </button>
     </div>
   );
 }
+// app180-frontend/app/empleado/dashboard/page.tsx

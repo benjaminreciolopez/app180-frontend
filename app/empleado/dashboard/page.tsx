@@ -5,22 +5,20 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
-
 import FloatingActionButton from "@/components/ui/FloatingActionButton";
 import IOSDrawer from "@/components/ui/IOSDrawer";
-
 import DrawerMenu from "@/components/empleado/drawer/DrawerMenu";
 import DrawerCalendario from "@/components/empleado/DrawerCalendario";
-import DrawerEventoDetalle from "@/components/empleado/DrawerEventoDetalle";
+import DrawerDiaDetalle from "@/components/empleado/drawer/DrawerDiaDetalle";
 import DrawerSolicitarAusencia from "@/components/empleado/DrawerSolicitarAusencia";
 import DrawerMisSolicitudes from "@/components/empleado/DrawerMisSolicitudes";
-
+import DrawerEventoDetalle from "@/components/empleado/DrawerEventoDetalle";
 import type { CalendarioEvento } from "@/components/empleado/calendarioTypes";
-
 import { FichajeAction } from "./FichajeAction";
-import type { AccionFichaje } from "./FichajeAction";
 import type { EstadoAusencia } from "@/types/ausencias";
 import { useEstadoFichaje } from "./useEstadoFichaje";
+import { usePlanDiaEmpleado } from "./usePlanDiaEmpleado";
+import PlanVsRealTimeline from "./PlanVsRealTimeline";
 
 type FichajeHoy = { id: string; tipo_label: string; hora: string };
 type WorkLogHoy = {
@@ -55,9 +53,81 @@ function colorClass(color?: string) {
   }
 }
 
+function nowMinutes() {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+}
+
+function hhmmssToMin(v?: string | null) {
+  if (!v) return null;
+  const s = String(v).slice(0, 8);
+  const [hh, mm, ss] = s.split(":").map((x) => parseInt(x, 10));
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
+  return hh * 60 + mm + (Number.isFinite(ss) ? ss / 60 : 0);
+}
+
+function findNextPlanBlock(planBloques: any[]) {
+  const n = nowMinutes();
+  const blocks = (planBloques || [])
+    .map((b) => ({
+      ...b,
+      a: hhmmssToMin(b.inicio),
+      z: hhmmssToMin(b.fin),
+    }))
+    .filter((b) => b.a != null && b.z != null && b.z > b.a)
+    .sort((x, y) => (x.a as number) - (y.a as number));
+
+  const next = blocks.find((b) => (b.a as number) > n);
+  if (next) return next;
+
+  const current = blocks.find(
+    (b) => (b.a as number) <= n && n <= (b.z as number)
+  );
+  if (current) return { ...current, current: true };
+
+  return null;
+}
+
+function isNowOutsideRange(rango?: { inicio: string; fin: string } | null) {
+  if (!rango?.inicio || !rango?.fin) return false;
+  const n = nowMinutes();
+  const a = hhmmssToMin(rango.inicio);
+  const z = hhmmssToMin(rango.fin);
+  if (a == null || z == null) return false;
+  const GRACE = 10;
+  return n < a - GRACE || n > z + GRACE;
+}
+
+function hhmm(v?: string | null) {
+  if (!v) return "—";
+  return String(v).slice(0, 5);
+}
+
+function fmtMin(min?: number | null) {
+  if (min == null || Number.isNaN(Number(min))) return "—";
+  const m = Math.max(0, Math.floor(Number(min)));
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (h <= 0) return `${r}m`;
+  return `${h}h ${String(r).padStart(2, "0")}m`;
+}
+
+function fmtRangeISO(startIso?: string | null, endIso?: string | null) {
+  if (!startIso) return "—";
+  const s = new Date(startIso);
+  const e = endIso ? new Date(endIso) : null;
+  const hs = String(s.getHours()).padStart(2, "0");
+  const ms = String(s.getMinutes()).padStart(2, "0");
+  if (!e) return `${hs}:${ms} – …`;
+  const he = String(e.getHours()).padStart(2, "0");
+  const me = String(e.getMinutes()).padStart(2, "0");
+  return `${hs}:${ms} – ${he}:${me}`;
+}
+
 type DrawerKey =
   | "menu"
   | "calendario"
+  | "dia"
   | "evento"
   | "vacaciones"
   | "baja"
@@ -71,12 +141,20 @@ export default function EmpleadoDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
   const {
     accion: accionFichaje,
     estado: estadoFichaje,
-    loading: loadingFichaje,
     reload: reloadEstadoFichaje,
   } = useEstadoFichaje();
+
+  const {
+    data: planDia,
+    loading: loadingPlan,
+    error: errorPlan,
+    reload: reloadPlanDia,
+  } = usePlanDiaEmpleado();
 
   const [workLogsHoy, setWorkLogsHoy] = useState<WorkLogHoy[]>([]);
   const [estadoDia, setEstadoDia] = useState<{
@@ -84,14 +162,12 @@ export default function EmpleadoDashboardPage() {
     label?: string;
   } | null>(null);
 
-  // Drawer stack
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [stack, setStack] = useState<DrawerScreen[]>([
     { key: "menu", title: "Opciones" },
   ]);
   const current = stack[stack.length - 1];
 
-  // seleccionado calendario
   const [selectedEvent, setSelectedEvent] = useState<CalendarioEvento | null>(
     null
   );
@@ -100,15 +176,20 @@ export default function EmpleadoDashboardPage() {
     setDrawerOpen(true);
     setStack([{ key: "menu", title: "Opciones" }]);
     setSelectedEvent(null);
+    setSelectedDay(null);
   }
+
   function closeDrawer() {
     setDrawerOpen(false);
     setStack([{ key: "menu", title: "Opciones" }]);
     setSelectedEvent(null);
+    setSelectedDay(null);
   }
+
   function push(screen: DrawerScreen) {
     setStack((prev) => [...prev, screen]);
   }
+
   function pop() {
     setStack((prev) => {
       if (prev.length <= 1) {
@@ -167,7 +248,43 @@ export default function EmpleadoDashboardPage() {
     [data]
   );
 
-  // ======= Render =======
+  const planBloques = useMemo(() => planDia?.plan?.bloques || [], [planDia]);
+  const realBloques = useMemo(
+    () => planDia?.resumen?.bloques_reales || [],
+    [planDia]
+  );
+  const avisos = useMemo(() => planDia?.avisos || [], [planDia]);
+
+  const outsideRange = useMemo(
+    () => isNowOutsideRange(planDia?.plan?.rango || null),
+    [planDia?.plan?.rango]
+  );
+
+  const status = useMemo(() => {
+    const hasPlan = !!planDia?.plan?.plantilla_id;
+    const hasAvisos = (avisos || []).length > 0;
+
+    if (!hasPlan)
+      return {
+        label: "Sin planificación",
+        cls: "bg-gray-100 border-gray-200 text-gray-700",
+      };
+    if (hasAvisos)
+      return {
+        label: "Incidencias",
+        cls: "bg-yellow-50 border-yellow-200 text-yellow-900",
+      };
+    if (outsideRange)
+      return {
+        label: "Fuera de rango",
+        cls: "bg-orange-50 border-orange-200 text-orange-900",
+      };
+    return {
+      label: "Plan OK",
+      cls: "bg-green-50 border-green-200 text-green-900",
+    };
+  }, [planDia?.plan?.plantilla_id, avisos, outsideRange]);
+
   if (loading) return <p className="p-4">Cargando…</p>;
 
   if (error) {
@@ -218,6 +335,16 @@ export default function EmpleadoDashboardPage() {
 
         {current.key === "calendario" ? (
           <DrawerCalendario
+            onSelectDay={(ymd) => {
+              setSelectedDay(ymd);
+              push({ key: "dia", title: ymd });
+            }}
+          />
+        ) : null}
+
+        {current.key === "dia" && selectedDay ? (
+          <DrawerDiaDetalle
+            ymd={selectedDay}
             onSelectEvent={(ev) => {
               setSelectedEvent(ev);
               push({ key: "evento", title: "Detalle" });
@@ -233,14 +360,14 @@ export default function EmpleadoDashboardPage() {
           <DrawerSolicitarAusencia
             tipoInicial="vacaciones"
             onDone={() => {
-              // tras enviar: te dejo en calendario (mejor UX)
               setSelectedEvent(null);
+              setSelectedDay(null);
               setStack([
                 { key: "menu", title: "Opciones" },
                 { key: "calendario", title: "Calendario" },
               ]);
-              // refresca estados del dashboard por si hoy deja de ser laborable
               loadEstadoDiaFn();
+              reloadPlanDia();
             }}
           />
         ) : null}
@@ -250,11 +377,13 @@ export default function EmpleadoDashboardPage() {
             tipoInicial="baja_medica"
             onDone={() => {
               setSelectedEvent(null);
+              setSelectedDay(null);
               setStack([
                 { key: "menu", title: "Opciones" },
                 { key: "calendario", title: "Calendario" },
               ]);
               loadEstadoDiaFn();
+              reloadPlanDia();
             }}
           />
         ) : null}
@@ -262,7 +391,6 @@ export default function EmpleadoDashboardPage() {
         {current.key === "solicitudes" ? (
           <DrawerMisSolicitudes
             onSelectAusencia={(a) => {
-              // opcional: si luego quieres detalle de solicitud, lo abrimos como evento genérico
               setSelectedEvent({
                 id: `aus-${a.id}`,
                 tipo: a.tipo,
@@ -302,8 +430,8 @@ export default function EmpleadoDashboardPage() {
             {estadoFichaje === "dentro"
               ? "Trabajando"
               : estadoFichaje === "descanso"
-              ? "En descanso"
-              : "Fuera de jornada"}
+                ? "En descanso"
+                : "Fuera de jornada"}
           </span>
         </div>
 
@@ -328,6 +456,145 @@ export default function EmpleadoDashboardPage() {
         </div>
       ) : null}
 
+      {/* ============================= */}
+      {/* PLAN + REAL + RESUMEN + AVISOS */}
+      {/* ============================= */}
+      <div className="card space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Plan de hoy</h3>
+
+          <button
+            className="text-xs px-2 py-1 rounded bg-gray-100 border"
+            onClick={reloadPlanDia}
+            disabled={loadingPlan}
+            title="Refrescar plan"
+          >
+            {loadingPlan ? "..." : "Refrescar"}
+          </button>
+        </div>
+
+        {errorPlan ? (
+          <div className="text-sm text-red-600">{errorPlan}</div>
+        ) : loadingPlan ? (
+          <div className="text-sm text-gray-500">Cargando plan…</div>
+        ) : (
+          <>
+            <div className="text-sm text-gray-700">
+              <b>Modo:</b>{" "}
+              {planDia?.plan?.modo === "excepcion" ? "Excepción" : "Semanal"} ·{" "}
+              <b>Rango:</b>{" "}
+              {planDia?.plan?.rango
+                ? `${hhmm(planDia.plan.rango.inicio)} – ${hhmm(
+                    planDia.plan.rango.fin
+                  )}`
+                : "No definido"}
+              {planDia?.plan?.nota ? (
+                <>
+                  {" "}
+                  · <b>Nota:</b> {planDia.plan.nota}
+                </>
+              ) : null}
+            </div>
+
+            {planBloques.length === 0 ? (
+              <div className="text-sm text-gray-500">
+                Sin bloques esperados.
+              </div>
+            ) : (
+              <ul className="text-sm space-y-2">
+                {planBloques.map((b, idx) => (
+                  <li
+                    key={`${b.tipo}-${idx}`}
+                    className="flex items-center justify-between border rounded p-2"
+                  >
+                    <span className="font-medium capitalize">{b.tipo}</span>
+                    <span className="text-gray-700">
+                      {hhmm(b.inicio)} – {hhmm(b.fin)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
+      {!loadingPlan && planDia?.plan?.rango ? (
+        <div className="card space-y-2">
+          <h3 className="font-semibold">Plan vs Real</h3>
+
+          <PlanVsRealTimeline
+            rango={planDia.plan.rango}
+            planBloques={planBloques}
+            realBloques={realBloques}
+          />
+        </div>
+      ) : null}
+
+      <div className="card space-y-2">
+        <h3 className="font-semibold">Lo que llevas hoy</h3>
+
+        {loadingPlan ? (
+          <div className="text-sm text-gray-500">Cargando…</div>
+        ) : realBloques.length === 0 ? (
+          <div className="text-sm text-gray-500">
+            Aún no hay bloques reales.
+          </div>
+        ) : (
+          <ul className="text-sm space-y-2">
+            {realBloques.map((b: any, idx: number) => (
+              <li
+                key={`${b.tipo}-${idx}`}
+                className="border rounded p-2 space-y-1"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium capitalize">{b.tipo}</span>
+                  <span className="text-gray-700">
+                    {fmtRangeISO(b.inicio, b.fin)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-600">
+                  <span>{b.ubicacion || ""}</span>
+                  <span>{b.minutos != null ? `${b.minutos} min` : ""}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="card space-y-2">
+        <h3 className="font-semibold">Resumen</h3>
+        <div className="text-sm flex items-center justify-between">
+          <span className="text-gray-600">Trabajado</span>
+          <span className="font-semibold">
+            {fmtMin(planDia?.resumen?.minutos_trabajados ?? null)}
+          </span>
+        </div>
+        <div className="text-sm flex items-center justify-between">
+          <span className="text-gray-600">Descanso</span>
+          <span className="font-semibold">
+            {fmtMin(planDia?.resumen?.minutos_descanso ?? null)}
+          </span>
+        </div>
+        <div className="text-sm flex items-center justify-between">
+          <span className="text-gray-600">Extra</span>
+          <span className="font-semibold">
+            {fmtMin(planDia?.resumen?.minutos_extra ?? null)}
+          </span>
+        </div>
+      </div>
+
+      {avisos.length > 0 ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded p-4 space-y-2">
+          <h3 className="font-semibold text-sm">Avisos</h3>
+          <ul className="text-sm text-yellow-900 list-disc ml-5 space-y-1">
+            {avisos.map((a, i) => (
+              <li key={i}>{a}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {/* Botón principal (fichaje) */}
       <div className="fixed bottom-4 left-4 right-4 z-40 space-y-2">
         <FichajeAction
@@ -336,6 +603,7 @@ export default function EmpleadoDashboardPage() {
             reloadEstadoFichaje();
             loadDashboard();
             loadWorkLogsHoyFn();
+            reloadPlanDia();
           }}
         />
 

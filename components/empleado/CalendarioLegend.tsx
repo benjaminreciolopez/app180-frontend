@@ -26,10 +26,10 @@ export default function CalendarioLegend() {
       <Item color={COLOR_MAP.vacaciones} label="Vacaciones" />
       <Item color={COLOR_MAP.baja_medica} label="Baja médica" />
       <Item color={COLOR_MAP.festivo} label="Festivo" />
-      <Item color={COLOR_MAP.fichaje} label="Fichaje" />
       <Item color={COLOR_MAP.no_laborable} label="No laborable" />
-      <Item color={COLOR_MAP.aprobado} label="Aprobado" />
-      <Item color={COLOR_MAP.rechazado} label="Rechazado" />
+      <Item color={COLOR_MAP.fichaje} label="Fichaje" />
+      <Item color={COLOR_MAP.aprobado} label="Fichaje aprobado" />
+      <Item color={COLOR_MAP.rechazado} label="Fichaje rechazado" />
     </div>
   );
 }
