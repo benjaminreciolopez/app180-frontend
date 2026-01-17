@@ -109,6 +109,8 @@ export default function DrawerCalendario({
 }: {
   onSelectDay: (ymd: string) => void;
 }) {
+  console.log("🟢 DrawerCalendario MONTADO");
+
   const calendarRef = useRef<FullCalendar | null>(null);
   const lastRangeRef = useRef<{ desde: string; hasta: string } | null>(null);
 
@@ -134,6 +136,7 @@ export default function DrawerCalendario({
   }
 
   async function load(desde: string, hasta: string) {
+    console.log("📡 load()", desde, hasta);
     const last = lastRangeRef.current;
     if (last && last.desde === desde && last.hasta === hasta) return;
     lastRangeRef.current = { desde, hasta };
@@ -226,6 +229,7 @@ export default function DrawerCalendario({
             headerToolbar={false}
             events={fcEvents}
             datesSet={(arg) => {
+              console.log("📅 datesSet", arg.startStr, arg.endStr);
               syncTitle();
               load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
             }}
