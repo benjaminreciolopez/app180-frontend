@@ -336,6 +336,39 @@ export default function PlantillasPanel() {
       setSavingEx(false);
     }
   }
+  async function renombrarPlantilla() {
+    if (!detalle?.plantilla?.id) return;
+
+    const nuevo = prompt(
+      "Nuevo nombre de la plantilla:",
+      detalle.plantilla.nombre
+    );
+
+    if (!nuevo || !nuevo.trim()) return;
+
+    await api.put(`/admin/plantillas/${detalle.plantilla.id}`, {
+      nombre: nuevo.trim(),
+    });
+
+    await loadPlantillas();
+    await loadDetalle(detalle.plantilla.id);
+  }
+  async function eliminarPlantilla() {
+    if (!detalle?.plantilla?.id) return;
+
+    const ok = confirm(
+      `¿Seguro que quieres eliminar la plantilla "${detalle.plantilla.nombre}"?\n\nSe borrarán todos los días, bloques, excepciones y asignaciones.`
+    );
+
+    if (!ok) return;
+
+    await api.delete(`/admin/plantillas/${detalle.plantilla.id}`);
+
+    setSel(null);
+    setDetalle(null);
+
+    await loadPlantillas();
+  }
 
   async function guardarBloquesEx(next: Bloque[]) {
     if (!exSel?.id) {
@@ -424,12 +457,28 @@ export default function PlantillasPanel() {
                 </div>
               </div>
 
-              <button
-                className="px-3 py-2 rounded bg-gray-200"
-                onClick={() => loadDetalle(detalle.plantilla.id)}
-              >
-                Refrescar
-              </button>
+              <div className="flex gap-2">
+                <button
+                  className="px-3 py-2 rounded bg-gray-200"
+                  onClick={renombrarPlantilla}
+                >
+                  Renombrar
+                </button>
+
+                <button
+                  className="px-3 py-2 rounded bg-red-600 text-white"
+                  onClick={eliminarPlantilla}
+                >
+                  Eliminar
+                </button>
+
+                <button
+                  className="px-3 py-2 rounded bg-gray-200"
+                  onClick={() => loadDetalle(detalle.plantilla.id)}
+                >
+                  Refrescar
+                </button>
+              </div>
             </div>
 
             {error ? (
