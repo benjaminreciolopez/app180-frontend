@@ -11,7 +11,6 @@ interface Empleado {
   nombre: string;
   email: string;
   activo: boolean;
-  turno_nombre: string | null;
   dispositivo_activo: boolean | null;
   device_hash: string | null;
 }
@@ -89,13 +88,12 @@ export default function EmpleadosPage() {
       </div>
 
       <div className="card p-0 overflow-x-auto">
-        <table className="table min-w-[900px]">
+        <table className="table min-w-[750px]">
           <thead>
             <tr>
               <th>Nombre</th>
               <th>Email</th>
               <th>Estado</th>
-              <th>Turno</th>
               <th>Dispositivo</th>
               <th className="text-right">Acciones</th>
             </tr>
@@ -114,13 +112,6 @@ export default function EmpleadosPage() {
                     <span className="badge-danger">Inactivo</span>
                   )}
                 </td>
-                <td>
-                  {e.turno_nombre ? (
-                    <span className="badge-info">{e.turno_nombre}</span>
-                  ) : (
-                    <span className="badge-muted">Sin turno</span>
-                  )}
-                </td>
 
                 <td>
                   {!e.device_hash && (
@@ -137,13 +128,6 @@ export default function EmpleadosPage() {
                 </td>
 
                 <td className="text-right whitespace-nowrap">
-                  <Link
-                    href={`/admin/empleados/${e.id}/turno`}
-                    className="btn-outline mr-2"
-                  >
-                    Turno
-                  </Link>
-
                   <div className="inline-block relative">
                     <button
                       type="button"

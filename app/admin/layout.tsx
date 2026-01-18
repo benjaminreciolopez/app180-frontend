@@ -58,7 +58,6 @@ export default function AdminLayout({
     { path: "/admin/dashboard", label: "Dashboard" },
     { path: "/admin/calendario", label: "Calendario" },
     { path: "/admin/empleados", label: "Empleados" },
-    { path: "/admin/turnos", label: "Turnos" },
     { path: "/admin/jornadas", label: "Jornadas" },
     { path: "/admin/fichajes", label: "Fichajes" },
     { path: "/admin/fichajes/sospechosos", label: "Sospechosos" },
