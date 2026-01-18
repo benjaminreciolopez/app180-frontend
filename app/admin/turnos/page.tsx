@@ -26,22 +26,14 @@ export default function TurnosPage() {
     cargar();
   }, []);
 
-  // =========================
-  // Deseleccionar con ESC
-  // =========================
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setSelectedId(null);
-      }
+      if (e.key === "Escape") setSelectedId(null);
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
-  // =========================
-  // Deseleccionar al hacer clic fuera
-  // =========================
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -67,7 +59,7 @@ export default function TurnosPage() {
   return (
     <div className="space-y-4" ref={containerRef}>
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold">Turnos de la empresa</h1>
+        <h1 className="text-xl font-bold">Turnos (catálogo)</h1>
 
         <Link
           href="/admin/turnos/nuevo"
@@ -99,12 +91,14 @@ export default function TurnosPage() {
                 <div className="font-semibold">{t.nombre}</div>
 
                 <div className="text-sm text-gray-600">
-                  {t.tipo_turno} • {t.tipo_horario}
+                  Tipo: {t.tipo_turno}
                 </div>
 
-                <div className="text-sm text-gray-500">
-                  Objetivo: {t.horas_dia_objetivo || "—"}h
-                </div>
+                {t.descripcion && (
+                  <div className="text-sm text-gray-500 mt-1">
+                    {t.descripcion}
+                  </div>
+                )}
 
                 {selected && (
                   <div className="flex gap-2 mt-3">
@@ -134,3 +128,4 @@ export default function TurnosPage() {
     </div>
   );
 }
+// app180-frontend/app/admin/turnos/page.tsx

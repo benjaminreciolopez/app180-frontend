@@ -10,14 +10,7 @@ export default function CrearTurnoForm() {
   const [form, setForm] = useState({
     nombre: "",
     descripcion: "",
-    tipo_turno: "continuo",
-    tipo_horario: "fijo",
-    horas_dia_objetivo: 8,
-    max_horas_dia: 9,
-    max_horas_semana: 40,
-    minutos_descanso_min: 30,
-    minutos_descanso_max: 120,
-    nocturno_permitido: false,
+    tipo_turno: "completo",
   });
 
   function setField(field: string, value: any) {
@@ -25,8 +18,13 @@ export default function CrearTurnoForm() {
   }
 
   async function guardar() {
+    if (!form.nombre.trim()) {
+      alert("El nombre es obligatorio");
+      return;
+    }
+
     await createTurno(form);
-    router.push("/admin/turnos"); // 👈 navegación aquí
+    router.push("/admin/turnos");
   }
 
   return (
@@ -52,107 +50,19 @@ export default function CrearTurnoForm() {
           />
         </div>
 
-        <div className="flex gap-4">
-          <div>
-            <label className="block font-medium">Tipo turno</label>
-            <select
-              className="border rounded px-3 py-2"
-              value={form.tipo_turno}
-              onChange={(e) => setField("tipo_turno", e.target.value)}
-            >
-              <option value="continuo">Continuo</option>
-              <option value="discontinuo">Discontinuo</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block font-medium">Horario</label>
-            <select
-              className="border rounded px-3 py-2"
-              value={form.tipo_horario}
-              onChange={(e) => setField("tipo_horario", e.target.value)}
-            >
-              <option value="fijo">Fijo</option>
-              <option value="flexible">Flexible</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="flex gap-4">
-          <div>
-            <label className="block font-medium">Horas objetivo</label>
-            <input
-              type="number"
-              className="border rounded px-3 py-2 w-24"
-              value={form.horas_dia_objetivo}
-              onChange={(e) =>
-                setField("horas_dia_objetivo", Number(e.target.value))
-              }
-            />
-          </div>
-
-          <div>
-            <label className="block font-medium">Max día</label>
-            <input
-              type="number"
-              className="border rounded px-3 py-2 w-24"
-              value={form.max_horas_dia}
-              onChange={(e) =>
-                setField("max_horas_dia", Number(e.target.value))
-              }
-            />
-          </div>
-
-          <div>
-            <label className="block font-medium">Max semana</label>
-            <input
-              type="number"
-              className="border rounded px-3 py-2 w-24"
-              value={form.max_horas_semana}
-              onChange={(e) =>
-                setField("max_horas_semana", Number(e.target.value))
-              }
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-4">
-          <div>
-            <label className="block font-medium">Descanso mínimo</label>
-            <input
-              type="number"
-              className="border rounded px-3 py-2 w-28"
-              value={form.minutos_descanso_min}
-              onChange={(e) =>
-                setField("minutos_descanso_min", Number(e.target.value))
-              }
-            />{" "}
-            min
-          </div>
-
-          <div>
-            <label className="block font-medium">Descanso máximo</label>
-            <input
-              type="number"
-              className="border rounded px-3 py-2 w-28"
-              value={form.minutos_descanso_max}
-              onChange={(e) =>
-                setField("minutos_descanso_max", Number(e.target.value))
-              }
-            />{" "}
-            min
-          </div>
-        </div>
-
         <div>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={form.nocturno_permitido}
-              onChange={(e) => setField("nocturno_permitido", e.target.checked)}
-            />
-            Permitir turno nocturno (cruza medianoche)
-          </label>
+          <label className="block font-medium">Tipo de turno</label>
+          <select
+            className="border rounded px-3 py-2 w-full"
+            value={form.tipo_turno}
+            onChange={(e) => setField("tipo_turno", e.target.value)}
+          >
+            <option value="completo">Completo</option>
+            <option value="partido">Partido</option>
+            <option value="nocturno">Nocturno</option>
+            <option value="rotativo">Rotativo</option>
+            <option value="otros">Otros</option>
+          </select>
         </div>
       </div>
 
@@ -168,7 +78,7 @@ export default function CrearTurnoForm() {
           className="px-4 py-2 bg-green-600 text-white rounded"
         >
           Guardar
-        </button>{" "}
+        </button>
       </div>
     </div>
   );

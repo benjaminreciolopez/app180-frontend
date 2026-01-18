@@ -8,7 +8,7 @@ export type AccionFichaje =
   | "descanso_inicio"
   | "descanso_fin";
 
-type BotonEstado = {
+export type BotonEstado = {
   visible: boolean;
   color: "rojo" | "negro";
   puede_fichar: boolean;
@@ -29,14 +29,17 @@ export function FichajeAction({
 }) {
   const { fichar, loading } = useFichaje(reload);
 
-  if (!boton || !boton.visible || !boton.accion) return null;
+  if (!boton?.visible) return null;
+  if (!boton.accion) return null;
 
-  const labels: Record<AccionFichaje, string> = {
-    entrada: "Fichar entrada",
-    salida: "Fichar salida",
-    descanso_inicio: "Iniciar descanso",
-    descanso_fin: "Finalizar descanso",
+  const config: Record<AccionFichaje, { label: string }> = {
+    entrada: { label: "Fichar entrada" },
+    salida: { label: "Fichar salida" },
+    descanso_inicio: { label: "Iniciar descanso" },
+    descanso_fin: { label: "Finalizar descanso" },
   };
+
+  const cfg = config[boton.accion];
 
   const colorClass =
     boton.color === "rojo"
@@ -50,12 +53,12 @@ export function FichajeAction({
         onClick={() => fichar(boton.accion!)}
         className={`w-full py-4 text-lg rounded font-semibold transition disabled:opacity-60 ${colorClass}`}
       >
-        {loading ? "Registrando..." : labels[boton.accion]}
+        {loading ? "Registrando..." : cfg.label}
       </button>
 
-      {boton.mensaje && (
+      {boton.mensaje ? (
         <p className="text-sm text-gray-600 text-center">{boton.mensaje}</p>
-      )}
+      ) : null}
     </div>
   );
 }

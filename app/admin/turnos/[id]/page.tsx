@@ -9,20 +9,23 @@ export default function EditarTurnoPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [nombre, setNombre] = useState("");
-  const [tipoTurno, setTipoTurno] = useState("continuo");
-  const [tipoHorario, setTipoHorario] = useState("fijo");
-  const [horas, setHoras] = useState<number | null>(8);
+
+  const [form, setForm] = useState({
+    nombre: "",
+    descripcion: "",
+    tipo_turno: "completo",
+  });
 
   useEffect(() => {
     async function load() {
       try {
         const t = await getTurno(id);
 
-        setNombre(t.nombre);
-        setTipoTurno(t.tipo_turno);
-        setTipoHorario(t.tipo_horario);
-        setHoras(t.horas_dia_objetivo);
+        setForm({
+          nombre: t.nombre || "",
+          descripcion: t.descripcion || "",
+          tipo_turno: t.tipo_turno || "completo",
+        });
       } catch (e) {
         console.error("Error cargando turno", e);
       } finally {
@@ -33,16 +36,19 @@ export default function EditarTurnoPage() {
     if (id) load();
   }, [id]);
 
+  function setField(field: string, value: any) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
   async function guardar(e: any) {
     e.preventDefault();
 
-    await updateTurno(id, {
-      nombre,
-      tipo_turno: tipoTurno,
-      tipo_horario: tipoHorario,
-      horas_dia_objetivo: horas ?? null,
-    });
+    if (!form.nombre.trim()) {
+      alert("El nombre es obligatorio");
+      return;
+    }
 
+    await updateTurno(id, form);
     router.push("/admin/turnos");
   }
 
@@ -60,9 +66,18 @@ export default function EditarTurnoPage() {
           <label>Nombre</label>
           <input
             className="border px-3 py-1 w-full"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
+            value={form.nombre}
+            onChange={(e) => setField("nombre", e.target.value)}
             required
+          />
+        </div>
+
+        <div>
+          <label>Descripción</label>
+          <textarea
+            className="border px-3 py-1 w-full"
+            value={form.descripcion}
+            onChange={(e) => setField("descripcion", e.target.value)}
           />
         </div>
 
@@ -70,36 +85,15 @@ export default function EditarTurnoPage() {
           <label>Tipo de turno</label>
           <select
             className="border px-3 py-1 w-full"
-            value={tipoTurno}
-            onChange={(e) => setTipoTurno(e.target.value)}
+            value={form.tipo_turno}
+            onChange={(e) => setField("tipo_turno", e.target.value)}
           >
-            <option value="continuo">Continuo</option>
-            <option value="discontinuo">Discontinuo</option>
+            <option value="completo">Completo</option>
+            <option value="partido">Partido</option>
+            <option value="nocturno">Nocturno</option>
+            <option value="rotativo">Rotativo</option>
+            <option value="otros">Otros</option>
           </select>
-        </div>
-
-        <div>
-          <label>Tipo de horario</label>
-          <select
-            className="border px-3 py-1 w-full"
-            value={tipoHorario}
-            onChange={(e) => setTipoHorario(e.target.value)}
-          >
-            <option value="fijo">Fijo</option>
-            <option value="flexible">Flexible</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Horas objetivo al día</label>
-          <input
-            type="number"
-            className="border px-3 py-1 w-full"
-            value={horas ?? ""}
-            onChange={(e) =>
-              setHoras(e.target.value ? parseInt(e.target.value) : null)
-            }
-          />
         </div>
 
         <button className="bg-blue-600 text-white px-4 py-2 rounded">
@@ -109,3 +103,4 @@ export default function EditarTurnoPage() {
     </div>
   );
 }
+// app180-frontend/app/admin/turnos/[id]/page.tsx

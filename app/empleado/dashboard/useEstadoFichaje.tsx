@@ -1,4 +1,3 @@
-// app/empleado/dashboard/useEstadoFichaje.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -30,7 +29,24 @@ export function useEstadoFichaje() {
       const res = await api.get("/fichajes/estado");
 
       setEstado(res.data?.estado ?? null);
-      setBoton(res.data?.boton ?? null);
+
+      // contrato nuevo
+      const b = res.data?.boton || null;
+      setBoton(
+        b
+          ? {
+              visible: Boolean(b.visible),
+              color: b.color === "rojo" ? "rojo" : "negro",
+              puede_fichar: Boolean(b.puede_fichar),
+              mensaje: b.mensaje ?? null,
+              accion: (b.accion as AccionFichaje) ?? null,
+              objetivo_hhmm: b.objetivo_hhmm ?? null,
+              margen_antes: Number(b.margen_antes ?? 15),
+              margen_despues: Number(b.margen_despues ?? 15),
+              motivo_oculto: b.motivo_oculto ?? null,
+            }
+          : null
+      );
     } catch (e) {
       console.error("Error cargando estado fichaje", e);
       setEstado(null);
