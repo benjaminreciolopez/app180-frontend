@@ -1,10 +1,15 @@
-import CrearTurnoForm from "../CrearTurnoForm";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function NuevoTurnoPage() {
-  return (
-    <div className="max-w-xl">
-      <CrearTurnoForm />
-    </div>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/admin/jornadas");
+  }, [router]);
+
+  return null;
 }
 // app180-frontend/app/admin/turnos/nuevo/page.tsx

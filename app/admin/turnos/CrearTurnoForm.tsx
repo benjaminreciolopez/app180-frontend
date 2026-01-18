@@ -29,8 +29,6 @@ export default function CrearTurnoForm() {
 
   return (
     <div>
-      <h2 className="text-lg font-bold mb-4">Crear nuevo turno</h2>
-
       <div className="space-y-3">
         <div>
           <label className="block font-medium">Nombre</label>
@@ -64,21 +62,6 @@ export default function CrearTurnoForm() {
             <option value="otros">Otros</option>
           </select>
         </div>
-      </div>
-
-      <div className="flex justify-end gap-2 mt-5">
-        <button
-          onClick={() => router.push("/admin/turnos")}
-          className="px-4 py-2 border rounded"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={guardar}
-          className="px-4 py-2 bg-green-600 text-white rounded"
-        >
-          Guardar
-        </button>
       </div>
     </div>
   );
