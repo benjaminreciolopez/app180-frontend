@@ -35,8 +35,13 @@ function cap(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function addOneDay(ymd: string) {
+function addOneDay(ymd: string | null | undefined) {
+  if (!ymd || typeof ymd !== "string") return ymd as any;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd as any;
+
   const d = new Date(`${ymd}T00:00:00`);
+  if (isNaN(d.getTime())) return ymd as any;
+
   d.setDate(d.getDate() + 1);
   return d.toISOString().slice(0, 10);
 }
