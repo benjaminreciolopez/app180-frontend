@@ -1,5 +1,4 @@
-// app180-frontend\components\admin\drawer\AdminCalendarioBase.tsx
-
+// app180-frontend/components/admin/drawer/AdminCalendarioBase.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,9 +17,11 @@ import IOSDrawer from "@/components/ui/IOSDrawer";
 import DrawerDetalleAusenciaAdmin from "@/components/admin/drawer/DrawerDetalleAusenciaAdmin";
 import DrawerPendientesAdmin from "@/components/admin/drawer/DrawerPendientesAdmin";
 import DrawerCrearAusenciaAdmin from "@/components/admin/drawer/DrawerCrearAusenciaAdmin";
+import DrawerDetalleJornadaAdmin from "@/components/admin/drawer/DrawerDetalleJornadaAdmin";
 
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { EventoAdmin } from "@/types/ausencias";
+import type { CalendarioIntegradoEvento } from "@/types/calendario";
 
 type ViewMode = "dayGridMonth" | "timeGridWeek";
 
@@ -34,6 +35,113 @@ function cap(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function addOneDay(ymd: string) {
+  const d = new Date(`${ymd}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function isAllDayDateOnly(s: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(s));
+}
+
+function normalizeIntegratedForFC(e: CalendarioIntegradoEvento) {
+  // Normaliza end exclusivo para allDay multi-day (FullCalendar usa end EXCLUSIVO)
+  if (
+    e.allDay &&
+    e.end &&
+    isAllDayDateOnly(e.start) &&
+    isAllDayDateOnly(e.end)
+  ) {
+    return { ...e, end: addOneDay(e.end) };
+  }
+  return e;
+}
+
+function colorForIntegrado(ev: CalendarioIntegradoEvento) {
+  if (ev.tipo === "ausencia") {
+    const ausTipo = ev?.meta?.ausencia_tipo || "vacaciones";
+    return colorFor(ausTipo, (ev.estado as any) || "aprobado");
+  }
+
+  if (ev.tipo === "jornada_real") {
+    const wc = Number(ev?.meta?.warn_count || 0);
+    if (wc >= 2) return colorFor("fichaje", "rechazado");
+    if (wc >= 1) return colorFor("fichaje", "pendiente");
+    return colorFor("fichaje", "aprobado");
+  }
+
+  if (ev.tipo === "jornada_plan") {
+    return "#9CA3AF";
+  }
+
+  if (ev.tipo === "calendario_empresa" || ev.tipo === "no_laborable") {
+    return colorFor("festivo", "aprobado");
+  }
+
+  return "#6B7280";
+}
+
+// Drawer simple informativo (para festivos / plan / jornada_real пока no tengas el detalle).
+function DrawerInfoEventoAdmin({
+  evento,
+  onClose,
+}: {
+  evento: CalendarioIntegradoEvento;
+  onClose: () => void;
+}) {
+  return (
+    <div className="p-4 space-y-3">
+      <div className="text-sm text-gray-500">Tipo</div>
+      <div className="text-base font-semibold">{evento.tipo}</div>
+
+      <div className="text-sm text-gray-500">Título</div>
+      <div className="text-base">{evento.title}</div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className="text-sm text-gray-500">Inicio</div>
+          <div className="text-sm">{String(evento.start)}</div>
+        </div>
+        <div>
+          <div className="text-sm text-gray-500">Fin</div>
+          <div className="text-sm">{evento.end ? String(evento.end) : "-"}</div>
+        </div>
+      </div>
+
+      {evento.empleado_nombre && (
+        <>
+          <div className="text-sm text-gray-500">Empleado</div>
+          <div className="text-sm">{evento.empleado_nombre}</div>
+        </>
+      )}
+
+      {evento.estado && (
+        <>
+          <div className="text-sm text-gray-500">Estado</div>
+          <div className="text-sm">{evento.estado}</div>
+        </>
+      )}
+
+      {evento?.meta && (
+        <>
+          <div className="text-sm text-gray-500">Meta</div>
+          <pre className="text-xs bg-gray-50 border rounded-xl p-3 overflow-auto">
+            {JSON.stringify(evento.meta, null, 2)}
+          </pre>
+        </>
+      )}
+
+      <button
+        onClick={onClose}
+        className="w-full py-3 rounded-xl border text-sm font-semibold"
+      >
+        Cerrar
+      </button>
+    </div>
+  );
+}
+
 export default function AdminCalendarioBase() {
   const isMobile = useIsMobile();
   const calendarRef = useRef<FullCalendar | null>(null);
@@ -41,7 +149,7 @@ export default function AdminCalendarioBase() {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [empleadoActivo, setEmpleadoActivo] = useState<string>("");
 
-  const [events, setEvents] = useState<EventoAdmin[]>([]);
+  const [events, setEvents] = useState<CalendarioIntegradoEvento[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [view, setView] = useState<ViewMode>("dayGridMonth");
@@ -51,9 +159,11 @@ export default function AdminCalendarioBase() {
     "todos" | "pendiente" | "aprobado" | "rechazado"
   >("todos");
 
-  const [selected, setSelected] = useState<EventoAdmin | null>(null);
+  const [selected, setSelected] = useState<any | null>(null);
+
   const [openPendientes, setOpenPendientes] = useState(false);
   const [openCrear, setOpenCrear] = useState(false);
+
   const uniqueEvents = useMemo(() => {
     return Array.from(new Map(events.map((e) => [e.id, e])).values());
   }, [events]);
@@ -85,16 +195,35 @@ export default function AdminCalendarioBase() {
     const end = apiCal.view.activeEnd.toISOString().slice(0, 10);
 
     setLoading(true);
+
     try {
-      const res = await api.get("/admin/calendario/eventos", {
+      const res = await api.get("/admin/calendario/integrado", {
         params: {
           desde: start,
           hasta: end,
           empleado_id: empleadoActivo || undefined,
-          estado: estadoFiltro === "todos" ? undefined : estadoFiltro,
+          include_real: 1,
+          include_plan: empleadoActivo ? 1 : undefined,
         },
       });
-      setEvents(Array.isArray(res.data) ? res.data : []);
+
+      const arr: CalendarioIntegradoEvento[] = Array.isArray(res.data)
+        ? res.data
+        : [];
+
+      // 1) normaliza end exclusivo (allDay)
+      const normalized = arr.map(normalizeIntegratedForFC);
+
+      // 2) aplica filtro de estado SOLO a ausencias
+      const filtered =
+        estadoFiltro === "todos"
+          ? normalized
+          : normalized.filter((e) => {
+              if (e.tipo !== "ausencia") return true;
+              return e.estado === estadoFiltro;
+            });
+
+      setEvents(filtered);
     } catch {
       setEvents([]);
     } finally {
@@ -108,35 +237,29 @@ export default function AdminCalendarioBase() {
 
   useEffect(() => {
     if (calendarRef.current) loadEventsForCurrentView();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empleadoActivo, estadoFiltro]);
 
   useEffect(() => {
     setTimeout(syncTitle, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fcEvents = useMemo(() => {
     return uniqueEvents.map((e) => {
-      const col = colorFor(e.tipo, e.estado);
-
-      const prettyTipo = e.tipo.replace("_", " ");
-
-      const label =
-        e.estado === "rechazado" ? `${prettyTipo} (rechazada)` : prettyTipo;
-
+      const col = colorForIntegrado(e);
       return {
         id: e.id,
-        title: isMobile
-          ? `${e.empleado_nombre} · ${label}`
-          : `${e.empleado_nombre} · ${label} · ${e.estado}`,
+        title: e.title,
         start: e.start,
         end: e.end,
-        allDay: true,
+        allDay: e.allDay,
         backgroundColor: col,
         borderColor: col,
         extendedProps: e,
       };
     });
-  }, [uniqueEvents, isMobile]);
+  }, [uniqueEvents]);
 
   function goPrev() {
     apiCalendar()?.prev();
@@ -155,6 +278,12 @@ export default function AdminCalendarioBase() {
     apiCalendar()?.changeView(v);
     syncTitle();
     loadEventsForCurrentView();
+  }
+
+  function handleEventClick(info: any) {
+    const ext = info?.event?.extendedProps as CalendarioIntegradoEvento;
+    if (!ext) return;
+    setSelected(ext);
   }
 
   const Filters = (
@@ -176,7 +305,9 @@ export default function AdminCalendarioBase() {
       </div>
 
       <div className="bg-white border rounded-2xl px-3 py-3">
-        <label className="block text-[12px] mb-1">Estado</label>
+        <label className="block text-[12px] mb-1">
+          Estado (solo ausencias)
+        </label>
         <select
           value={estadoFiltro}
           onChange={(e) => setEstadoFiltro(e.target.value as any)}
@@ -251,17 +382,18 @@ export default function AdminCalendarioBase() {
     </div>
   );
 
+  // =========================
+  // MOBILE
+  // =========================
   if (isMobile) {
     return (
       <div className="fullscreen-page w-full max-w-full overflow-x-hidden">
-        {/* Zona fija superior */}
         <div className="w-full max-w-full overflow-x-hidden">
           <CalendarioLegend />
           {CalendarControls}
           {Filters}
         </div>
 
-        {/* Calendario */}
         <div className="fullscreen-content relative w-full max-w-full overflow-x-hidden">
           {loading && (
             <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">
@@ -284,15 +416,12 @@ export default function AdminCalendarioBase() {
               syncTitle();
               loadEventsForCurrentView();
             }}
-            eventClick={(info) => {
-              const ext = info.event.extendedProps as any;
-              if (ext) setSelected(ext as EventoAdmin);
-            }}
+            eventClick={handleEventClick}
           />
         </div>
 
-        {/* Drawers */}
-        {selected && (
+        {/* Drawer seleccionado */}
+        {selected && selected.tipo === "ausencia" && (
           <IOSDrawer
             open
             onClose={() => setSelected(null)}
@@ -304,7 +433,7 @@ export default function AdminCalendarioBase() {
             }}
           >
             <DrawerDetalleAusenciaAdmin
-              evento={selected}
+              evento={selected as any as EventoAdmin}
               onClose={() => setSelected(null)}
               onUpdated={() => {
                 setSelected(null);
@@ -314,6 +443,45 @@ export default function AdminCalendarioBase() {
           </IOSDrawer>
         )}
 
+        {selected && selected.tipo === "jornada_real" && (
+          <IOSDrawer
+            open
+            onClose={() => setSelected(null)}
+            header={{
+              title: "Detalle de jornada",
+              canGoBack: true,
+              onBack: () => setSelected(null),
+              onClose: () => setSelected(null),
+            }}
+          >
+            <DrawerDetalleJornadaAdmin
+              jornadaId={selected.meta?.jornada_id}
+              onClose={() => setSelected(null)}
+            />
+          </IOSDrawer>
+        )}
+
+        {selected &&
+          selected.tipo !== "ausencia" &&
+          selected.tipo !== "jornada_real" && (
+            <IOSDrawer
+              open
+              onClose={() => setSelected(null)}
+              header={{
+                title: "Detalle",
+                canGoBack: true,
+                onBack: () => setSelected(null),
+                onClose: () => setSelected(null),
+              }}
+            >
+              <DrawerInfoEventoAdmin
+                evento={selected}
+                onClose={() => setSelected(null)}
+              />
+            </IOSDrawer>
+          )}
+
+        {/* Pendientes */}
         {openPendientes && (
           <IOSDrawer
             open
@@ -335,6 +503,7 @@ export default function AdminCalendarioBase() {
           </IOSDrawer>
         )}
 
+        {/* Crear ausencia */}
         {openCrear && (
           <IOSDrawer
             open
@@ -358,7 +527,9 @@ export default function AdminCalendarioBase() {
     );
   }
 
+  // =========================
   // DESKTOP
+  // =========================
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
@@ -439,19 +610,21 @@ export default function AdminCalendarioBase() {
                   syncTitle();
                   loadEventsForCurrentView();
                 }}
-                eventClick={(info) => {
-                  const ext = info.event.extendedProps as any;
-                  if (ext) setSelected(ext as EventoAdmin);
-                }}
+                eventClick={handleEventClick}
               />
             </div>
           </div>
         </div>
       </div>
 
-      {selected && (
+      {/* =========================
+          DRAWERS
+         ========================= */}
+
+      {/* Ausencia */}
+      {selected && selected.tipo === "ausencia" && (
         <IOSDrawer
-          open={true}
+          open
           onClose={() => setSelected(null)}
           header={{
             title: "Detalle de ausencia",
@@ -461,7 +634,7 @@ export default function AdminCalendarioBase() {
           }}
         >
           <DrawerDetalleAusenciaAdmin
-            evento={selected}
+            evento={selected as any as EventoAdmin}
             onClose={() => setSelected(null)}
             onUpdated={() => {
               setSelected(null);
@@ -471,9 +644,50 @@ export default function AdminCalendarioBase() {
         </IOSDrawer>
       )}
 
+      {/* Jornada real */}
+      {selected && selected.tipo === "jornada_real" && (
+        <IOSDrawer
+          open
+          onClose={() => setSelected(null)}
+          header={{
+            title: "Detalle de jornada",
+            canGoBack: true,
+            onBack: () => setSelected(null),
+            onClose: () => setSelected(null),
+          }}
+        >
+          <DrawerDetalleJornadaAdmin
+            jornadaId={selected.meta?.jornada_id}
+            onClose={() => setSelected(null)}
+          />
+        </IOSDrawer>
+      )}
+
+      {/* Otros tipos: festivos, plan, etc */}
+      {selected &&
+        selected.tipo !== "ausencia" &&
+        selected.tipo !== "jornada_real" && (
+          <IOSDrawer
+            open
+            onClose={() => setSelected(null)}
+            header={{
+              title: "Detalle",
+              canGoBack: true,
+              onBack: () => setSelected(null),
+              onClose: () => setSelected(null),
+            }}
+          >
+            <DrawerInfoEventoAdmin
+              evento={selected}
+              onClose={() => setSelected(null)}
+            />
+          </IOSDrawer>
+        )}
+
+      {/* Pendientes */}
       {openPendientes && (
         <IOSDrawer
-          open={true}
+          open
           onClose={() => setOpenPendientes(false)}
           header={{
             title: "Pendientes",
@@ -492,9 +706,10 @@ export default function AdminCalendarioBase() {
         </IOSDrawer>
       )}
 
+      {/* Crear ausencia */}
       {openCrear && (
         <IOSDrawer
-          open={true}
+          open
           onClose={() => setOpenCrear(false)}
           header={{
             title: "Crear ausencia",

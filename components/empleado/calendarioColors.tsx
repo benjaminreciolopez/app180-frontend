@@ -10,6 +10,12 @@ export const COLOR_MAP: Record<string, string> = {
   no_laborable: "#6b7280",
   trabajo: "#2563eb",
 
+  plan_trabajo: "rgba(22,163,74,0.15)",
+  plan_descanso: "rgba(249,115,22,0.15)",
+
+  jornada: "#111827",
+  descanso: "#f97316",
+
   // estados
   pendiente: "#f59e0b",
   aprobado: "#16a34a",
