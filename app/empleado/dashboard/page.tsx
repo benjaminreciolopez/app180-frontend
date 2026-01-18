@@ -30,7 +30,6 @@ type WorkLogHoy = {
 
 type DashboardData = {
   nombre?: string;
-  turno?: { nombre?: string | null } | null;
   fichando?: boolean;
   estado_label?: string;
   estado_color?: string;
@@ -64,28 +63,6 @@ function hhmmssToMin(v?: string | null) {
   const [hh, mm, ss] = s.split(":").map((x) => parseInt(x, 10));
   if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
   return hh * 60 + mm + (Number.isFinite(ss) ? ss / 60 : 0);
-}
-
-function findNextPlanBlock(planBloques: any[]) {
-  const n = nowMinutes();
-  const blocks = (planBloques || [])
-    .map((b) => ({
-      ...b,
-      a: hhmmssToMin(b.inicio),
-      z: hhmmssToMin(b.fin),
-    }))
-    .filter((b) => b.a != null && b.z != null && b.z > b.a)
-    .sort((x, y) => (x.a as number) - (y.a as number));
-
-  const next = blocks.find((b) => (b.a as number) > n);
-  if (next) return next;
-
-  const current = blocks.find(
-    (b) => (b.a as number) <= n && n <= (b.z as number)
-  );
-  if (current) return { ...current, current: true };
-
-  return null;
 }
 
 function isNowOutsideRange(rango?: { inicio: string; fin: string } | null) {
@@ -412,7 +389,7 @@ export default function EmpleadoDashboardPage() {
           Hola, {data.nombre || "Empleado"}
         </h1>
         <p className="text-muted">
-          Turno: {data.turno?.nombre ? data.turno.nombre : "Sin turno"}
+          Jornada: {planDia?.plan?.plantilla_nombre ?? "Sin jornada"}
         </p>
       </div>
 

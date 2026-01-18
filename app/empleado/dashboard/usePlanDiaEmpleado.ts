@@ -13,6 +13,7 @@ type BloquePlan = {
 
 type PlanDia = {
   plantilla_id: string | null;
+  plantilla_nombre: string | null;
   fecha: string;
   modo?: "semanal" | "excepcion";
   rango?: { inicio: string; fin: string } | null;

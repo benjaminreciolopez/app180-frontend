@@ -13,6 +13,9 @@ interface Empleado {
   activo: boolean;
   dispositivo_activo: boolean | null;
   device_hash: string | null;
+
+  plantilla_id: string | null;
+  plantilla_nombre: string | null;
 }
 
 export default function EmpleadosPage() {
@@ -94,6 +97,7 @@ export default function EmpleadosPage() {
               <th>Nombre</th>
               <th>Email</th>
               <th>Estado</th>
+              <th>Jornada</th>
               <th>Dispositivo</th>
               <th className="text-right">Acciones</th>
             </tr>
@@ -110,6 +114,13 @@ export default function EmpleadosPage() {
                     <span className="badge-success">Activo</span>
                   ) : (
                     <span className="badge-danger">Inactivo</span>
+                  )}
+                </td>
+                <td>
+                  {e.plantilla_nombre ? (
+                    <span className="badge-info">{e.plantilla_nombre}</span>
+                  ) : (
+                    <span className="badge-muted">Sin jornada</span>
                   )}
                 </td>
 
