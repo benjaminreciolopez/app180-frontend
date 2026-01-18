@@ -1,5 +1,3 @@
-// app180-frontend\app\empleado\dashboard\FichajeAction.tsx
-
 "use client";
 
 import { useFichaje } from "./useFichaje";
@@ -10,34 +8,54 @@ export type AccionFichaje =
   | "descanso_inicio"
   | "descanso_fin";
 
+type BotonEstado = {
+  visible: boolean;
+  color: "rojo" | "negro";
+  puede_fichar: boolean;
+  mensaje: string | null;
+  accion: AccionFichaje | null;
+  objetivo_hhmm: string | null;
+  margen_antes: number;
+  margen_despues: number;
+  motivo_oculto: string | null;
+};
+
 export function FichajeAction({
-  accion,
+  boton,
   reload,
 }: {
-  accion: AccionFichaje | null;
+  boton: BotonEstado | null;
   reload: () => void;
 }) {
   const { fichar, loading } = useFichaje(reload);
 
-  if (!accion) return null;
+  if (!boton || !boton.visible || !boton.accion) return null;
 
-  const config: Record<AccionFichaje, { label: string; className: string }> = {
-    entrada: { label: "Fichar entrada", className: "btn-primary" },
-    salida: { label: "Fichar salida", className: "btn-danger" },
-    descanso_inicio: { label: "Iniciar descanso", className: "btn-secondary" },
-    descanso_fin: { label: "Finalizar descanso", className: "btn-secondary" },
+  const labels: Record<AccionFichaje, string> = {
+    entrada: "Fichar entrada",
+    salida: "Fichar salida",
+    descanso_inicio: "Iniciar descanso",
+    descanso_fin: "Finalizar descanso",
   };
 
-  const cfg = config[accion];
-  if (!cfg) return null;
+  const colorClass =
+    boton.color === "rojo"
+      ? "bg-red-600 hover:bg-red-700 text-white"
+      : "bg-gray-300 hover:bg-gray-400 text-black";
 
   return (
-    <button
-      disabled={loading}
-      onClick={() => fichar(accion)}
-      className={`${cfg.className} w-full py-4 text-lg disabled:opacity-60`}
-    >
-      {loading ? "Registrando..." : cfg.label}
-    </button>
+    <div className="space-y-2">
+      <button
+        disabled={loading || !boton.puede_fichar}
+        onClick={() => fichar(boton.accion!)}
+        className={`w-full py-4 text-lg rounded font-semibold transition disabled:opacity-60 ${colorClass}`}
+      >
+        {loading ? "Registrando..." : labels[boton.accion]}
+      </button>
+
+      {boton.mensaje && (
+        <p className="text-sm text-gray-600 text-center">{boton.mensaje}</p>
+      )}
+    </div>
   );
 }

@@ -144,8 +144,8 @@ export default function EmpleadoDashboardPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const {
-    accion: accionFichaje,
     estado: estadoFichaje,
+    boton,
     reload: reloadEstadoFichaje,
   } = useEstadoFichaje();
 
@@ -649,7 +649,7 @@ export default function EmpleadoDashboardPage() {
       {/* Acciones */}
       <div className="sticky bottom-4 z-40 space-y-2 bg-white pt-2">
         <FichajeAction
-          accion={accionFichaje}
+          boton={boton}
           reload={() => {
             reloadEstadoFichaje();
             loadDashboard();
