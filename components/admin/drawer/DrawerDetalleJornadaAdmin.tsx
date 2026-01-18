@@ -27,8 +27,10 @@ export default function DrawerDetalleJornadaAdmin({
   }
 
   useEffect(() => {
-    load();
+    if (jornadaId) load();
   }, [jornadaId]);
+  setLoading(true);
+  setData(null);
 
   if (loading) {
     return <div className="p-4 text-sm text-gray-500">Cargando jornada…</div>;
@@ -48,15 +50,22 @@ export default function DrawerDetalleJornadaAdmin({
           {empleado?.nombre || "Empleado"}
         </div>
         <div className="text-sm text-gray-500">
-          {jornada.fecha} · Estado: {jornada.estado}
+          {new Date(jornada.fecha).toLocaleDateString()}· Estado:{" "}
+          {jornada.estado}
         </div>
       </div>
 
       {/* Métricas */}
       <div className="grid grid-cols-3 gap-3">
-        <Metric label="Trabajado" value={`${jornada.minutos_trabajados} min`} />
-        <Metric label="Descanso" value={`${jornada.minutos_descanso} min`} />
-        <Metric label="Extra" value={`${jornada.minutos_extra} min`} />
+        <Metric
+          label="Trabajado"
+          value={`${jornada.minutos_trabajados ?? 0} min`}
+        />
+        <Metric
+          label="Descanso"
+          value={`${jornada.minutos_descanso ?? 0} min`}
+        />
+        <Metric label="Extra" value={`${jornada.minutos_extra ?? 0} min`} />
       </div>
 
       {/* Avisos */}
