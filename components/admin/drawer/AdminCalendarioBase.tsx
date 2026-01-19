@@ -49,33 +49,37 @@ function ymdFromDate(d: Date) {
 }
 
 function toYMD(d: string | Date) {
-  const x = new Date(d);
-  if (isNaN(x.getTime())) return String(d).slice(0, 10);
+  // Si ya viene en YYYY-MM-DD, no lo pases por Date (evita TZ shifts)
+  const s = String(d);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 10);
+
+  const x = new Date(s);
+  if (isNaN(x.getTime())) return s.slice(0, 10);
   return x.toISOString().slice(0, 10);
 }
 
-/**
- * Normaliza para FullCalendar:
- * - start/end strings
- * - end nullable
- * - allDay boolean
- *
- * IMPORTANTE:
- * - Backend YA entrega end EXCLUSIVO para allDay (festivos/no_laborable/ausencias)
- * - Aquí NO hacemos hacks de +1 salvo caso end==start (raro)
- */
 function normalizeIntegratedForFC(
   e: CalendarioIntegradoEvento,
 ): CalendarioIntegradoEvento {
-  const start = toYMD(e.start);
-  const end = e.end ? toYMD(e.end) : null;
+  const isAllDay = Boolean(e.allDay);
 
+  if (isAllDay) {
+    return {
+      ...e,
+      id: String(e.id),
+      allDay: true,
+      start: toYMD(e.start),
+      end: e.end ? toYMD(e.end) : null,
+    };
+  }
+
+  // Timed events: respetar datetime (no convertir a YYYY-MM-DD)
   return {
     ...e,
     id: String(e.id),
-    start,
-    end,
-    allDay: Boolean(e.allDay),
+    allDay: false,
+    start: String(e.start),
+    end: e.end ? String(e.end) : null,
   };
 }
 
@@ -490,6 +494,8 @@ export default function AdminCalendarioBase() {
               syncTitle();
               loadEventsForCurrentView();
             }}
+            eventDisplay="block"
+            dayMaxEvents={true}
             dateClick={handleDateClick}
             eventClick={handleEventClick}
           />
@@ -706,6 +712,8 @@ export default function AdminCalendarioBase() {
                   syncTitle();
                   loadEventsForCurrentView();
                 }}
+                eventDisplay="block"
+                dayMaxEvents={true}
                 dateClick={handleDateClick}
                 eventClick={handleEventClick}
               />

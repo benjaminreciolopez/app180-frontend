@@ -25,31 +25,26 @@ function addOneDayYMD(ymd: string) {
 }
 
 function toYMD(d: string | Date) {
-  const x = new Date(d);
-  if (isNaN(x.getTime())) return String(d).slice(0, 10);
+  const s = String(d);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 10);
+
+  const x = new Date(s);
+  if (isNaN(x.getTime())) return s.slice(0, 10);
   return x.toISOString().slice(0, 10);
 }
 
-function sameYMD(a: string | Date, b: string | Date) {
-  return toYMD(a) === toYMD(b);
-}
-
-/**
- * Determina si un evento "toca" un día ymd.
- * - allDay: start=YYYY-MM-DD, end=YYYY-MM-DD exclusivo => ymd in [start, end)
- * - timed: usa fecha de start
- */
 function eventTouchesDay(ev: CalendarioIntegradoEvento, ymd: string) {
   const isAllDay = Boolean(ev.allDay);
-  const s = toYMD(ev.start);
-  const e = ev.end ? toYMD(ev.end) : null;
 
   if (isAllDay) {
-    const endEx = e || addOneDayYMD(s);
+    const s = toYMD(ev.start);
+    const endEx = ev.end ? toYMD(ev.end) : addOneDayYMD(s);
     return ymd >= s && ymd < endEx;
   }
 
-  return sameYMD(s, ymd);
+  // Timed: compara por fecha del start (sin TZ hacks)
+  const s = toYMD(String(ev.start).slice(0, 10));
+  return s === ymd;
 }
 
 function sortDayEvents(
