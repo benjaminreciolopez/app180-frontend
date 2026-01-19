@@ -16,8 +16,8 @@ export default function DrawerPendientesAdmin({
   onOpenDetalle,
 }: {
   onClose: () => void;
-  onUpdated: () => void; // refrescar calendario
-  onOpenDetalle: (p: Pendiente) => void; // abrir detalle (opcional)
+  onUpdated: () => void;
+  onOpenDetalle?: (p: Pendiente) => void;
 }) {
   const [items, setItems] = useState<Pendiente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +108,7 @@ export default function DrawerPendientesAdmin({
               className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm"
             >
               <button
-                onClick={() => onOpenDetalle(p)}
+                onClick={() => onOpenDetalle?.(p)}
                 className="w-full text-left"
               >
                 <div className="flex items-start justify-between gap-3">
