@@ -48,7 +48,7 @@ export default function DrawerCalendario({
     try {
       const params = new URLSearchParams({ desde, hasta });
       const res = await api.get(
-        `/calendario/usuario/eventos?${params.toString()}`
+        `/calendario/usuario/eventos?${params.toString()}`,
       );
       setEvents(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
@@ -74,7 +74,7 @@ export default function DrawerCalendario({
           textColor: "#fff",
         };
       }),
-    [events]
+    [events],
   );
 
   useEffect(() => {
@@ -138,6 +138,9 @@ export default function DrawerCalendario({
             locale={esLocale}
             initialView={view}
             headerToolbar={false}
+            height="100%"
+            contentHeight="100%"
+            expandRows
             events={fcEvents}
             datesSet={(arg) => {
               syncTitle();
