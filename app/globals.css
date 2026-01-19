@@ -342,9 +342,6 @@ body {
     width: 100% !important;
   }
 }
-.fc-event {
-  pointer-events: none;
-}
 
 /* 5) Helpers para páginas fullscreen (calendario, etc.) */
 .fullscreen-page {

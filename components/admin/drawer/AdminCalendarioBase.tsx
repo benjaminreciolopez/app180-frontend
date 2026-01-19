@@ -570,6 +570,11 @@ export default function AdminCalendarioBase() {
             dayMaxEvents={true}
             dateClick={handleDateClick}
             eventClick={handleEventClick}
+            eventContent={(arg) => {
+              return (
+                <div style={{ pointerEvents: "none" }}>{arg.event.title}</div>
+              );
+            }}
           />
         </div>
 
