@@ -49,18 +49,37 @@ function addOneDay(ymd: string | null | undefined) {
 function isAllDayDateOnly(s: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(s));
 }
+function normalizeDate(d: any) {
+  if (!d) return d;
+
+  if (typeof d === "string") {
+    // Ya es ISO
+    if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d;
+
+    // Convertimos strings tipo "Sat Jan 10"
+    const parsed = new Date(d);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+  }
+
+  return d;
+}
 
 function normalizeIntegratedForFC(e: CalendarioIntegradoEvento) {
-  // Normaliza end exclusivo para allDay multi-day (FullCalendar usa end EXCLUSIVO)
+  const start = normalizeDate(e.start);
+  const end = normalizeDate(e.end);
+
   if (
     e.allDay &&
-    e.end &&
-    isAllDayDateOnly(e.start) &&
-    isAllDayDateOnly(e.end)
+    end &&
+    /^\d{4}-\d{2}-\d{2}$/.test(start) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(end)
   ) {
-    return { ...e, end: addOneDay(e.end) };
+    return { ...e, start, end: addOneDay(end) };
   }
-  return e;
+
+  return { ...e, start, end };
 }
 
 function colorForIntegrado(ev: CalendarioIntegradoEvento) {
@@ -274,7 +293,7 @@ export default function AdminCalendarioBase() {
         title: `[${e.tipo}] ${e.title}`,
         start: e.start,
         end: e.end,
-        allDay: true, // FORZADO
+        allDay: e.allDay ?? true,
         backgroundColor: col,
         borderColor: col,
         extendedProps: e,
