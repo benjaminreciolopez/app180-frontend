@@ -18,32 +18,36 @@ type DiaDetalleAdminData = {
 };
 
 function addOneDayYMD(ymd: string) {
-  const d = new Date(`${ymd}T00:00:00`);
+  const d = new Date(`${ymd}T00:00:00Z`);
   if (isNaN(d.getTime())) return ymd;
-  d.setDate(d.getDate() + 1);
+  d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10);
 }
 
-function toYMD(d: string | Date) {
-  const s = String(d);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 10);
+function safeYMD(value: string | Date) {
+  const s = String(value).trim();
 
-  const x = new Date(s);
-  if (isNaN(x.getTime())) return s.slice(0, 10);
-  return x.toISOString().slice(0, 10);
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // YYYY-MM-DDTHH:mm...
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+
+  // Fallback: no tocar
+  return s.slice(0, 10);
 }
 
 function eventTouchesDay(ev: CalendarioIntegradoEvento, ymd: string) {
   const isAllDay = Boolean(ev.allDay);
 
   if (isAllDay) {
-    const s = toYMD(ev.start);
-    const endEx = ev.end ? toYMD(ev.end) : addOneDayYMD(s);
+    const s = safeYMD(ev.start);
+    const endEx = ev.end ? safeYMD(ev.end) : addOneDayYMD(s);
     return ymd >= s && ymd < endEx;
   }
 
-  // Timed: compara por fecha del start (sin TZ hacks)
-  const s = toYMD(String(ev.start).slice(0, 10));
+  // Timed → comparar solo fecha del start
+  const s = safeYMD(String(ev.start).slice(0, 10));
   return s === ymd;
 }
 
