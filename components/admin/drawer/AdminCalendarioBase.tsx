@@ -559,7 +559,7 @@ export default function AdminCalendarioBase() {
             headerToolbar={false}
             events={fcEvents as any}
             height="100%"
-            contentHeight="auto"
+            contentHeight="100%"
             expandRows
             handleWindowResize
             datesSet={() => {

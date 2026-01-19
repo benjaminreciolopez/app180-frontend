@@ -342,6 +342,9 @@ body {
     width: 100% !important;
   }
 }
+.fc-event {
+  pointer-events: none;
+}
 
 /* 5) Helpers para páginas fullscreen (calendario, etc.) */
 .fullscreen-page {
@@ -438,4 +441,30 @@ body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+}
+/* Fuerza altura real del viewport móvil */
+html,
+body,
+#__next,
+.app-shell {
+  height: 100%;
+  min-height: 100svh;
+}
+
+/* Contenedor fullscreen real */
+.fullscreen-page {
+  height: 100svh;
+  min-height: 100svh;
+  max-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Área del calendario debe estirarse */
+.fullscreen-content {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
