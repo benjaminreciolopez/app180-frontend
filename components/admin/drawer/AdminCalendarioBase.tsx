@@ -37,12 +37,14 @@ function cap(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-function normalizeEvent(e: CalendarioIntegradoEvento) {
+function normalizeEvent(
+  e: CalendarioIntegradoEvento,
+): CalendarioIntegradoEvento {
   return {
     ...e,
     id: String(e.id),
     start: e.start,
-end?: string
+    end: e.end ?? null,
     allDay: Boolean(e.allDay),
   };
 }
@@ -76,18 +78,26 @@ export default function AdminCalendarioBase() {
   const isMobile = useIsMobile();
   const calendarRef = useRef<FullCalendar | null>(null);
 
-  const [empleados, setEmpleados] = useState<{ id: string; nombre: string }[]>([]);
+  const [empleados, setEmpleados] = useState<{ id: string; nombre: string }[]>(
+    [],
+  );
   const [empleadoActivo, setEmpleadoActivo] = useState<string>("");
 
   const [rawEvents, setRawEvents] = useState<CalendarioIntegradoEvento[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [view, setView] = useState<"dayGridMonth" | "timeGridWeek">("dayGridMonth");
+  const [view, setView] = useState<"dayGridMonth" | "timeGridWeek">(
+    "dayGridMonth",
+  );
   const [title, setTitle] = useState("");
 
-  const [estadoFiltro, setEstadoFiltro] = useState<"todos" | "pendiente" | "aprobado" | "rechazado">("todos");
+  const [estadoFiltro, setEstadoFiltro] = useState<
+    "todos" | "pendiente" | "aprobado" | "rechazado"
+  >("todos");
 
-  const [selected, setSelected] = useState<CalendarioIntegradoEvento | null>(null);
+  const [selected, setSelected] = useState<CalendarioIntegradoEvento | null>(
+    null,
+  );
 
   const [openPendientes, setOpenPendientes] = useState(false);
   const [openCrear, setOpenCrear] = useState(false);
@@ -135,7 +145,9 @@ export default function AdminCalendarioBase() {
         },
       });
 
-      const arr: CalendarioIntegradoEvento[] = Array.isArray(res.data) ? res.data : [];
+      const arr: CalendarioIntegradoEvento[] = Array.isArray(res.data)
+        ? res.data
+        : [];
       setRawEvents(arr.map(normalizeEvent));
     } catch {
       setRawEvents([]);
@@ -225,22 +237,36 @@ export default function AdminCalendarioBase() {
           <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
             <button
               onClick={() => changeView("dayGridMonth")}
-              className={view === "dayGridMonth" ? "bg-black text-white px-3 py-1.5" : "bg-white text-gray-700 px-3 py-1.5"}
+              className={
+                view === "dayGridMonth"
+                  ? "bg-black text-white px-3 py-1.5"
+                  : "bg-white text-gray-700 px-3 py-1.5"
+              }
             >
               Mes
             </button>
             <button
               onClick={() => changeView("timeGridWeek")}
-              className={view === "timeGridWeek" ? "bg-black text-white px-3 py-1.5" : "bg-white text-gray-700 px-3 py-1.5"}
+              className={
+                view === "timeGridWeek"
+                  ? "bg-black text-white px-3 py-1.5"
+                  : "bg-white text-gray-700 px-3 py-1.5"
+              }
             >
               Semana
             </button>
           </div>
 
-          <button onClick={goPrev} className="w-9 h-9 rounded-full grid place-items-center">
+          <button
+            onClick={goPrev}
+            className="w-9 h-9 rounded-full grid place-items-center"
+          >
             <ChevronLeft size={18} />
           </button>
-          <button onClick={goNext} className="w-9 h-9 rounded-full grid place-items-center">
+          <button
+            onClick={goNext}
+            className="w-9 h-9 rounded-full grid place-items-center"
+          >
             <ChevronRight size={18} />
           </button>
         </div>
