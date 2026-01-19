@@ -24,8 +24,14 @@ function addOneDayYMD(ymd: string) {
   return d.toISOString().slice(0, 10);
 }
 
-function sameYMD(a: string, b: string) {
-  return String(a).slice(0, 10) === String(b).slice(0, 10);
+function toYMD(d: string | Date) {
+  const x = new Date(d);
+  if (isNaN(x.getTime())) return String(d).slice(0, 10);
+  return x.toISOString().slice(0, 10);
+}
+
+function sameYMD(a: string | Date, b: string | Date) {
+  return toYMD(a) === toYMD(b);
 }
 
 /**
@@ -35,8 +41,8 @@ function sameYMD(a: string, b: string) {
  */
 function eventTouchesDay(ev: CalendarioIntegradoEvento, ymd: string) {
   const isAllDay = Boolean(ev.allDay);
-  const s = String(ev.start).slice(0, 10);
-  const e = ev.end ? String(ev.end).slice(0, 10) : null;
+  const s = toYMD(ev.start);
+  const e = ev.end ? toYMD(ev.end) : null;
 
   if (isAllDay) {
     const endEx = e || addOneDayYMD(s);

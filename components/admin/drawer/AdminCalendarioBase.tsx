@@ -48,11 +48,10 @@ function ymdFromDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-function addOneDayYMD(ymd: string) {
-  const d = new Date(`${ymd}T00:00:00`);
-  if (isNaN(d.getTime())) return ymd;
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+function toYMD(d: string | Date) {
+  const x = new Date(d);
+  if (isNaN(x.getTime())) return String(d).slice(0, 10);
+  return x.toISOString().slice(0, 10);
 }
 
 /**
@@ -68,21 +67,16 @@ function addOneDayYMD(ymd: string) {
 function normalizeIntegratedForFC(
   e: CalendarioIntegradoEvento,
 ): CalendarioIntegradoEvento {
-  const start = String(e.start);
-  const end = e.end == null ? null : String(e.end);
-  const isAllDay = Boolean(e.allDay);
+  const start = toYMD(e.start);
+  const end = e.end ? toYMD(e.end) : null;
 
-  if (
-    isAllDay &&
-    end &&
-    /^\d{4}-\d{2}-\d{2}$/.test(start) &&
-    /^\d{4}-\d{2}-\d{2}$/.test(end) &&
-    end === start
-  ) {
-    return { ...e, start, end: addOneDayYMD(end), allDay: true };
-  }
-
-  return { ...e, start, end, allDay: isAllDay, id: String(e.id) };
+  return {
+    ...e,
+    id: String(e.id),
+    start,
+    end,
+    allDay: Boolean(e.allDay),
+  };
 }
 
 function colorForIntegrado(ev: CalendarioIntegradoEvento) {
@@ -239,6 +233,7 @@ export default function AdminCalendarioBase() {
         : [];
 
       const normalized = arr.map(normalizeIntegratedForFC);
+      console.log("EVENTOS NORMALIZADOS ADMIN:", normalized);
 
       // Debug útil: confirma que entran festivos y ausencias
       // console.log("INTEGRADO:", normalized);
