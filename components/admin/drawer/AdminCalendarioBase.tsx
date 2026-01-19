@@ -296,7 +296,7 @@ export default function AdminCalendarioBase() {
         allDay: e.allDay ?? true,
         backgroundColor: col,
         borderColor: col,
-        extendedProps: e,
+        extendedProps: { ...e },
         display: "block",
       };
     });
