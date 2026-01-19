@@ -288,12 +288,13 @@ export default function AdminCalendarioBase() {
   const fcEvents = useMemo(() => {
     return uniqueEvents.map((e) => {
       const col = colorForIntegrado(e);
+
       return {
-        id: e.id,
+        id: String(e.id),
         title: `[${e.tipo}] ${e.title}`,
         start: e.start,
-        end: e.end,
-        allDay: e.allDay ?? true,
+        end: e.end || undefined,
+        allDay: Boolean(e.allDay),
         backgroundColor: col,
         borderColor: col,
         extendedProps: { ...e },
@@ -322,9 +323,9 @@ export default function AdminCalendarioBase() {
   }
 
   function handleEventClick(info: any) {
-    const ext = info?.event?.extendedProps as CalendarioIntegradoEvento;
-    if (!ext) return;
-    setSelected(ext);
+    const ext = info?.event?.extendedProps;
+    if (!ext || typeof ext !== "object") return;
+    setSelected({ ...ext });
   }
 
   const Filters = (
