@@ -227,9 +227,17 @@ export default function AdminCalendarioBase() {
               if (e.tipo !== "ausencia") return true;
               return e.estado === estadoFiltro;
             });
-      console.log("RAW ADMIN EVENTS:", arr);
-      console.log("NORMALIZED:", normalized);
-      console.log("FILTERED:", filtered);
+      filtered.forEach((e) => {
+        if (e.tipo === "ausencia") {
+          console.log("AUSENCIA:", {
+            id: e.id,
+            start: e.start,
+            end: e.end,
+            allDay: e.allDay,
+            title: e.title,
+          });
+        }
+      });
 
       setEvents(filtered);
     } catch {
@@ -263,10 +271,10 @@ export default function AdminCalendarioBase() {
       const col = colorForIntegrado(e);
       return {
         id: e.id,
-        title: e.title,
+        title: `[${e.tipo}] ${e.title}`,
         start: e.start,
         end: e.end,
-        allDay: e.allDay ?? true,
+        allDay: true, // FORZADO
         backgroundColor: col,
         borderColor: col,
         extendedProps: e,
