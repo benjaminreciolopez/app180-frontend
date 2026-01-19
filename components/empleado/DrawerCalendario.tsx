@@ -90,69 +90,73 @@ export default function DrawerCalendario({
   }, []);
 
   return (
-    <div className="p-3 space-y-3">
-      <CalendarioLegend />
+    <div className="fullscreen-page">
+      <div className="p-3 space-y-3 shrink-0">
+        <CalendarioLegend />
 
-      <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
-        <div className="px-3 h-12 border-b flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <button onClick={() => apiCalendar()?.prev()} type="button">
-              <ChevronLeft size={18} />
-            </button>
-            <button onClick={() => apiCalendar()?.next()} type="button">
-              <ChevronRight size={18} />
-            </button>
-            <div className="ml-2 font-semibold">{title}</div>
-          </div>
-
-          <div className="flex rounded-full border overflow-hidden text-sm">
-            <button
-              className={`px-3 py-1 ${
-                view === "dayGridMonth" ? "bg-gray-100" : ""
-              }`}
-              onClick={() => setView("dayGridMonth")}
-            >
-              Mes
-            </button>
-            <button
-              className={`px-3 py-1 ${
-                view === "timeGridWeek" ? "bg-gray-100" : ""
-              }`}
-              onClick={() => setView("timeGridWeek")}
-            >
-              Semana
-            </button>
-          </div>
-        </div>
-
-        <div className="p-2 relative">
-          {loading && (
-            <div className="absolute inset-0 grid place-items-center bg-white/70 z-10">
-              Cargando…
+        <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
+          <div className="px-3 h-12 border-b flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <button onClick={() => apiCalendar()?.prev()} type="button">
+                <ChevronLeft size={18} />
+              </button>
+              <button onClick={() => apiCalendar()?.next()} type="button">
+                <ChevronRight size={18} />
+              </button>
+              <div className="ml-2 font-semibold">{title}</div>
             </div>
-          )}
 
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            locale={esLocale}
-            initialView={view}
-            headerToolbar={false}
-            height="100%"
-            contentHeight="100%"
-            expandRows
-            events={fcEvents}
-            datesSet={(arg) => {
-              syncTitle();
-              load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
-            }}
-            dateClick={(arg) => onSelectDay(arg.dateStr.slice(0, 10))}
-            dayCellClassNames={(arg) => {
-              const isSunday = arg.date.getDay() === 0; // 0 = domingo
-              return isSunday ? ["fc-sunday"] : [];
-            }}
-          />
+            <div className="flex rounded-full border overflow-hidden text-sm">
+              <button
+                className={`px-3 py-1 ${
+                  view === "dayGridMonth" ? "bg-gray-100" : ""
+                }`}
+                onClick={() => setView("dayGridMonth")}
+              >
+                Mes
+              </button>
+              <button
+                className={`px-3 py-1 ${
+                  view === "timeGridWeek" ? "bg-gray-100" : ""
+                }`}
+                onClick={() => setView("timeGridWeek")}
+              >
+                Semana
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* CALENDARIO fullscreen */}
+      <div className="fullscreen-content relative">
+        {loading && (
+          <div className="absolute inset-0 grid place-items-center bg-white/70 z-10">
+            Cargando…
+          </div>
+        )}
+
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          locale={esLocale}
+          initialView={view}
+          headerToolbar={false}
+          events={fcEvents}
+          height="100%"
+          contentHeight="100%"
+          expandRows
+          handleWindowResize
+          datesSet={(arg) => {
+            syncTitle();
+            load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
+          }}
+          dateClick={(arg) => onSelectDay(arg.dateStr.slice(0, 10))}
+          dayCellClassNames={(arg) => {
+            const isSunday = arg.date.getDay() === 0;
+            return isSunday ? ["fc-sunday"] : [];
+          }}
+        />
       </div>
     </div>
   );
