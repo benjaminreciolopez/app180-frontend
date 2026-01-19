@@ -1,9 +1,21 @@
-// app180-frontend/components/admin/drawer/DrawerDiaDetalleAdmin.tsx
+// =========================
+// 2) FRONTEND: Drawer del día (Admin) -> igual empleado, pero con CalendarioIntegradoEvento
+// Archivo: app180-frontend/components/admin/drawer/DrawerDiaDetalleAdmin.tsx
+// =========================
+
 "use client";
 
 import { useMemo } from "react";
 import type { CalendarioIntegradoEvento } from "@/types/calendario";
 import { colorFor } from "@/components/empleado/calendarioColors";
+
+type DiaDetalleAdminData = {
+  fecha: string; // YYYY-MM-DD
+  laborable: boolean;
+  label: string;
+  descripcion?: string | null;
+  eventos: CalendarioIntegradoEvento[];
+};
 
 function addOneDayYMD(ymd: string) {
   const d = new Date(`${ymd}T00:00:00`);
@@ -12,49 +24,26 @@ function addOneDayYMD(ymd: string) {
   return d.toISOString().slice(0, 10);
 }
 
-function ymdFromAny(x: any) {
-  return String(x).slice(0, 10);
-}
-
-function colorForIntegrado(ev: CalendarioIntegradoEvento) {
-  if (ev.tipo === "ausencia") {
-    const ausTipo = ev?.meta?.ausencia_tipo || "vacaciones";
-    return colorFor(ausTipo, (ev.estado as any) || "aprobado");
-  }
-
-  if (ev.tipo === "jornada_real") {
-    const wc = Number(ev?.meta?.warn_count || 0);
-    if (wc >= 2) return colorFor("fichaje", "rechazado");
-    if (wc >= 1) return colorFor("fichaje", "pendiente");
-    return colorFor("fichaje", "aprobado");
-  }
-
-  if (ev.tipo === "jornada_plan") return "#9CA3AF";
-
-  if (ev.tipo === "calendario_empresa" || ev.tipo === "no_laborable") {
-    return colorFor("festivo", "aprobado");
-  }
-
-  return "#6B7280";
+function sameYMD(a: string, b: string) {
+  return String(a).slice(0, 10) === String(b).slice(0, 10);
 }
 
 /**
- * Determina si un evento "toca" el día ymd.
+ * Determina si un evento "toca" un día ymd.
  * - allDay: start=YYYY-MM-DD, end=YYYY-MM-DD exclusivo => ymd in [start, end)
  * - timed: usa fecha de start
  */
 function eventTouchesDay(ev: CalendarioIntegradoEvento, ymd: string) {
   const isAllDay = Boolean(ev.allDay);
-
-  const s = ymdFromAny(ev.start);
-  const e = ev.end ? ymdFromAny(ev.end) : null;
+  const s = String(ev.start).slice(0, 10);
+  const e = ev.end ? String(ev.end).slice(0, 10) : null;
 
   if (isAllDay) {
     const endEx = e || addOneDayYMD(s);
     return ymd >= s && ymd < endEx;
   }
 
-  return s === ymd;
+  return sameYMD(s, ymd);
 }
 
 function sortDayEvents(
@@ -70,25 +59,64 @@ function sortDayEvents(
   return as.localeCompare(bs);
 }
 
-function buildHeader(ymd: string, dayEvents: CalendarioIntegradoEvento[]) {
-  const cal = dayEvents.find((e) => e.tipo === "calendario_empresa");
+function buildDiaDetalleData(
+  ymd: string,
+  dayEvents: CalendarioIntegradoEvento[],
+): DiaDetalleAdminData {
+  // Prioridad: festivo -> no_laborable -> laborable
+  const festivo = dayEvents.find((e) => e.tipo === "calendario_empresa");
   const noLab = dayEvents.find((e) => e.tipo === "no_laborable");
 
   let laborable = true;
   let label = "Laborable";
   let descripcion: string | null = null;
 
-  if (cal) {
+  if (festivo) {
     laborable = false;
     label = "Festivo";
-    descripcion = cal.title || null;
+    descripcion = festivo.title || null;
   } else if (noLab) {
     laborable = false;
     label = "No laborable";
     descripcion = "Día no laborable";
   }
 
-  return { laborable, label, descripcion };
+  return { fecha: ymd, laborable, label, descripcion, eventos: dayEvents };
+}
+
+function tipoLabel(t: CalendarioIntegradoEvento["tipo"]) {
+  switch (t) {
+    case "calendario_empresa":
+      return "Festivo";
+    case "no_laborable":
+      return "No laborable";
+    case "ausencia":
+      return "Ausencia";
+    case "jornada_real":
+      return "Jornada real";
+    case "jornada_plan":
+      return "Plan";
+    default:
+      return t;
+  }
+}
+
+function colorForEvento(ev: CalendarioIntegradoEvento) {
+  if (ev.tipo === "ausencia") {
+    const ausTipo = ev?.meta?.ausencia_tipo || "vacaciones";
+    return colorFor(ausTipo, (ev.estado as any) || "aprobado");
+  }
+  if (ev.tipo === "jornada_real") {
+    const wc = Number(ev?.meta?.warn_count || 0);
+    if (wc >= 2) return colorFor("fichaje", "rechazado");
+    if (wc >= 1) return colorFor("fichaje", "pendiente");
+    return colorFor("fichaje", "aprobado");
+  }
+  if (ev.tipo === "calendario_empresa" || ev.tipo === "no_laborable") {
+    return colorFor("festivo", "aprobado");
+  }
+  if (ev.tipo === "jornada_plan") return "#9CA3AF";
+  return "#6B7280";
 }
 
 export default function DrawerDiaDetalleAdmin({
@@ -103,60 +131,58 @@ export default function DrawerDiaDetalleAdmin({
   onClose: () => void;
 }) {
   const dayEvents = useMemo(() => {
-    return allEvents
+    const arr = (allEvents || [])
       .filter((ev) => eventTouchesDay(ev, ymd))
+      .slice()
       .sort(sortDayEvents);
+    return arr;
   }, [allEvents, ymd]);
 
-  const header = useMemo(() => buildHeader(ymd, dayEvents), [ymd, dayEvents]);
-
-  const fechaHuman = useMemo(() => {
-    try {
-      return new Date(`${ymd}T00:00:00`).toLocaleDateString("es-ES", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch {
-      return ymd;
-    }
-  }, [ymd]);
+  const data = useMemo(
+    () => buildDiaDetalleData(ymd, dayEvents),
+    [ymd, dayEvents],
+  );
 
   return (
     <div className="p-4 space-y-3">
       {/* Cabecera */}
       <div className="text-sm text-gray-500">
-        <span className="font-medium text-gray-700">{header.label}</span>
+        <span className="font-medium text-gray-700">{data.label}</span>
         {" · "}
-        {fechaHuman}
+        {new Date(data.fecha).toLocaleDateString("es-ES", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
       </div>
 
-      {header.descripcion ? (
-        <div className="text-xs text-gray-500">{header.descripcion}</div>
+      {data.descripcion ? (
+        <div className="text-xs text-gray-500">{data.descripcion}</div>
       ) : null}
 
-      {/* Resumen breve */}
+      {/* Resumen */}
       <div className="text-xs text-gray-500">
-        {header.laborable ? "Día laborable." : "Día no laborable."}{" "}
-        {dayEvents.length ? `Eventos: ${dayEvents.length}.` : "Sin eventos."}
+        {data.laborable ? "Día laborable" : "Día no laborable"} ·{" "}
+        {data.eventos.length} evento(s)
       </div>
 
-      {/* Eventos */}
-      {dayEvents.length === 0 ? (
+      {/* Lista de eventos */}
+      {data.eventos.length === 0 ? (
         <div className="text-sm text-gray-500">
           No hay eventos para este día.
         </div>
       ) : (
         <ul className="space-y-2">
-          {dayEvents.map((ev) => {
-            const col = colorForIntegrado(ev);
-            const right =
-              ev.tipo === "ausencia"
-                ? ev.estado || ""
-                : ev.tipo === "jornada_real"
-                  ? ev.estado || ""
-                  : "";
+          {data.eventos.map((ev) => {
+            const col = colorForEvento(ev);
+
+            const rightLabel =
+              ev.tipo === "ausencia" && ev.estado
+                ? ev.estado
+                : ev.tipo === "jornada_real" && ev.estado
+                  ? ev.estado
+                  : tipoLabel(ev.tipo);
 
             return (
               <li
@@ -164,20 +190,28 @@ export default function DrawerDiaDetalleAdmin({
                 onClick={() => onSelectEvent(ev)}
                 className="border rounded p-3 flex items-center justify-between cursor-pointer active:bg-black/[0.04]"
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: col }}
-                  />
-                  <span className="font-medium truncate">{ev.title}</span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: col }}
+                    />
+                    <span className="font-medium truncate">
+                      {ev.title}
+                      {ev.empleado_nombre ? ` · ${ev.empleado_nombre}` : ""}
+                    </span>
+                  </div>
+
+                  {/* Subtexto (rango) */}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {String(ev.start).slice(0, 10)}
+                    {ev.end ? ` → ${String(ev.end).slice(0, 10)}` : ""}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {right ? (
-                    <span className="text-xs text-gray-500">{right}</span>
-                  ) : null}
-                  <span className="text-[11px] text-gray-400">[{ev.tipo}]</span>
-                </div>
+                <span className="text-xs text-gray-500 shrink-0">
+                  {rightLabel}
+                </span>
               </li>
             );
           })}

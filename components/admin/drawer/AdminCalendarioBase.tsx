@@ -1,4 +1,8 @@
-// app180-frontend/components/admin/drawer/AdminCalendarioBase.tsx
+// =========================
+// 3) FRONTEND: AdminCalendarioBase (con dateClick SIEMPRE + drawer día + eventos pintados)
+// Archivo: app180-frontend/components/admin/drawer/AdminCalendarioBase.tsx
+// =========================
+
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,24 +22,11 @@ import DrawerDetalleAusenciaAdmin from "@/components/admin/drawer/DrawerDetalleA
 import DrawerPendientesAdmin from "@/components/admin/drawer/DrawerPendientesAdmin";
 import DrawerCrearAusenciaAdmin from "@/components/admin/drawer/DrawerCrearAusenciaAdmin";
 import DrawerDetalleJornadaAdmin from "@/components/admin/drawer/DrawerDetalleJornadaAdmin";
-import DrawerDiaDetalleAdmin from "./DrawerDiaDetalleAdmin";
+import DrawerDiaDetalleAdmin from "@/components/admin/drawer/DrawerDiaDetalleAdmin";
+
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { EventoAdmin } from "@/types/ausencias";
 import type { CalendarioIntegradoEvento } from "@/types/calendario";
-
-/**
- * OBJETIVO (igual que calendario empleado):
- * - Click en CUALQUIER día (tenga o no eventos) => Drawer de resumen del día (DrawerDiaDetalleAdmin)
- * - Dentro del drawer, lista de eventos del día (festivos/ausencias/jornadas/plan)
- * - Click en un evento de esa lista => abre drawer específico:
- *    - ausencia => DrawerDetalleAusenciaAdmin
- *    - jornada_real => DrawerDetalleJornadaAdmin
- *    - otros => DrawerInfoEventoAdmin (informativo)
- *
- * Además:
- * - Las AUSENCIAS se pintan como allDay con end EXCLUSIVO (FullCalendar)
- * - Festivos / no laborable se comportan como eventos clicables (en el drawer del día)
- */
 
 type ViewMode = "dayGridMonth" | "timeGridWeek";
 
@@ -66,44 +57,32 @@ function addOneDayYMD(ymd: string) {
 
 /**
  * Normaliza para FullCalendar:
- * - start/end deben ser ISO o YYYY-MM-DD
- * - Para allDay: end debe ser EXCLUSIVO (día siguiente)
+ * - start/end strings
+ * - end nullable
+ * - allDay boolean
  *
- * Backend en tu getCalendarioIntegradoAdmin ya entrega end EXCLUSIVO para allDay
- * (ausencias y calendario empresa). Aun así, aquí protegemos:
- * - si llega end inclusivo YYYY-MM-DD, lo volvemos exclusivo.
+ * IMPORTANTE:
+ * - Backend YA entrega end EXCLUSIVO para allDay (festivos/no_laborable/ausencias)
+ * - Aquí NO hacemos hacks de +1 salvo caso end==start (raro)
  */
 function normalizeIntegratedForFC(
   e: CalendarioIntegradoEvento,
 ): CalendarioIntegradoEvento {
   const start = String(e.start);
   const end = e.end == null ? null : String(e.end);
-
   const isAllDay = Boolean(e.allDay);
 
-  // Si es allDay y start/end son YYYY-MM-DD, asumimos que end podría venir inclusivo y lo hacemos exclusivo.
-  // OJO: si backend ya lo envía exclusivo, esto lo convertiría en +1 día (mal).
-  // Para evitar eso: sólo hacemos +1 si detectamos que end <= start (caso raro) o si end parece inclusivo:
-  // Heurística segura: si la duración parece 0 días (end==start) => lo hacemos +1.
   if (
     isAllDay &&
     end &&
     /^\d{4}-\d{2}-\d{2}$/.test(start) &&
-    /^\d{4}-\d{2}-\d{2}$/.test(end)
+    /^\d{4}-\d{2}-\d{2}$/.test(end) &&
+    end === start
   ) {
-    if (end === start) {
-      return { ...e, start, end: addOneDayYMD(end), allDay: true };
-    }
-    // Normal: lo dejamos tal cual (backend ya exclusivo)
-    return { ...e, start, end, allDay: true };
+    return { ...e, start, end: addOneDayYMD(end), allDay: true };
   }
 
-  return {
-    ...e,
-    start,
-    end,
-    allDay: isAllDay,
-  };
+  return { ...e, start, end, allDay: isAllDay, id: String(e.id) };
 }
 
 function colorForIntegrado(ev: CalendarioIntegradoEvento) {
@@ -128,10 +107,7 @@ function colorForIntegrado(ev: CalendarioIntegradoEvento) {
   return "#6B7280";
 }
 
-// =========================
-// Drawer informativo genérico (para eventos no-ausencia / no-jornada_real)
-// =========================
-
+// Drawer genérico informativo
 function DrawerInfoEventoAdmin({
   evento,
   onClose,
@@ -191,94 +167,6 @@ function DrawerInfoEventoAdmin({
   );
 }
 
-// =========================
-// Drawer de detalle del DÍA (igual que empleado)
-// - siempre abre aunque no haya eventos
-// - lista eventos del día y click para abrir detalle
-// =========================
-
-type DiaDetalleAdminData = {
-  fecha: string; // YYYY-MM-DD
-  label: string; // "Laborable" / "No laborable" / etc.
-  descripcion?: string | null; // texto adicional (festivo nombre, etc.)
-  laborable: boolean;
-  eventos: CalendarioIntegradoEvento[];
-};
-
-function buildDiaDetalleData(
-  ymd: string,
-  dayEvents: CalendarioIntegradoEvento[],
-): DiaDetalleAdminData {
-  // Deducir "laborable" y label/descripcion a partir de eventos calendario/no_laborable si existen
-  const cal = dayEvents.find((e) => e.tipo === "calendario_empresa");
-  const noLab = dayEvents.find((e) => e.tipo === "no_laborable");
-
-  let laborable = true;
-  let label = "Laborable";
-  let descripcion: string | null = null;
-
-  if (cal) {
-    laborable = false;
-    label = "Festivo";
-    descripcion = cal.title || null;
-  } else if (noLab) {
-    laborable = false;
-    label = "No laborable";
-    descripcion = "Día no laborable";
-  }
-
-  return {
-    fecha: ymd,
-    laborable,
-    label,
-    descripcion,
-    eventos: dayEvents,
-  };
-}
-
-function sameYMD(a: string, b: string) {
-  return String(a).slice(0, 10) === String(b).slice(0, 10);
-}
-
-/**
- * Determina si un evento "toca" un día ymd.
- * - allDay: start=YYYY-MM-DD, end=YYYY-MM-DD exclusivo => ymd in [start, end)
- * - timed: usa fecha de start
- */
-function eventTouchesDay(ev: CalendarioIntegradoEvento, ymd: string) {
-  const isAllDay = Boolean(ev.allDay);
-
-  const s = String(ev.start).slice(0, 10);
-  const e = ev.end ? String(ev.end).slice(0, 10) : null;
-
-  if (isAllDay) {
-    // Si no hay end, asumimos 1 día
-    const endEx = e || addOneDayYMD(s);
-    return ymd >= s && ymd < endEx;
-  }
-
-  // timed: consideramos el día del start
-  return sameYMD(s, ymd);
-}
-
-function sortDayEvents(
-  a: CalendarioIntegradoEvento,
-  b: CalendarioIntegradoEvento,
-) {
-  // allDay primero, luego por hora de inicio
-  const ad = Boolean(a.allDay);
-  const bd = Boolean(b.allDay);
-  if (ad !== bd) return ad ? -1 : 1;
-
-  const as = String(a.start);
-  const bs = String(b.start);
-  return as.localeCompare(bs);
-}
-
-// =========================
-// Main component
-// =========================
-
 export default function AdminCalendarioBase() {
   const isMobile = useIsMobile();
   const calendarRef = useRef<FullCalendar | null>(null);
@@ -296,33 +184,16 @@ export default function AdminCalendarioBase() {
     "todos" | "pendiente" | "aprobado" | "rechazado"
   >("todos");
 
-  // Drawer de día (SIEMPRE)
+  // Drawer del día (siempre)
   const [openDayYmd, setOpenDayYmd] = useState<string | null>(null);
 
-  // Drawer de evento seleccionado (desde lista del día)
+  // Drawer evento seleccionado (desde lista del día)
   const [selected, setSelected] = useState<CalendarioIntegradoEvento | null>(
     null,
   );
 
   const [openPendientes, setOpenPendientes] = useState(false);
   const [openCrear, setOpenCrear] = useState(false);
-
-  // =========================
-  // Helpers
-  // =========================
-
-  const uniqueEvents = useMemo(() => {
-    // Evitar duplicados por id
-    return Array.from(new Map(events.map((e) => [String(e.id), e])).values());
-  }, [events]);
-
-  const filteredEvents = useMemo(() => {
-    if (estadoFiltro === "todos") return uniqueEvents;
-    return uniqueEvents.filter((e) => {
-      if (e.tipo !== "ausencia") return true;
-      return e.estado === estadoFiltro;
-    });
-  }, [uniqueEvents, estadoFiltro]);
 
   function apiCalendar() {
     return calendarRef.current?.getApi();
@@ -366,7 +237,11 @@ export default function AdminCalendarioBase() {
       const arr: CalendarioIntegradoEvento[] = Array.isArray(res.data)
         ? res.data
         : [];
+
       const normalized = arr.map(normalizeIntegratedForFC);
+
+      // Debug útil: confirma que entran festivos y ausencias
+      // console.log("INTEGRADO:", normalized);
 
       setEvents(normalized);
     } catch (e) {
@@ -391,7 +266,6 @@ export default function AdminCalendarioBase() {
   }, [empleadoActivo, estadoFiltro]);
 
   useEffect(() => {
-    // primer load una vez que el calendarRef exista
     const t = setTimeout(() => {
       if (calendarRef.current) {
         syncTitle();
@@ -403,16 +277,29 @@ export default function AdminCalendarioBase() {
   }, []);
 
   // =========================
-  // FullCalendar events (lo que se pinta)
+  // Derived (unique + filtro)
+  // =========================
+
+  const uniqueEvents = useMemo(() => {
+    return Array.from(new Map(events.map((e) => [String(e.id), e])).values());
+  }, [events]);
+
+  const filteredEvents = useMemo(() => {
+    if (estadoFiltro === "todos") return uniqueEvents;
+    return uniqueEvents.filter((e) => {
+      if (e.tipo !== "ausencia") return true;
+      return e.estado === estadoFiltro;
+    });
+  }, [uniqueEvents, estadoFiltro]);
+
+  // =========================
+  // FullCalendar events (pintado)
   // =========================
 
   const fcEvents = useMemo(() => {
     return filteredEvents.map((e) => {
       const col = colorForIntegrado(e);
-
-      // FullCalendar tolera end undefined; nuestro type puede ser null.
-      // Para no romper TS ni la librería:
-      const end = e.end ?? undefined;
+      const end = e.end ?? undefined; // FC tolera undefined
 
       return {
         id: String(e.id),
@@ -452,10 +339,9 @@ export default function AdminCalendarioBase() {
   }
 
   // =========================
-  // Clicks: IGUAL QUE EMPLEADO
-  // - dateClick: abre drawer del día siempre
-  // - eventClick: NO abre detalle directo, abre drawer del día correspondiente
-  //   (y desde ahí seleccionas evento)
+  // Clicks (igual que empleado)
+  // - dateClick: siempre abre drawer del día
+  // - eventClick: abre el drawer del día del evento (NO el detalle directo)
   // =========================
 
   function openDay(ymd: string) {
@@ -470,15 +356,13 @@ export default function AdminCalendarioBase() {
   }
 
   function handleEventClick(info: any) {
-    // En lugar de abrir evento directo, abrimos el día (igual que empleado)
-    const start = info?.event?.start;
+    const start: Date | null = info?.event?.start || null;
     if (!start) return;
-    const ymd = ymdFromDate(start);
-    openDay(ymd);
+    openDay(ymdFromDate(start));
   }
 
   // =========================
-  // Filters UI (igual tu versión anterior)
+  // Filters UI
   // =========================
 
   const Filters = (
@@ -550,13 +434,17 @@ export default function AdminCalendarioBase() {
           <div className="flex rounded-full border overflow-hidden text-[13px] font-medium">
             <button
               onClick={() => changeView("dayGridMonth")}
-              className={`px-3 py-1.5 ${view === "dayGridMonth" ? "bg-black text-white" : "bg-white"}`}
+              className={`px-3 py-1.5 ${
+                view === "dayGridMonth" ? "bg-black text-white" : "bg-white"
+              }`}
             >
               Mes
             </button>
             <button
               onClick={() => changeView("timeGridWeek")}
-              className={`px-3 py-1.5 ${view === "timeGridWeek" ? "bg-black text-white" : "bg-white"}`}
+              className={`px-3 py-1.5 ${
+                view === "timeGridWeek" ? "bg-black text-white" : "bg-white"
+              }`}
             >
               Semana
             </button>
@@ -576,7 +464,6 @@ export default function AdminCalendarioBase() {
   // =========================
   // MOBILE
   // =========================
-
   if (isMobile) {
     return (
       <div className="fullscreen-page w-full max-w-full overflow-x-hidden">
@@ -613,7 +500,7 @@ export default function AdminCalendarioBase() {
           />
         </div>
 
-        {/* Drawer del día (SIEMPRE) */}
+        {/* Drawer del día */}
         {openDayYmd && (
           <IOSDrawer
             open
@@ -628,15 +515,13 @@ export default function AdminCalendarioBase() {
             <DrawerDiaDetalleAdmin
               ymd={openDayYmd}
               allEvents={filteredEvents}
-              onSelectEvent={(ev) => {
-                setSelected(ev);
-              }}
+              onSelectEvent={(ev) => setSelected(ev)}
               onClose={() => setOpenDayYmd(null)}
             />
           </IOSDrawer>
         )}
 
-        {/* Drawer específico de evento, abierto DESDE el drawer del día */}
+        {/* Drawer específico */}
         {selected && selected.tipo === "ausencia" && (
           <IOSDrawer
             open
@@ -719,7 +604,7 @@ export default function AdminCalendarioBase() {
           </IOSDrawer>
         )}
 
-        {/* Crear ausencia */}
+        {/* Crear */}
         {openCrear && (
           <IOSDrawer
             open
@@ -746,7 +631,6 @@ export default function AdminCalendarioBase() {
   // =========================
   // DESKTOP
   // =========================
-
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
@@ -835,7 +719,7 @@ export default function AdminCalendarioBase() {
         </div>
       </div>
 
-      {/* Drawer del día (SIEMPRE) */}
+      {/* Drawer del día */}
       {openDayYmd && (
         <IOSDrawer
           open
@@ -856,7 +740,7 @@ export default function AdminCalendarioBase() {
         </IOSDrawer>
       )}
 
-      {/* Drawer específico de evento */}
+      {/* Drawer específico */}
       {selected && selected.tipo === "ausencia" && (
         <IOSDrawer
           open
@@ -939,7 +823,7 @@ export default function AdminCalendarioBase() {
         </IOSDrawer>
       )}
 
-      {/* Crear ausencia */}
+      {/* Crear */}
       {openCrear && (
         <IOSDrawer
           open
