@@ -1,7 +1,4 @@
-// =========================
-// 3) FRONTEND: AdminCalendarioBase (con dateClick SIEMPRE + drawer día + eventos pintados)
-// Archivo: app180-frontend/components/admin/drawer/AdminCalendarioBase.tsx
-// =========================
+// app180-frontend/components/admin/drawer/AdminCalendarioBase.tsx
 
 "use client";
 
@@ -48,32 +45,71 @@ function ymdFromDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-function toYMD(d: string | Date) {
-  // Si ya viene en YYYY-MM-DD, no lo pases por Date (evita TZ shifts)
-  const s = String(d);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 10);
-
-  const x = new Date(s);
-  if (isNaN(x.getTime())) return s.slice(0, 10);
-  return x.toISOString().slice(0, 10);
+function isISODate(s: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
+function addOneDayYMD(ymd: string) {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  if (isNaN(d.getTime())) return ymd;
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Parsea fechas "all-day" de forma robusta:
+ * - Si viene YYYY-MM-DD => ok.
+ * - Si viene algo tipo "Sun Feb 08" / "Thu Jan 01" (sin año) => inyecta el año del rango (desdeYear).
+ * - Si viene datetime ISO => recorta a YYYY-MM-DD.
+ */
+function toAllDayYMD(value: string | Date, desdeYear: string) {
+  const raw = String(value).trim();
+
+  // YYYY-MM-DD
+  if (isISODate(raw)) return raw;
+
+  // datetime ISO -> YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return raw.slice(0, 10);
+
+  // "Sun Feb 08" / "Thu Jan 01" (sin año) -> inyecta año del rango
+  // Nota: new Date("Sun Feb 08 2026") ya incluye año y no cae en 2001
+  const injected = `${raw} ${desdeYear}`;
+  const d = new Date(injected);
+  if (!isNaN(d.getTime())) return ymdFromDate(d);
+
+  // fallback conservador
+  return raw.slice(0, 10);
+}
+
+/**
+ * Normaliza evento para FullCalendar.
+ * Reglas:
+ * - allDay: start/end en YYYY-MM-DD (end exclusivo garantizado)
+ * - timed: respetar datetimes (no convertir a YYYY-MM-DD)
+ */
 function normalizeIntegratedForFC(
   e: CalendarioIntegradoEvento,
+  desdeYear: string,
 ): CalendarioIntegradoEvento {
   const isAllDay = Boolean(e.allDay);
 
   if (isAllDay) {
+    const start = toAllDayYMD(e.start, desdeYear);
+    let end = e.end ? toAllDayYMD(e.end, desdeYear) : null;
+
+    // Si end falta o viene igual que start, lo convertimos a end exclusivo +1 día
+    if (!end || end === start) end = addOneDayYMD(start);
+
     return {
       ...e,
       id: String(e.id),
       allDay: true,
-      start: toYMD(e.start),
-      end: e.end ? toYMD(e.end) : null,
+      start,
+      end,
     };
   }
 
-  // Timed events: respetar datetime (no convertir a YYYY-MM-DD)
+  // timed events: no tocar TZ ni recortar
   return {
     ...e,
     id: String(e.id),
@@ -103,6 +139,39 @@ function colorForIntegrado(ev: CalendarioIntegradoEvento) {
   }
 
   return "#6B7280";
+}
+
+// Prioridad para resolver duplicados semánticos
+function priorityFor(ev: CalendarioIntegradoEvento) {
+  switch (ev.tipo) {
+    case "ausencia":
+      return 100;
+    case "jornada_real":
+      return 80;
+    case "jornada_plan":
+      return 60;
+    case "no_laborable":
+      return 40;
+    case "calendario_empresa":
+      return 30;
+    default:
+      return 10;
+  }
+}
+
+/**
+ * Key semántica:
+ * - allDay => por día (start), tipo, empleado (si aplica) y title
+ * - timed => por start completo, tipo, empleado y title
+ *
+ * Esto elimina duplicados provenientes de distintas fuentes con ids distintos.
+ */
+function semanticKey(ev: CalendarioIntegradoEvento) {
+  const empleado = ev.empleado_id || "";
+  const baseDate = ev.allDay ? String(ev.start).slice(0, 10) : String(ev.start);
+  const tipo = ev.tipo || "";
+  const title = (ev.title || "").trim().toLowerCase();
+  return `${tipo}|${empleado}|${baseDate}|${title}`;
 }
 
 // Drawer genérico informativo
@@ -182,10 +251,7 @@ export default function AdminCalendarioBase() {
     "todos" | "pendiente" | "aprobado" | "rechazado"
   >("todos");
 
-  // Drawer del día (siempre)
   const [openDayYmd, setOpenDayYmd] = useState<string | null>(null);
-
-  // Drawer evento seleccionado (desde lista del día)
   const [selected, setSelected] = useState<CalendarioIntegradoEvento | null>(
     null,
   );
@@ -216,16 +282,17 @@ export default function AdminCalendarioBase() {
     const apiCal = apiCalendar();
     if (!apiCal) return;
 
-    const start = ymdFromDate(apiCal.view.activeStart);
-    const end = ymdFromDate(apiCal.view.activeEnd);
+    const desde = ymdFromDate(apiCal.view.activeStart);
+    const hasta = ymdFromDate(apiCal.view.activeEnd);
+    const desdeYear = String(desde).slice(0, 4);
 
     setLoading(true);
 
     try {
       const res = await api.get("/admin/calendario/integrado", {
         params: {
-          desde: start,
-          hasta: end,
+          desde,
+          hasta,
           empleado_id: empleadoActivo || undefined,
           include_real: 1,
           include_plan: empleadoActivo ? 1 : undefined,
@@ -236,13 +303,24 @@ export default function AdminCalendarioBase() {
         ? res.data
         : [];
 
-      const normalized = arr.map(normalizeIntegratedForFC);
-      console.log("EVENTOS NORMALIZADOS ADMIN:", normalized);
+      const normalized = arr.map((e) => normalizeIntegratedForFC(e, desdeYear));
 
-      // Debug útil: confirma que entran festivos y ausencias
-      // console.log("INTEGRADO:", normalized);
+      // Dedupe semántico con prioridad
+      const map = new Map<string, CalendarioIntegradoEvento>();
+      for (const ev of normalized) {
+        const key = semanticKey(ev);
+        const prev = map.get(key);
+        if (!prev || priorityFor(ev) > priorityFor(prev)) {
+          map.set(key, ev);
+        }
+      }
 
-      setEvents(normalized);
+      const deduped = Array.from(map.values());
+
+      // Debug
+      // console.log("EVENTOS NORMALIZADOS+DEDUP:", deduped);
+
+      setEvents(deduped);
     } catch (e) {
       console.error("Error cargando calendario integrado admin", e);
       setEvents([]);
@@ -276,20 +354,16 @@ export default function AdminCalendarioBase() {
   }, []);
 
   // =========================
-  // Derived (unique + filtro)
+  // Derived (filtro)
   // =========================
 
-  const uniqueEvents = useMemo(() => {
-    return Array.from(new Map(events.map((e) => [String(e.id), e])).values());
-  }, [events]);
-
   const filteredEvents = useMemo(() => {
-    if (estadoFiltro === "todos") return uniqueEvents;
-    return uniqueEvents.filter((e) => {
+    if (estadoFiltro === "todos") return events;
+    return events.filter((e) => {
       if (e.tipo !== "ausencia") return true;
       return e.estado === estadoFiltro;
     });
-  }, [uniqueEvents, estadoFiltro]);
+  }, [events, estadoFiltro]);
 
   // =========================
   // FullCalendar events (pintado)
@@ -298,11 +372,11 @@ export default function AdminCalendarioBase() {
   const fcEvents = useMemo(() => {
     return filteredEvents.map((e) => {
       const col = colorForIntegrado(e);
-      const end = e.end ?? undefined; // FC tolera undefined
+      const end = e.end ?? undefined;
 
       return {
         id: String(e.id),
-        title: `[${e.tipo}] ${e.title}`,
+        title: e.title,
         start: e.start,
         end,
         allDay: Boolean(e.allDay),
@@ -338,9 +412,7 @@ export default function AdminCalendarioBase() {
   }
 
   // =========================
-  // Clicks (igual que empleado)
-  // - dateClick: siempre abre drawer del día
-  // - eventClick: abre el drawer del día del evento (NO el detalle directo)
+  // Clicks
   // =========================
 
   function openDay(ymd: string) {
@@ -501,7 +573,6 @@ export default function AdminCalendarioBase() {
           />
         </div>
 
-        {/* Drawer del día */}
         {openDayYmd && (
           <IOSDrawer
             open
@@ -522,7 +593,6 @@ export default function AdminCalendarioBase() {
           </IOSDrawer>
         )}
 
-        {/* Drawer específico */}
         {selected && selected.tipo === "ausencia" && (
           <IOSDrawer
             open
@@ -583,7 +653,6 @@ export default function AdminCalendarioBase() {
             </IOSDrawer>
           )}
 
-        {/* Pendientes */}
         {openPendientes && (
           <IOSDrawer
             open
@@ -605,7 +674,6 @@ export default function AdminCalendarioBase() {
           </IOSDrawer>
         )}
 
-        {/* Crear */}
         {openCrear && (
           <IOSDrawer
             open
@@ -722,7 +790,6 @@ export default function AdminCalendarioBase() {
         </div>
       </div>
 
-      {/* Drawer del día */}
       {openDayYmd && (
         <IOSDrawer
           open
@@ -743,7 +810,6 @@ export default function AdminCalendarioBase() {
         </IOSDrawer>
       )}
 
-      {/* Drawer específico */}
       {selected && selected.tipo === "ausencia" && (
         <IOSDrawer
           open
@@ -804,7 +870,6 @@ export default function AdminCalendarioBase() {
           </IOSDrawer>
         )}
 
-      {/* Pendientes */}
       {openPendientes && (
         <IOSDrawer
           open
@@ -826,7 +891,6 @@ export default function AdminCalendarioBase() {
         </IOSDrawer>
       )}
 
-      {/* Crear */}
       {openCrear && (
         <IOSDrawer
           open
