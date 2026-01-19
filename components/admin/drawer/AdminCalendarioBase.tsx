@@ -235,6 +235,9 @@ export default function AdminCalendarioBase() {
       setLoading(false);
     }
   }
+  useEffect(() => {
+    console.log("EVENTOS ADMIN:", events);
+  }, [events]);
 
   useEffect(() => {
     loadEmpleados();
