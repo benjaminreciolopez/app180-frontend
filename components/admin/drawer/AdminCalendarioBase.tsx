@@ -227,6 +227,9 @@ export default function AdminCalendarioBase() {
               if (e.tipo !== "ausencia") return true;
               return e.estado === estadoFiltro;
             });
+      console.log("RAW ADMIN EVENTS:", arr);
+      console.log("NORMALIZED:", normalized);
+      console.log("FILTERED:", filtered);
 
       setEvents(filtered);
     } catch {
@@ -263,10 +266,11 @@ export default function AdminCalendarioBase() {
         title: e.title,
         start: e.start,
         end: e.end,
-        allDay: e.allDay,
+        allDay: e.allDay ?? true,
         backgroundColor: col,
         borderColor: col,
         extendedProps: e,
+        display: "block",
       };
     });
   }, [uniqueEvents]);
@@ -412,7 +416,7 @@ export default function AdminCalendarioBase() {
           )}
 
           <FullCalendar
-            key={uniqueEvents.length}
+            key={JSON.stringify(fcEvents.map((e) => e.id))}
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             locale={esLocale}
@@ -607,7 +611,7 @@ export default function AdminCalendarioBase() {
 
             <div className="p-4">
               <FullCalendar
-                key={uniqueEvents.length}
+                key={JSON.stringify(fcEvents.map((e) => e.id))}
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 locale={esLocale}
