@@ -235,9 +235,6 @@ export default function AdminCalendarioBase() {
       setLoading(false);
     }
   }
-  useEffect(() => {
-    console.log("EVENTOS ADMIN:", events);
-  }, [events]);
 
   useEffect(() => {
     loadEmpleados();
@@ -249,8 +246,13 @@ export default function AdminCalendarioBase() {
   }, [empleadoActivo, estadoFiltro]);
 
   useEffect(() => {
-    setTimeout(syncTitle, 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const t = setTimeout(() => {
+      if (calendarRef.current) {
+        loadEventsForCurrentView();
+      }
+    }, 0);
+
+    return () => clearTimeout(t);
   }, []);
 
   const fcEvents = useMemo(() => {
@@ -410,6 +412,7 @@ export default function AdminCalendarioBase() {
           )}
 
           <FullCalendar
+            key={uniqueEvents.length}
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             locale={esLocale}
@@ -604,6 +607,7 @@ export default function AdminCalendarioBase() {
 
             <div className="p-4">
               <FullCalendar
+                key={uniqueEvents.length}
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 locale={esLocale}
