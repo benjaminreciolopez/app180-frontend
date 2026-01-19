@@ -443,7 +443,6 @@ export default function AdminCalendarioBase() {
           )}
 
           <FullCalendar
-            key={JSON.stringify(fcEvents.map((e) => e.id))}
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             locale={esLocale}
@@ -638,7 +637,6 @@ export default function AdminCalendarioBase() {
 
             <div className="p-4">
               <FullCalendar
-                key={JSON.stringify(fcEvents.map((e) => e.id))}
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 locale={esLocale}
