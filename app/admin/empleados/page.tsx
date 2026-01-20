@@ -4,7 +4,6 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
-import Link from "next/link";
 
 interface Empleado {
   id: string;
@@ -22,12 +21,12 @@ export default function EmpleadosPage() {
   const [loading, setLoading] = useState(true);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [loadingInviteId, setLoadingInviteId] = useState<string | null>(null);
-  const [menuPos, setMenuPos] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
+    null,
+  );
 
   async function loadEmpleados() {
     try {
@@ -39,25 +38,27 @@ export default function EmpleadosPage() {
 
     setLoading(false);
   }
+
   async function cambiarEstadoEmpleado(id: string, activo: boolean) {
     if (
       !confirm(
         activo
           ? "¿Seguro que quieres ACTIVAR este empleado?"
-          : "¿Seguro que quieres DESACTIVAR este empleado?"
+          : "¿Seguro que quieres DESACTIVAR este empleado?",
       )
     ) {
       return;
     }
 
     try {
-      await api.put(`/employees/${id}/status`, { activo }); // ✅ FIX
+      await api.put(`/employees/${id}/status`, { activo });
       await loadEmpleados();
     } catch (err) {
       console.error("Error cambiando estado del empleado", err);
       alert("No se pudo actualizar el estado");
     }
   }
+
   useEffect(() => {
     if (!openMenuId) {
       setLoadingInviteId(null);
@@ -183,6 +184,12 @@ export default function EmpleadosPage() {
               onClick={(e) => e.currentTarget.select()}
             />
 
+            {inviteExpiresAt && (
+              <p className="text-sm text-muted">
+                Caduca: {new Date(inviteExpiresAt).toLocaleString("es-ES")}
+              </p>
+            )}
+
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -204,7 +211,10 @@ export default function EmpleadosPage() {
 
               <button
                 type="button"
-                onClick={() => setInviteUrl(null)}
+                onClick={() => {
+                  setInviteUrl(null);
+                  setInviteExpiresAt(null);
+                }}
                 className="btn-outline ml-auto"
               >
                 Cerrar
@@ -213,12 +223,13 @@ export default function EmpleadosPage() {
           </div>
         </div>
       )}
+
       {openMenuId && menuPos && (
         <div
           className="fixed z-[9999]"
           style={{
             top: menuPos.top,
-            left: menuPos.left - 224, // ancho del menú (w-56)
+            left: menuPos.left - 224,
           }}
           onClick={(ev) => ev.stopPropagation()}
         >
@@ -235,10 +246,18 @@ export default function EmpleadosPage() {
                     onClick={async () => {
                       setLoadingInviteId(e.id);
                       try {
-                        const res = await api.post(`/employees/${e.id}/invite`);
+                        const res = await api.post(
+                          `/admin/employees/${e.id}/invite`,
+                        );
                         setInviteUrl(res.data.installUrl);
-                      } catch {
-                        alert("No se pudo generar la invitación");
+                        setInviteExpiresAt(res.data.expires_at);
+                        setOpenMenuId(null);
+                        setMenuPos(null);
+                      } catch (err: any) {
+                        alert(
+                          err?.response?.data?.error ||
+                            "No se pudo generar la invitación",
+                        );
                       } finally {
                         setLoadingInviteId(null);
                       }
@@ -255,13 +274,22 @@ export default function EmpleadosPage() {
                     disabled={loadingInviteId === e.id}
                     onClick={async () => {
                       setLoadingInviteId(e.id);
-                      const res = await api.post(
-                        `/employees/${e.id}/invite?tipo=cambio`
-                      );
-                      setInviteUrl(res.data.installUrl);
-                      setOpenMenuId(null);
-                      setMenuPos(null);
-                      setLoadingInviteId(null);
+                      try {
+                        const res = await api.post(
+                          `/admin/employees/${e.id}/invite?tipo=cambio`,
+                        );
+                        setInviteUrl(res.data.installUrl);
+                        setInviteExpiresAt(res.data.expires_at);
+                        setOpenMenuId(null);
+                        setMenuPos(null);
+                      } catch (err: any) {
+                        alert(
+                          err?.response?.data?.error ||
+                            "No se pudo autorizar el cambio",
+                        );
+                      } finally {
+                        setLoadingInviteId(null);
+                      }
                     }}
                     className="block w-full text-left px-3 py-2 hover:bg-muted text-orange-600"
                   >
