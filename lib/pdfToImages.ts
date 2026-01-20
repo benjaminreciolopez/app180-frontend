@@ -1,7 +1,8 @@
 import * as pdfjsLib from "pdfjs-dist";
 
-// Worker local (Next + Vercel compatible)
-pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+// Worker desde CDN (100% compatible con Next + Vercel)
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
 
 export async function pdfToPngFiles(
   pdfFile: File,
