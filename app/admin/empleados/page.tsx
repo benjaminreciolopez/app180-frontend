@@ -22,6 +22,8 @@ export default function EmpleadosPage() {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState<string | null>(null);
+
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [loadingInviteId, setLoadingInviteId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
@@ -60,20 +62,39 @@ export default function EmpleadosPage() {
   }
 
   useEffect(() => {
-    if (!openMenuId) {
-      setLoadingInviteId(null);
-    }
-  }, [openMenuId]);
-
-  useEffect(() => {
     loadEmpleados();
   }, []);
 
   useEffect(() => {
-    const close = () => setOpenMenuId(null);
+    const close = () => {
+      setOpenMenuId(null);
+      setMenuPos(null);
+      setLoadingInviteId(null);
+    };
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
   }, []);
+
+  // Cerrar modal con Escape
+  useEffect(() => {
+    if (!inviteUrl) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeInviteModal();
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [inviteUrl]);
+
+  function closeInviteModal() {
+    setInviteUrl(null);
+    setInviteExpiresAt(null);
+    setInviteEmail(null);
+    loadEmpleados();
+  }
 
   if (loading) return <p>Cargando...</p>;
 
@@ -146,7 +167,6 @@ export default function EmpleadosPage() {
                       className="btn-secondary"
                       onClick={(ev) => {
                         ev.stopPropagation();
-
                         const rect = ev.currentTarget.getBoundingClientRect();
 
                         if (openMenuId === e.id) {
@@ -175,7 +195,13 @@ export default function EmpleadosPage() {
       {inviteUrl && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
           <div className="card max-w-lg w-full space-y-4">
-            <h2 className="text-xl font-bold">Invitación generada</h2>
+            <h2 className="text-xl font-bold">Invitación enviada</h2>
+
+            {inviteEmail && (
+              <p className="text-sm">
+                Se ha enviado el enlace a: <strong>{inviteEmail}</strong>
+              </p>
+            )}
 
             <input
               value={inviteUrl}
@@ -193,9 +219,7 @@ export default function EmpleadosPage() {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(inviteUrl);
-                }}
+                onClick={() => navigator.clipboard.writeText(inviteUrl)}
                 className="btn-primary"
               >
                 Copiar
@@ -211,10 +235,7 @@ export default function EmpleadosPage() {
 
               <button
                 type="button"
-                onClick={() => {
-                  setInviteUrl(null);
-                  setInviteExpiresAt(null);
-                }}
+                onClick={closeInviteModal}
                 className="btn-outline ml-auto"
               >
                 Cerrar
@@ -244,6 +265,7 @@ export default function EmpleadosPage() {
                     type="button"
                     disabled={loadingInviteId === e.id}
                     onClick={async () => {
+                      if (loadingInviteId === e.id) return;
                       setLoadingInviteId(e.id);
                       try {
                         const res = await api.post(
@@ -251,6 +273,7 @@ export default function EmpleadosPage() {
                         );
                         setInviteUrl(res.data.installUrl);
                         setInviteExpiresAt(res.data.expires_at);
+                        setInviteEmail(e.email);
                         setOpenMenuId(null);
                         setMenuPos(null);
                       } catch (err: any) {
@@ -265,7 +288,7 @@ export default function EmpleadosPage() {
                     className="block w-full text-left px-3 py-2 hover:bg-muted"
                   >
                     {loadingInviteId === e.id
-                      ? "Generando invitación..."
+                      ? "Enviando email..."
                       : "Invitar / Reenviar"}
                   </button>
 
@@ -273,6 +296,7 @@ export default function EmpleadosPage() {
                     type="button"
                     disabled={loadingInviteId === e.id}
                     onClick={async () => {
+                      if (loadingInviteId === e.id) return;
                       setLoadingInviteId(e.id);
                       try {
                         const res = await api.post(
@@ -280,6 +304,7 @@ export default function EmpleadosPage() {
                         );
                         setInviteUrl(res.data.installUrl);
                         setInviteExpiresAt(res.data.expires_at);
+                        setInviteEmail(e.email);
                         setOpenMenuId(null);
                         setMenuPos(null);
                       } catch (err: any) {
