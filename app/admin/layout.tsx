@@ -56,6 +56,10 @@ export default function AdminLayout({
 
   const menu = [
     { path: "/admin/dashboard", label: "Dashboard" },
+    {
+      path: "/admin/configuracion/calendario/importar",
+      label: "Importar calendario laboral",
+    },
     { path: "/admin/calendario", label: "Calendario" },
     { path: "/admin/empleados", label: "Empleados" },
     { path: "/admin/jornadas", label: "Jornadas" },
