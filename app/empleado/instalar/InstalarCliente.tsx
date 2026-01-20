@@ -8,23 +8,28 @@ export default function InstalarCliente({ token }: { token?: string }) {
   const [estado, setEstado] = useState<"cargando" | "ok" | "error">("cargando");
   const [mensaje, setMensaje] = useState("");
   const router = useRouter();
-
-  const executed = useRef(false); // 👈 protección real
+  const executed = useRef(false);
 
   useEffect(() => {
     async function activar() {
       if (executed.current) return;
       executed.current = true;
-      console.log("TOKEN RECIBIDO:", token);
 
-      if (!token) {
+      // ✅ Fallback robusto: si prop token viene vacío, lo leemos de la URL
+      const tokenFinal =
+        token ||
+        (typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("token") ||
+            undefined
+          : undefined);
+
+      if (!tokenFinal) {
         setEstado("error");
-        setMensaje("Falta token de invitación");
+        setMensaje("Falta token de invitación (revisa el enlace)");
         return;
       }
 
       try {
-        // device hash persistente
         let device_hash: string = localStorage.getItem("device_hash") ?? "";
 
         if (!device_hash) {
@@ -36,7 +41,7 @@ export default function InstalarCliente({ token }: { token?: string }) {
         }
 
         const res = await api.post("/empleado/activate-install", {
-          token,
+          token: tokenFinal, // ✅ usamos tokenFinal
           device_hash,
           user_agent: navigator.userAgent,
         });
@@ -44,7 +49,6 @@ export default function InstalarCliente({ token }: { token?: string }) {
         setEstado("ok");
         setMensaje(res.data?.message || "Dispositivo activado correctamente");
 
-        // Redirección solo si OK
         setTimeout(() => {
           router.replace("/login");
         }, 1500);
