@@ -1,14 +1,13 @@
-// app/empleado/instalar/page.tsx
-
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 0; // sin cache
 
 import InstalarCliente from "./InstalarCliente";
 
-export default function Page({
+export default async function Page({
   searchParams,
 }: {
-  searchParams: { token?: string };
+  searchParams: Promise<{ token?: string }>;
 }) {
-  return <InstalarCliente token={searchParams?.token} />;
+  const params = await searchParams;
+  return <InstalarCliente token={params?.token} />;
 }
