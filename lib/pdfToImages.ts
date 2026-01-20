@@ -1,7 +1,8 @@
 import * as pdfjsLib from "pdfjs-dist";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker as any;
+// Worker desde CDN (100% compatible con Next + Vercel)
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
 
 export async function pdfToPngFiles(
   pdfFile: File,
@@ -15,7 +16,6 @@ export async function pdfToPngFiles(
 
   for (let pageNum = 1; pageNum <= pages; pageNum++) {
     const page = await pdf.getPage(pageNum);
-
     const viewport = page.getViewport({ scale: 2 });
 
     const canvas = document.createElement("canvas");
