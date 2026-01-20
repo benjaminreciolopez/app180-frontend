@@ -25,9 +25,9 @@ export default function LoginPage() {
       console.log("[UI] login ok, decoded:", result.decoded);
 
       if (result.decoded.role === "admin") {
-        router.push("/admin/dashboard");
+        router.replace("/admin/dashboard");
       } else {
-        router.push("/empleado/dashboard");
+        router.replace("/empleado/dashboard");
       }
     } catch (err: any) {
       console.error("[UI] error en login", err);

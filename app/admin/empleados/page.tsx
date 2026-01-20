@@ -329,7 +329,7 @@ export default function EmpleadosPage() {
                       await cambiarEstadoEmpleado(e.id, !e.activo);
                     }}
                     className={`block w-full text-left px-3 py-2 hover:bg-muted ${
-                      e.activo ? "text-red-600" : "text-green-600"
+                      e.activo ? "text-orange-600" : "text-green-600"
                     }`}
                   >
                     {e.activo ? "Desactivar empleado" : "Activar empleado"}

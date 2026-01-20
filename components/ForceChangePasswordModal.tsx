@@ -1,3 +1,5 @@
+// app180-frontend/components/ForceChangePasswordModal.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -47,8 +49,6 @@ export default function ForceChangePasswordModal() {
 
       // 🔓 desbloqueado
       setVisible(false);
-      window.location.reload();
-
       // 🔓 desbloqueado → recargar app
       window.location.reload();
     } catch (e: any) {

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { api } from "@/services/api";
 import { useRouter } from "next/navigation";
+import { setAuthToken } from "@/services/api";
 
 export default function InstalarCliente({ token }: { token?: string }) {
   const [estado, setEstado] = useState<"cargando" | "ok" | "error">("cargando");
@@ -45,12 +46,18 @@ export default function InstalarCliente({ token }: { token?: string }) {
           device_hash,
           user_agent: navigator.userAgent,
         });
+        const { token: jwtToken, user } = res.data;
 
+        if (jwtToken && user) {
+          localStorage.setItem("token", jwtToken);
+          localStorage.setItem("user", JSON.stringify(user));
+          setAuthToken(jwtToken); // ✅ IMPORTANTÍSIMO: axios queda listo al instante
+        }
         setEstado("ok");
         setMensaje(res.data?.message || "Dispositivo activado correctamente");
 
         setTimeout(() => {
-          router.replace("/login");
+          router.replace("/empleado/dashboard");
         }, 1500);
       } catch (err: any) {
         console.error(err);
