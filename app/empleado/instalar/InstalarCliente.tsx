@@ -15,6 +15,7 @@ export default function InstalarCliente({ token }: { token?: string }) {
     async function activar() {
       if (executed.current) return;
       executed.current = true;
+      console.log("TOKEN RECIBIDO:", token);
 
       if (!token) {
         setEstado("error");
@@ -51,7 +52,7 @@ export default function InstalarCliente({ token }: { token?: string }) {
         console.error(err);
         setEstado("error");
         setMensaje(
-          err?.response?.data?.error || "No se pudo activar este dispositivo"
+          err?.response?.data?.error || "No se pudo activar este dispositivo",
         );
       }
     }
