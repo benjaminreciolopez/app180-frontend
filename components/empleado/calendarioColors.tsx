@@ -26,31 +26,30 @@ export const COLOR_MAP: Record<string, string> = {
 export function colorFor(tipo: string, estado?: EstadoAusencia) {
   switch (tipo) {
     case "vacaciones":
-      return "#22c55e"; // verde
+      return "#22c55e";
 
     case "baja_medica":
-      return "#ef4444"; // rojo
+      return "#ef4444";
 
     case "festivo_local":
-      return "#6366f1"; // índigo
+      return "#6366f1";
 
     case "festivo_nacional":
-      return "#4338ca"; // índigo oscuro
+      return "#4338ca";
 
     case "convenio":
-      return "#0ea5e9"; // azul
+    case "ajuste_convenio":
+      return "#0ea5e9";
 
     case "cierre_empresa":
-      return "#111827"; // casi negro
+      return "#111827";
 
     case "laborable_extra":
-      return "#14b8a6"; // teal
+      return "#14b8a6";
 
     case "domingo":
-      return "#9ca3af"; // gris
-
     case "no_laborable":
-      return "#9ca3af"; // gris
+      return "#9ca3af";
 
     case "jornada":
       return "#22c55e";
@@ -68,6 +67,7 @@ export function colorFor(tipo: string, estado?: EstadoAusencia) {
       return "#fde68a";
 
     default:
-      return "#64748b"; // gris neutro
+      console.warn("Color no definido para tipo:", tipo);
+      return "#f97316"; // naranja debug
   }
 }

@@ -64,9 +64,21 @@ export default function DrawerCalendario({
       const col = colorFor(e.tipo, e.estado);
       const isBackground = e.meta?.display === "background";
 
+      const title =
+        e.title ||
+        (e.tipo === "convenio"
+          ? "Ajuste de convenio"
+          : e.tipo === "festivo_local"
+            ? "Festivo local"
+            : e.tipo === "festivo_nacional"
+              ? "Festivo nacional"
+              : e.tipo === "cierre_empresa"
+                ? "Cierre de empresa"
+                : e.tipo.replaceAll("_", " "));
+
       return {
         id: String(e.id),
-        title: e.title,
+        title,
         start: e.start,
         end: e.end || undefined,
         allDay: Boolean(e.allDay),
