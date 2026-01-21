@@ -11,6 +11,11 @@ export async function ocrPreview(files: File[]) {
   return res.data;
 }
 
+export async function ocrReparse(raw_text: string) {
+  const res = await api.post("/admin/calendario/ocr/reparse", { raw_text });
+  return res.data;
+}
+
 export async function ocrConfirm(items: any[]) {
   const res = await api.post("/admin/calendario/ocr/confirmar", { items });
   return res.data;
