@@ -15,6 +15,33 @@ import CalendarioLegend from "./CalendarioLegend";
 
 type ViewMode = "dayGridMonth" | "timeGridWeek";
 
+function titleFor(e: CalendarioEvento) {
+  if (e.title) return e.title;
+
+  switch (e.tipo) {
+    case "convenio":
+      return "Ajuste de convenio";
+    case "festivo_local":
+      return "Festivo local";
+    case "festivo_nacional":
+      return "Festivo nacional";
+    case "cierre_empresa":
+      return "Cierre de empresa";
+    case "domingo":
+      return "Domingo";
+    case "no_laborable":
+      return "No laborable";
+    default:
+      return e.tipo.replaceAll("_", " ");
+  }
+}
+
+function isBackgroundEvent(e: CalendarioEvento) {
+  return (
+    e.tipo === "laborable" || e.tipo === "no_laborable" || e.tipo === "domingo"
+  );
+}
+
 export default function DrawerCalendario({
   onSelectDay,
 }: {
@@ -47,7 +74,9 @@ export default function DrawerCalendario({
     setLoading(true);
     try {
       const params = new URLSearchParams({ desde, hasta });
-      const res = await api.get(`/calendario/usuario?${params.toString()}`);
+      const res = await api.get(
+        `/empleado/calendario/usuario?${params.toString()}`,
+      );
       setEvents(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error("Error calendario usuario", e);
@@ -60,30 +89,18 @@ export default function DrawerCalendario({
   const fcEvents = useMemo(() => {
     return events.map((e) => {
       const col = colorFor(e.tipo, e.estado);
-      const isBackground = e.meta?.display === "background";
-
-      const title =
-        e.title ||
-        (e.tipo === "convenio"
-          ? "Ajuste de convenio"
-          : e.tipo === "festivo_local"
-            ? "Festivo local"
-            : e.tipo === "festivo_nacional"
-              ? "Festivo nacional"
-              : e.tipo === "cierre_empresa"
-                ? "Cierre de empresa"
-                : e.tipo.replaceAll("_", " "));
+      const bg = isBackgroundEvent(e);
 
       return {
         id: String(e.id),
-        title,
+        title: titleFor(e),
         start: e.start,
         end: e.end || undefined,
         allDay: Boolean(e.allDay),
         backgroundColor: col,
         borderColor: col,
-        textColor: "#fff",
-        display: isBackground ? "background" : "block",
+        textColor: bg ? "transparent" : "#fff",
+        display: bg ? "background" : "block",
         extendedProps: { ...e },
       };
     });
