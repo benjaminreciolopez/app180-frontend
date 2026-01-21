@@ -100,13 +100,13 @@ export default function ImportacionesPage() {
                   <td className="p-2 align-top text-right space-x-2">
                     <Link
                       className="text-sm hover:underline"
-                      href={`/admin/calendario/importaciones/${r.id}`}
+                      href={`/admin/configuracion/calendario/importaciones/${r.id}`}
                     >
                       Ver
                     </Link>
                     <Link
                       className="text-sm hover:underline"
-                      href={`/admin/calendario/importaciones/compare?a=${active[0]?.id || r.id}&b=${r.id}`}
+                      href={`/admin/configuracion/calendario/importaciones/compare`}
                     >
                       Comparar
                     </Link>
