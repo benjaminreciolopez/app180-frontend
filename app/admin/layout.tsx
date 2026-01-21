@@ -61,7 +61,7 @@ export default function AdminLayout({
       label: "Importar calendario laboral",
     },
     {
-      path: "/admin/calendario/importaciones",
+      path: "/admin/configuracion/calendario/importaciones",
       label: "Historial de importaciones",
     },
     { path: "/admin/calendario", label: "Calendario" },
