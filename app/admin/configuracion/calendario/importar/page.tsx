@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { pdfToPngFiles } from "@/lib/pdfToImages";
 import { ocrPreview, ocrReparse, ocrConfirm } from "@/services/calendarioOCR";
@@ -11,13 +11,16 @@ type Meta = {
   source_line?: string;
 };
 
+type Tipo = "festivo_local" | "convenio" | "laborable_extra" | "cierre_empresa";
+
 type Item = {
   fecha: string;
-  tipo: "festivo_local" | "convenio" | "laborable_extra" | "cierre_empresa";
+  tipo: Tipo;
   descripcion: string | null;
   es_laborable: boolean;
   activo: boolean;
-  label?: string | null; // nacional/autonómico/local
+  label?: string | null; // nacional/autonómico/local/convenio/etc.
+  origen?: "ocr" | "manual";
   meta?: Meta;
 };
 
@@ -26,7 +29,24 @@ function pct(n?: number) {
   return `${Math.round(n * 100)}%`;
 }
 
+function ymdToday() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function autoLaborableForTipo(tipo: Tipo) {
+  return !(tipo === "festivo_local" || tipo === "cierre_empresa");
+}
+
+function confidenceClass(c?: number) {
+  const v = typeof c === "number" ? c : 1;
+  if (v < 0.6) return "text-red-600";
+  if (v < 0.8) return "text-amber-600";
+  return "text-foreground";
+}
+
 export default function ImportarCalendarioLaboralPage() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [file, setFile] = useState<File | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -34,10 +54,26 @@ export default function ImportarCalendarioLaboralPage() {
 
   const [rawText, setRawText] = useState<string>("");
   const [preview, setPreview] = useState<Item[]>([]);
-  const [activeTab, setActiveTab] = useState<"editor" | "preview">("preview"); // en móvil
+  const [activeTab, setActiveTab] = useState<"editor" | "preview">("preview"); // móvil
+
+  function resetWorkspace() {
+    setRawText("");
+    setPreview([]);
+    setStage("");
+    setActiveTab("preview");
+  }
+
+  function onPickFile(f: File | null) {
+    setFile(f);
+    // Reset total al cambiar archivo (evita mezclas y errores)
+    resetWorkspace();
+  }
 
   const stats = useMemo(() => {
     const total = preview.length;
+    const activeCount = preview.filter((x) => x.activo !== false).length;
+    const disabledCount = total - activeCount;
+
     const festivos = preview.filter((x) => x.tipo === "festivo_local").length;
     const convenios = preview.filter((x) => x.tipo === "convenio").length;
     const cierres = preview.filter((x) => x.tipo === "cierre_empresa").length;
@@ -46,13 +82,58 @@ export default function ImportarCalendarioLaboralPage() {
     const lowConfidence = preview.filter(
       (x) => (x.meta?.confidence ?? 1) < 0.6,
     ).length;
+    const manualCount = preview.filter((x) => x.origen === "manual").length;
 
-    return { total, festivos, convenios, cierres, extras, lowConfidence };
+    return {
+      total,
+      activeCount,
+      disabledCount,
+      festivos,
+      convenios,
+      cierres,
+      extras,
+      lowConfidence,
+      manualCount,
+    };
   }, [preview]);
 
   function updateItem(idx: number, patch: Partial<Item>) {
     setPreview((prev) =>
-      prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
+      prev.map((it, i) => {
+        if (i !== idx) return it;
+        const next = { ...it, ...patch };
+
+        // coherencia automática: si cambia tipo a festivo/cierre → no laborable
+        if (patch.tipo) {
+          next.es_laborable = autoLaborableForTipo(patch.tipo);
+          // si pasa a festivo y no hay label, pon local por defecto (editable)
+          if (patch.tipo === "festivo_local" && !next.label)
+            next.label = "local";
+          // si pasa a convenio/cierre/extra, limpiamos label si era ámbito
+          if (
+            patch.tipo !== "festivo_local" &&
+            (next.label === "nacional" ||
+              next.label === "autonómico" ||
+              next.label === "local")
+          ) {
+            next.label =
+              patch.tipo === "convenio"
+                ? "convenio"
+                : patch.tipo === "cierre_empresa"
+                  ? "cierre"
+                  : "extra";
+          }
+        }
+
+        // Si el usuario marca manualmente laborable en festivo, lo respetamos si viene explícito
+        if (typeof patch.es_laborable === "boolean")
+          next.es_laborable = patch.es_laborable;
+
+        // Si editan la fila, mantenemos origen si ya estaba
+        next.origen = next.origen || "ocr";
+
+        return next;
+      }),
     );
   }
 
@@ -60,20 +141,21 @@ export default function ImportarCalendarioLaboralPage() {
     setPreview((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function addBlankRow() {
-    // añade una fila manual por si el OCR se saltó algo
+  function addManualRow() {
     setPreview((prev) => [
       ...prev,
       {
-        fecha: new Date().toISOString().slice(0, 10),
+        fecha: ymdToday(),
         tipo: "festivo_local",
         descripcion: "",
         es_laborable: false,
         activo: true,
         label: "local",
+        origen: "manual",
         meta: { confidence: 1, reason: "manual" },
       },
     ]);
+    setActiveTab("preview");
   }
 
   async function handleAnalyze() {
@@ -99,7 +181,13 @@ export default function ImportarCalendarioLaboralPage() {
       const res = await ocrPreview(filesToSend);
 
       setRawText(res.raw_text || "");
-      setPreview(res.preview || []);
+      // Marcamos origen OCR en items por consistencia
+      const items: Item[] = (res.preview || []).map((it: any) => ({
+        ...it,
+        origen: "ocr",
+      }));
+      setPreview(items);
+
       setActiveTab("preview");
     } catch (e: any) {
       alert(e?.response?.data?.error || e?.message || "Error OCR");
@@ -111,10 +199,18 @@ export default function ImportarCalendarioLaboralPage() {
 
   async function handleReparse() {
     try {
+      if (!rawText || rawText.trim().length < 20) {
+        alert("El texto OCR está vacío o demasiado corto.");
+        return;
+      }
       setLoading(true);
       setStage("Re-analizando texto…");
       const res = await ocrReparse(rawText);
-      setPreview(res.preview || []);
+      const items: Item[] = (res.preview || []).map((it: any) => ({
+        ...it,
+        origen: "ocr",
+      }));
+      setPreview(items);
       setActiveTab("preview");
     } catch (e: any) {
       alert(e?.response?.data?.error || e?.message || "Error reparse");
@@ -126,20 +222,40 @@ export default function ImportarCalendarioLaboralPage() {
 
   async function handleConfirm() {
     try {
+      if (loading) return;
+      if (preview.length === 0) {
+        alert("No hay entradas para confirmar.");
+        return;
+      }
+
+      const activeItems = preview.filter((x) => x.activo !== false);
+
+      if (activeItems.length === 0) {
+        alert(
+          "Todas las entradas están desactivadas. Activa al menos una antes de confirmar.",
+        );
+        return;
+      }
+
       setLoading(true);
       setStage("Guardando en calendario…");
 
-      // enviamos solo filas activas
-      const activeItems = preview.filter((x) => x.activo !== false);
+      // Enviamos origen manual/ocr
+      await ocrConfirm(
+        activeItems.map((x) => ({
+          ...x,
+          origen: x.origen === "manual" ? "manual" : "ocr",
+        })),
+      );
 
-      await ocrConfirm(activeItems);
       alert("Importación completada. El calendario ha sido actualizado.");
 
-      // reset
+      // reset total
       setFile(null);
-      setRawText("");
-      setPreview([]);
-      setActiveTab("preview");
+      resetWorkspace();
+
+      // limpia input file para permitir re-seleccionar el mismo archivo si quieren
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (e: any) {
       alert(e?.response?.data?.error || e?.message || "Error al confirmar");
     } finally {
@@ -148,15 +264,17 @@ export default function ImportarCalendarioLaboralPage() {
     }
   }
 
+  const canReparse = !loading && rawText.trim().length >= 20;
+  const canConfirm = !loading && preview.length > 0 && stats.activeCount > 0;
+
   return (
     <div className="space-y-6">
-      {/* Header de venta: claridad + promesa */}
+      {/* Header */}
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Importar calendario laboral</h1>
         <p className="text-sm text-muted-foreground">
           Importa un calendario (PDF o imagen), revisa el resultado y confirma.
-          APP180 guardará festivos y ajustes de forma consistente para Admin y
-          Empleados.
+          Festivos y ajustes quedarán consistentes para Admin y Empleados.
         </p>
       </div>
 
@@ -166,17 +284,30 @@ export default function ImportarCalendarioLaboralPage() {
           <div className="space-y-2">
             <div className="font-medium">1) Documento</div>
             <div className="text-sm text-muted-foreground">
-              Recomendación: PDF nítido o foto sin sombras. Máximo 12 páginas
-              por importación.
+              PDF recomendado (nítido). Máximo 12 páginas por importación.
             </div>
+
             <input
+              ref={fileInputRef}
               type="file"
               accept=".pdf,image/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              onChange={(e) => onPickFile(e.target.files?.[0] || null)}
             />
           </div>
 
           <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setFile(null);
+                resetWorkspace();
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              disabled={loading && !file}
+            >
+              Limpiar
+            </Button>
+
             <Button onClick={handleAnalyze} disabled={!file || loading}>
               {loading ? "Procesando…" : "Analizar"}
             </Button>
@@ -190,43 +321,51 @@ export default function ImportarCalendarioLaboralPage() {
         )}
       </div>
 
-      {/* Si hay datos, mostramos el “workspace” */}
+      {/* Workspace */}
       {(rawText || preview.length > 0) && (
-        <div className="bg-card border rounded-lg p-4 md:p-6">
-          {/* Header workspace: indicadores de calidad (para vender confianza) */}
+        <div className="bg-card border rounded-lg p-4 md:p-6 space-y-4">
+          {/* Header workspace */}
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
               <div className="font-medium">2) Revisión asistida</div>
               <div className="text-sm text-muted-foreground">
-                {stats.total} entradas detectadas · Festivos: {stats.festivos} ·
-                Convenio: {stats.convenios} · Cierres: {stats.cierres} · Extras:{" "}
-                {stats.extras}
+                Total: {stats.total} · Activas: {stats.activeCount} ·
+                Desactivadas: {stats.disabledCount}
+                {" · "}
+                Festivos: {stats.festivos} · Convenio: {stats.convenios} ·
+                Cierres: {stats.cierres} · Extras: {stats.extras}
+                {stats.manualCount > 0
+                  ? ` · Manuales: ${stats.manualCount}`
+                  : ""}
                 {stats.lowConfidence > 0
                   ? ` · Revisión sugerida: ${stats.lowConfidence}`
                   : ""}
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant="secondary"
-                onClick={addBlankRow}
+                onClick={addManualRow}
                 disabled={loading}
               >
-                Añadir fila
+                Añadir día manual
               </Button>
               <Button
                 variant="secondary"
                 onClick={handleReparse}
-                disabled={loading || !rawText}
+                disabled={!canReparse}
               >
                 Reanalizar texto
+              </Button>
+              <Button onClick={handleConfirm} disabled={!canConfirm}>
+                Confirmar importación
               </Button>
             </div>
           </div>
 
-          {/* Tabs móvil (UX premium sin saturar) */}
-          <div className="mt-4 md:hidden flex gap-2">
+          {/* Tabs móvil */}
+          <div className="md:hidden flex gap-2">
             <button
               className={`flex-1 border rounded px-3 py-2 text-sm ${activeTab === "preview" ? "bg-muted" : ""}`}
               onClick={() => setActiveTab("preview")}
@@ -241,200 +380,247 @@ export default function ImportarCalendarioLaboralPage() {
             </button>
           </div>
 
-          {/* Layout premium: 2 columnas en desktop */}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Editor OCR */}
+          {/* Workspace fijo con scroll independiente (desktop) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:h-[72vh]">
+            {/* Editor */}
             <div
-              className={`${activeTab === "editor" ? "" : "hidden"} md:block`}
+              className={`${activeTab === "editor" ? "" : "hidden"} md:block h-full`}
             >
-              <div className="text-sm font-medium mb-2">
-                Editor de texto OCR
-              </div>
-              <textarea
-                value={rawText}
-                onChange={(e) => setRawText(e.target.value)}
-                className="w-full min-h-[380px] border rounded p-3 text-xs leading-5"
-                placeholder="Aquí aparecerá el texto detectado por OCR…"
-              />
-              <p className="mt-2 text-xs text-muted-foreground">
-                Consejo: corrige palabras clave (“convenio”, “festivo
-                autonómico”, “fiesta nacional”) y pulsa <b>Reanalizar texto</b>.
-              </p>
-            </div>
-
-            {/* Preview editable */}
-            <div
-              className={`${activeTab === "preview" ? "" : "hidden"} md:block`}
-            >
-              <div className="text-sm font-medium mb-2">
-                Vista previa (editable)
-              </div>
-
-              <div className="overflow-x-auto border rounded">
-                <table className="min-w-[860px] w-full text-sm">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="p-2 border-b">Fecha</th>
-                      <th className="p-2 border-b">Tipo</th>
-                      <th className="p-2 border-b">Ámbito</th>
-                      <th className="p-2 border-b">Descripción</th>
-                      <th className="p-2 border-b text-center">Laborable</th>
-                      <th className="p-2 border-b text-center">Activo</th>
-                      <th className="p-2 border-b text-center">Conf.</th>
-                      <th className="p-2 border-b"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.map((it, idx) => (
-                      <tr
-                        key={idx}
-                        className="odd:bg-background even:bg-muted/20"
-                      >
-                        <td className="p-2 align-top">
-                          <input
-                            type="date"
-                            value={it.fecha}
-                            onChange={(e) =>
-                              updateItem(idx, { fecha: e.target.value })
-                            }
-                            className="border rounded px-2 py-1"
-                          />
-                        </td>
-
-                        <td className="p-2 align-top">
-                          <select
-                            value={it.tipo}
-                            onChange={(e) => {
-                              const tipo = e.target.value as Item["tipo"];
-                              // coherencia automática: si cambia a festivo/cierre, es_laborable false
-                              const autoLaborable =
-                                tipo === "festivo_local" ||
-                                tipo === "cierre_empresa"
-                                  ? false
-                                  : true;
-                              updateItem(idx, {
-                                tipo,
-                                es_laborable: autoLaborable,
-                              });
-                            }}
-                            className="border rounded px-2 py-1"
-                          >
-                            <option value="festivo_local">Festivo</option>
-                            <option value="convenio">Convenio / ajuste</option>
-                            <option value="laborable_extra">
-                              Laborable extra
-                            </option>
-                            <option value="cierre_empresa">
-                              Cierre empresa
-                            </option>
-                          </select>
-                        </td>
-
-                        <td className="p-2 align-top">
-                          <select
-                            value={it.label || ""}
-                            onChange={(e) =>
-                              updateItem(idx, { label: e.target.value || null })
-                            }
-                            className="border rounded px-2 py-1"
-                          >
-                            <option value="">—</option>
-                            <option value="nacional">Nacional</option>
-                            <option value="autonómico">Autonómico</option>
-                            <option value="local">Local</option>
-                            <option value="convenio">Convenio</option>
-                            <option value="cierre">Cierre</option>
-                            <option value="extra">Extra</option>
-                          </select>
-                        </td>
-
-                        <td className="p-2 align-top">
-                          <input
-                            type="text"
-                            value={it.descripcion || ""}
-                            onChange={(e) =>
-                              updateItem(idx, { descripcion: e.target.value })
-                            }
-                            className="border rounded px-2 py-1 w-full"
-                          />
-                          {it.meta?.source_line && (
-                            <div className="mt-1 text-[11px] text-muted-foreground line-clamp-1">
-                              OCR: {it.meta.source_line}
-                            </div>
-                          )}
-                        </td>
-
-                        <td className="p-2 align-top text-center">
-                          <input
-                            type="checkbox"
-                            checked={it.es_laborable}
-                            onChange={(e) =>
-                              updateItem(idx, {
-                                es_laborable: e.target.checked,
-                              })
-                            }
-                          />
-                        </td>
-
-                        <td className="p-2 align-top text-center">
-                          <input
-                            type="checkbox"
-                            checked={it.activo !== false}
-                            onChange={(e) =>
-                              updateItem(idx, { activo: e.target.checked })
-                            }
-                          />
-                        </td>
-
-                        <td className="p-2 align-top text-center">
-                          <span
-                            className={`${(it.meta?.confidence ?? 1) < 0.6 ? "text-red-600" : ""}`}
-                          >
-                            {pct(it.meta?.confidence)}
-                          </span>
-                        </td>
-
-                        <td className="p-2 align-top text-right">
-                          <button
-                            className="text-sm text-red-600 hover:underline"
-                            onClick={() => removeItem(idx)}
-                          >
-                            Eliminar
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-
-                    {preview.length === 0 && (
-                      <tr>
-                        <td
-                          className="p-3 text-sm text-muted-foreground"
-                          colSpan={8}
-                        >
-                          No hay entradas detectadas todavía.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* CTA final (venta): claro, irreversible y con control */}
-              <div className="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div className="text-xs text-muted-foreground">
-                  Al confirmar, se guardarán los días <b>activos</b>. Si una
-                  fecha ya existe, se actualizará (empresa+fecha).
+              <div className="h-full border rounded-lg flex flex-col">
+                <div className="px-3 py-2 border-b bg-muted/40 flex items-center justify-between">
+                  <div className="text-sm font-medium">Editor de texto OCR</div>
+                  <div className="text-xs text-muted-foreground">
+                    Edita y pulsa <b>Reanalizar</b>
+                  </div>
                 </div>
 
-                <Button
-                  onClick={handleConfirm}
-                  disabled={loading || preview.length === 0}
-                >
-                  Confirmar importación
-                </Button>
+                <div className="flex-1 overflow-y-auto">
+                  <textarea
+                    value={rawText}
+                    onChange={(e) => setRawText(e.target.value)}
+                    className="w-full h-full min-h-[360px] p-3 text-xs leading-5 outline-none resize-none bg-background"
+                    placeholder="Aquí aparecerá el texto detectado por OCR…"
+                  />
+                </div>
+
+                <div className="px-3 py-2 border-t text-xs text-muted-foreground">
+                  Consejo: corrige palabras clave (“convenio”, “festivo
+                  autonómico”, “fiesta nacional”) para mejorar el parseado.
+                </div>
+              </div>
+            </div>
+
+            {/* Preview */}
+            <div
+              className={`${activeTab === "preview" ? "" : "hidden"} md:block h-full`}
+            >
+              <div className="h-full border rounded-lg flex flex-col">
+                <div className="px-3 py-2 border-b bg-muted/40 flex items-center justify-between">
+                  <div className="text-sm font-medium">
+                    Vista previa (editable)
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Se guardarán <b>{stats.activeCount}</b> días
+                    {stats.disabledCount > 0
+                      ? ` · ${stats.disabledCount} desactivados`
+                      : ""}
+                  </div>
+                </div>
+
+                {/* Tabla con scroll propio */}
+                <div className="flex-1 overflow-auto">
+                  <table className="min-w-[980px] w-full text-sm">
+                    <thead className="bg-muted sticky top-0">
+                      <tr>
+                        <th className="p-2 border-b">Fecha</th>
+                        <th className="p-2 border-b">Tipo</th>
+                        <th className="p-2 border-b">Ámbito</th>
+                        <th className="p-2 border-b">Descripción</th>
+                        <th className="p-2 border-b text-center">Laborable</th>
+                        <th className="p-2 border-b text-center">Activo</th>
+                        <th className="p-2 border-b text-center">Origen</th>
+                        <th className="p-2 border-b text-center">Conf.</th>
+                        <th className="p-2 border-b"></th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {preview.map((it, idx) => {
+                        const conf =
+                          it.meta?.confidence ??
+                          (it.origen === "manual" ? 1 : 0.9);
+                        const low = conf < 0.6;
+                        const manual = it.origen === "manual";
+
+                        return (
+                          <tr
+                            key={idx}
+                            className={[
+                              "odd:bg-background even:bg-muted/20",
+                              low ? "bg-red-50" : "",
+                            ].join(" ")}
+                          >
+                            <td className="p-2 align-top">
+                              <input
+                                type="date"
+                                value={it.fecha}
+                                onChange={(e) =>
+                                  updateItem(idx, { fecha: e.target.value })
+                                }
+                                className="border rounded px-2 py-1"
+                              />
+                            </td>
+
+                            <td className="p-2 align-top">
+                              <select
+                                value={it.tipo}
+                                onChange={(e) =>
+                                  updateItem(idx, {
+                                    tipo: e.target.value as Tipo,
+                                  })
+                                }
+                                className="border rounded px-2 py-1"
+                              >
+                                <option value="festivo_local">Festivo</option>
+                                <option value="convenio">
+                                  Convenio / ajuste
+                                </option>
+                                <option value="laborable_extra">
+                                  Laborable extra
+                                </option>
+                                <option value="cierre_empresa">
+                                  Cierre empresa
+                                </option>
+                              </select>
+                            </td>
+
+                            <td className="p-2 align-top">
+                              <select
+                                value={it.label || ""}
+                                onChange={(e) =>
+                                  updateItem(idx, {
+                                    label: e.target.value || null,
+                                  })
+                                }
+                                className="border rounded px-2 py-1"
+                              >
+                                <option value="">—</option>
+                                <option value="nacional">Nacional</option>
+                                <option value="autonómico">Autonómico</option>
+                                <option value="local">Local</option>
+                                <option value="convenio">Convenio</option>
+                                <option value="cierre">Cierre</option>
+                                <option value="extra">Extra</option>
+                              </select>
+                            </td>
+
+                            <td className="p-2 align-top">
+                              <input
+                                type="text"
+                                value={it.descripcion || ""}
+                                onChange={(e) =>
+                                  updateItem(idx, {
+                                    descripcion: e.target.value,
+                                  })
+                                }
+                                className="border rounded px-2 py-1 w-full"
+                              />
+                              {it.meta?.source_line && (
+                                <div className="mt-1 text-[11px] text-muted-foreground">
+                                  <span className="font-medium">OCR:</span>{" "}
+                                  <span className="line-clamp-1">
+                                    {it.meta.source_line}
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+
+                            <td className="p-2 align-top text-center">
+                              <input
+                                type="checkbox"
+                                checked={it.es_laborable}
+                                onChange={(e) =>
+                                  updateItem(idx, {
+                                    es_laborable: e.target.checked,
+                                  })
+                                }
+                              />
+                            </td>
+
+                            <td className="p-2 align-top text-center">
+                              <input
+                                type="checkbox"
+                                checked={it.activo !== false}
+                                onChange={(e) =>
+                                  updateItem(idx, { activo: e.target.checked })
+                                }
+                              />
+                            </td>
+
+                            <td className="p-2 align-top text-center">
+                              <span
+                                className={
+                                  manual
+                                    ? "text-blue-700"
+                                    : "text-muted-foreground"
+                                }
+                              >
+                                {manual ? "manual" : "ocr"}
+                              </span>
+                            </td>
+
+                            <td className="p-2 align-top text-center">
+                              <span
+                                className={confidenceClass(conf)}
+                                title={it.meta?.reason || ""}
+                              >
+                                {pct(conf)}
+                              </span>
+                            </td>
+
+                            <td className="p-2 align-top text-right">
+                              <button
+                                className="text-sm text-red-600 hover:underline"
+                                onClick={() => removeItem(idx)}
+                              >
+                                Eliminar
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {preview.length === 0 && (
+                        <tr>
+                          <td
+                            className="p-3 text-sm text-muted-foreground"
+                            colSpan={9}
+                          >
+                            No hay entradas detectadas todavía.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="px-3 py-2 border-t text-xs text-muted-foreground">
+                  Al confirmar, se guardan las filas <b>activas</b>. Si una
+                  fecha ya existe para la empresa, se actualizará (empresa +
+                  fecha).
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Protecciones: avisos pro */}
+          {stats.lowConfidence > 0 && (
+            <div className="text-sm border rounded-lg p-3 bg-amber-50">
+              <span className="font-medium">Revisión sugerida:</span> hay{" "}
+              {stats.lowConfidence} filas con baja confianza. Revisa la
+              descripción o corrige el texto OCR y pulsa “Reanalizar”.
+            </div>
+          )}
         </div>
       )}
     </div>
