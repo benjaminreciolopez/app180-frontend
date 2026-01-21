@@ -9,7 +9,7 @@ export const COLOR_MAP: Record<string, string> = {
   festivo_nacional: "#f59e0b",
   festivo_empresa: "#f59e0b",
   no_laborable: "#fbbf24",
-  domingo: "#9ca3af", // gris
+  domingo: "#fde68a", // amarillo claro
   laborable_extra: "#0ea5e9", // 🔵 AZUL CLARO
 
   // Empresa
@@ -45,6 +45,11 @@ export function colorFor(tipo?: string | null, estado?: string | null) {
   const key = tipo.toLowerCase();
 
   const col = COLOR_MAP[key];
+
+  if (!COLOR_MAP[key]) {
+    console.warn("Color no definido para tipo:", key);
+    return COLOR_MAP.default;
+  }
 
   if (!col) {
     console.warn("Color no definido para tipo:", key);
