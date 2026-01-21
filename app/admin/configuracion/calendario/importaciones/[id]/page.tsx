@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { api } from "@/services/api";
 
-export default function ImportacionDetalle({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function ImportacionDetalle() {
+  const params = useParams<{ id: string }>();
+  const id = params.id as string;
+
   const [head, setHead] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function ImportacionDetalle({
   async function load() {
     setLoading(true);
     try {
-      const res = await api.get(`/admin/calendario/importaciones/${params.id}`);
+      const res = await api.get(`/admin/calendario/importaciones/${id}`);
       setHead(res.data.importacion);
       setItems(res.data.items || []);
     } finally {
@@ -24,8 +24,8 @@ export default function ImportacionDetalle({
   }
 
   useEffect(() => {
-    load();
-  }, [params.id]);
+    if (id) load();
+  }, [id]);
 
   return (
     <div className="space-y-4">
