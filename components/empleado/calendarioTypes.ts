@@ -20,10 +20,11 @@ export type EstadoAusencia = "pendiente" | "aprobado" | "rechazado";
 export type CalendarioEvento = {
   id: string;
   tipo: string;
+  subtipo?: string | null; // ✅ AÑADIR ESTO
   title?: string | null;
-  start: string; // ISO date (YYYY-MM-DD) o ISO datetime
-  end?: string | null; // si allDay: ideal YYYY-MM-DD (exclusive)
+  start: string;
+  end?: string | null;
   allDay?: boolean;
-  estado?: string | null; // aprobado, pendiente, rechazado...
+  estado?: string | null;
   meta?: any;
 };
