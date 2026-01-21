@@ -2,16 +2,19 @@
 export type CalendarioTipo =
   | "vacaciones"
   | "baja_medica"
-  | "festivo"
+  | "festivo_local"
+  | "festivo_nacional"
+  | "convenio"
+  | "cierre_empresa"
+  | "laborable_extra"
+  | "domingo"
   | "no_laborable"
-  | "laborable"
-  | "fichaje"
-  | "plan_trabajo"
-  | "plan_descanso"
+  | "jornada"
   | "real_trabajo"
   | "real_descanso"
-  | "jornada"
-  | "incidencia";
+  | "plan_trabajo"
+  | "plan_descanso"
+  | string;
 export type EstadoAusencia = "pendiente" | "aprobado" | "rechazado";
 
 export type CalendarioEvento = {
@@ -37,8 +40,10 @@ export type CalendarioEvento = {
   plantilla_id?: string | null;
 
   bloque_tipo?: "trabajo" | "descanso" | "otro";
-  origen?: "plan" | "real";
-
+  origen?: "plan" | "real" | "ausencia" | "empresa";
+  meta?: {
+    display?: "background";
+  };
   minutos?: number | null;
 
   // =========================

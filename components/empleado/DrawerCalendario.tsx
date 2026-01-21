@@ -59,23 +59,25 @@ export default function DrawerCalendario({
     }
   }
 
-  const fcEvents = useMemo(
-    () =>
-      events.map((e) => {
-        const col = colorFor(e.tipo, e.estado);
-        return {
-          id: e.id,
-          title: e.title,
-          start: e.start,
-          end: e.end || undefined,
-          allDay: e.allDay ?? true,
-          backgroundColor: col,
-          borderColor: col,
-          textColor: "#fff",
-        };
-      }),
-    [events],
-  );
+  const fcEvents = useMemo(() => {
+    return events.map((e) => {
+      const col = colorFor(e.tipo, e.estado);
+      const isBackground = e.meta?.display === "background";
+
+      return {
+        id: String(e.id),
+        title: e.title,
+        start: e.start,
+        end: e.end || undefined,
+        allDay: Boolean(e.allDay),
+        backgroundColor: col,
+        borderColor: col,
+        textColor: "#fff",
+        display: isBackground ? "background" : "block",
+        extendedProps: { ...e },
+      };
+    });
+  }, [events]);
 
   useEffect(() => {
     const api = apiCalendar();
@@ -128,7 +130,6 @@ export default function DrawerCalendario({
         </div>
       </div>
 
-      {/* CALENDARIO fullscreen */}
       <div className="fullscreen-content relative">
         {loading && (
           <div className="absolute inset-0 grid place-items-center bg-white/70 z-10">
@@ -161,4 +162,3 @@ export default function DrawerCalendario({
     </div>
   );
 }
-// app180-frontend/components/empleado/DrawerCalendario.tsx

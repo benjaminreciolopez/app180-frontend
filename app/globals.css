@@ -299,7 +299,14 @@
     @apply text-xs md:text-sm text-muted-foreground;
   }
   .fc-sunday {
-    background-color: #fecaca !important;
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+  .fc .fc-bg-event {
+    opacity: 0.3;
+  }
+  .fc-event {
+    border-radius: 6px;
+    font-size: 0.75rem;
   }
 }
 /* ===========================

@@ -1,5 +1,6 @@
 // src/components/empleado/calendarioColors.tsx
 import type { CalendarioTipo } from "./calendarioTypes";
+import type { EstadoAusencia } from "./calendarioTypes";
 
 export const COLOR_MAP: Record<string, string> = {
   laborable: "#e5e7eb", // gris claro
@@ -22,18 +23,51 @@ export const COLOR_MAP: Record<string, string> = {
   rechazado: "#9ca3af",
 };
 
-export function colorFor(
-  tipo?: CalendarioTipo | string,
-  estado?: "pendiente" | "aprobado" | "rechazado"
-) {
-  // 1) Ausencias: manda el tipo (no el estado)
-  if (tipo === "vacaciones" || tipo === "baja_medica") {
-    return COLOR_MAP[tipo];
+export function colorFor(tipo: string, estado?: EstadoAusencia) {
+  switch (tipo) {
+    case "vacaciones":
+      return "#22c55e"; // verde
+
+    case "baja_medica":
+      return "#ef4444"; // rojo
+
+    case "festivo_local":
+      return "#6366f1"; // índigo
+
+    case "festivo_nacional":
+      return "#4338ca"; // índigo oscuro
+
+    case "convenio":
+      return "#0ea5e9"; // azul
+
+    case "cierre_empresa":
+      return "#111827"; // casi negro
+
+    case "laborable_extra":
+      return "#14b8a6"; // teal
+
+    case "domingo":
+      return "#9ca3af"; // gris
+
+    case "no_laborable":
+      return "#9ca3af"; // gris
+
+    case "jornada":
+      return "#22c55e";
+
+    case "real_trabajo":
+      return "#16a34a";
+
+    case "real_descanso":
+      return "#eab308";
+
+    case "plan_trabajo":
+      return "#93c5fd";
+
+    case "plan_descanso":
+      return "#fde68a";
+
+    default:
+      return "#64748b"; // gris neutro
   }
-
-  // 2) Resto: si quieres, el estado puede mandar (p.ej. eventos de revisión)
-  if (estado && COLOR_MAP[estado]) return COLOR_MAP[estado];
-
-  if (!tipo) return COLOR_MAP.no_laborable;
-  return COLOR_MAP[tipo] || COLOR_MAP.no_laborable;
 }
