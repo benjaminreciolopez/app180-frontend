@@ -240,21 +240,19 @@ export default function ImportarCalendarioLaboralPage() {
       setLoading(true);
       setStage("Guardando en calendario…");
 
-      // Enviamos origen manual/ocr
-      await ocrConfirm(
-        activeItems.map((x) => ({
+      await ocrConfirm({
+        items: activeItems.map((x) => ({
           ...x,
           origen: x.origen === "manual" ? "manual" : "ocr",
         })),
-      );
+        raw_text: rawText,
+      });
 
       alert("Importación completada. El calendario ha sido actualizado.");
 
-      // reset total
       setFile(null);
       resetWorkspace();
 
-      // limpia input file para permitir re-seleccionar el mismo archivo si quieren
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (e: any) {
       alert(e?.response?.data?.error || e?.message || "Error al confirmar");
@@ -263,7 +261,6 @@ export default function ImportarCalendarioLaboralPage() {
       setStage("");
     }
   }
-
   const canReparse = !loading && rawText.trim().length >= 20;
   const canConfirm = !loading && preview.length > 0 && stats.activeCount > 0;
 

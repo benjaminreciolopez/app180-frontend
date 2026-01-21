@@ -16,7 +16,7 @@ export async function ocrReparse(raw_text: string) {
   return res.data;
 }
 
-export async function ocrConfirm(items: any[]) {
-  const res = await api.post("/admin/calendario/ocr/confirmar", { items });
+export async function ocrConfirm(payload: { items: any[]; raw_text: string }) {
+  const res = await api.post("/admin/calendario/ocr/confirmar", payload);
   return res.data;
 }
