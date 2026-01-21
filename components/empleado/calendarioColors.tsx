@@ -31,6 +31,9 @@ export function colorFor(tipo: string, estado?: EstadoAusencia) {
     case "baja_medica":
       return "#ef4444";
 
+    case "ausencia":
+      return "#f59e0b"; // naranja
+
     case "festivo_local":
       return "#6366f1";
 
@@ -38,7 +41,6 @@ export function colorFor(tipo: string, estado?: EstadoAusencia) {
       return "#4338ca";
 
     case "convenio":
-    case "ajuste_convenio":
       return "#0ea5e9";
 
     case "cierre_empresa":
@@ -48,11 +50,16 @@ export function colorFor(tipo: string, estado?: EstadoAusencia) {
       return "#14b8a6";
 
     case "domingo":
+      return "#9ca3af";
+
     case "no_laborable":
       return "#9ca3af";
 
     case "jornada":
       return "#22c55e";
+
+    case "jornada_real":
+      return "#16a34a"; // verde más fuerte
 
     case "real_trabajo":
       return "#16a34a";
@@ -68,6 +75,6 @@ export function colorFor(tipo: string, estado?: EstadoAusencia) {
 
     default:
       console.warn("Color no definido para tipo:", tipo);
-      return "#f97316"; // naranja debug
+      return "#64748b";
   }
 }
