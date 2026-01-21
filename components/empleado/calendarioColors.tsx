@@ -9,7 +9,8 @@ export const COLOR_MAP: Record<string, string> = {
   festivo_nacional: "#f59e0b",
   festivo_empresa: "#f59e0b",
   no_laborable: "#fbbf24",
-  domingo: "#fde68a", // amarillo suave
+  domingo: "#9ca3af", // gris
+  laborable_extra: "#0ea5e9", // 🔵 AZUL CLARO
 
   // Empresa
   cierre_empresa: "#a855f7", // morado
