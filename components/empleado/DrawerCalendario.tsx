@@ -47,9 +47,7 @@ export default function DrawerCalendario({
     setLoading(true);
     try {
       const params = new URLSearchParams({ desde, hasta });
-      const res = await api.get(
-        `/calendario/usuario/eventos?${params.toString()}`,
-      );
+      const res = await api.get(`/calendario/usuario?${params.toString()}`);
       setEvents(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error("Error calendario usuario", e);
