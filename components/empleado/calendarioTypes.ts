@@ -20,7 +20,7 @@ export type EstadoAusencia = "pendiente" | "aprobado" | "rechazado";
 export type CalendarioEvento = {
   id: string;
   tipo: string;
-  subtipo?: string | null; // ✅ AÑADIR ESTO
+  subtipo?: string | null; // ✅ AÑADIR
   title?: string | null;
   start: string;
   end?: string | null;
