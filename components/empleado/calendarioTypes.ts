@@ -19,43 +19,11 @@ export type EstadoAusencia = "pendiente" | "aprobado" | "rechazado";
 
 export type CalendarioEvento = {
   id: string;
-  tipo: CalendarioTipo | string;
-  subtipo?: string | null;
-
-  title: string;
-  start: string;
-  end?: string | null;
+  tipo: string;
+  title?: string | null;
+  start: string; // ISO date (YYYY-MM-DD) o ISO datetime
+  end?: string | null; // si allDay: ideal YYYY-MM-DD (exclusive)
   allDay?: boolean;
-
-  estado?: EstadoAusencia;
-  empleado_id?: string | null;
-  cliente_id?: string | null;
-
-  cliente_nombre?: string | null;
-
-  // =========================
-  // NUEVO (Planificación)
-  // =========================
-  jornada_id?: string | null;
-  plantilla_id?: string | null;
-
-  bloque_tipo?: "trabajo" | "descanso" | "otro";
-  origen?: "plan" | "real" | "ausencia" | "empresa";
-  meta?: {
-    display?: "background";
-  };
-  minutos?: number | null;
-
-  // =========================
-  // NUEVO (estado visual)
-  // =========================
-  actual?: boolean;
-  pasado?: boolean;
-  futuro?: boolean;
-
-  // =========================
-  // NUEVO (incidencias)
-  // =========================
-  incidencia?: boolean;
-  avisos?: string[];
+  estado?: string | null; // aprobado, pendiente, rechazado...
+  meta?: any;
 };

@@ -15,31 +15,37 @@ import CalendarioLegend from "./CalendarioLegend";
 
 type ViewMode = "dayGridMonth" | "timeGridWeek";
 
-function titleFor(e: CalendarioEvento) {
-  if (e.title) return e.title;
-
-  switch (e.tipo) {
-    case "convenio":
-      return "Ajuste de convenio";
-    case "festivo_local":
-      return "Festivo local";
-    case "festivo_nacional":
-      return "Festivo nacional";
-    case "cierre_empresa":
-      return "Cierre de empresa";
-    case "domingo":
-      return "Domingo";
-    case "no_laborable":
-      return "No laborable";
-    default:
-      return e.tipo.replaceAll("_", " ");
-  }
+function toISODate(d: Date) {
+  return d.toISOString().slice(0, 10);
 }
 
-function isBackgroundEvent(e: CalendarioEvento) {
-  return (
-    e.tipo === "laborable" || e.tipo === "no_laborable" || e.tipo === "domingo"
-  );
+function addDaysISO(isoDate: string, days: number) {
+  // isoDate: YYYY-MM-DD
+  const [y, m, dd] = isoDate.split("-").map((x) => parseInt(x, 10));
+  const dt = new Date(y, (m || 1) - 1, dd || 1);
+  dt.setDate(dt.getDate() + days);
+  return toISODate(dt);
+}
+
+function titleForTipo(tipo?: string) {
+  const t = String(tipo || "").toLowerCase();
+
+  if (t === "vacaciones") return "Vacaciones";
+  if (t === "baja_medica") return "Baja médica";
+
+  if (t === "festivo_local") return "Festivo local";
+  if (t === "festivo_nacional") return "Festivo nacional";
+  if (t === "festivo_empresa") return "Festivo de empresa";
+
+  if (t === "convenio") return "Ajuste de convenio";
+  if (t === "cierre_empresa") return "Cierre de empresa";
+  if (t === "no_laborable") return "No laborable";
+
+  if (t === "jornada_real") return "Jornada (real)";
+  if (t === "jornada_plan") return "Jornada (plan)";
+
+  // fallback
+  return t ? t.replaceAll("_", " ") : "Evento";
 }
 
 export default function DrawerCalendario({
@@ -73,13 +79,14 @@ export default function DrawerCalendario({
 
     setLoading(true);
     try {
+      // ÚNICO endpoint del calendario del empleado (integrado)
       const params = new URLSearchParams({ desde, hasta });
       const res = await api.get(
-        `/empleado/calendario/usuario?${params.toString()}`,
+        `/empleado/calendario/integrado?${params.toString()}`,
       );
       setEvents(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
-      console.error("Error calendario usuario", e);
+      console.error("Error calendario integrado", e);
       setEvents([]);
     } finally {
       setLoading(false);
@@ -87,20 +94,41 @@ export default function DrawerCalendario({
   }
 
   const fcEvents = useMemo(() => {
-    return events.map((e) => {
-      const col = colorFor(e.tipo, e.estado);
-      const bg = isBackgroundEvent(e);
+    return (events || []).map((e) => {
+      const tipo = String(e.tipo || "").toLowerCase();
+      const col = colorFor(tipo, e.estado);
+
+      // FullCalendar: eventos allDay deben tener end (exclusive) para render fiable
+      const allDay = Boolean(e.allDay);
+      const start = String(e.start);
+      let end = e.end ? String(e.end) : undefined;
+
+      if (allDay) {
+        // Si viene solo start (un día), end debe ser el día siguiente (exclusive)
+        // Si viene end y es inclusive (mismo día), igual forzamos +1 si coincide con start
+        if (!end) {
+          end = addDaysISO(start.slice(0, 10), 1);
+        } else {
+          const s = start.slice(0, 10);
+          const z = end.slice(0, 10);
+          if (z === s) end = addDaysISO(s, 1);
+        }
+      }
+
+      const isBackground = e.meta?.display === "background";
+
+      const computedTitle = e.title || titleForTipo(tipo);
 
       return {
         id: String(e.id),
-        title: titleFor(e),
-        start: e.start,
-        end: e.end || undefined,
-        allDay: Boolean(e.allDay),
+        title: computedTitle,
+        start,
+        end,
+        allDay,
         backgroundColor: col,
         borderColor: col,
-        textColor: bg ? "transparent" : "#fff",
-        display: bg ? "background" : "block",
+        textColor: "#fff",
+        display: isBackground ? "background" : "block",
         extendedProps: { ...e },
       };
     });
@@ -126,10 +154,20 @@ export default function DrawerCalendario({
         <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
           <div className="px-3 h-12 border-b flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <button onClick={() => apiCalendar()?.prev()} type="button">
+              <button
+                onClick={() => {
+                  apiCalendar()?.prev();
+                }}
+                type="button"
+              >
                 <ChevronLeft size={18} />
               </button>
-              <button onClick={() => apiCalendar()?.next()} type="button">
+              <button
+                onClick={() => {
+                  apiCalendar()?.next();
+                }}
+                type="button"
+              >
                 <ChevronRight size={18} />
               </button>
               <div className="ml-2 font-semibold">{title}</div>
@@ -137,18 +175,16 @@ export default function DrawerCalendario({
 
             <div className="flex rounded-full border overflow-hidden text-sm">
               <button
-                className={`px-3 py-1 ${
-                  view === "dayGridMonth" ? "bg-gray-100" : ""
-                }`}
+                className={`px-3 py-1 ${view === "dayGridMonth" ? "bg-gray-100" : ""}`}
                 onClick={() => setView("dayGridMonth")}
+                type="button"
               >
                 Mes
               </button>
               <button
-                className={`px-3 py-1 ${
-                  view === "timeGridWeek" ? "bg-gray-100" : ""
-                }`}
+                className={`px-3 py-1 ${view === "timeGridWeek" ? "bg-gray-100" : ""}`}
                 onClick={() => setView("timeGridWeek")}
+                type="button"
               >
                 Semana
               </button>

@@ -1,4 +1,6 @@
-import { colorFor } from "./calendarioColors";
+"use client";
+
+import { COLOR_MAP } from "./calendarioColors";
 
 function Dot({ color }: { color: string }) {
   return (
@@ -13,51 +15,19 @@ export default function CalendarioLegend() {
   return (
     <div className="legend-horizontal text-xs text-gray-700 flex flex-wrap gap-x-4 gap-y-2">
       <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("vacaciones")} /> Vacaciones
+        <Dot color={COLOR_MAP.vacaciones} /> Vacaciones
       </span>
-
       <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("baja_medica")} /> Baja médica
+        <Dot color={COLOR_MAP.baja_medica} /> Baja médica
       </span>
-
       <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("festivo_local")} /> Festivo local
+        <Dot color={COLOR_MAP.festivo_nacional} /> Festivo
       </span>
-
       <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("festivo_nacional")} /> Festivo nacional
+        <Dot color={COLOR_MAP.convenio} /> Convenio
       </span>
-
       <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("convenio")} /> Ajuste convenio
-      </span>
-
-      <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("cierre_empresa")} /> Cierre empresa
-      </span>
-
-      <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("domingo")} /> Domingo
-      </span>
-
-      <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("laborable_extra")} /> Laborable extra
-      </span>
-
-      <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("real_trabajo")} /> Trabajo real
-      </span>
-
-      <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("real_descanso")} /> Descanso real
-      </span>
-
-      <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("plan_trabajo")} /> Plan trabajo
-      </span>
-
-      <span className="legend-item inline-flex items-center gap-2">
-        <Dot color={colorFor("plan_descanso")} /> Plan descanso
+        <Dot color={COLOR_MAP.cierre_empresa} /> Cierre empresa
       </span>
     </div>
   );
