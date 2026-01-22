@@ -15,6 +15,11 @@ type RealBloque = {
   fin: string; // ISO
   minutos?: number;
 };
+function minToHHMM(min: number) {
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
 
 function hhmmssToMin(v?: string | null) {
   if (!v) return null;
@@ -178,13 +183,13 @@ export default function PlanVsRealTimeline({
             <div
               key={`${s.tipo}-${idx}`}
               className={`absolute top-1 bottom-1 border rounded ${barClass(
-                s.tipo
+                s.tipo,
               )}`}
               style={{
                 left: `${leftPct(s.a)}%`,
                 width: `${widthPct(s.a, s.z)}%`,
               }}
-              title={`${s.tipo} ${Math.round(s.a)}-${Math.round(s.z)}`}
+              title={`${normTipo(s.tipo)} ${minToHHMM(s.a)}–${minToHHMM(s.z)}`}
             />
           ))}
         </div>
@@ -198,13 +203,13 @@ export default function PlanVsRealTimeline({
             <div
               key={`${s.tipo}-${idx}`}
               className={`absolute top-1 bottom-1 border rounded ${barClassReal(
-                s.tipo
+                s.tipo,
               )}`}
               style={{
                 left: `${leftPct(s.a)}%`,
                 width: `${widthPct(s.a, s.z)}%`,
               }}
-              title={`${s.tipo} ${Math.round(s.a)}-${Math.round(s.z)}`}
+              title={`${s.tipo} ${minToHHMM(s.a)}–${minToHHMM(s.z)}`}
             />
           ))}
         </div>
