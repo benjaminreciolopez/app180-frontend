@@ -3,7 +3,6 @@
 import { login } from "../services/auth";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { redirect } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,7 +43,7 @@ export default function LoginPage() {
         onSubmit={handleLogin}
         className="bg-white p-6 rounded shadow-md w-96 space-y-3"
       >
-        <h1 className="text-xl font-bold text-center">APP180</h1>
+        <h1 className="text-xl font-bold text-center">CONTENDO GESTIONES</h1>
 
         <input
           type="email"

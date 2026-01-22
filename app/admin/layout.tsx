@@ -102,7 +102,7 @@ export default function AdminLayout({
           </button>
         </div>
 
-        <h2 className="text-xl font-bold tracking-wide">APP180</h2>
+        <h2 className="text-xl font-bold tracking-wide">CONTENDO GESTIONES</h2>
 
         <ul className="mt-8 space-y-2 flex-1 overflow-y-auto">
           {menu.map((item) => (

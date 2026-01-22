@@ -23,6 +23,6 @@ export default function RootLayout({
 }
 
 export const metadata: Metadata = {
-  title: "APP180",
+  title: "CONTENDO GESTIONES",
   description: "Gestión de fichajes y reportes",
 };
