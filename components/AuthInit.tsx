@@ -25,22 +25,15 @@ function safeParseUser(v: string | null): StoredUser | null {
 }
 
 function isPublicPath(path: string) {
-  const publicPrefixes = ["/_next", "/icons", "/static"];
-
-  const publicExact = [
-    "/",
-    "/login",
-    "/register",
-    "/manifest.json",
-    "/sw.js",
-    "/favicon.ico",
-  ];
-
-  if (publicExact.includes(path)) return true;
-
   return (
-    publicPrefixes.some((p) => path.startsWith(p)) ||
-    path.startsWith("/empleado/instalar")
+    path === "/login" ||
+    path === "/register" ||
+    path === "/" ||
+    path === "/manifest.json" ||
+    path === "/sw.js" ||
+    path.startsWith("/icons/") ||
+    path.startsWith("/_next/") ||
+    path.startsWith("/api")
   );
 }
 
