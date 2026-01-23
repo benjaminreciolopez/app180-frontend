@@ -203,13 +203,15 @@ export default function DashboardPage() {
                         <td>{f.empleado_nombre}</td>
                         <td>{f.cliente_nombre || "—"}</td>
                         <td>
-                          {f.tipo === "entrada" ? (
-                            <span className="badge badge-success">ENTRADA</span>
-                          ) : (
-                            <span className="badge badge-muted">
-                              {f.tipo.toUpperCase()}
-                            </span>
-                          )}
+                          <span
+                            className={
+                              f.tipo === "entrada"
+                                ? "badge badge-success"
+                                : "badge badge-muted"
+                            }
+                          >
+                            {labelTipo(f.tipo)}
+                          </span>
                         </td>
                       </tr>
                     ))}
