@@ -24,5 +24,8 @@ export default function RootLayout({
 
 export const metadata: Metadata = {
   title: "CONTENDO GESTIONES",
-  description: "Gestión de fichajes y reportes",
+  manifest: "/manifest.json",
+  icons: {
+    apple: "/icon-192.png",
+  },
 };
