@@ -66,6 +66,7 @@ export default function AdminLayout({
     },
     { path: "/admin/calendario", label: "Calendario" },
     { path: "/admin/empleados", label: "Empleados" },
+    { path: "/admin/clientes", label: "Clientes" },
     { path: "/admin/jornadas", label: "Jornadas" },
     { path: "/admin/fichajes", label: "Fichajes" },
     { path: "/admin/fichajes/sospechosos", label: "Sospechosos" },
