@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarOff, BedDouble, Ban } from "lucide-react";
 import { useFichaje } from "./useFichaje";
 
 export type AccionFichaje =
@@ -18,7 +19,70 @@ export type BotonEstado = {
   margen_antes: number;
   margen_despues: number;
   motivo_oculto: string | null;
+
+  calendario?: {
+    tipo: string;
+    nombre: string | null;
+    descripcion: string | null;
+    origen: string;
+    confirmado: boolean;
+  } | null;
 };
+
+function MotivoBloqueo({ boton }: { boton: BotonEstado }) {
+  if (!boton.motivo_oculto) return null;
+
+  // 📅 Calendario laboral
+  if (boton.motivo_oculto === "calendario") {
+    const nombre = boton.calendario?.nombre;
+    const desc = boton.calendario?.descripcion;
+    const origen = boton.calendario?.origen;
+
+    const texto = nombre
+      ? `Festivo: ${nombre}`
+      : boton.mensaje || "Día no laborable";
+
+    const tooltip = [
+      nombre,
+      desc,
+      origen ? `Origen: ${origen.toUpperCase()}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    return (
+      <div
+        className="flex items-center justify-center gap-2 text-orange-600 text-sm cursor-help"
+        title={tooltip}
+      >
+        <span>📅</span>
+        <span>{texto}</span>
+      </div>
+    );
+  }
+
+  // 🛌 Ausencia
+  if (boton.motivo_oculto === "ausencia") {
+    return (
+      <div className="flex items-center justify-center gap-2 text-blue-600 text-sm">
+        <span>🛌</span>
+        <span>Ausencia aprobada</span>
+      </div>
+    );
+  }
+
+  // 🚫 No laboral genérico
+  if (boton.motivo_oculto === "no_laboral") {
+    return (
+      <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
+        <span>🚫</span>
+        <span>Día no laboral</span>
+      </div>
+    );
+  }
+
+  return null;
+}
 
 export function FichajeAction({
   boton,
@@ -29,8 +93,7 @@ export function FichajeAction({
 }) {
   const { fichar, loading } = useFichaje(reload);
 
-  if (!boton?.visible) return null;
-  if (!boton.accion) return null;
+  if (!boton) return null;
 
   const config: Record<AccionFichaje, { label: string }> = {
     entrada: { label: "Fichar entrada" },
@@ -39,8 +102,6 @@ export function FichajeAction({
     descanso_fin: { label: "Finalizar descanso" },
   };
 
-  const cfg = config[boton.accion];
-
   const colorClass =
     boton.color === "rojo"
       ? "bg-red-600 hover:bg-red-700 text-white"
@@ -48,17 +109,24 @@ export function FichajeAction({
 
   return (
     <div className="space-y-2">
-      <button
-        disabled={loading || !boton.puede_fichar}
-        onClick={() => fichar(boton.accion!)}
-        className={`w-full py-4 text-lg rounded font-semibold transition disabled:opacity-60 ${colorClass}`}
-      >
-        {loading ? "Registrando..." : cfg.label}
-      </button>
+      {/* BOTÓN (solo si visible) */}
+      {boton.visible && boton.accion && (
+        <button
+          disabled={loading || !boton.puede_fichar}
+          onClick={() => fichar(boton.accion!)}
+          className={`w-full py-4 text-lg rounded font-semibold transition disabled:opacity-60 ${colorClass}`}
+        >
+          {loading ? "Registrando..." : config[boton.accion].label}
+        </button>
+      )}
 
-      {boton.mensaje ? (
+      {/* MENSAJE NORMAL */}
+      {boton.mensaje && (
         <p className="text-sm text-gray-600 text-center">{boton.mensaje}</p>
-      ) : null}
+      )}
+
+      {/* MOTIVO DE BLOQUEO */}
+      {!boton.visible && <MotivoBloqueo boton={boton} />}
     </div>
   );
 }
