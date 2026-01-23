@@ -14,11 +14,25 @@ export type BotonEstado = {
   margen_antes: number;
   margen_despues: number;
   motivo_oculto: string | null;
+
+  // ✅ AÑADIR
+  ausencia?: {
+    id: string;
+    tipo: "vacaciones" | "baja_medica" | string;
+  } | null;
+
+  calendario?: {
+    tipo: string;
+    nombre: string | null;
+    descripcion: string | null;
+    origen: string;
+    confirmado: boolean;
+  } | null;
 };
 
 export function useEstadoFichaje() {
   const [estado, setEstado] = useState<"fuera" | "dentro" | "descanso" | null>(
-    null
+    null,
   );
   const [boton, setBoton] = useState<BotonEstado | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,9 +58,14 @@ export function useEstadoFichaje() {
               margen_antes: Number(b.margen_antes ?? 15),
               margen_despues: Number(b.margen_despues ?? 15),
               motivo_oculto: b.motivo_oculto ?? null,
+
+              // ✅ AÑADIR
+              ausencia: b.ausencia ?? null,
+              calendario: b.calendario ?? null,
             }
-          : null
+          : null,
       );
+      console.log("BOTON ESTADO:", b);
     } catch (e) {
       console.error("Error cargando estado fichaje", e);
       setEstado(null);
