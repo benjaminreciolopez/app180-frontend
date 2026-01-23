@@ -6,6 +6,7 @@ import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 
 export default function EditarClientePage() {
   const { id } = useParams();
@@ -63,6 +64,11 @@ export default function EditarClientePage() {
       </div>
 
       <Button type="submit">Guardar cambios</Button>
+      <div className="flex gap-3 mb-4">
+        <Link href={`/admin/clientes/${id}/tarifas`}>
+          <Button variant="outline">Gestionar tarifas</Button>
+        </Link>
+      </div>
     </form>
   );
 }
