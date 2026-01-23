@@ -51,25 +51,37 @@ export default function DrawerMisSolicitudes({
   }
 
   useEffect(() => {
-    load();
+    let interval: NodeJS.Timeout | null = null;
 
-    const onFocus = () => load();
-    const onVisibility = () => {
-      if (!document.hidden) load();
-    };
-    const onOnline = () => load();
-    window.addEventListener("online", onOnline);
+    async function safeLoad() {
+      if (document.hidden) return;
+      await load();
+    }
+
+    // inicial
+    safeLoad();
+
+    const onFocus = () => safeLoad();
+    const onVisibility = () => safeLoad();
+    const onOnline = () => safeLoad();
 
     window.addEventListener("focus", onFocus);
+    window.addEventListener("online", onOnline);
     document.addEventListener("visibilitychange", onVisibility);
 
-    const interval = setInterval(load, 30000); // cada 30s
+    // polling SOLO si está visible
+    interval = setInterval(() => {
+      if (!document.hidden) {
+        load();
+      }
+    }, 60000); // ⬅️ subimos a 60s
 
     return () => {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("online", onOnline);
       document.removeEventListener("visibilitychange", onVisibility);
-      clearInterval(interval);
+
+      if (interval) clearInterval(interval);
     };
   }, []);
 
