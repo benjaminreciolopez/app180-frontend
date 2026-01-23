@@ -2,6 +2,20 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Rutas que NO deben tocarse
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/icons") ||
+    pathname.startsWith("/static") ||
+    pathname === "/manifest.json" ||
+    pathname === "/sw.js" ||
+    pathname === "/favicon.ico"
+  ) {
+    return NextResponse.next();
+  }
+
   const response = NextResponse.next();
 
   response.headers.set(
@@ -14,9 +28,3 @@ export function middleware(request: NextRequest) {
 
   return response;
 }
-
-export const config = {
-  matcher: [
-    "/((?!_next|favicon.ico|manifest.json|icons|sw.js|icon-192.png|icon-512.png).*)",
-  ],
-};
