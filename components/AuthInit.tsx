@@ -26,14 +26,14 @@ function safeParseUser(v: string | null): StoredUser | null {
 
 function isPublicPath(path: string) {
   return (
+    path === "/" ||
     path === "/login" ||
     path === "/register" ||
-    path === "/" ||
+    path.startsWith("/_next") ||
+    path.startsWith("/icons") ||
     path === "/manifest.json" ||
     path === "/sw.js" ||
-    path.startsWith("/icons/") ||
-    path.startsWith("/_next/") ||
-    path.startsWith("/api")
+    path === "/favicon.ico"
   );
 }
 
