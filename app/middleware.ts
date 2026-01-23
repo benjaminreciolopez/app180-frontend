@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
 
   response.headers.set(
     "Cache-Control",
-    "no-store, no-cache, must-revalidate, proxy-revalidate"
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
   );
   response.headers.set("Pragma", "no-cache");
   response.headers.set("Expires", "0");
@@ -14,3 +14,7 @@ export function middleware(request: NextRequest) {
 
   return response;
 }
+
+export const config = {
+  matcher: ["/((?!_next|favicon.ico|manifest.json|icons|sw.js).*)"],
+};
