@@ -30,6 +30,8 @@ export type BotonEstado = {
   ausencia?: {
     id: string;
     tipo: "vacaciones" | "baja_medica" | string;
+    fecha_inicio: string;
+    fecha_fin: string;
   } | null;
 };
 
@@ -75,10 +77,20 @@ function MotivoBloqueo({ boton }: { boton: BotonEstado }) {
       texto = "Estás de baja médica";
     }
 
+    let hasta = "";
+
+    if (boton.ausencia?.fecha_fin) {
+      const d = new Date(boton.ausencia.fecha_fin);
+      hasta = d.toLocaleDateString("es-ES");
+    }
+
     return (
       <div className="flex items-center justify-center gap-2 text-blue-600 text-sm">
         <span>🛌</span>
-        <span>{texto}</span>
+        <span>
+          {texto}
+          {hasta ? ` hasta el ${hasta}` : ""}
+        </span>
       </div>
     );
   }

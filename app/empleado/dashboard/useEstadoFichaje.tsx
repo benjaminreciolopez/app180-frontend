@@ -19,6 +19,8 @@ export type BotonEstado = {
   ausencia?: {
     id: string;
     tipo: "vacaciones" | "baja_medica" | string;
+    fecha_inicio: string;
+    fecha_fin: string;
   } | null;
 
   calendario?: {
