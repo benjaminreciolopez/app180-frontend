@@ -61,6 +61,19 @@ export default function DashboardPage() {
         return tipo.toUpperCase();
     }
   }
+  function badgeClass(tipo: string) {
+    switch (tipo) {
+      case "entrada":
+        return "badge badge-success";
+      case "salida":
+        return "badge badge-danger";
+      case "descanso_inicio":
+      case "descanso_fin":
+        return "badge badge-warning";
+      default:
+        return "badge badge-muted";
+    }
+  }
 
   useEffect(() => {
     load();
@@ -165,15 +178,9 @@ export default function DashboardPage() {
                           {f.cliente_nombre || "Sin cliente"}
                         </p>
                       </div>
-                      <span
-                        className={
-                          f.tipo === "entrada"
-                            ? "badge badge-success"
-                            : "badge badge-muted"
-                        }
-                      >
+                      <span className={badgeClass(f.tipo)}>
                         {labelTipo(f.tipo)}
-                      </span>
+                      </span>{" "}
                     </div>
 
                     <p className="text-xs text-muted-foreground mt-2">
@@ -203,13 +210,7 @@ export default function DashboardPage() {
                         <td>{f.empleado_nombre}</td>
                         <td>{f.cliente_nombre || "—"}</td>
                         <td>
-                          <span
-                            className={
-                              f.tipo === "entrada"
-                                ? "badge badge-success"
-                                : "badge badge-muted"
-                            }
-                          >
+                          <span className={badgeClass(f.tipo)}>
                             {labelTipo(f.tipo)}
                           </span>
                         </td>
