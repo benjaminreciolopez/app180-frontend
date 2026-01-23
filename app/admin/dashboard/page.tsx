@@ -14,11 +14,11 @@ interface TrabajandoAhoraItem {
 
 interface UltimoFichaje {
   id: string;
-  empleado_id: string;
+  empleado_id?: string;
   empleado_nombre: string;
   cliente_nombre: string | null;
-  estado: string;
-  created_at: string;
+  tipo: string; // 👈 AQUÍ
+  fecha: string; // 👈 viene como f.fecha
 }
 
 interface DashboardData {
@@ -45,6 +45,20 @@ export default function DashboardPage() {
       setError(err?.response?.data?.error || "No se pudieron cargar los datos");
     } finally {
       setLoading(false);
+    }
+  }
+  function labelTipo(tipo: string) {
+    switch (tipo) {
+      case "entrada":
+        return "ENTRADA";
+      case "salida":
+        return "SALIDA";
+      case "descanso_inicio":
+        return "INICIO DESCANSO";
+      case "descanso_fin":
+        return "FIN DESCANSO";
+      default:
+        return tipo.toUpperCase();
     }
   }
 
@@ -126,7 +140,6 @@ export default function DashboardPage() {
         </div>
 
         {/* ÚLTIMOS FICHAJES */}
-        {/* ÚLTIMOS FICHAJES */}
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">Últimos fichajes</h2>
@@ -152,20 +165,19 @@ export default function DashboardPage() {
                           {f.cliente_nombre || "Sin cliente"}
                         </p>
                       </div>
-
                       <span
                         className={
-                          f.estado === "ENTRADA"
+                          f.tipo === "entrada"
                             ? "badge badge-success"
                             : "badge badge-muted"
                         }
                       >
-                        {f.estado}
+                        {labelTipo(f.tipo)}
                       </span>
                     </div>
 
                     <p className="text-xs text-muted-foreground mt-2">
-                      {fecha(f.created_at)} · {hora(f.created_at)}
+                      {fecha(f.fecha)} · {hora(f.fecha)}
                     </p>
                   </div>
                 ))}
@@ -186,15 +198,17 @@ export default function DashboardPage() {
                     {data.ultimosFichajes.map((f) => (
                       <tr key={f.id}>
                         <td>
-                          {fecha(f.created_at)} {hora(f.created_at)}
+                          {fecha(f.fecha)} {hora(f.fecha)}
                         </td>
                         <td>{f.empleado_nombre}</td>
                         <td>{f.cliente_nombre || "—"}</td>
                         <td>
-                          {f.estado === "ENTRADA" ? (
+                          {f.tipo === "entrada" ? (
                             <span className="badge badge-success">ENTRADA</span>
                           ) : (
-                            <span className="badge badge-muted">SALIDA</span>
+                            <span className="badge badge-muted">
+                              {f.tipo.toUpperCase()}
+                            </span>
                           )}
                         </td>
                       </tr>
