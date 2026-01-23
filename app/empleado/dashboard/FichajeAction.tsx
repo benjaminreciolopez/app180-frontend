@@ -27,6 +27,10 @@ export type BotonEstado = {
     origen: string;
     confirmado: boolean;
   } | null;
+  ausencia?: {
+    id: string;
+    tipo: "vacaciones" | "baja_medica" | string;
+  } | null;
 };
 
 function MotivoBloqueo({ boton }: { boton: BotonEstado }) {
@@ -61,12 +65,20 @@ function MotivoBloqueo({ boton }: { boton: BotonEstado }) {
     );
   }
 
-  // 🛌 Ausencia
+  // 🛌 Ausencia (vacaciones / baja)
   if (boton.motivo_oculto === "ausencia") {
+    let texto = "Ausencia";
+
+    if (boton.ausencia?.tipo === "vacaciones") {
+      texto = "Estás de vacaciones";
+    } else if (boton.ausencia?.tipo === "baja_medica") {
+      texto = "Estás de baja médica";
+    }
+
     return (
       <div className="flex items-center justify-center gap-2 text-blue-600 text-sm">
         <span>🛌</span>
-        <span>Ausencia aprobada</span>
+        <span>{texto}</span>
       </div>
     );
   }
