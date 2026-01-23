@@ -18,7 +18,8 @@ type Tarifa = {
 };
 
 export default function TarifasClientePage() {
-  const { id: clienteId } = useParams();
+  const params = useParams();
+  const clienteId = params.id as string;
 
   const [tarifas, setTarifas] = useState<Tarifa[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,38 +34,50 @@ export default function TarifasClientePage() {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  async function load() {
-    const { data } = await api.get("/admin/clientes/tarifas", {
-      params: { clienteId },
-    });
+  /* ================= LOAD ================= */
 
-    setTarifas(data);
-    setLoading(false);
+  async function load() {
+    try {
+      const { data } = await api.get(`/admin/clientes/${clienteId}/tarifas`);
+
+      setTarifas(data);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    if (clienteId) load();
+  }, [clienteId]);
+
+  /* ================= CREAR ================= */
 
   async function crear(e: React.FormEvent) {
     e.preventDefault();
 
-    await api.post("/admin/clientes/tarifas", {
-      cliente_id: clienteId,
+    await api.post(`/admin/clientes/${clienteId}/tarifas`, {
       tipo: form.tipo,
       precio: Number(form.precio),
       fecha_inicio: form.fecha_inicio,
     });
 
-    setForm({ tipo: "hora", precio: "", fecha_inicio: "" });
+    setForm({
+      tipo: "hora",
+      precio: "",
+      fecha_inicio: "",
+    });
 
     load();
   }
+
+  /* ================= CERRAR ================= */
 
   async function cerrar(id: string) {
     await api.delete(`/admin/clientes/tarifas/${id}`);
     load();
   }
+
+  /* ================= UI ================= */
 
   if (loading) return <div>Cargando tarifas…</div>;
 
@@ -79,6 +92,7 @@ export default function TarifasClientePage() {
 
         <div>
           <Label>Tipo</Label>
+
           <select
             className="w-full border rounded px-3 py-2"
             value={form.tipo}
@@ -93,6 +107,7 @@ export default function TarifasClientePage() {
 
         <div>
           <Label>Precio</Label>
+
           <Input
             type="number"
             step="0.01"
@@ -104,6 +119,7 @@ export default function TarifasClientePage() {
 
         <div>
           <Label>Fecha inicio</Label>
+
           <Input
             type="date"
             value={form.fecha_inicio}
@@ -134,6 +150,7 @@ export default function TarifasClientePage() {
             {tarifas.map((t) => (
               <tr key={t.id} className="border-t">
                 <td className="p-2">{t.tipo}</td>
+
                 <td className="p-2">{t.precio} €</td>
 
                 <td className="p-2">{t.fecha_inicio}</td>
