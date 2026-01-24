@@ -13,6 +13,11 @@ import {
 } from "@/components/ui/select";
 import { Plus, Pencil, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
+
+const GeoPicker = dynamic(() => import("@/components/GeoPicker"), {
+  ssr: false,
+});
 
 /* =====================================================
    Types
@@ -67,6 +72,7 @@ export default function AdminClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [geoOpen, setGeoOpen] = useState(false);
 
   const [editing, setEditing] = useState<Cliente | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -314,6 +320,9 @@ export default function AdminClientesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <Button variant="outline" onClick={() => setGeoOpen(true)}>
+                  Seleccionar en mapa
+                </Button>
 
                 {/* Geo */}
                 <div className="space-y-2">
@@ -334,6 +343,13 @@ export default function AdminClientesPage() {
                       <SelectItem value="info">Informativo</SelectItem>
                     </SelectContent>
                   </Select>
+                  {editing.lat != null && editing.lng != null ? (
+                    <p className="text-sm text-slate-600">
+                      Ubicación guardada ✔
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-400">No hay ubicación</p>
+                  )}
 
                   <div className="grid grid-cols-3 gap-2">
                     <Input
@@ -424,6 +440,22 @@ export default function AdminClientesPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      {geoOpen && editing && (
+        <GeoPicker
+          lat={editing.lat || null}
+          lng={editing.lng || null}
+          radio={editing.radio_m || null}
+          onChange={(v) =>
+            setEditing({
+              ...editing,
+              lat: v.lat,
+              lng: v.lng,
+              radio_m: v.radio,
+            })
+          }
+          onClose={() => setGeoOpen(false)}
+        />
+      )}
     </div>
   );
 }
