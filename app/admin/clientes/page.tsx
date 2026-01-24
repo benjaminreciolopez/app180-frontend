@@ -103,16 +103,24 @@ export default function AdminClientesPage() {
      Actions
   ========================= */
 
-  function openCreate() {
-    setEditing({
-      id: "",
-      nombre: "",
-      activo: true,
-      modo_defecto: "mixto",
-      requiere_geo: true,
-      geo_policy: "strict",
-    });
-    setDrawerOpen(true);
+  async function openCreate() {
+    try {
+      const r = await api("/admin/clientes/next-code");
+
+      setEditing({
+        id: "",
+        nombre: "",
+        codigo: r.codigo, // 👈 aquí
+        activo: true,
+        modo_defecto: "mixto",
+        requiere_geo: true,
+        geo_policy: "strict",
+      });
+
+      setDrawerOpen(true);
+    } catch (e: any) {
+      alert("No se pudo generar código");
+    }
   }
 
   function openEdit(c: Cliente) {
@@ -292,9 +300,9 @@ export default function AdminClientesPage() {
                 <div>
                   <label className="text-sm">Código</label>
                   <Input
-                    value={editing.codigo || "Se generará automáticamente"}
+                    value={editing.codigo || ""}
                     disabled
-                    className="bg-slate-100"
+                    className="bg-slate-100 cursor-not-allowed"
                   />
                 </div>
 
