@@ -10,24 +10,37 @@ export default function AsignacionesPanel() {
   const [empleadoSel, setEmpleadoSel] = useState<string>("");
   const [plantillaSel, setPlantillaSel] = useState<string>("");
   const [fechaInicio, setFechaInicio] = useState<string>(
-    new Date().toISOString().slice(0, 10)
+    new Date().toISOString().slice(0, 10),
   );
   const [fechaFin, setFechaFin] = useState<string>("");
 
   const [hist, setHist] = useState<Asignacion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clientes, setClientes] = useState<
+    { id: string; nombre: string; codigo?: string }[]
+  >([]);
+
+  const [clienteSel, setClienteSel] = useState<string>("");
 
   async function loadBase() {
     setLoading(true);
     try {
-      const [e, p] = await Promise.all([
+      const [e, p, c] = await Promise.all([
         api.get("/employees"),
         api.get("/admin/plantillas"),
+        api.get("/admin/clientes"),
       ]);
       setEmpleados(
-        (e.data || []).map((x: any) => ({ id: x.id, nombre: x.nombre }))
+        (e.data || []).map((x: any) => ({ id: x.id, nombre: x.nombre })),
       );
       setPlantillas(Array.isArray(p.data) ? p.data : []);
+      setClientes(
+        (c.data || []).map((x: any) => ({
+          id: x.id,
+          nombre: x.nombre,
+          codigo: x.codigo,
+        })),
+      );
     } finally {
       setLoading(false);
     }
@@ -51,13 +64,14 @@ export default function AsignacionesPanel() {
   }, [empleadoSel]);
 
   async function asignar() {
-    if (!empleadoSel || !plantillaSel || !fechaInicio) {
-      alert("Empleado, plantilla y fecha_inicio son obligatorios");
+    if (!empleadoSel || !plantillaSel || !clienteSel || !fechaInicio) {
+      alert("Empleado, plantilla, cliente y fecha_inicio son obligatorios");
       return;
     }
     await api.post("/admin/plantillas/asignar", {
       empleado_id: empleadoSel,
       plantilla_id: plantillaSel,
+      cliente_id: clienteSel,
       fecha_inicio: fechaInicio,
       fecha_fin: fechaFin || null,
     });
@@ -72,7 +86,7 @@ export default function AsignacionesPanel() {
       <div className="bg-white border rounded p-4 space-y-3">
         <h2 className="text-lg font-bold">Asignar plantilla a empleado</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div>
             <label className="text-sm font-semibold">Empleado</label>
             <select
@@ -100,6 +114,24 @@ export default function AsignacionesPanel() {
               {plantillas.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-semibold">Cliente</label>
+
+            <select
+              className="border p-2 rounded w-full"
+              value={clienteSel}
+              onChange={(e) => setClienteSel(e.target.value)}
+            >
+              <option value="">Selecciona...</option>
+
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.codigo ? `${c.codigo} · ` : ""}
+                  {c.nombre}
                 </option>
               ))}
             </select>
@@ -151,6 +183,7 @@ export default function AsignacionesPanel() {
           <table className="w-full border rounded overflow-hidden">
             <thead>
               <tr className="bg-gray-100">
+                <th className="p-3 text-left">Cliente</th>
                 <th className="p-3 text-left">Plantilla</th>
                 <th className="p-3 text-left">Inicio</th>
                 <th className="p-3 text-left">Fin</th>
@@ -160,6 +193,10 @@ export default function AsignacionesPanel() {
             <tbody>
               {hist.map((h) => (
                 <tr key={h.id} className="border-b">
+                  <td className="p-3">
+                    {h.cliente_nombre || h.cliente_id || "-"}
+                  </td>
+
                   <td className="p-3">
                     {h.plantilla_nombre || h.plantilla_id}
                   </td>

@@ -43,6 +43,8 @@ export type Excepcion = {
 
 export type Asignacion = {
   id: string;
+  cliente_id?: string;
+  cliente_nombre?: string;
   empleado_id: string;
   plantilla_id: string;
   fecha_inicio: string; // date
