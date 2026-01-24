@@ -2,27 +2,52 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+
 import { login } from "@/services/auth";
+import { api } from "@/services/api";
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState(""); // por comodidad
-  const [password, setPassword] = useState(""); // pon aquí la real si la conoces
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string>("");
+  const [checking, setChecking] = useState(true);
 
+  // =========================
+  // BOOTSTRAP CHECK
+  // =========================
+  useEffect(() => {
+    async function init() {
+      try {
+        const { bootstrap } = await api
+          .get("/system/status")
+          .then((r) => r.data);
+
+        if (bootstrap) {
+          router.replace("/register");
+        }
+      } catch (e) {
+        console.error("Error comprobando bootstrap", e);
+      } finally {
+        setChecking(false); // ✅ aquí
+      }
+    }
+
+    init();
+  }, [router]);
+
+  // =========================
+  // LOGIN
+  // =========================
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
     setError("");
 
     try {
-      console.log("[UI] intentando login...");
       const result = await login(email, password);
-
-      // Aquí YA se ha guardado el token en localStorage
-      console.log("[UI] login ok, decoded:", result.decoded);
 
       if (result.decoded.role === "admin") {
         router.replace("/admin/dashboard");
@@ -31,8 +56,16 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       console.error("[UI] error en login", err);
+
       setError(err?.response?.data?.error || "Error al iniciar sesión");
     }
+  }
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Cargando…</p>
+      </div>
+    );
   }
 
   return (
