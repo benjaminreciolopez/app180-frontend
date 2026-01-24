@@ -14,6 +14,7 @@ import {
 import { Plus, Pencil, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 
 const GeoPicker = dynamic(() => import("@/components/GeoPicker"), {
   ssr: false,
@@ -76,6 +77,7 @@ export default function AdminClientesPage() {
 
   const [editing, setEditing] = useState<Cliente | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const router = useRouter();
 
   /* =========================
      Load
@@ -206,7 +208,12 @@ export default function AdminClientesPage() {
                   key={c.id}
                   className="border-b last:border-0 hover:bg-slate-50"
                 >
-                  <td className="p-3 font-medium">{c.nombre}</td>
+                  <td
+                    className="p-3 font-medium text-blue-600 cursor-pointer hover:underline"
+                    onClick={() => router.push(`/admin/clientes/${c.id}`)}
+                  >
+                    {c.nombre}
+                  </td>
                   <td className="p-3 text-slate-600">{c.codigo || "—"}</td>
                   <td className="p-3">{c.modo_defecto}</td>
                   <td className="p-3">
