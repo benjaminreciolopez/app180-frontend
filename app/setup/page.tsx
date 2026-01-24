@@ -11,6 +11,7 @@ export default function SetupPage() {
   const [password, setPassword] = useState("");
   const [nombre, setNombre] = useState("");
   const [empresa, setEmpresa] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -80,14 +81,25 @@ export default function SetupPage() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <input
-          required
-          type="password"
-          placeholder="Contraseña"
-          className="border p-2 w-full rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className="relative">
+          <input
+            required
+            type={showPassword ? "text" : "password"}
+            placeholder="Contraseña"
+            className="border p-2 w-full rounded pr-10"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            tabIndex={-1}
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
 
         <button
           type="submit"
