@@ -292,10 +292,9 @@ export default function AdminClientesPage() {
                 <div>
                   <label className="text-sm">Código</label>
                   <Input
-                    value={editing.codigo || ""}
-                    onChange={(e) =>
-                      setEditing({ ...editing, codigo: e.target.value })
-                    }
+                    value={editing.codigo || "Se generará automáticamente"}
+                    disabled
+                    className="bg-slate-100"
                   />
                 </div>
 
