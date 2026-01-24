@@ -2,7 +2,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useState, useEffect, startTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { login } from "@/services/auth";
@@ -27,12 +27,21 @@ export default function LoginPage() {
           .then((r) => r.data);
 
         if (bootstrap) {
-          router.replace("/register");
+          startTransition(() => {
+            router.replace("/register");
+          });
+          return;
         }
       } catch (e) {
         console.error("Error comprobando bootstrap", e);
+
+        // fallback seguro
+        startTransition(() => {
+          router.replace("/register");
+        });
+        return;
       } finally {
-        setChecking(false); // ✅ aquí
+        setChecking(false);
       }
     }
 
