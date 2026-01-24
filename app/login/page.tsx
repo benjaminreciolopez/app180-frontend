@@ -1,41 +1,61 @@
-"use client";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-import { FormEvent, useState } from "react";
+("use client");
+
+import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { login } from "@/services/auth";
+import { api } from "@/services/api";
 
 export default function LoginPage() {
+  headers(); // 🔥 evita static
+
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState("");
+  const [checking, setChecking] = useState(true);
 
   console.log("LOGIN PAGE MOUNTED");
 
-  // =========================
-  // LOGIN
-  // =========================
+  useEffect(() => {
+    async function init() {
+      try {
+        const res = await api.get("/system/status");
+
+        if (res.data.bootstrap) {
+          router.replace("/setup");
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setChecking(false);
+      }
+    }
+
+    init();
+  }, [router]);
+
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
-    setError("");
 
     try {
       const result = await login(email, password);
 
-      // 👇 Aquí TS ya sabe que existe
+      if (!result) return;
+
       if (result.decoded.role === "admin") {
         router.replace("/admin/dashboard");
       } else {
         router.replace("/empleado/dashboard");
       }
     } catch (err: any) {
-      console.error("[UI] error en login", err);
-
-      // 🔥 BOOTSTRAP
       if (err?.response?.data?.code === "BOOTSTRAP_REQUIRED") {
         router.replace("/setup");
         return;
@@ -45,49 +65,43 @@ export default function LoginPage() {
     }
   }
 
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Cargando…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-100">
       <form
-        autoComplete="off"
         onSubmit={handleLogin}
-        className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md space-y-6"
+        className="bg-white shadow p-8 rounded w-full max-w-md space-y-4"
       >
-        <h1 className="text-2xl font-bold text-center">
-          Acceso CONTENDO GESTIONES
+        <h1 className="text-xl font-bold text-center">
+          Acceso Contendo Gestiones{" "}
         </h1>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
+        {error && <p className="text-red-600">{error}</p>}
 
-          <input
-            type="email"
-            autoComplete="username"
-            className="border rounded w-full px-3 py-2"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="border p-2 w-full"
+          placeholder="Email"
+        />
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Contraseña</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="border p-2 w-full"
+          placeholder="Contraseña"
+        />
 
-          <input
-            type="password"
-            autoComplete="current-password"
-            className="border rounded w-full px-3 py-2"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded"
-        >
+        <button className="bg-blue-600 text-white w-full py-2 rounded">
           Entrar
         </button>
       </form>
