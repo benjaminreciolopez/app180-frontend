@@ -6,6 +6,7 @@ import type { Bloque, Excepcion, Plantilla, PlantillaDia } from "./types";
 import BloquesEditor from "./BloquesEditor";
 import RenamePlantillaModal from "./RenamePlantillaModal";
 import DeletePlantillaModal from "./DeletePlantillaModal";
+import CopyDiasModal from "./CopyDiasModal";
 
 const DIAS = [
   { n: 1, label: "Lunes" },
@@ -91,6 +92,7 @@ export default function PlantillasPanel() {
   const [savingBloquesEx, setSavingBloquesEx] = useState(false);
   const [savingRename, setSavingRename] = useState(false);
   const [savingDelete, setSavingDelete] = useState(false);
+  const [showCopy, setShowCopy] = useState(false);
 
   // -----------------------
   // Loads
@@ -546,9 +548,39 @@ export default function PlantillasPanel() {
                 <div className="flex gap-2 flex-wrap">
                   <button
                     className="px-3 py-2 rounded bg-gray-200"
-                    onClick={replicarDiaBase}
+                    onClick={() => setShowCopy(true)}
                   >
                     Copiar a otros días
+                  </button>
+                  <button
+                    className="px-3 py-2 rounded bg-yellow-500 text-white"
+                    onClick={async () => {
+                      if (!diaSel?.id) return;
+
+                      const ok = confirm("¿Resetear este día completamente?");
+                      if (!ok) return;
+
+                      try {
+                        await api.put(`/admin/plantillas/dias/${diaSel.id}`, {
+                          hora_inicio: null,
+                          hora_fin: null,
+                          activo: false,
+                        });
+
+                        await api.put(
+                          `/admin/plantillas/dias/${diaSel.id}/bloques`,
+                          {
+                            bloques: [],
+                          },
+                        );
+
+                        await loadDetalle(detalle.plantilla.id);
+                      } catch (e) {
+                        setError(apiErrorMessage(e));
+                      }
+                    }}
+                  >
+                    Resetear día
                   </button>
 
                   <button
@@ -592,6 +624,28 @@ export default function PlantillasPanel() {
                     onClose={() => !savingDelete && setShowDelete(false)}
                     name={detalle.plantilla.nombre}
                     onConfirm={eliminarPlantilla}
+                  />
+                  <CopyDiasModal
+                    open={showCopy}
+                    origen={diaSemanaSel}
+                    onClose={() => setShowCopy(false)}
+                    onConfirm={async (dias, reset) => {
+                      try {
+                        await api.post(
+                          `/admin/plantillas/${detalle.plantilla.id}/replicar-dia-base`,
+                          {
+                            dia_origen: diaSemanaSel,
+                            dias_destino: dias,
+                            sobrescribir: reset,
+                          },
+                        );
+
+                        await loadDetalle(detalle.plantilla.id);
+                        setShowCopy(false);
+                      } catch (e) {
+                        setError(apiErrorMessage(e));
+                      }
+                    }}
                   />
                 </>
               )}
