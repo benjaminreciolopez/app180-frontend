@@ -15,31 +15,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>("");
   const [checking, setChecking] = useState(true);
+  console.log("LOGIN PAGE MOUNTED");
 
   // =========================
   // BOOTSTRAP CHECK
   // =========================
   useEffect(() => {
+    console.log("BOOTSTRAP CHECK START");
+
     async function init() {
       try {
-        const { bootstrap } = await api
-          .get("/system/status")
-          .then((r) => r.data);
+        const res = await api.get("/system/status");
+        console.log("BOOTSTRAP RESULT:", res.data);
 
-        if (bootstrap) {
-          startTransition(() => {
-            router.replace("/register");
-          });
+        if (res.data.bootstrap) {
+          console.log("REDIRECT TO REGISTER");
+          router.replace("/register");
           return;
         }
       } catch (e) {
-        console.error("Error comprobando bootstrap", e);
-
-        // fallback seguro
-        startTransition(() => {
-          router.replace("/register");
-        });
-        return;
+        console.error("BOOTSTRAP ERROR", e);
       } finally {
         setChecking(false);
       }
