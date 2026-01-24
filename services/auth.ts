@@ -15,65 +15,86 @@ export interface AppJwtPayload extends JwtPayload {
 export async function login(
   email: string,
   password: string,
-  device_hash?: string
-) {
+  device_hash?: string,
+): Promise<{
+  token: string;
+  user: any;
+  decoded: AppJwtPayload;
+  mustChangePassword: boolean;
+}> {
   console.log("[login] enviando credenciales", {
     email,
     hasDeviceHash: !!device_hash,
   });
 
-  let hash: string | undefined;
+  // ✅ valor por defecto SIEMPRE válido
+  let hash: string =
+    crypto.randomUUID?.() || Math.random().toString(36).substring(2);
 
+  // =========================
+  // DEVICE HASH
+  // =========================
   if (typeof window !== "undefined") {
-    // 1️⃣ si viene como parámetro → prioridad máxima
     if (device_hash && device_hash !== "") {
       hash = device_hash;
     } else {
-      // 2️⃣ intentar leer de localStorage
       const stored = localStorage.getItem("device_hash");
-      if (stored && stored !== "") {
+
+      if (stored) {
         hash = stored;
       } else {
-        // 3️⃣ intentar recuperar desde backend
         try {
           const res = await api.get("/empleado/device-hash");
+
           if (res.data?.device_hash) {
             hash = res.data.device_hash;
-            localStorage.setItem("device_hash", hash!);
+            localStorage.setItem("device_hash", hash);
           }
         } catch {
-          // ignorar errores silenciosamente
+          // ignore
         }
 
-        // 4️⃣ si sigue sin existir → generar nuevo
-        if (!hash) {
-          hash =
-            (crypto as any)?.randomUUID?.() ||
-            Math.random().toString(36).substring(2);
-
-          localStorage.setItem("device_hash", hash!);
-        }
+        // guardar el generado si no vino de backend
+        localStorage.setItem("device_hash", hash);
       }
     }
-  } else {
-    // fallback SSR
-    hash = "server-generated-" + Math.random().toString(36).substring(2);
   }
 
   console.log("[login] usando device_hash", hash);
 
-  const res = await api.post("/auth/login", {
-    email,
-    password,
-    device_hash: hash!, // <- afirmamos que es string
-    user_agent:
-      typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
-  });
+  // =========================
+  // LOGIN REQUEST
+  // =========================
+  let res;
+
+  try {
+    res = await api.post("/auth/login", {
+      email,
+      password,
+      device_hash: hash,
+      user_agent:
+        typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+    });
+  } catch (err: any) {
+    // 🔥 BOOTSTRAP
+    if (
+      err?.response?.status === 409 &&
+      err?.response?.data?.code === "BOOTSTRAP_REQUIRED"
+    ) {
+      console.warn("[login] bootstrap requerido");
+    }
+
+    // ⛔ Siempre propagar
+    throw err;
+  }
 
   console.log("[login] respuesta backend", res.data);
 
   const { token, user } = res.data;
 
+  // =========================
+  // STORAGE
+  // =========================
   if (typeof window !== "undefined") {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
@@ -81,7 +102,11 @@ export async function login(
 
   setAuthToken(token);
 
+  // =========================
+  // DECODE
+  // =========================
   const decoded = jwtDecode<AppJwtPayload>(token);
+
   console.log("[login] token decodificado", decoded);
 
   return {

@@ -1,13 +1,11 @@
-// app/login/page.tsx
 "use client";
 
 export const dynamic = "force-dynamic";
 
-import { FormEvent, useState, useEffect, startTransition } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { login } from "@/services/auth";
-import { api } from "@/services/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,34 +13,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>("");
-  const [checking, setChecking] = useState(true);
+
   console.log("LOGIN PAGE MOUNTED");
-
-  // =========================
-  // BOOTSTRAP CHECK
-  // =========================
-  useEffect(() => {
-    console.log("BOOTSTRAP CHECK START");
-
-    async function init() {
-      try {
-        const res = await api.get("/system/status");
-        console.log("BOOTSTRAP RESULT:", res.data);
-
-        if (res.data.bootstrap) {
-          console.log("REDIRECT TO REGISTER");
-          router.replace("/register");
-          return;
-        }
-      } catch (e) {
-        console.error("BOOTSTRAP ERROR", e);
-      } finally {
-        setChecking(false);
-      }
-    }
-
-    init();
-  }, [router]);
 
   // =========================
   // LOGIN
@@ -54,6 +26,7 @@ export default function LoginPage() {
     try {
       const result = await login(email, password);
 
+      // 👇 Aquí TS ya sabe que existe
       if (result.decoded.role === "admin") {
         router.replace("/admin/dashboard");
       } else {
@@ -62,20 +35,14 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error("[UI] error en login", err);
 
+      // 🔥 BOOTSTRAP
       if (err?.response?.data?.code === "BOOTSTRAP_REQUIRED") {
-        router.replace("/register");
+        router.replace("/setup");
         return;
       }
 
       setError(err?.response?.data?.error || "Error al iniciar sesión");
     }
-  }
-  if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Cargando…</p>
-      </div>
-    );
   }
 
   return (
@@ -91,6 +58,7 @@ export default function LoginPage() {
 
         <div>
           <label className="block text-sm font-medium mb-1">Email</label>
+
           <input
             type="email"
             autoComplete="username"
@@ -103,6 +71,7 @@ export default function LoginPage() {
 
         <div>
           <label className="block text-sm font-medium mb-1">Contraseña</label>
+
           <input
             type="password"
             autoComplete="current-password"
