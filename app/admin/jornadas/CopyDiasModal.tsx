@@ -16,6 +16,7 @@ const DIAS = [
 type Props = {
   open: boolean;
   origen: number;
+  origenLabel: string;
   onClose: () => void;
   onConfirm: (dias: number[], reset: boolean) => void;
 };
@@ -23,6 +24,7 @@ type Props = {
 export default function CopyDiasModal({
   open,
   origen,
+  origenLabel,
   onClose,
   onConfirm,
 }: Props) {
@@ -45,13 +47,22 @@ export default function CopyDiasModal({
   return (
     <Modal open={open} onClose={onClose} title="Copiar configuración">
       <div className="space-y-4">
-        <p className="text-sm text-gray-600">
-          Origen: <b>{DIAS.find((d) => d.n === origen)?.label}</b>
-        </p>
+        <div>
+          <p className="text-sm text-gray-600">
+            Copiando desde: <b>{origenLabel}</b>
+          </p>
+          <p className="text-xs text-gray-500">
+            El día de origen no puede seleccionarse.
+          </p>
+        </div>
 
+        {/* Días destino */}
         <div className="grid grid-cols-2 gap-2">
           {DIAS.filter((d) => d.n !== origen).map((d) => (
-            <label key={d.n} className="flex items-center gap-2 text-sm">
+            <label
+              key={d.n}
+              className="flex items-center gap-2 text-sm cursor-pointer"
+            >
               <input
                 type="checkbox"
                 checked={selected.includes(d.n)}
@@ -62,15 +73,17 @@ export default function CopyDiasModal({
           ))}
         </div>
 
+        {/* Reset */}
         <label className="flex items-center gap-2 text-sm pt-2">
           <input
             type="checkbox"
             checked={reset}
-            onChange={() => setReset(!reset)}
+            onChange={() => setReset((v) => !v)}
           />
           Resetear destino antes de copiar
         </label>
 
+        {/* Acciones */}
         <div className="flex justify-end gap-2 pt-3">
           <button className="px-3 py-2 rounded bg-gray-200" onClick={onClose}>
             Cancelar
@@ -82,6 +95,7 @@ export default function CopyDiasModal({
               px-3 py-2 rounded
               bg-blue-600 text-white
               disabled:opacity-50
+              disabled:cursor-not-allowed
             "
             onClick={() => onConfirm(selected, reset)}
           >

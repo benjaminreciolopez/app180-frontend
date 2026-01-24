@@ -93,6 +93,11 @@ export default function PlantillasPanel() {
   const [savingRename, setSavingRename] = useState(false);
   const [savingDelete, setSavingDelete] = useState(false);
   const [showCopy, setShowCopy] = useState(false);
+  const [resettingDay, setResettingDay] = useState(false);
+  const origenLabel = useMemo(() => {
+    return DIAS.find((d) => d.n === diaSemanaSel)?.label || "";
+  }, [diaSemanaSel]);
+  const [copying, setCopying] = useState(false);
 
   // -----------------------
   // Loads
@@ -232,41 +237,6 @@ export default function PlantillasPanel() {
 
       await loadPlantillas();
       setSel(r.data);
-    } catch (e) {
-      setError(apiErrorMessage(e));
-    }
-  }
-  async function replicarDiaBase() {
-    if (!detalle?.plantilla?.id) return;
-
-    const origen = diaSemanaSel;
-
-    // destino = resto de días menos el actual
-    const destinos = DIAS.map((d) => d.n).filter((n) => n !== origen);
-
-    const ok = window.confirm(
-      `Se copiará la configuración de ${
-        DIAS.find((d) => d.n === origen)?.label
-      } al resto de días.\n\n¿Continuar?`,
-    );
-
-    if (!ok) return;
-
-    setError(null);
-
-    try {
-      await api.post(
-        `/admin/plantillas/${detalle.plantilla.id}/replicar-dia-base`,
-        {
-          dia_origen: origen,
-          dias_destino: destinos,
-          sobrescribir: true,
-        },
-      );
-
-      await loadDetalle(detalle.plantilla.id);
-
-      alert("Configuración copiada correctamente.");
     } catch (e) {
       setError(apiErrorMessage(e));
     }
@@ -553,34 +523,36 @@ export default function PlantillasPanel() {
                     Copiar a otros días
                   </button>
                   <button
-                    className="px-3 py-2 rounded bg-yellow-500 text-white"
+                    disabled={resettingDay}
+                    className="
+                      px-3 py-2 rounded
+                      bg-yellow-500 text-white
+                      disabled:opacity-50
+                      disabled:cursor-not-allowed
+
+                    "
                     onClick={async () => {
-                      if (!diaSel?.id) return;
+                      if (!diaSel?.id || resettingDay) return;
 
                       const ok = confirm("¿Resetear este día completamente?");
                       if (!ok) return;
 
                       try {
-                        await api.put(`/admin/plantillas/dias/${diaSel.id}`, {
-                          hora_inicio: null,
-                          hora_fin: null,
-                          activo: false,
-                        });
+                        setResettingDay(true);
 
                         await api.put(
-                          `/admin/plantillas/dias/${diaSel.id}/bloques`,
-                          {
-                            bloques: [],
-                          },
+                          `/admin/plantillas/dias/${diaSel.id}/reset`,
                         );
 
                         await loadDetalle(detalle.plantilla.id);
                       } catch (e) {
                         setError(apiErrorMessage(e));
+                      } finally {
+                        setResettingDay(false);
                       }
                     }}
                   >
-                    Resetear día
+                    {resettingDay ? "Reseteando..." : "Resetear día"}
                   </button>
 
                   <button
@@ -628,9 +600,19 @@ export default function PlantillasPanel() {
                   <CopyDiasModal
                     open={showCopy}
                     origen={diaSemanaSel}
+                    origenLabel={origenLabel}
                     onClose={() => setShowCopy(false)}
                     onConfirm={async (dias, reset) => {
+                      if (copying) return;
+
+                      if (!dias.length) {
+                        setError("Selecciona al menos un día");
+                        return;
+                      }
+
                       try {
+                        setCopying(true);
+
                         await api.post(
                           `/admin/plantillas/${detalle.plantilla.id}/replicar-dia-base`,
                           {
@@ -644,6 +626,8 @@ export default function PlantillasPanel() {
                         setShowCopy(false);
                       } catch (e) {
                         setError(apiErrorMessage(e));
+                      } finally {
+                        setCopying(false);
                       }
                     }}
                   />
