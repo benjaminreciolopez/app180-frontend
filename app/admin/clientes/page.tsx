@@ -1,27 +1,87 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { api } from "@/services/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Pencil, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+/* =====================================================
+   Types
+===================================================== */
 
 type Cliente = {
   id: string;
   nombre: string;
-  codigo?: string;
-  tipo: string;
-  modo_trabajo: string;
+  codigo?: string | null;
   activo: boolean;
+  modo_defecto: string;
+  requiere_geo: boolean;
+  geo_policy: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  radio_m?: number | null;
+  razon_social?: string | null;
+  nif_cif?: string | null;
+  iban?: string | null;
+  notas?: string | null;
 };
 
-export default function ClientesPage() {
+/* =====================================================
+   API helper
+===================================================== */
+
+async function api(url: string, options: RequestInit = {}) {
+  const token = localStorage.getItem("token");
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Error API");
+  }
+
+  return res.json();
+}
+
+/* =====================================================
+   Page
+===================================================== */
+
+export default function AdminClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [editing, setEditing] = useState<Cliente | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  /* =========================
+     Load
+  ========================= */
 
   async function load() {
     try {
-      const { data } = await api.get("/admin/clientes");
+      setLoading(true);
+      const data = await api("/clientes");
       setClientes(data);
+    } catch (e: any) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -31,52 +91,334 @@ export default function ClientesPage() {
     load();
   }, []);
 
-  if (loading) return <div>Cargando clientes…</div>;
+  /* =========================
+     Actions
+  ========================= */
+
+  function openCreate() {
+    setEditing({
+      id: "",
+      nombre: "",
+      activo: true,
+      modo_defecto: "mixto",
+      requiere_geo: true,
+      geo_policy: "strict",
+    });
+    setDrawerOpen(true);
+  }
+
+  function openEdit(c: Cliente) {
+    setEditing({ ...c });
+    setDrawerOpen(true);
+  }
+
+  async function save() {
+    if (!editing) return;
+
+    try {
+      setLoading(true);
+
+      if (editing.id) {
+        await api(`/clientes/${editing.id}`, {
+          method: "PATCH",
+          body: JSON.stringify(editing),
+        });
+      } else {
+        await api("/clientes", {
+          method: "POST",
+          body: JSON.stringify(editing),
+        });
+      }
+
+      setDrawerOpen(false);
+      setEditing(null);
+      await load();
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deactivate(id: string) {
+    if (!confirm("¿Desactivar cliente?")) return;
+
+    try {
+      await api(`/clientes/${id}/desactivar`, { method: "POST" });
+      await load();
+    } catch (e: any) {
+      alert(e.message);
+    }
+  }
+
+  /* ===================================================== */
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Clientes</h1>
+        <h1 className="text-2xl font-semibold">Clientes</h1>
 
-        <Link href="/admin/clientes/nuevo">
-          <Button>Nuevo cliente</Button>
-        </Link>
+        <Button onClick={openCreate} className="gap-2">
+          <Plus size={18} /> Nuevo cliente
+        </Button>
       </div>
 
-      <div className="border rounded-lg overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-muted">
-            <tr>
-              <th className="p-2 text-left">Nombre</th>
-              <th className="p-2">Código</th>
-              <th className="p-2">Tipo</th>
-              <th className="p-2">Modo</th>
-              <th className="p-2">Estado</th>
-              <th className="p-2 w-24"></th>
-            </tr>
-          </thead>
+      {error && <div className="text-red-600">{error}</div>}
 
-          <tbody>
-            {clientes.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="p-2 font-medium">{c.nombre}</td>
-                <td className="p-2">{c.codigo || "-"}</td>
-                <td className="p-2">{c.tipo}</td>
-                <td className="p-2">{c.modo_trabajo}</td>
-                <td className="p-2">{c.activo ? "Activo" : "Inactivo"}</td>
-
-                <td className="p-2 text-right">
-                  <Link href={`/admin/clientes/${c.id}`}>
-                    <Button size="sm" variant="outline">
-                      Editar
-                    </Button>
-                  </Link>
-                </td>
+      {/* Table */}
+      <Card className="rounded-2xl shadow-sm">
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b">
+              <tr className="text-left">
+                <th className="p-3">Nombre</th>
+                <th className="p-3">Código</th>
+                <th className="p-3">Modo</th>
+                <th className="p-3">Geo</th>
+                <th className="p-3">Activo</th>
+                <th className="p-3 text-right">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+
+            <tbody>
+              {clientes.map((c) => (
+                <tr
+                  key={c.id}
+                  className="border-b last:border-0 hover:bg-slate-50"
+                >
+                  <td className="p-3 font-medium">{c.nombre}</td>
+                  <td className="p-3 text-slate-600">{c.codigo || "—"}</td>
+                  <td className="p-3">{c.modo_defecto}</td>
+                  <td className="p-3">
+                    {c.requiere_geo ? c.geo_policy || "strict" : "No"}
+                  </td>
+                  <td className="p-3">
+                    {c.activo ? (
+                      <span className="text-green-600">Sí</span>
+                    ) : (
+                      <span className="text-red-500">No</span>
+                    )}
+                  </td>
+
+                  <td className="p-3 text-right space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openEdit(c)}
+                    >
+                      <Pencil size={14} />
+                    </Button>
+
+                    {c.activo && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deactivate(c.id)}
+                      >
+                        <X size={14} />
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+
+              {!clientes.length && !loading && (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-slate-500">
+                    Sin clientes
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
+      {/* Drawer */}
+      <AnimatePresence>
+        {drawerOpen && editing && (
+          <motion.div
+            className="fixed inset-0 bg-black/40 z-50 flex justify-end"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white w-full max-w-md h-full p-6 overflow-y-auto"
+              initial={{ x: 400 }}
+              animate={{ x: 0 }}
+              exit={{ x: 400 }}
+              transition={{ type: "spring", damping: 25 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold">
+                  {editing.id ? "Editar cliente" : "Nuevo cliente"}
+                </h2>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  <X size={18} />
+                </Button>
+              </div>
+
+              <div className="space-y-5">
+                {/* Nombre */}
+                <div>
+                  <label className="text-sm">Nombre</label>
+                  <Input
+                    value={editing.nombre}
+                    onChange={(e) =>
+                      setEditing({ ...editing, nombre: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Código */}
+                <div>
+                  <label className="text-sm">Código</label>
+                  <Input
+                    value={editing.codigo || ""}
+                    onChange={(e) =>
+                      setEditing({ ...editing, codigo: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Modo */}
+                <div>
+                  <label className="text-sm">Modo defecto</label>
+                  <Select
+                    value={editing.modo_defecto}
+                    onValueChange={(v: string) =>
+                      setEditing({ ...editing, modo_defecto: v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hora">Hora</SelectItem>
+                      <SelectItem value="dia">Día</SelectItem>
+                      <SelectItem value="mes">Mes</SelectItem>
+                      <SelectItem value="trabajo">Trabajo</SelectItem>
+                      <SelectItem value="mixto">Mixto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Geo */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Geolocalización</label>
+
+                  <Select
+                    value={editing.geo_policy || "strict"}
+                    onValueChange={(v: string) =>
+                      setEditing({ ...editing, geo_policy: v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="strict">Estricto</SelectItem>
+                      <SelectItem value="soft">Flexible</SelectItem>
+                      <SelectItem value="info">Informativo</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input
+                      placeholder="Lat"
+                      value={editing.lat || ""}
+                      onChange={(e) =>
+                        setEditing({
+                          ...editing,
+                          lat: Number(e.target.value) || null,
+                        })
+                      }
+                    />
+                    <Input
+                      placeholder="Lng"
+                      value={editing.lng || ""}
+                      onChange={(e) =>
+                        setEditing({
+                          ...editing,
+                          lng: Number(e.target.value) || null,
+                        })
+                      }
+                    />
+                    <Input
+                      placeholder="Radio (m)"
+                      value={editing.radio_m || ""}
+                      onChange={(e) =>
+                        setEditing({
+                          ...editing,
+                          radio_m: Number(e.target.value) || null,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Fiscal */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Fiscal</label>
+
+                  <Input
+                    placeholder="Razón social"
+                    value={editing.razon_social || ""}
+                    onChange={(e) =>
+                      setEditing({
+                        ...editing,
+                        razon_social: e.target.value,
+                      })
+                    }
+                  />
+
+                  <Input
+                    placeholder="NIF/CIF"
+                    value={editing.nif_cif || ""}
+                    onChange={(e) =>
+                      setEditing({ ...editing, nif_cif: e.target.value })
+                    }
+                  />
+
+                  <Input
+                    placeholder="IBAN"
+                    value={editing.iban || ""}
+                    onChange={(e) =>
+                      setEditing({ ...editing, iban: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Notas */}
+                <div>
+                  <label className="text-sm">Notas</label>
+                  <textarea
+                    className="w-full border rounded-md p-2 text-sm min-h-[80px]"
+                    value={editing.notas || ""}
+                    onChange={(e) =>
+                      setEditing({ ...editing, notas: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Save */}
+                <div className="pt-4">
+                  <Button className="w-full" disabled={loading} onClick={save}>
+                    Guardar
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -42,7 +42,9 @@ export default function LoginPage() {
         onSubmit={handleLogin}
         className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md space-y-6"
       >
-        <h1 className="text-2xl font-bold text-center">Acceso APP180</h1>
+        <h1 className="text-2xl font-bold text-center">
+          Acceso CONTENDO GESTIONES
+        </h1>
 
         <div>
           <label className="block text-sm font-medium mb-1">Email</label>
