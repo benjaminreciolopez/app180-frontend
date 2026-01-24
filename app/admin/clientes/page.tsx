@@ -75,10 +75,12 @@ export default function AdminClientesPage() {
      Load
   ========================= */
 
+  const BASE = "/admin/clientes";
+
   async function load() {
     try {
       setLoading(true);
-      const data = await api("/clientes");
+      const data = await api(BASE);
       setClientes(data);
     } catch (e: any) {
       setError(e.message);
@@ -119,12 +121,12 @@ export default function AdminClientesPage() {
       setLoading(true);
 
       if (editing.id) {
-        await api(`/clientes/${editing.id}`, {
+        await api(`${BASE}/${editing.id}`, {
           method: "PATCH",
           body: JSON.stringify(editing),
         });
       } else {
-        await api("/clientes", {
+        await api(BASE, {
           method: "POST",
           body: JSON.stringify(editing),
         });
@@ -144,7 +146,10 @@ export default function AdminClientesPage() {
     if (!confirm("¿Desactivar cliente?")) return;
 
     try {
-      await api(`/clientes/${id}/desactivar`, { method: "POST" });
+      await api(`${BASE}/${id}`, {
+        method: "DELETE",
+      });
+
       await load();
     } catch (e: any) {
       alert(e.message);
