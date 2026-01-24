@@ -89,6 +89,8 @@ export default function PlantillasPanel() {
   const [bloquesEx, setBloquesEx] = useState<Bloque[]>([]);
   const [cargandoBloquesEx, setCargandoBloquesEx] = useState(false);
   const [savingBloquesEx, setSavingBloquesEx] = useState(false);
+  const [savingRename, setSavingRename] = useState(false);
+  const [savingDelete, setSavingDelete] = useState(false);
 
   // -----------------------
   // Loads
@@ -200,7 +202,7 @@ export default function PlantillasPanel() {
       setCargandoBloquesEx(true);
       try {
         const r = await api.get(
-          `/admin/plantillas/excepciones/${exSel.id}/bloques`
+          `/admin/plantillas/excepciones/${exSel.id}/bloques`,
         );
         setBloquesEx(Array.isArray(r.data) ? r.data : []);
       } catch (e) {
@@ -232,6 +234,41 @@ export default function PlantillasPanel() {
       setError(apiErrorMessage(e));
     }
   }
+  async function replicarDiaBase() {
+    if (!detalle?.plantilla?.id) return;
+
+    const origen = diaSemanaSel;
+
+    // destino = resto de días menos el actual
+    const destinos = DIAS.map((d) => d.n).filter((n) => n !== origen);
+
+    const ok = window.confirm(
+      `Se copiará la configuración de ${
+        DIAS.find((d) => d.n === origen)?.label
+      } al resto de días.\n\n¿Continuar?`,
+    );
+
+    if (!ok) return;
+
+    setError(null);
+
+    try {
+      await api.post(
+        `/admin/plantillas/${detalle.plantilla.id}/replicar-dia-base`,
+        {
+          dia_origen: origen,
+          dias_destino: destinos,
+          sobrescribir: true,
+        },
+      );
+
+      await loadDetalle(detalle.plantilla.id);
+
+      alert("Configuración copiada correctamente.");
+    } catch (e) {
+      setError(apiErrorMessage(e));
+    }
+  }
 
   async function guardarDiaSemana() {
     if (!detalle?.plantilla?.id) return;
@@ -249,7 +286,7 @@ export default function PlantillasPanel() {
 
     if (hayBloques) {
       const ok = window.confirm(
-        "Has cambiado el rango del día. Los bloques actuales pueden quedar fuera de rango o no ser contiguos.\n\n¿Quieres resetear los bloques y continuar?"
+        "Has cambiado el rango del día. Los bloques actuales pueden quedar fuera de rango o no ser contiguos.\n\n¿Quieres resetear los bloques y continuar?",
       );
       if (!ok) return;
     }
@@ -264,7 +301,7 @@ export default function PlantillasPanel() {
           hora_inicio: toHHMMSS(diaHoraInicio),
           hora_fin: toHHMMSS(diaHoraFin),
           activo: diaActivo,
-        }
+        },
       );
 
       // Si había bloques y el usuario aceptó, los borramos
@@ -327,7 +364,7 @@ export default function PlantillasPanel() {
           hora_inicio: exHoraInicio ? toHHMMSS(exHoraInicio) : null,
           hora_fin: exHoraFin ? toHHMMSS(exHoraFin) : null,
           nota: exNota?.trim() || null,
-        }
+        },
       );
 
       await loadDetalle(detalle.plantilla.id);
@@ -340,39 +377,33 @@ export default function PlantillasPanel() {
       setSavingEx(false);
     }
   }
-  async function renombrarPlantilla() {
+  async function renombrarPlantilla(newName: string) {
     if (!detalle?.plantilla?.id) return;
+    if (!newName?.trim()) return;
 
-    const nuevo = prompt(
-      "Nuevo nombre de la plantilla:",
-      detalle.plantilla.nombre
-    );
-
-    if (!nuevo || !nuevo.trim()) return;
-
+    setSavingRename(true);
     setError(null);
 
     try {
       await api.patch(`/admin/plantillas/${detalle.plantilla.id}`, {
-        nombre: nuevo.trim(),
+        nombre: newName.trim(),
       });
 
       await loadPlantillas();
       await loadDetalle(detalle.plantilla.id);
+
+      setShowRename(false);
     } catch (e) {
       setError(apiErrorMessage(e));
+    } finally {
+      setSavingRename(false);
     }
   }
 
   async function eliminarPlantilla() {
     if (!detalle?.plantilla?.id) return;
 
-    const ok = confirm(
-      `¿Seguro que quieres eliminar la plantilla "${detalle.plantilla.nombre}"?\n\nSe borrarán todos los días, bloques, excepciones y asignaciones.`
-    );
-
-    if (!ok) return;
-
+    setSavingDelete(true);
     setError(null);
 
     try {
@@ -380,10 +411,13 @@ export default function PlantillasPanel() {
 
       setSel(null);
       setDetalle(null);
+      setShowDelete(false);
 
       await loadPlantillas();
     } catch (e) {
       setError(apiErrorMessage(e));
+    } finally {
+      setSavingDelete(false);
     }
   }
 
@@ -404,7 +438,7 @@ export default function PlantillasPanel() {
       });
 
       const r = await api.get(
-        `/admin/plantillas/excepciones/${exSel.id}/bloques`
+        `/admin/plantillas/excepciones/${exSel.id}/bloques`,
       );
       setBloquesEx(Array.isArray(r.data) ? r.data : []);
     } catch (e) {
@@ -508,13 +542,23 @@ export default function PlantillasPanel() {
             <div className="border rounded p-3 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="font-semibold">Semana</div>
-                <button
-                  className="px-3 py-2 rounded bg-black text-white disabled:opacity-60"
-                  disabled={savingDia}
-                  onClick={guardarDiaSemana}
-                >
-                  {savingDia ? "Guardando..." : "Guardar rango día"}
-                </button>
+
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    className="px-3 py-2 rounded bg-gray-200"
+                    onClick={replicarDiaBase}
+                  >
+                    Copiar a otros días
+                  </button>
+
+                  <button
+                    className="px-3 py-2 rounded bg-black text-white disabled:opacity-60"
+                    disabled={savingDia}
+                    onClick={guardarDiaSemana}
+                  >
+                    {savingDia ? "Guardando..." : "Guardar rango día"}
+                  </button>
+                </div>
               </div>
 
               <div className="flex gap-2 flex-wrap">
@@ -536,44 +580,18 @@ export default function PlantillasPanel() {
                 <>
                   <RenamePlantillaModal
                     open={showRename}
-                    onClose={() => setShowRename(false)}
+                    loading={savingRename}
+                    onClose={() => !savingRename && setShowRename(false)}
                     currentName={detalle.plantilla.nombre}
-                    onConfirm={async (newName) => {
-                      try {
-                        await api.patch(
-                          `/admin/plantillas/${detalle.plantilla.id}`,
-                          {
-                            nombre: newName,
-                          }
-                        );
-
-                        await loadPlantillas();
-                        await loadDetalle(detalle.plantilla.id);
-                        setShowRename(false);
-                      } catch (e) {
-                        setError(apiErrorMessage(e));
-                      }
-                    }}
+                    onConfirm={renombrarPlantilla}
                   />
 
                   <DeletePlantillaModal
                     open={showDelete}
-                    onClose={() => setShowDelete(false)}
+                    loading={savingDelete}
+                    onClose={() => !savingDelete && setShowDelete(false)}
                     name={detalle.plantilla.nombre}
-                    onConfirm={async () => {
-                      try {
-                        await api.delete(
-                          `/admin/plantillas/${detalle.plantilla.id}`
-                        );
-
-                        setSel(null);
-                        setDetalle(null);
-                        await loadPlantillas();
-                        setShowDelete(false);
-                      } catch (e) {
-                        setError(apiErrorMessage(e));
-                      }
-                    }}
+                    onConfirm={eliminarPlantilla}
                   />
                 </>
               )}

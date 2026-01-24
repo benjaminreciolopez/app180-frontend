@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Modal from "./Modal";
 
 export default function DeletePlantillaModal({
@@ -8,18 +8,31 @@ export default function DeletePlantillaModal({
   onClose,
   name,
   onConfirm,
+  loading = false,
 }: {
   open: boolean;
   onClose: () => void;
   name: string;
   onConfirm: () => void;
+  loading?: boolean;
 }) {
   const [typed, setTyped] = useState("");
 
-  const ok = typed === name;
+  // Reset cuando se abre
+  useEffect(() => {
+    if (open) {
+      setTyped("");
+    }
+  }, [open]);
+
+  const ok = typed.trim() === name;
 
   return (
-    <Modal open={open} onClose={onClose} title="Eliminar plantilla">
+    <Modal
+      open={open}
+      onClose={loading ? () => {} : onClose}
+      title="Eliminar plantilla"
+    >
       <div className="space-y-3">
         <p className="text-sm text-gray-700">
           Esta acción <b>no se puede deshacer</b>. Se borrarán:
@@ -37,28 +50,40 @@ export default function DeletePlantillaModal({
         </p>
 
         <input
-          className="border p-2 rounded w-full"
+          className="border p-2 rounded w-full disabled:opacity-50"
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
+          disabled={loading}
+          autoFocus
         />
 
         <div className="flex justify-end gap-2">
-          <button className="px-3 py-2 rounded bg-gray-200" onClick={onClose}>
+          <button
+            className="px-3 py-2 rounded bg-gray-200 disabled:opacity-50"
+            onClick={onClose}
+            disabled={loading}
+          >
             Cancelar
           </button>
 
           <button
-            className={`px-3 py-2 rounded text-white ${
-              ok ? "bg-red-600" : "bg-red-300 cursor-not-allowed"
-            }`}
-            disabled={!ok}
-            onClick={onConfirm}
+            disabled={!ok || loading}
+            className="
+              px-3 py-2 rounded text-white
+              bg-red-600
+              disabled:bg-red-300
+              disabled:cursor-not-allowed
+              disabled:opacity-60
+            "
+            onClick={() => {
+              if (loading || !ok) return;
+              onConfirm();
+            }}
           >
-            Eliminar definitivamente
+            {loading ? "Eliminando..." : "Eliminar definitivamente"}
           </button>
         </div>
       </div>
     </Modal>
   );
 }
-// app180-frontend/app/admin/jornadas/DeletePlantillaModal.tsx
