@@ -153,7 +153,7 @@ export default function ClienteDetailPage() {
 
           <Button
             variant="outline"
-            onClick={() => router.push(`/admin/clientes?edit=${id}`)}
+            onClick={() => router.push(`/admin/clientes/${id}/edit`)}
             className="gap-2"
           >
             <Settings size={16} /> Editar
