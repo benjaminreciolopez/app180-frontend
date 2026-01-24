@@ -80,7 +80,7 @@ export default function ClienteDetailPage() {
   async function load() {
     try {
       setLoading(true);
-      const data = await api(`/clientes/${id}`);
+      const data = await api(`/admin/clientes/${id}`);
       setCliente(data);
     } catch (e: any) {
       setError(e.message);
