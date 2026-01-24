@@ -2,14 +2,12 @@
 "use client";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 import { FormEvent, useState, useEffect, startTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { login } from "@/services/auth";
 import { api } from "@/services/api";
-import { headers } from "next/headers";
 
 export default function LoginPage() {
   const router = useRouter();
