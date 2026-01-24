@@ -16,8 +16,7 @@ api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("token");
 
-    if (token) {
-      config.headers = config.headers || {};
+    if (token && !config.url?.startsWith("/system")) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
@@ -45,11 +44,20 @@ api.interceptors.response.use(
       if (status === 401) {
         const url = err?.config?.url || "";
 
-        // 🔐 SOLO LOGOUT si falla auth REAL
+        // ❌ No tocar rutas públicas
+        if (
+          url.startsWith("/system") ||
+          url.startsWith("/auth/login") ||
+          url.startsWith("/auth/register-admin")
+        ) {
+          return Promise.reject(err);
+        }
+
+        // 🔐 Auth real → logout
         if (
           url.startsWith("/auth") ||
-          url === "/empleado/dashboard" ||
-          url === "/admin/dashboard"
+          url.startsWith("/empleado") ||
+          url.startsWith("/admin")
         ) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
@@ -59,7 +67,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(err);
-  }
+  },
 );
 
 // ======================================================
