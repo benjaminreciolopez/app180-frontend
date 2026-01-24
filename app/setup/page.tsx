@@ -49,7 +49,9 @@ export default function SetupPage() {
         onSubmit={submit}
         className="bg-white p-6 rounded shadow w-full max-w-md space-y-4"
       >
-        <h1 className="text-xl font-bold text-center">Inicializar APP180</h1>
+        <h1 className="text-xl font-bold text-center">
+          Inicializar Contendo Gestiones
+        </h1>
 
         {error && <div className="text-red-600 text-sm">{error}</div>}
 
