@@ -1,9 +1,7 @@
-import { headers } from "next/headers";
+"use client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-("use client");
 
 import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -12,8 +10,6 @@ import { login } from "@/services/auth";
 import { api } from "@/services/api";
 
 export default function LoginPage() {
-  headers(); // 🔥 evita static
-
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -23,6 +19,7 @@ export default function LoginPage() {
 
   console.log("LOGIN PAGE MOUNTED");
 
+  // BOOTSTRAP CHECK
   useEffect(() => {
     async function init() {
       try {
@@ -44,6 +41,7 @@ export default function LoginPage() {
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
+    setError("");
 
     try {
       const result = await login(email, password);
@@ -80,7 +78,7 @@ export default function LoginPage() {
         className="bg-white shadow p-8 rounded w-full max-w-md space-y-4"
       >
         <h1 className="text-xl font-bold text-center">
-          Acceso Contendo Gestiones{" "}
+          Acceso Contendo Gestiones
         </h1>
 
         {error && <p className="text-red-600">{error}</p>}
@@ -91,6 +89,7 @@ export default function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           className="border p-2 w-full"
           placeholder="Email"
+          required
         />
 
         <input
@@ -99,9 +98,13 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           className="border p-2 w-full"
           placeholder="Contraseña"
+          required
         />
 
-        <button className="bg-blue-600 text-white w-full py-2 rounded">
+        <button
+          type="submit"
+          className="bg-blue-600 text-white w-full py-2 rounded"
+        >
           Entrar
         </button>
       </form>
