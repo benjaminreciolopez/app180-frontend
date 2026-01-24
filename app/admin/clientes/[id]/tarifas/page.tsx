@@ -65,7 +65,7 @@ export default function TarifasPage() {
 
   const [editing, setEditing] = useState<{
     tipo: string;
-    precio: string;
+    precio: number | string;
     fecha_inicio: string;
   }>({
     tipo: "hora",
@@ -182,7 +182,7 @@ export default function TarifasPage() {
                 <p className="font-medium capitalize">{t.tipo}</p>
 
                 <p className="text-sm text-slate-500">
-                  {t.precio.toFixed(2)} € · desde {t.fecha_inicio}
+                  {Number(t.precio || 0).toFixed(2)} € · desde {t.fecha_inicio}
                 </p>
 
                 {t.fecha_fin && (
