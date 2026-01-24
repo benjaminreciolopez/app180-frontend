@@ -1,8 +1,5 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
