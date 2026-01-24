@@ -62,6 +62,11 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error("[UI] error en login", err);
 
+      if (err?.response?.data?.code === "BOOTSTRAP_REQUIRED") {
+        router.replace("/register");
+        return;
+      }
+
       setError(err?.response?.data?.error || "Error al iniciar sesión");
     }
   }
