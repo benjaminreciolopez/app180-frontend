@@ -2,10 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "https://app180-backend.onrender.com";
+import { api } from "@/services/api";
 
 export default function SetupPage() {
   const router = useRouter();
@@ -27,7 +24,7 @@ export default function SetupPage() {
     setError("");
 
     try {
-      await axios.post(`${API_BASE}/auth/register-first-admin`, {
+      await api.post("/auth/register-first-admin", {
         email,
         password,
         nombre,
