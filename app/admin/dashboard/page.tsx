@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { api } from "@/services/api";
+import { Settings, LogOut, User } from "lucide-react";
+import Link from "next/link";
 
 interface TrabajandoAhoraItem {
   id: string;
@@ -33,6 +35,8 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openMenu, setOpenMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   async function load() {
     try {
@@ -74,6 +78,19 @@ export default function DashboardPage() {
         return "badge badge-muted";
     }
   }
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenu(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     load();
@@ -105,7 +122,55 @@ export default function DashboardPage() {
 
   return (
     <div className="app-main">
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+
+        {/* Admin menu */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setOpenMenu(!openMenu)}
+            className="p-2 rounded-full hover:bg-gray-100"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+
+          {openMenu && (
+            <div
+              className="
+          absolute right-0 mt-2 w-48
+          bg-white border rounded-lg shadow-lg
+          z-50
+        "
+            >
+              <Link
+                href="/admin/configuracion"
+                className="block px-4 py-2 text-sm hover:bg-gray-50"
+                onClick={() => setOpenMenu(false)}
+              >
+                ⚙️ Configuración
+              </Link>
+
+              <Link
+                href="/admin/perfil"
+                className="block px-4 py-2 text-sm hover:bg-gray-50"
+                onClick={() => setOpenMenu(false)}
+              >
+                👤 Perfil
+              </Link>
+
+              <button
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.href = "/login";
+                }}
+              >
+                🚪 Cerrar sesión
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
