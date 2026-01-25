@@ -233,13 +233,6 @@ export default function AdminLayout({
         <div className="border-t border-border pt-4">
           <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
           <p className="font-semibold">{session.nombre}</p>
-
-          <button
-            onClick={logout}
-            className="mt-3 w-full text-left text-sm text-red-600 hover:underline"
-          >
-            Cerrar sesión
-          </button>
         </div>
       </aside>
 
