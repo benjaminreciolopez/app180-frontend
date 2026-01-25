@@ -1,279 +1,141 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { api } from "@/services/api";
 
-type Session = {
-  nombre: string;
-  modulos: Record<string, boolean>;
+type Modulos = {
+  fichajes?: boolean;
+  ausencias?: boolean;
+  worklogs?: boolean;
+  empleados?: boolean;
+  facturacion?: boolean;
 };
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const pathname = usePathname();
+const DEFAULTS: Modulos = {
+  fichajes: true,
+  ausencias: true,
+  worklogs: true,
+  empleados: true,
+  facturacion: false,
+};
 
-  const [menuOpen, setMenuOpen] = useState(false);
+export default function AdminConfiguracionPage() {
+  const [modulos, setModulos] = useState<Modulos | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const [session, setSession] = useState<Session | null>(null);
-
-  const [checking, setChecking] = useState(true);
-
-  // ============================
-  // Cargar sesión (inicial + sync)
-  // ============================
-  function loadSession() {
+  async function load() {
     try {
-      const raw = localStorage.getItem("user");
+      const r = await api.get("/admin/configuracion");
 
-      if (!raw) {
-        setSession(null);
-        return;
-      }
-
-      const user = JSON.parse(raw);
-
-      setSession({
-        nombre: user.nombre || "Administrador",
-        modulos: user.modulos || {},
+      setModulos({
+        ...DEFAULTS,
+        ...r.data,
       });
-    } catch {
-      setSession(null);
+    } catch (e) {
+      console.error("Error cargando config", e);
+      alert("No se pudo cargar la configuración");
     }
   }
 
   useEffect(() => {
-    loadSession();
-    setChecking(false);
-
-    // 🔁 Escuchar cambios de sesión
-    function onSessionUpdated() {
-      loadSession();
-    }
-
-    window.addEventListener("session-updated", onSessionUpdated);
-
-    return () => {
-      window.removeEventListener("session-updated", onSessionUpdated);
-    };
+    load();
   }, []);
 
-  // ============================
-  // Guard por módulos
-  // ============================
-  useEffect(() => {
-    if (!session) return;
+  async function save() {
+    if (!modulos) return;
 
-    const guards = [
-      { path: "/admin/dashboard", module: null },
-      { path: "/admin/calendario", module: "fichajes" },
-      { path: "/admin/empleados", module: "empleados" },
-      { path: "/admin/clientes", module: null },
-      { path: "/admin/jornadas", module: "fichajes" },
-      { path: "/admin/fichajes", module: "fichajes" },
-      { path: "/admin/fichajes/sospechosos", module: "fichajes" },
-      { path: "/admin/partes-dia", module: "worklogs" },
-      { path: "/admin/trabajos", module: "worklogs" },
-      {
-        path: "/admin/configuracion/calendario/importar",
-        module: "fichajes",
-      },
-      {
-        path: "/admin/configuracion/calendario/importaciones",
-        module: "fichajes",
-      },
-    ];
+    setSaving(true);
 
-    const current = guards.find((g) => pathname.startsWith(g.path));
+    try {
+      await api.put("/admin/configuracion", { modulos });
 
-    if (current?.module && session.modulos[current.module] === false) {
-      location.href = "/admin/dashboard";
+      const me = await api.get("/auth/me");
+      localStorage.setItem("user", JSON.stringify(me.data));
+
+      // 🔔 Notificar layout
+      window.dispatchEvent(new Event("session-updated"));
+
+      alert("Configuración guardada");
+    } finally {
+      setSaving(false);
     }
-  }, [pathname, session]);
-
-  // ============================
-  // Logout
-  // ============================
-  function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    window.dispatchEvent(new Event("session-updated"));
-
-    location.href = "/login";
   }
 
-  // ============================
-  // Estados iniciales
-  // ============================
-  if (checking) {
-    return <div className="p-6">Cargando sesión…</div>;
+  function toggle(k: keyof Modulos) {
+    setModulos((prev) => ({
+      ...prev!,
+      [k]: prev?.[k] === false ? true : false,
+    }));
   }
 
-  if (!session) {
-    return <div className="p-6">Sesión no válida</div>;
-  }
+  if (!modulos) return <p>Cargando…</p>;
 
-  // ============================
-  // Menú
-  // ============================
-  const menu = [
-    {
-      path: "/admin/dashboard",
-      label: "Dashboard",
-      module: null,
-    },
-    {
-      path: "/admin/calendario",
-      label: "Calendario",
-      module: "fichajes",
-    },
-    {
-      path: "/admin/empleados",
-      label: "Empleados",
-      module: "empleados",
-    },
-    {
-      path: "/admin/clientes",
-      label: "Clientes",
-      module: null,
-    },
-    {
-      path: "/admin/jornadas",
-      label: "Jornadas",
-      module: "fichajes",
-    },
-    {
-      path: "/admin/fichajes",
-      label: "Fichajes",
-      module: "fichajes",
-    },
-    {
-      path: "/admin/fichajes/sospechosos",
-      label: "Sospechosos",
-      module: "fichajes",
-    },
-    {
-      path: "/admin/partes-dia",
-      label: "Partes del día",
-      module: "worklogs",
-    },
-    {
-      path: "/admin/trabajos",
-      label: "Trabajos",
-      module: "worklogs",
-    },
-    {
-      path: "/admin/configuracion/calendario/importar",
-      label: "Importar calendario",
-      module: "fichajes",
-    },
-    {
-      path: "/admin/configuracion/calendario/importaciones",
-      label: "Historial importaciones",
-      module: "fichajes",
-    },
-    {
-      path: "/admin/configuracion",
-      label: "Configuración",
-      module: null,
-    },
-  ];
-
-  const visibleMenu = menu.filter(
-    (item) => !item.module || session.modulos[item.module] !== false,
-  );
-
-  // ============================
-  // Render
-  // ============================
   return (
-    <div className="flex h-[100svh] w-screen">
-      {/* Overlay móvil */}
-      {menuOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40 md:hidden"
-          onClick={() => setMenuOpen(false)}
+    <div className="app-main max-w-xl space-y-4">
+      <h1 className="text-2xl font-bold">Configuración del sistema</h1>
+
+      <div className="card space-y-3">
+        <Toggle
+          label="Fichajes"
+          value={modulos.fichajes}
+          onChange={() => toggle("fichajes")}
         />
-      )}
 
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border p-5
-          transform transition-transform
-          ${menuOpen ? "translate-x-0" : "-translate-x-full"}
-          md:static md:translate-x-0
-          flex flex-col
-        `}
-      >
-        {/* Mobile close */}
-        <div className="md:hidden mb-4">
-          <button
-            onClick={() => setMenuOpen(false)}
-            className="text-sm text-muted-foreground"
-          >
-            ✕ Cerrar
-          </button>
-        </div>
+        <Toggle
+          label="Ausencias"
+          value={modulos.ausencias}
+          onChange={() => toggle("ausencias")}
+        />
 
-        <h2 className="text-xl font-bold tracking-wide">CONTENDO GESTIONES</h2>
+        <Toggle
+          label="Trabajos / Partes"
+          value={modulos.worklogs}
+          onChange={() => toggle("worklogs")}
+        />
 
-        {/* Links */}
-        <ul className="mt-8 space-y-2 flex-1 overflow-y-auto">
-          {visibleMenu.map((item) => (
-            <li key={item.path}>
-              <Link
-                href={item.path}
-                onClick={() => setMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md transition ${
-                  pathname === item.path
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                }`}
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <Toggle
+          label="Empleados"
+          value={modulos.empleados}
+          onChange={() => toggle("empleados")}
+        />
 
-        {/* Footer */}
-        <div className="border-t border-border pt-4">
-          <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
+        <Toggle
+          label="Facturación"
+          value={modulos.facturacion}
+          onChange={() => toggle("facturacion")}
+        />
+      </div>
 
-          <p className="font-semibold">{session.nombre}</p>
-
-          <Button
-            variant="destructive"
-            className="w-full mt-4"
-            onClick={logout}
-          >
-            Cerrar sesión
-          </Button>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main className="flex-1 bg-background h-[100svh] flex flex-col">
-        {/* Header móvil */}
-        <div className="md:hidden sticky top-0 z-30 bg-background border-b flex items-center h-12 px-3 shrink-0">
-          <button
-            aria-label="Abrir menú"
-            onClick={() => setMenuOpen(true)}
-            className="p-2 border rounded"
-          >
-            ☰
-          </button>
-        </div>
-
-        {/* Contenido */}
-        <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
-      </main>
+      <button onClick={save} disabled={saving} className="btn-primary">
+        {saving ? "Guardando…" : "Guardar cambios"}
+      </button>
     </div>
+  );
+}
+
+/* ========================
+   Toggle reutilizable
+======================== */
+
+function Toggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value?: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label className="flex items-center justify-between">
+      <span>{label}</span>
+
+      <input
+        type="checkbox"
+        checked={value !== false}
+        onChange={onChange}
+        className="w-5 h-5"
+      />
+    </label>
   );
 }
