@@ -62,7 +62,6 @@ export default function AdminConfiguracionPage() {
       setSaving(false);
     }
   }
-  location.reload();
 
   function toggle(k: keyof Modulos) {
     if (k === "empleados" && modulos?.empleados !== false) {
