@@ -1,11 +1,14 @@
-// app180-frontend/app/admin/layout.tsx
-
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+
+type Session = {
+  nombre: string;
+  modulos: Record<string, boolean>;
+};
 
 export default function AdminLayout({
   children,
@@ -13,39 +16,51 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [session, setSession] = useState<{
-    nombre: string;
-    modulos: Record<string, boolean>;
-  } | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
 
   const [checking, setChecking] = useState(true);
 
   // ============================
-  // Cargar sesión
+  // Cargar sesión (inicial + sync)
   // ============================
-  useEffect(() => {
+  function loadSession() {
     try {
-      const userRaw = localStorage.getItem("user");
+      const raw = localStorage.getItem("user");
 
-      if (!userRaw) {
+      if (!raw) {
         setSession(null);
         return;
       }
 
-      const user = JSON.parse(userRaw);
+      const user = JSON.parse(raw);
 
       setSession({
         nombre: user.nombre || "Administrador",
         modulos: user.modulos || {},
       });
-    } finally {
-      setChecking(false);
+    } catch {
+      setSession(null);
     }
-  }, [pathname]);
+  }
+
+  useEffect(() => {
+    loadSession();
+    setChecking(false);
+
+    // 🔁 Escuchar cambios de sesión
+    function onSessionUpdated() {
+      loadSession();
+    }
+
+    window.addEventListener("session-updated", onSessionUpdated);
+
+    return () => {
+      window.removeEventListener("session-updated", onSessionUpdated);
+    };
+  }, []);
 
   // ============================
   // Guard por módulos
@@ -53,7 +68,7 @@ export default function AdminLayout({
   useEffect(() => {
     if (!session) return;
 
-    const menu = [
+    const guards = [
       { path: "/admin/dashboard", module: null },
       { path: "/admin/calendario", module: "fichajes" },
       { path: "/admin/empleados", module: "empleados" },
@@ -73,10 +88,10 @@ export default function AdminLayout({
       },
     ];
 
-    const current = menu.find((m) => pathname.startsWith(m.path));
+    const current = guards.find((g) => pathname.startsWith(g.path));
 
     if (current?.module && session.modulos[current.module] === false) {
-      router.replace("/admin/dashboard");
+      location.href = "/admin/dashboard";
     }
   }, [pathname, session]);
 
@@ -86,11 +101,14 @@ export default function AdminLayout({
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+
+    window.dispatchEvent(new Event("session-updated"));
+
     location.href = "/login";
   }
 
   // ============================
-  // Returns DESPUÉS de hooks
+  // Estados iniciales
   // ============================
   if (checking) {
     return <div className="p-6">Cargando sesión…</div>;
@@ -159,6 +177,11 @@ export default function AdminLayout({
       label: "Historial importaciones",
       module: "fichajes",
     },
+    {
+      path: "/admin/configuracion",
+      label: "Configuración",
+      module: null,
+    },
   ];
 
   const visibleMenu = menu.filter(
@@ -188,6 +211,7 @@ export default function AdminLayout({
           flex flex-col
         `}
       >
+        {/* Mobile close */}
         <div className="md:hidden mb-4">
           <button
             onClick={() => setMenuOpen(false)}
@@ -199,6 +223,7 @@ export default function AdminLayout({
 
         <h2 className="text-xl font-bold tracking-wide">CONTENDO GESTIONES</h2>
 
+        {/* Links */}
         <ul className="mt-8 space-y-2 flex-1 overflow-y-auto">
           {visibleMenu.map((item) => (
             <li key={item.path}>
@@ -217,8 +242,10 @@ export default function AdminLayout({
           ))}
         </ul>
 
+        {/* Footer */}
         <div className="border-t border-border pt-4">
           <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
+
           <p className="font-semibold">{session.nombre}</p>
 
           <Button
