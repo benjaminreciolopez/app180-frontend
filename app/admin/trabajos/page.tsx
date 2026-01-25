@@ -37,7 +37,7 @@ export default function AdminTrabajosPage() {
       if (desde) params.desde = desde;
       if (hasta) params.hasta = hasta;
 
-      const res = await api.get("/admin/worklogs", { params });
+      const res = await api.get("/worklogs/admin", { params });
       setItems(Array.isArray(res.data?.items) ? res.data.items : []);
     } finally {
       setLoading(false);
