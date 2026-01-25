@@ -215,6 +215,12 @@ export default function AdminLayout({
             ✕ Cerrar
           </button>
         </div>
+        {/* Footer */}
+        <div className="border-t border-border pt-4">
+          <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
+
+          <p className="font-semibold">{session.nombre}</p>
+        </div>
 
         <h2 className="text-xl font-bold tracking-wide">CONTENDO GESTIONES</h2>
 
@@ -236,13 +242,6 @@ export default function AdminLayout({
             </li>
           ))}
         </ul>
-
-        {/* Footer */}
-        <div className="border-t border-border pt-4">
-          <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
-
-          <p className="font-semibold">{session.nombre}</p>
-        </div>
       </aside>
 
       {/* Main */}
