@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +13,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -31,7 +32,7 @@ export default function AdminLayout({
       const userRaw = localStorage.getItem("user");
 
       if (!userRaw) {
-        setChecking(false);
+        setSession(null);
         return;
       }
 
@@ -41,12 +42,10 @@ export default function AdminLayout({
         nombre: user.nombre || "Administrador",
         modulos: user.modulos || {},
       });
-    } catch {
-      // noop
     } finally {
       setChecking(false);
     }
-  }, []);
+  }, [pathname]);
 
   // ============================
   // Guard por módulos
@@ -77,7 +76,7 @@ export default function AdminLayout({
     const current = menu.find((m) => pathname.startsWith(m.path));
 
     if (current?.module && session.modulos[current.module] === false) {
-      location.href = "/admin/dashboard";
+      router.replace("/admin/dashboard");
     }
   }, [pathname, session]);
 
