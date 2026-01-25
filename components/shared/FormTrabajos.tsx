@@ -9,7 +9,6 @@ type Props = {
   isAdmin?: boolean;
   empleados?: Option[]; // Solo necesario si isAdmin
   clientes: Option[];
-  workItems: Option[];
   onCreated: () => void;
 };
 
@@ -17,7 +16,6 @@ export default function FormTrabajos({
   isAdmin = false,
   empleados = [],
   clientes,
-  workItems,
   onCreated,
 }: Props) {
   const [loading, setLoading] = useState(false);
@@ -27,7 +25,7 @@ export default function FormTrabajos({
   const [horas, setHoras] = useState("1"); // Default 1h
   const [descripcion, setDescripcion] = useState("");
   const [clienteId, setClienteId] = useState("");
-  const [workItemId, setWorkItemId] = useState("");
+  const [workItemNombre, setWorkItemNombre] = useState("");
   
   // Admin only
   const [empleadoId, setEmpleadoId] = useState("");
@@ -55,7 +53,7 @@ export default function FormTrabajos({
         minutos,
         descripcion,
         client_id: clienteId || null,
-        work_item_id: workItemId || null,
+        work_item_nombre: workItemNombre || null, // Texto libre
         // Solo enviamos empleado_id si es admin y eligió algo (o vacío para auto-asignar)
         empleado_id: isAdmin ? (empleadoId || null) : undefined,
       });
@@ -64,7 +62,7 @@ export default function FormTrabajos({
       setDescripcion("");
       setHoras("1");
       setClienteId("");
-      setWorkItemId("");
+      setWorkItemNombre("");
       if (isAdmin) setEmpleadoId(""); // Reset empleado selection
       
       onCreated();
@@ -153,18 +151,13 @@ export default function FormTrabajos({
             Tipo de trabajo{" "}
             <span className="text-gray-400 font-normal">(Opcional)</span>
           </label>
-          <select
+          <input
+            type="text"
             className="w-full border rounded-lg px-3 py-2 text-sm"
-            value={workItemId}
-            onChange={(e) => setWorkItemId(e.target.value)}
-          >
-            <option value="">- Seleccionar -</option>
-            {workItems.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.nombre}
-              </option>
-            ))}
-          </select>
+            value={workItemNombre}
+            onChange={(e) => setWorkItemNombre(e.target.value)}
+            placeholder="Ej: Fontanería, Revisión..."
+          />
         </div>
       </div>
 

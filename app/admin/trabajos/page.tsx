@@ -24,7 +24,6 @@ export default function AdminTrabajosPage() {
   // Catalogos
   const [empleados, setEmpleados] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
-  const [workItems, setWorkItems] = useState<any[]>([]);
 
   // UI State
   const [showForm, setShowForm] = useState(false);
@@ -51,14 +50,12 @@ export default function AdminTrabajosPage() {
       const results = await Promise.allSettled([
         api.get("/employees"), 
         api.get("/admin/clientes"), 
-        api.get("/work-items")
       ]);
 
-      const [eRes, cRes, wRes] = results;
+      const [eRes, cRes] = results;
 
       setEmpleados(eRes.status === 'fulfilled' && Array.isArray(eRes.value.data) ? eRes.value.data : []);
       setClientes(cRes.status === 'fulfilled' && Array.isArray(cRes.value.data) ? cRes.value.data : []);
-      setWorkItems(wRes.status === 'fulfilled' && Array.isArray(wRes.value.data) ? wRes.value.data : []);
     } catch (err) {
       console.error("Error cargando catálogos", err);
     }
@@ -129,7 +126,6 @@ export default function AdminTrabajosPage() {
             isAdmin={true}
             empleados={empleados}
             clientes={clientes}
-            workItems={workItems}
             onCreated={() => {
               loadData();
               setShowForm(false);

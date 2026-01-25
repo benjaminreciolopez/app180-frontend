@@ -22,7 +22,6 @@ export default function EmpleadoTrabajosPage() {
 
   // Catalogos
   const [clientes, setClientes] = useState<any[]>([]);
-  const [workItems, setWorkItems] = useState<any[]>([]);
 
   async function loadData() {
     setLoading(true);
@@ -42,15 +41,12 @@ export default function EmpleadoTrabajosPage() {
     try {
       const results = await Promise.allSettled([
         api.get("/clientes"),
-        api.get("/work-items"),
       ]);
-      const [cRes, wRes] = results;
+      const [cRes] = results;
       
       setClientes(cRes.status === 'fulfilled' && Array.isArray(cRes.value.data) ? cRes.value.data : []);
-      setWorkItems(wRes.status === 'fulfilled' && Array.isArray(wRes.value.data) ? wRes.value.data : []);
     } catch {
       setClientes([]);
-      setWorkItems([]);
     }
   }
 
@@ -109,7 +105,6 @@ export default function EmpleadoTrabajosPage() {
       <FormTrabajos
         isAdmin={false}
         clientes={clientes}
-        workItems={workItems}
         onCreated={loadData}
       />
 
