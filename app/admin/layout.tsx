@@ -215,14 +215,14 @@ export default function AdminLayout({
             ✕ Cerrar
           </button>
         </div>
+        <h2 className="text-xl font-bold tracking-wide">CONTENDO GESTIONES</h2>
+
         {/* Footer */}
         <div className="border-t border-border pt-4">
           <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
 
           <p className="font-semibold">{session.nombre}</p>
         </div>
-
-        <h2 className="text-xl font-bold tracking-wide">CONTENDO GESTIONES</h2>
 
         {/* Links */}
         <ul className="mt-8 space-y-2 flex-1 overflow-y-auto">
