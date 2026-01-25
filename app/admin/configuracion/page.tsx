@@ -10,14 +10,30 @@ type Modulos = {
   empleados?: boolean;
   facturacion?: boolean;
 };
+const DEFAULTS: Modulos = {
+  fichajes: true,
+  ausencias: true,
+  worklogs: true,
+  empleados: true,
+  facturacion: false,
+};
 
 export default function AdminConfiguracionPage() {
   const [modulos, setModulos] = useState<Modulos | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function load() {
-    const r = await api.get("/admin/configuracion");
-    setModulos(r.data || {});
+    try {
+      const r = await api.get("/admin/configuracion");
+
+      setModulos({
+        ...DEFAULTS,
+        ...r.data,
+      });
+    } catch (e) {
+      console.error("Error cargando config", e);
+      alert("No se pudo cargar la configuración");
+    }
   }
 
   useEffect(() => {
@@ -31,6 +47,11 @@ export default function AdminConfiguracionPage() {
 
     try {
       await api.put("/admin/configuracion", { modulos });
+
+      // 🔁 refrescar sesión
+      const me = await api.get("/auth/me");
+      localStorage.setItem("user", JSON.stringify(me.data));
+
       alert("Configuración guardada");
     } finally {
       setSaving(false);
@@ -38,6 +59,10 @@ export default function AdminConfiguracionPage() {
   }
 
   function toggle(k: keyof Modulos) {
+    if (k === "empleados" && modulos?.empleados !== false) {
+      if (!confirm("¿Seguro que quieres desactivar empleados?")) return;
+    }
+
     setModulos((prev) => ({
       ...prev!,
       [k]: prev?.[k] === false ? true : false,

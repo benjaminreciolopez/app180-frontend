@@ -1,17 +1,25 @@
-// components/AuthInit.tsx
 "use client";
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { setAuthToken } from "@/services/api";
+import { api, setAuthToken } from "@/services/api";
+
+/* ========================
+   Types
+======================== */
 
 type StoredUser = {
   role: "admin" | "empleado";
   password_forced?: boolean;
 };
 
+/* ========================
+   Utils
+======================== */
+
 function safeParseUser(v: string | null): StoredUser | null {
   if (!v) return null;
+
   try {
     return JSON.parse(v);
   } catch {
@@ -32,66 +40,118 @@ function isPublicPath(path: string) {
   );
 }
 
+/* ========================
+   Refresh Session
+======================== */
+
+async function refreshMe() {
+  const r = await api.get("/auth/me");
+
+  localStorage.setItem("user", JSON.stringify(r.data));
+
+  return r.data as StoredUser;
+}
+
+/* ========================
+   Main
+======================== */
+
 export default function AuthInit() {
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const user = safeParseUser(localStorage.getItem("user"));
+    let cancelled = false;
 
-    // Siempre setear token
-    setAuthToken(token);
+    async function init() {
+      try {
+        const token = localStorage.getItem("token");
 
-    const forced = user?.password_forced === true;
-    const hasSession = !!token && !!user?.role;
+        // 👉 Siempre configurar axios primero
+        setAuthToken(token);
 
-    // ==========================
-    // PASSWORD FORZADO
-    // ==========================
-    if (forced) {
-      const allowed =
-        pathname === "/cambiar-password" ||
-        pathname.startsWith("/empleado/instalar");
+        let user = safeParseUser(localStorage.getItem("user"));
 
-      if (!allowed) {
-        router.replace("/cambiar-password");
-        return;
+        // 👉 Si hay token → refrescar sesión real
+        if (token) {
+          try {
+            user = await refreshMe();
+          } catch {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            router.replace("/login");
+            return;
+          }
+        }
+
+        if (cancelled) return;
+
+        const forced = user?.password_forced === true;
+        const hasSession = !!token && !!user?.role;
+
+        /* ==========================
+           PASSWORD FORZADO
+        ========================== */
+
+        if (forced) {
+          const allowed =
+            pathname === "/cambiar-password" ||
+            pathname.startsWith("/empleado/instalar");
+
+          if (!allowed) {
+            router.replace("/cambiar-password");
+            return;
+          }
+        }
+
+        /* ==========================
+           SIN SESIÓN
+        ========================== */
+
+        if (!hasSession && !isPublicPath(pathname)) {
+          router.replace("/login");
+          return;
+        }
+
+        /* ==========================
+           LOGIN CON SESIÓN
+        ========================== */
+
+        if (hasSession && pathname === "/login") {
+          router.replace(
+            user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard",
+          );
+          return;
+        }
+
+        /* ==========================
+           GUARD POR ROL
+        ========================== */
+
+        if (hasSession) {
+          if (pathname.startsWith("/admin") && user!.role !== "admin") {
+            router.replace("/empleado/dashboard");
+            return;
+          }
+
+          if (pathname.startsWith("/empleado") && user!.role !== "empleado") {
+            router.replace("/admin/dashboard");
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("AuthInit error:", e);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        router.replace("/login");
       }
     }
 
-    // ==========================
-    // SIN SESIÓN
-    // ==========================
-    if (!hasSession && !isPublicPath(pathname)) {
-      router.replace("/login");
-      return;
-    }
+    init();
 
-    // ==========================
-    // LOGIN CON SESIÓN
-    // ==========================
-    if (hasSession && pathname === "/login") {
-      router.replace(
-        user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard",
-      );
-      return;
-    }
-
-    // ==========================
-    // GUARD POR ROL
-    // ==========================
-    if (hasSession) {
-      if (pathname.startsWith("/admin") && user!.role !== "admin") {
-        router.replace("/empleado/dashboard");
-        return;
-      }
-
-      if (pathname.startsWith("/empleado") && user!.role !== "empleado") {
-        router.replace("/admin/dashboard");
-        return;
-      }
-    }
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, router]);
 
   return null;
