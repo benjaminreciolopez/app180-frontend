@@ -242,14 +242,6 @@ export default function AdminLayout({
           <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
 
           <p className="font-semibold">{session.nombre}</p>
-
-          <Button
-            variant="destructive"
-            className="w-full mt-4"
-            onClick={logout}
-          >
-            Cerrar sesión
-          </Button>
         </div>
       </aside>
 
