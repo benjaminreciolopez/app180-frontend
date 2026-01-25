@@ -24,6 +24,9 @@ import DrawerDiaDetalleAdmin from "@/components/admin/drawer/DrawerDiaDetalleAdm
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { EventoAdmin } from "@/types/ausencias";
 import type { CalendarioIntegradoEvento } from "@/types/calendario";
+type Session = {
+  modulos: Record<string, boolean>;
+};
 
 type ViewMode = "dayGridMonth" | "timeGridWeek";
 
@@ -258,6 +261,20 @@ export default function AdminCalendarioBase() {
 
   const [openPendientes, setOpenPendientes] = useState(false);
   const [openCrear, setOpenCrear] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+
+  function loadSession() {
+    try {
+      const raw = localStorage.getItem("user");
+      if (!raw) return;
+
+      const u = JSON.parse(raw);
+
+      setSession({
+        modulos: u.modulos || {},
+      });
+    } catch {}
+  }
 
   function apiCalendar() {
     return calendarRef.current?.getApi();
@@ -294,8 +311,9 @@ export default function AdminCalendarioBase() {
           desde,
           hasta,
           empleado_id: empleadoActivo || undefined,
-          include_real: 1,
-          include_plan: empleadoActivo ? 1 : undefined,
+          include_real: hasModule("fichajes") ? 1 : 0,
+          include_plan: empleadoActivo && hasModule("empleados") ? 1 : 0,
+          include_ausencias: hasModule("ausencias") ? 1 : 0,
         },
       });
 
@@ -328,14 +346,37 @@ export default function AdminCalendarioBase() {
       setLoading(false);
     }
   }
+  useEffect(() => {
+    loadSession();
+
+    function onSessionUpdated() {
+      loadSession();
+    }
+
+    window.addEventListener("session-updated", onSessionUpdated);
+
+    return () => {
+      window.removeEventListener("session-updated", onSessionUpdated);
+    };
+  }, []);
+
+  function hasModule(name: string) {
+    if (!session) return false;
+    return session.modulos?.[name] !== false;
+  }
 
   // =========================
   // Effects
   // =========================
 
   useEffect(() => {
-    loadEmpleados();
-  }, []);
+    if (hasModule("empleados")) {
+      loadEmpleados();
+    } else {
+      setEmpleados([]);
+      setEmpleadoActivo("");
+    }
+  }, [session]);
 
   useEffect(() => {
     if (calendarRef.current) loadEventsForCurrentView();
@@ -358,12 +399,18 @@ export default function AdminCalendarioBase() {
   // =========================
 
   const filteredEvents = useMemo(() => {
-    if (estadoFiltro === "todos") return events;
     return events.filter((e) => {
-      if (e.tipo !== "ausencia") return true;
-      return e.estado === estadoFiltro;
+      if (e.tipo === "ausencia" && !hasModule("ausencias")) return false;
+      if (e.tipo === "jornada_real" && !hasModule("fichajes")) return false;
+      if (e.tipo === "jornada_plan" && !hasModule("empleados")) return false;
+
+      if (estadoFiltro !== "todos" && e.tipo === "ausencia") {
+        return e.estado === estadoFiltro;
+      }
+
+      return true;
     });
-  }, [events, estadoFiltro]);
+  }, [events, estadoFiltro, session]);
 
   // =========================
   // FullCalendar events (pintado)
@@ -438,54 +485,55 @@ export default function AdminCalendarioBase() {
 
   const Filters = (
     <div className="space-y-3 px-3 pt-3">
-      <div className="bg-white border rounded-2xl px-3 py-3">
-        <label className="block text-[12px] mb-1">Empleado</label>
-        <select
-          value={empleadoActivo}
-          onChange={(e) => setEmpleadoActivo(e.target.value)}
-          className="w-full text-sm"
-        >
-          <option value="">Todos los empleados</option>
-          {empleados.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.nombre}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="bg-white border rounded-2xl px-3 py-3">
-        <label className="block text-[12px] mb-1">
-          Estado (solo ausencias)
-        </label>
-        <select
-          value={estadoFiltro}
-          onChange={(e) => setEstadoFiltro(e.target.value as any)}
-          className="w-full text-sm"
-        >
-          <option value="todos">Todos</option>
-          <option value="pendiente">Pendientes</option>
-          <option value="aprobado">Aprobados</option>
-          <option value="rechazado">Rechazados</option>
-        </select>
-
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button
-            onClick={() => setOpenCrear(true)}
-            className="py-3 rounded-xl bg-black text-white text-sm font-semibold"
+      {hasModule("empleados") && (
+        <div className="bg-white border rounded-2xl px-3 py-3">
+          <label className="block text-[12px] mb-1">Empleado</label>
+          <select
+            value={empleadoActivo}
+            onChange={(e) => setEmpleadoActivo(e.target.value)}
+            className="w-full text-sm"
           >
-            + Crear
-          </button>
-
-          <button
-            onClick={() => setOpenPendientes(true)}
-            className="py-3 rounded-xl border text-sm font-semibold"
-          >
-            Pendientes
-          </button>
+            <option value="">Todos los empleados</option>
+            {empleados.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.nombre}
+              </option>
+            ))}
+          </select>
         </div>
-      </div>
+      )}
+      {hasModule("ausencias") && (
+        <div className="bg-white border rounded-2xl px-3 py-3">
+          <label className="block text-[12px] mb-1">
+            Estado (solo ausencias)
+          </label>
+          <select
+            value={estadoFiltro}
+            onChange={(e) => setEstadoFiltro(e.target.value as any)}
+            className="w-full text-sm"
+          >
+            <option value="todos">Todos</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="aprobado">Aprobados</option>
+            <option value="rechazado">Rechazados</option>
+          </select>
 
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setOpenCrear(true)}
+              className="py-3 rounded-xl bg-black text-white text-sm font-semibold"
+            >
+              + Crear
+            </button>
+            <button
+              onClick={() => setOpenPendientes(true)}
+              className="py-3 rounded-xl border text-sm font-semibold"
+            >
+              Pendientes
+            </button>
+          </div>
+        </div>
+      )}
       <button
         onClick={loadEventsForCurrentView}
         className="w-full py-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2"
@@ -578,6 +626,7 @@ export default function AdminCalendarioBase() {
           />
         </div>
 
+        {/* Detalle día */}
         {openDayYmd && (
           <IOSDrawer
             open
@@ -598,7 +647,8 @@ export default function AdminCalendarioBase() {
           </IOSDrawer>
         )}
 
-        {selected && selected.tipo === "ausencia" && (
+        {/* Detalle ausencia */}
+        {hasModule("ausencias") && selected && selected.tipo === "ausencia" && (
           <IOSDrawer
             open
             onClose={() => setSelected(null)}
@@ -620,24 +670,28 @@ export default function AdminCalendarioBase() {
           </IOSDrawer>
         )}
 
-        {selected && selected.tipo === "jornada_real" && (
-          <IOSDrawer
-            open
-            onClose={() => setSelected(null)}
-            header={{
-              title: "Detalle de jornada",
-              canGoBack: true,
-              onBack: () => setSelected(null),
-              onClose: () => setSelected(null),
-            }}
-          >
-            <DrawerDetalleJornadaAdmin
-              jornadaId={selected.meta?.jornada_id}
+        {/* Detalle jornada */}
+        {hasModule("fichajes") &&
+          selected &&
+          selected.tipo === "jornada_real" && (
+            <IOSDrawer
+              open
               onClose={() => setSelected(null)}
-            />
-          </IOSDrawer>
-        )}
+              header={{
+                title: "Detalle de jornada",
+                canGoBack: true,
+                onBack: () => setSelected(null),
+                onClose: () => setSelected(null),
+              }}
+            >
+              <DrawerDetalleJornadaAdmin
+                jornadaId={selected.meta?.jornada_id}
+                onClose={() => setSelected(null)}
+              />
+            </IOSDrawer>
+          )}
 
+        {/* Detalle genérico */}
         {selected &&
           selected.tipo !== "ausencia" &&
           selected.tipo !== "jornada_real" && (
@@ -658,7 +712,8 @@ export default function AdminCalendarioBase() {
             </IOSDrawer>
           )}
 
-        {openPendientes && (
+        {/* Pendientes */}
+        {hasModule("ausencias") && openPendientes && (
           <IOSDrawer
             open
             onClose={() => setOpenPendientes(false)}
@@ -679,7 +734,8 @@ export default function AdminCalendarioBase() {
           </IOSDrawer>
         )}
 
-        {openCrear && (
+        {/* Crear ausencia */}
+        {hasModule("ausencias") && openCrear && (
           <IOSDrawer
             open
             onClose={() => setOpenCrear(false)}
@@ -815,7 +871,7 @@ export default function AdminCalendarioBase() {
         </IOSDrawer>
       )}
 
-      {selected && selected.tipo === "ausencia" && (
+      {hasModule("ausencias") && selected && selected.tipo === "ausencia" && (
         <IOSDrawer
           open
           onClose={() => setSelected(null)}
@@ -837,23 +893,25 @@ export default function AdminCalendarioBase() {
         </IOSDrawer>
       )}
 
-      {selected && selected.tipo === "jornada_real" && (
-        <IOSDrawer
-          open
-          onClose={() => setSelected(null)}
-          header={{
-            title: "Detalle de jornada",
-            canGoBack: true,
-            onBack: () => setSelected(null),
-            onClose: () => setSelected(null),
-          }}
-        >
-          <DrawerDetalleJornadaAdmin
-            jornadaId={selected.meta?.jornada_id}
+      {hasModule("fichajes") &&
+        selected &&
+        selected.tipo === "jornada_real" && (
+          <IOSDrawer
+            open
             onClose={() => setSelected(null)}
-          />
-        </IOSDrawer>
-      )}
+            header={{
+              title: "Detalle de jornada",
+              canGoBack: true,
+              onBack: () => setSelected(null),
+              onClose: () => setSelected(null),
+            }}
+          >
+            <DrawerDetalleJornadaAdmin
+              jornadaId={selected.meta?.jornada_id}
+              onClose={() => setSelected(null)}
+            />
+          </IOSDrawer>
+        )}
 
       {selected &&
         selected.tipo !== "ausencia" &&
@@ -875,7 +933,7 @@ export default function AdminCalendarioBase() {
           </IOSDrawer>
         )}
 
-      {openPendientes && (
+      {hasModule("ausencias") && openPendientes && (
         <IOSDrawer
           open
           onClose={() => setOpenPendientes(false)}
@@ -896,7 +954,7 @@ export default function AdminCalendarioBase() {
         </IOSDrawer>
       )}
 
-      {openCrear && (
+      {hasModule("ausencias") && openCrear && (
         <IOSDrawer
           open
           onClose={() => setOpenCrear(false)}
