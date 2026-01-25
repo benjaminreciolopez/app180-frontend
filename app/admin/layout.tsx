@@ -177,11 +177,6 @@ export default function AdminLayout({
       label: "Historial importaciones",
       module: "fichajes",
     },
-    {
-      path: "/admin/configuracion",
-      label: "Configuración",
-      module: null,
-    },
   ];
 
   const visibleMenu = menu.filter(
