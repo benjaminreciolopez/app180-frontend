@@ -35,7 +35,16 @@ interface DashboardData {
 }
 
 type Session = {
-  modulos: Record<string, boolean>;
+  modulos: {
+    clientes?: boolean;
+    fichajes?: boolean;
+    calendario?: boolean;
+    calendario_import?: boolean;
+    empleados?: boolean;
+    worklogs?: boolean;
+    ausencias?: boolean;
+    facturacion?: boolean;
+  };
 };
 
 /* ========================
@@ -134,8 +143,8 @@ export default function DashboardPage() {
      Helpers
   ======================== */
 
-  function hasModule(name: string) {
-    return session?.modulos?.[name] !== false;
+  function hasModule(name: keyof Session["modulos"]) {
+    return session?.modulos?.[name] === true;
   }
 
   function hora(d: string) {
@@ -273,6 +282,24 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+      {hasModule("calendario") && (
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title">Calendario</h2>
+          </div>
+
+          <p className="text-muted-foreground text-sm">
+            Planificación en desarrollo
+          </p>
+
+          <Link
+            href="/admin/calendario"
+            className="btn-secondary mt-3 inline-block"
+          >
+            Abrir calendario
+          </Link>
+        </div>
+      )}
 
       {/* Bloques inferiores */}
       <div className="grid gap-6 lg:grid-cols-2 mt-6">
