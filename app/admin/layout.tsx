@@ -23,6 +23,7 @@ export default function AdminLayout({
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    let alive = true;
     try {
       const token = localStorage.getItem("token");
       const userRaw = localStorage.getItem("user");
@@ -46,8 +47,12 @@ export default function AdminLayout({
     } catch {
       router.replace("/login");
     } finally {
-      setChecking(false);
+      if (alive) setChecking(false);
     }
+
+    return () => {
+      alive = false;
+    };
   }, [router]);
 
   function logout() {
