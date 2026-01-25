@@ -3,24 +3,9 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
-
-type Row = {
-  id: string;
-  fecha: string;
-  minutos: number | null;
-  precio: number | null;
-  descripcion: string;
-  empleado_id: string;
-  empleado_nombre: string;
-  cliente_id: string | null;
-  cliente_nombre: string | null;
-  work_item_nombre: string | null;
-};
-
-type ResumenItem = { minutos_total: number; trabajos: number } & Record<
-  string,
-  any
->;
+import TableTrabajos, { WorkLogItem } from "@/components/shared/TableTrabajos";
+import FormTrabajos from "@/components/shared/FormTrabajos";
+import { Plus, X } from "lucide-react";
 
 function ymd(d = new Date()) {
   const yyyy = d.getFullYear();
@@ -33,151 +18,112 @@ export default function AdminTrabajosPage() {
   const [desde, setDesde] = useState(ymd());
   const [hasta, setHasta] = useState(ymd());
 
-  const [items, setItems] = useState<Row[]>([]);
+  const [items, setItems] = useState<WorkLogItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [resumen, setResumen] = useState<{
-    porCliente: any[];
-    porEmpleado: any[];
-  } | null>(null);
+  
+  // Catalogos
+  const [empleados, setEmpleados] = useState([]);
+  const [clientes, setClientes] = useState([]);
+  const [workItems, setWorkItems] = useState([]);
 
-  async function load() {
+  // UI State
+  const [showForm, setShowForm] = useState(false);
+
+  async function loadData() {
     setLoading(true);
     try {
-      const [a, b] = await Promise.all([
-        api.get("/admin/worklogs", { params: { desde, hasta } }),
-        api.get("/admin/worklogs/resumen", { params: { desde, hasta } }),
-      ]);
-      setItems(Array.isArray(a.data?.items) ? a.data.items : []);
-      setResumen(b.data || null);
+      const res = await api.get("/admin/worklogs", { params: { desde, hasta } });
+      setItems(Array.isArray(res.data?.items) ? res.data.items : []);
     } finally {
       setLoading(false);
     }
   }
 
-  const totalMin = items.reduce((acc, it) => acc + (it.minutos ?? 0), 0);
+  async function loadCatalogos() {
+    try {
+      const [eRes, cRes, wRes] = await Promise.all([
+        api.get("/employees"), 
+        api.get("/admin/clientes"), 
+        api.get("/work-items") // Asumimos endpoint público o admin compatible
+      ]);
+      setEmpleados(Array.isArray(eRes.data) ? eRes.data : []);
+      setClientes(Array.isArray(cRes.data) ? cRes.data : []);
+      setWorkItems(Array.isArray(wRes.data) ? wRes.data : []);
+    } catch (err) {
+      console.error("Error cargando catálogos", err);
+    }
+  }
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadCatalogos();
   }, []);
 
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desde, hasta]);
+
   return (
-    <div className="app-main space-y-4">
-      <div className="flex items-end gap-3">
+    <div className="app-main space-y-6 pb-24">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Trabajos realizados</h1>
+          <h1 className="text-2xl font-bold">Gestión de Trabajos</h1>
+          <p className="text-gray-500 text-sm">
+            Registro y control de tiempos por cliente y empleado
+          </p>
         </div>
 
-        <div className="ml-auto flex gap-2">
-          <input
-            type="date"
-            className="border rounded px-3 py-2"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-          />
-          <input
-            type="date"
-            className="border rounded px-3 py-2"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-          />
-          <button className="btn-primary px-4 py-2" onClick={load}>
-            Cargar
+        <div className="flex flex-col sm:flex-row gap-2">
+           <div className="flex items-center gap-2 bg-white border rounded-lg p-1 px-2">
+            <span className="text-xs text-gray-500 font-medium">Desde</span>
+            <input
+              type="date"
+              className="text-sm outline-none bg-transparent"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2 bg-white border rounded-lg p-1 px-2">
+            <span className="text-xs text-gray-500 font-medium">Hasta</span>
+             <input
+              type="date"
+              className="text-sm outline-none bg-transparent"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+            />
+          </div>
+          
+          <button 
+            onClick={() => setShowForm(!showForm)}
+            className={`btn px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${showForm ? 'bg-gray-100 text-gray-700' : 'bg-black text-white hover:bg-gray-800'}`}
+          >
+            {showForm ? <><X size={16}/> Cancelar</> : <><Plus size={16}/> Crear Trabajo</>}
           </button>
         </div>
       </div>
 
-      <div className="card flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          Total periodo: <b>{Math.round((totalMin / 60) * 100) / 100} h</b> (
-          {totalMin} min)
+      {/* Formulario Creación (Collapsible) */}
+      {showForm && (
+        <div className="animate-in fade-in slide-in-from-top-4 duration-200">
+          <FormTrabajos
+            isAdmin={true}
+            empleados={empleados}
+            clientes={clientes}
+            workItems={workItems}
+            onCreated={() => {
+              loadData();
+              setShowForm(false);
+            }}
+          />
         </div>
-      </div>
+      )}
 
+      {/* Tabla */}
       {loading ? (
-        <p>Cargando…</p>
+        <div className="py-12 text-center text-gray-500">Cargando datos...</div>
       ) : (
-        <>
-          {resumen && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="card">
-                <h3 className="font-semibold mb-2">Top clientes</h3>
-                {resumen.porCliente?.length ? (
-                  <ul className="text-sm space-y-1">
-                    {resumen.porCliente.slice(0, 8).map((x: any) => (
-                      <li
-                        key={x.cliente_id || "sin"}
-                        className="flex justify-between"
-                      >
-                        <span>{x.cliente_nombre || "Sin cliente"}</span>
-                        <span>
-                          {Math.round((x.minutos_total / 60) * 100) / 100} h
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-gray-500">Sin datos</p>
-                )}
-              </div>
-
-              <div className="card">
-                <h3 className="font-semibold mb-2">Top empleados</h3>
-                {resumen.porEmpleado?.length ? (
-                  <ul className="text-sm space-y-1">
-                    {resumen.porEmpleado.slice(0, 8).map((x: any) => (
-                      <li key={x.empleado_id} className="flex justify-between">
-                        <span>{x.empleado_nombre}</span>
-                        <span>
-                          {Math.round((x.minutos_total / 60) * 100) / 100} h
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-gray-500">Sin datos</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="card overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-3 text-left">Fecha</th>
-                  <th className="p-3 text-left">Empleado</th>
-                  <th className="p-3 text-left">Cliente</th>
-                  <th className="p-3 text-left">Trabajo</th>
-                  <th className="p-3 text-left">Min</th>
-                  <th className="p-3 text-left">Descripción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.length === 0 ? (
-                  <tr>
-                    <td className="p-3 text-gray-500" colSpan={6}>
-                      No hay trabajos
-                    </td>
-                  </tr>
-                ) : (
-                  items.map((it) => (
-                    <tr key={it.id} className="border-t">
-                      <td className="p-3">
-                        {new Date(it.fecha).toLocaleString("es-ES")}
-                      </td>
-                      <td className="p-3">{it.empleado_nombre}</td>
-                      <td className="p-3">{it.cliente_nombre || "—"}</td>
-                      <td className="p-3">{it.work_item_nombre || "—"}</td>
-                      <td className="p-3">{it.minutos ?? "—"}</td>
-                      <td className="p-3">{it.descripcion}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <TableTrabajos items={items} isAdmin={true} />
       )}
     </div>
   );
