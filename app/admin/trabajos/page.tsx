@@ -46,16 +46,36 @@ export default function AdminTrabajosPage() {
 
   async function loadCatalogos() {
     try {
-      // Promise.allSettled para que si falla uno (ej: módulo desactivado) no fallen los demás
+      // Verificar si módulo empleados está activo
+      let fetchEmpleados = Promise.resolve({ data: [] } as any);
+      try {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        // Si no existe modulos, asumimos true (legacy). Si es false explícito, no cargamos.
+        if (user.modulos?.empleados !== false) {
+          fetchEmpleados = api.get("/employees");
+        }
+      } catch {}
+
       const results = await Promise.allSettled([
-        api.get("/employees"), 
+        fetchEmpleados,
         api.get("/admin/clientes"), 
       ]);
 
       const [eRes, cRes] = results;
 
-      setEmpleados(eRes.status === 'fulfilled' && Array.isArray(eRes.value.data) ? eRes.value.data : []);
-      setClientes(cRes.status === 'fulfilled' && Array.isArray(cRes.value.data) ? cRes.value.data : []);
+      // Si falla empleados (ej 403 aunque lo intentamos evitar, o 500), ponemos array vacío sin error
+      if (eRes.status === 'fulfilled' && Array.isArray(eRes.value.data)) {
+        setEmpleados(eRes.value.data);
+      } else {
+        setEmpleados([]);
+      }
+
+      // Clientes
+      if (cRes.status === 'fulfilled' && Array.isArray(cRes.value.data)) {
+        setClientes(cRes.value.data);
+      } else {
+        setClientes([]);
+      }
     } catch (err) {
       console.error("Error cargando catálogos", err);
     }
