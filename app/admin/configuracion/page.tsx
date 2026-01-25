@@ -1,147 +1,279 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "@/services/api";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
-type Modulos = {
-  fichajes?: boolean;
-  ausencias?: boolean;
-  worklogs?: boolean;
-  empleados?: boolean;
-  facturacion?: boolean;
-};
-const DEFAULTS: Modulos = {
-  fichajes: true,
-  ausencias: true,
-  worklogs: true,
-  empleados: true,
-  facturacion: false,
+type Session = {
+  nombre: string;
+  modulos: Record<string, boolean>;
 };
 
-export default function AdminConfiguracionPage() {
-  const [modulos, setModulos] = useState<Modulos | null>(null);
-  const [saving, setSaving] = useState(false);
-  const router = useRouter();
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
 
-  async function load() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const [session, setSession] = useState<Session | null>(null);
+
+  const [checking, setChecking] = useState(true);
+
+  // ============================
+  // Cargar sesión (inicial + sync)
+  // ============================
+  function loadSession() {
     try {
-      const r = await api.get("/admin/configuracion");
+      const raw = localStorage.getItem("user");
 
-      setModulos({
-        ...DEFAULTS,
-        ...r.data,
+      if (!raw) {
+        setSession(null);
+        return;
+      }
+
+      const user = JSON.parse(raw);
+
+      setSession({
+        nombre: user.nombre || "Administrador",
+        modulos: user.modulos || {},
       });
-    } catch (e) {
-      console.error("Error cargando config", e);
-      alert("No se pudo cargar la configuración");
+    } catch {
+      setSession(null);
     }
   }
 
   useEffect(() => {
-    load();
+    loadSession();
+    setChecking(false);
+
+    // 🔁 Escuchar cambios de sesión
+    function onSessionUpdated() {
+      loadSession();
+    }
+
+    window.addEventListener("session-updated", onSessionUpdated);
+
+    return () => {
+      window.removeEventListener("session-updated", onSessionUpdated);
+    };
   }, []);
 
-  async function save() {
-    if (!modulos) return;
+  // ============================
+  // Guard por módulos
+  // ============================
+  useEffect(() => {
+    if (!session) return;
 
-    setSaving(true);
+    const guards = [
+      { path: "/admin/dashboard", module: null },
+      { path: "/admin/calendario", module: "fichajes" },
+      { path: "/admin/empleados", module: "empleados" },
+      { path: "/admin/clientes", module: null },
+      { path: "/admin/jornadas", module: "fichajes" },
+      { path: "/admin/fichajes", module: "fichajes" },
+      { path: "/admin/fichajes/sospechosos", module: "fichajes" },
+      { path: "/admin/partes-dia", module: "worklogs" },
+      { path: "/admin/trabajos", module: "worklogs" },
+      {
+        path: "/admin/configuracion/calendario/importar",
+        module: "fichajes",
+      },
+      {
+        path: "/admin/configuracion/calendario/importaciones",
+        module: "fichajes",
+      },
+    ];
 
-    try {
-      await api.put("/admin/configuracion", { modulos });
+    const current = guards.find((g) => pathname.startsWith(g.path));
 
-      // 🔁 refrescar sesión
-      const me = await api.get("/auth/me");
-      localStorage.setItem("user", JSON.stringify(me.data));
-
-      // 🔄 refresco completo del árbol admin
-      router.refresh();
-
-      alert("Configuración guardada");
-    } finally {
-      setSaving(false);
+    if (current?.module && session.modulos[current.module] === false) {
+      location.href = "/admin/dashboard";
     }
+  }, [pathname, session]);
+
+  // ============================
+  // Logout
+  // ============================
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    window.dispatchEvent(new Event("session-updated"));
+
+    location.href = "/login";
   }
 
-  function toggle(k: keyof Modulos) {
-    if (k === "empleados" && modulos?.empleados !== false) {
-      if (!confirm("¿Seguro que quieres desactivar empleados?")) return;
-    }
-
-    setModulos((prev) => ({
-      ...prev!,
-      [k]: prev?.[k] === false ? true : false,
-    }));
+  // ============================
+  // Estados iniciales
+  // ============================
+  if (checking) {
+    return <div className="p-6">Cargando sesión…</div>;
   }
 
-  if (!modulos) return <p>Cargando…</p>;
+  if (!session) {
+    return <div className="p-6">Sesión no válida</div>;
+  }
 
-  return (
-    <div className="app-main max-w-xl space-y-4">
-      <h1 className="text-2xl font-bold">Configuración del sistema</h1>
+  // ============================
+  // Menú
+  // ============================
+  const menu = [
+    {
+      path: "/admin/dashboard",
+      label: "Dashboard",
+      module: null,
+    },
+    {
+      path: "/admin/calendario",
+      label: "Calendario",
+      module: "fichajes",
+    },
+    {
+      path: "/admin/empleados",
+      label: "Empleados",
+      module: "empleados",
+    },
+    {
+      path: "/admin/clientes",
+      label: "Clientes",
+      module: null,
+    },
+    {
+      path: "/admin/jornadas",
+      label: "Jornadas",
+      module: "fichajes",
+    },
+    {
+      path: "/admin/fichajes",
+      label: "Fichajes",
+      module: "fichajes",
+    },
+    {
+      path: "/admin/fichajes/sospechosos",
+      label: "Sospechosos",
+      module: "fichajes",
+    },
+    {
+      path: "/admin/partes-dia",
+      label: "Partes del día",
+      module: "worklogs",
+    },
+    {
+      path: "/admin/trabajos",
+      label: "Trabajos",
+      module: "worklogs",
+    },
+    {
+      path: "/admin/configuracion/calendario/importar",
+      label: "Importar calendario",
+      module: "fichajes",
+    },
+    {
+      path: "/admin/configuracion/calendario/importaciones",
+      label: "Historial importaciones",
+      module: "fichajes",
+    },
+    {
+      path: "/admin/configuracion",
+      label: "Configuración",
+      module: null,
+    },
+  ];
 
-      <div className="card space-y-3">
-        <Toggle
-          label="Fichajes"
-          value={modulos.fichajes}
-          onChange={() => toggle("fichajes")}
-        />
-
-        <Toggle
-          label="Ausencias"
-          value={modulos.ausencias}
-          onChange={() => toggle("ausencias")}
-        />
-
-        <Toggle
-          label="Trabajos / Partes"
-          value={modulos.worklogs}
-          onChange={() => toggle("worklogs")}
-        />
-
-        <Toggle
-          label="Empleados"
-          value={modulos.empleados}
-          onChange={() => toggle("empleados")}
-        />
-
-        <Toggle
-          label="Facturación"
-          value={modulos.facturacion}
-          onChange={() => toggle("facturacion")}
-        />
-      </div>
-
-      <button onClick={save} disabled={saving} className="btn-primary">
-        {saving ? "Guardando…" : "Guardar cambios"}
-      </button>
-    </div>
+  const visibleMenu = menu.filter(
+    (item) => !item.module || session.modulos[item.module] !== false,
   );
-}
 
-/* ========================
-   Toggle reutilizable
-======================== */
-
-function Toggle({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value?: boolean;
-  onChange: () => void;
-}) {
+  // ============================
+  // Render
+  // ============================
   return (
-    <label className="flex items-center justify-between">
-      <span>{label}</span>
+    <div className="flex h-[100svh] w-screen">
+      {/* Overlay móvil */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
 
-      <input
-        type="checkbox"
-        checked={value !== false}
-        onChange={onChange}
-        className="w-5 h-5"
-      />
-    </label>
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border p-5
+          transform transition-transform
+          ${menuOpen ? "translate-x-0" : "-translate-x-full"}
+          md:static md:translate-x-0
+          flex flex-col
+        `}
+      >
+        {/* Mobile close */}
+        <div className="md:hidden mb-4">
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="text-sm text-muted-foreground"
+          >
+            ✕ Cerrar
+          </button>
+        </div>
+
+        <h2 className="text-xl font-bold tracking-wide">CONTENDO GESTIONES</h2>
+
+        {/* Links */}
+        <ul className="mt-8 space-y-2 flex-1 overflow-y-auto">
+          {visibleMenu.map((item) => (
+            <li key={item.path}>
+              <Link
+                href={item.path}
+                onClick={() => setMenuOpen(false)}
+                className={`block px-3 py-2 rounded-md transition ${
+                  pathname === item.path
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                }`}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        {/* Footer */}
+        <div className="border-t border-border pt-4">
+          <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
+
+          <p className="font-semibold">{session.nombre}</p>
+
+          <Button
+            variant="destructive"
+            className="w-full mt-4"
+            onClick={logout}
+          >
+            Cerrar sesión
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <main className="flex-1 bg-background h-[100svh] flex flex-col">
+        {/* Header móvil */}
+        <div className="md:hidden sticky top-0 z-30 bg-background border-b flex items-center h-12 px-3 shrink-0">
+          <button
+            aria-label="Abrir menú"
+            onClick={() => setMenuOpen(true)}
+            className="p-2 border rounded"
+          >
+            ☰
+          </button>
+        </div>
+
+        {/* Contenido */}
+        <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
+      </main>
+    </div>
   );
 }
