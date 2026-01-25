@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState } from "react";
+
+type Modulos = Record<string, boolean>;
 
 type Session = {
   nombre: string;
-  modulos: Record<string, boolean>;
+  modulos: Modulos;
 };
 
 export default function AdminLayout({
@@ -18,10 +19,16 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   const [menuOpen, setMenuOpen] = useState(false);
-
   const [session, setSession] = useState<Session | null>(null);
-
   const [checking, setChecking] = useState(true);
+
+  // ============================
+  // Helpers
+  // ============================
+  function hasModule(modules: Modulos | undefined, key: string | null) {
+    if (!key) return true;
+    return modules?.[key] !== false; // por defecto ON si no existe
+  }
 
   // ============================
   // Cargar sesión (inicial + sync)
@@ -29,7 +36,6 @@ export default function AdminLayout({
   function loadSession() {
     try {
       const raw = localStorage.getItem("user");
-
       if (!raw) {
         setSession(null);
         return;
@@ -50,7 +56,6 @@ export default function AdminLayout({
     loadSession();
     setChecking(false);
 
-    // 🔁 Escuchar cambios de sesión
     function onSessionUpdated() {
       loadSession();
     }
@@ -63,37 +68,51 @@ export default function AdminLayout({
   }, []);
 
   // ============================
-  // Guard por módulos
+  // Guards por módulos
   // ============================
-  useEffect(() => {
-    if (!session) return;
-
-    const guards = [
+  const guards = useMemo(
+    () => [
       { path: "/admin/dashboard", module: null },
-      { path: "/admin/calendario", module: "fichajes" },
+
+      // ✅ Calendario INDEPENDIENTE de fichajes
+      { path: "/admin/calendario", module: "calendario" },
+
       { path: "/admin/empleados", module: "empleados" },
       { path: "/admin/clientes", module: null },
+
+      // Jornadas y fichajes sí dependen de fichajes
       { path: "/admin/jornadas", module: "fichajes" },
       { path: "/admin/fichajes", module: "fichajes" },
       { path: "/admin/fichajes/sospechosos", module: "fichajes" },
+
       { path: "/admin/partes-dia", module: "worklogs" },
       { path: "/admin/trabajos", module: "worklogs" },
+
+      // ✅ Importación OCR / historial dependen de calendario_import
       {
         path: "/admin/configuracion/calendario/importar",
-        module: "fichajes",
+        module: "calendario_import",
       },
       {
         path: "/admin/configuracion/calendario/importaciones",
-        module: "fichajes",
+        module: "calendario_import",
       },
-    ];
+    ],
+    [],
+  );
 
-    const current = guards.find((g) => pathname.startsWith(g.path));
+  useEffect(() => {
+    if (!session) return;
 
-    if (current?.module && session.modulos[current.module] === false) {
+    // Cogemos el guard más específico (path más largo primero)
+    const current = [...guards]
+      .sort((a, b) => b.path.length - a.path.length)
+      .find((g) => pathname.startsWith(g.path));
+
+    if (current?.module && !hasModule(session.modulos, current.module)) {
       location.href = "/admin/dashboard";
     }
-  }, [pathname, session]);
+  }, [pathname, session, guards]);
 
   // ============================
   // Logout
@@ -101,9 +120,7 @@ export default function AdminLayout({
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
     window.dispatchEvent(new Event("session-updated"));
-
     location.href = "/login";
   }
 
@@ -122,65 +139,40 @@ export default function AdminLayout({
   // Menú
   // ============================
   const menu = [
-    {
-      path: "/admin/dashboard",
-      label: "Dashboard",
-      module: null,
-    },
-    {
-      path: "/admin/calendario",
-      label: "Calendario",
-      module: "fichajes",
-    },
-    {
-      path: "/admin/empleados",
-      label: "Empleados",
-      module: "empleados",
-    },
-    {
-      path: "/admin/clientes",
-      label: "Clientes",
-      module: null,
-    },
-    {
-      path: "/admin/jornadas",
-      label: "Jornadas",
-      module: "fichajes",
-    },
-    {
-      path: "/admin/fichajes",
-      label: "Fichajes",
-      module: "fichajes",
-    },
+    { path: "/admin/dashboard", label: "Dashboard", module: null },
+
+    // ✅ Calendario separado de fichajes
+    { path: "/admin/calendario", label: "Calendario", module: "calendario" },
+
+    { path: "/admin/empleados", label: "Empleados", module: "empleados" },
+    { path: "/admin/clientes", label: "Clientes", module: null },
+
+    { path: "/admin/jornadas", label: "Jornadas", module: "fichajes" },
+    { path: "/admin/fichajes", label: "Fichajes", module: "fichajes" },
     {
       path: "/admin/fichajes/sospechosos",
       label: "Sospechosos",
       module: "fichajes",
     },
-    {
-      path: "/admin/partes-dia",
-      label: "Partes del día",
-      module: "worklogs",
-    },
-    {
-      path: "/admin/trabajos",
-      label: "Trabajos",
-      module: "worklogs",
-    },
+
+    { path: "/admin/partes-dia", label: "Partes del día", module: "worklogs" },
+    { path: "/admin/trabajos", label: "Trabajos", module: "worklogs" },
+
+    // ✅ Importación separada
     {
       path: "/admin/configuracion/calendario/importar",
       label: "Importar calendario",
-      module: "fichajes",
+      module: "calendario_import",
     },
     {
       path: "/admin/configuracion/calendario/importaciones",
       label: "Historial importaciones",
-      module: "fichajes",
+      module: "calendario_import",
     },
   ];
 
-  const visibleMenu = menu.filter(
-    (item) => !item.module || session.modulos[item.module] !== false,
+  const visibleMenu = menu.filter((item) =>
+    hasModule(session.modulos, item.module),
   );
 
   // ============================
@@ -215,14 +207,8 @@ export default function AdminLayout({
             ✕ Cerrar
           </button>
         </div>
+
         <h2 className="text-xl font-bold tracking-wide">CONTENDO GESTIONES</h2>
-
-        {/* Footer */}
-        <div className="border-t border-border pt-4">
-          <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
-
-          <p className="font-semibold">{session.nombre}</p>
-        </div>
 
         {/* Links */}
         <ul className="mt-8 space-y-2 flex-1 overflow-y-auto">
@@ -242,6 +228,19 @@ export default function AdminLayout({
             </li>
           ))}
         </ul>
+
+        {/* Footer */}
+        <div className="border-t border-border pt-4">
+          <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
+          <p className="font-semibold">{session.nombre}</p>
+
+          <button
+            onClick={logout}
+            className="mt-3 w-full text-left text-sm text-red-600 hover:underline"
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
 
       {/* Main */}
