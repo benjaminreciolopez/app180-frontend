@@ -14,7 +14,8 @@ export async function proxy(req: NextRequest) {
   }
 
   try {
-    const r = await fetch("https://app180-backend.onrender.com/system/status", {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://app180-backend.onrender.com";
+    const r = await fetch(`${apiUrl}/system/status`, {
       cache: "no-store",
     });
 
