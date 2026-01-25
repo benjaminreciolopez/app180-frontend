@@ -53,6 +53,15 @@ export default function TableTrabajos({ items, isAdmin = false }: Props) {
     } catch {}
   }, []);
 
+  // Escape to clear search
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setSearch("");
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // Guardar preferencia
   function handleSort(col: ColKey) {
     let newAsc = true;

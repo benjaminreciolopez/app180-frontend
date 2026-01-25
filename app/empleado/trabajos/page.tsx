@@ -14,8 +14,8 @@ function ymd(d = new Date()) {
 }
 
 export default function EmpleadoTrabajosPage() {
-  const [desde, setDesde] = useState(ymd());
-  const [hasta, setHasta] = useState(ymd());
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
   
   const [items, setItems] = useState<WorkLogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +27,11 @@ export default function EmpleadoTrabajosPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const res = await api.get("/worklogs/mis", { params: { desde, hasta } });
+      const params: any = {};
+      if (desde) params.desde = desde;
+      if (hasta) params.hasta = hasta;
+      
+      const res = await api.get("/worklogs/mis", { params });
       setItems(Array.isArray(res.data) ? res.data : []);
     } finally {
       setLoading(false);
@@ -36,12 +40,14 @@ export default function EmpleadoTrabajosPage() {
 
   async function loadCatalogos() {
     try {
-      const [c, w] = await Promise.all([
+      const results = await Promise.allSettled([
         api.get("/clientes"),
         api.get("/work-items"),
       ]);
-      setClientes(Array.isArray(c.data) ? c.data : []);
-      setWorkItems(Array.isArray(w.data) ? w.data : []);
+      const [cRes, wRes] = results;
+      
+      setClientes(cRes.status === 'fulfilled' && Array.isArray(cRes.value.data) ? cRes.value.data : []);
+      setWorkItems(wRes.status === 'fulfilled' && Array.isArray(wRes.value.data) ? wRes.value.data : []);
     } catch {
       setClientes([]);
       setWorkItems([]);
@@ -82,6 +88,14 @@ export default function EmpleadoTrabajosPage() {
             value={hasta}
             onChange={(e) => setHasta(e.target.value)}
           />
+          {(desde || hasta) && (
+            <button 
+              onClick={() => { setDesde(""); setHasta(""); }}
+              className="px-2 text-gray-400 hover:text-red-500 font-bold"
+            >
+              ✕
+            </button>
+          )}
            <button 
              onClick={loadData}
              className="px-3 py-1 bg-white border rounded text-xs font-medium shadow-sm active:translate-y-0.5"

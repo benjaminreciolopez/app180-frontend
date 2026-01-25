@@ -15,8 +15,8 @@ function ymd(d = new Date()) {
 }
 
 export default function AdminTrabajosPage() {
-  const [desde, setDesde] = useState(ymd());
-  const [hasta, setHasta] = useState(ymd());
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
 
   const [items, setItems] = useState<WorkLogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,13 @@ export default function AdminTrabajosPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const res = await api.get("/admin/worklogs", { params: { desde, hasta } });
+      // Si fechas vacías, enviamos undefined o strings vacios. 
+      // El backend debe soportarlo (requerirá ajuste si por defecto filtra hoy)
+      const params: any = {};
+      if (desde) params.desde = desde;
+      if (hasta) params.hasta = hasta;
+
+      const res = await api.get("/admin/worklogs", { params });
       setItems(Array.isArray(res.data?.items) ? res.data.items : []);
     } finally {
       setLoading(false);
@@ -41,14 +47,18 @@ export default function AdminTrabajosPage() {
 
   async function loadCatalogos() {
     try {
-      const [eRes, cRes, wRes] = await Promise.all([
+      // Promise.allSettled para que si falla uno (ej: módulo desactivado) no fallen los demás
+      const results = await Promise.allSettled([
         api.get("/employees"), 
         api.get("/admin/clientes"), 
-        api.get("/work-items") // Asumimos endpoint público o admin compatible
+        api.get("/work-items")
       ]);
-      setEmpleados(Array.isArray(eRes.data) ? eRes.data : []);
-      setClientes(Array.isArray(cRes.data) ? cRes.data : []);
-      setWorkItems(Array.isArray(wRes.data) ? wRes.data : []);
+
+      const [eRes, cRes, wRes] = results;
+
+      setEmpleados(eRes.status === 'fulfilled' && Array.isArray(eRes.value.data) ? eRes.value.data : []);
+      setClientes(cRes.status === 'fulfilled' && Array.isArray(cRes.value.data) ? cRes.value.data : []);
+      setWorkItems(wRes.status === 'fulfilled' && Array.isArray(wRes.value.data) ? wRes.value.data : []);
     } catch (err) {
       console.error("Error cargando catálogos", err);
     }
@@ -93,6 +103,15 @@ export default function AdminTrabajosPage() {
               onChange={(e) => setHasta(e.target.value)}
             />
           </div>
+          
+          {(desde || hasta) && (
+            <button 
+              onClick={() => { setDesde(""); setHasta(""); }}
+              className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-200"
+            >
+              x
+            </button>
+          )}
           
           <button 
             onClick={() => setShowForm(!showForm)}

@@ -131,13 +131,15 @@ export default function FormTrabajos({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-gray-500">Cliente</label>
+          <label className="text-xs font-medium text-gray-500">
+            Cliente <span className="text-gray-400 font-normal">(Opcional)</span>
+          </label>
           <select
             className="w-full border rounded-lg px-3 py-2 text-sm"
             value={clienteId}
             onChange={(e) => setClienteId(e.target.value)}
           >
-            <option value="">- Opcional -</option>
+            <option value="">- Seleccionar -</option>
             {clientes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.nombre}
@@ -148,14 +150,15 @@ export default function FormTrabajos({
 
         <div className="space-y-1">
           <label className="text-xs font-medium text-gray-500">
-            Tipo de trabajo
+            Tipo de trabajo{" "}
+            <span className="text-gray-400 font-normal">(Opcional)</span>
           </label>
           <select
             className="w-full border rounded-lg px-3 py-2 text-sm"
             value={workItemId}
             onChange={(e) => setWorkItemId(e.target.value)}
           >
-            <option value="">- Opcional -</option>
+            <option value="">- Seleccionar -</option>
             {workItems.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.nombre}
