@@ -1,7 +1,6 @@
-// components/AuthInit.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { setAuthToken } from "@/services/api";
 
@@ -41,34 +40,44 @@ export default function AuthInit() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
+    if (ready) return;
+
     const token = localStorage.getItem("token");
     const user = safeParseUser(localStorage.getItem("user"));
 
-    // set token en axios siempre
     setAuthToken(token);
 
-    // 1) Si está forzado el cambio, SOLO puede estar en /cambiar-password o /empleado/instalar
     const forced = user?.password_forced === true;
+    const hasSession = !!token && !!user?.role;
 
+    // =============================
+    // FORZAR PASSWORD
+    // =============================
     if (forced) {
-      const allowedWhileForced =
+      const allowed =
         pathname === "/cambiar-password" ||
         pathname.startsWith("/empleado/instalar");
-      if (!allowedWhileForced) {
+
+      if (!allowed) {
         router.replace("/cambiar-password");
+        return;
       }
-      return;
     }
 
-    // 2) Si NO hay token/user y está intentando entrar en una ruta protegida → login
-    const hasSession = !!token && !!user?.role;
+    // =============================
+    // SIN SESIÓN
+    // =============================
     if (!hasSession && !isPublicPath(pathname)) {
       router.replace("/login");
       return;
     }
 
-    // 3) Si hay sesión y está en /login → manda al dashboard correspondiente
+    // =============================
+    // LOGIN CON SESIÓN
+    // =============================
     if (hasSession && pathname === "/login") {
       router.replace(
         user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard",
@@ -76,18 +85,24 @@ export default function AuthInit() {
       return;
     }
 
-    // 4) Guard básico por rol en rutas /admin y /empleado
+    // =============================
+    // GUARD POR ROL
+    // =============================
     if (hasSession) {
       if (pathname.startsWith("/admin") && user!.role !== "admin") {
         router.replace("/empleado/dashboard");
         return;
       }
+
       if (pathname.startsWith("/empleado") && user!.role !== "empleado") {
         router.replace("/admin/dashboard");
         return;
       }
     }
-  }, [pathname, router]);
+
+    // ✅ solo aquí marcamos ready
+    setReady(true);
+  }, [pathname, router, ready]);
 
   return null;
 }
