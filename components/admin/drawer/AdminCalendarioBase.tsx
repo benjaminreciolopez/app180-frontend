@@ -361,7 +361,7 @@ export default function AdminCalendarioBase() {
   }, []);
 
   function hasModule(name: string) {
-    if (!session) return false;
+    if (!session) return true; // mientras carga, no bloquees
     return session.modulos?.[name] !== false;
   }
 
