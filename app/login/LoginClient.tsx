@@ -11,8 +11,7 @@ export default function LoginClient() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [current, setCurrent] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // 👈
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -52,34 +51,33 @@ export default function LoginClient() {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Contraseña</label>
-          <div className="relative">
-            <input
-              type={showCurrent ? "text" : "password"}
-              className="
-                  border rounded w-full px-3 py-2 pr-10
-                  bg-white dark:bg-neutral-800
-                  border-neutral-300 dark:border-neutral-700
-                  text-neutral-900 dark:text-neutral-100
-                  focus:outline-none focus:ring-2 focus:ring-blue-500
-                "
-              value={current}
-              onChange={(e) => setCurrent(e.target.value)}
-              required
-            />
+        {/* PASSWORD */}
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Contraseña"
+            autoComplete="current-password"
+            className="border p-2 w-full rounded pr-10"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-            <button
-              type="button"
-              onClick={() => setShowCurrent(!showCurrent)}
-              className="absolute inset-y-0 right-2 flex items-center text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-              tabIndex={-1}
-            >
-              {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            tabIndex={-1}
+          >
+            {showPassword ? (
+              <EyeOff className="w-5 h-5" />
+            ) : (
+              <Eye className="w-5 h-5" />
+            )}
+          </button>
         </div>
 
+        {/* ERROR */}
         {error && <p className="text-red-600 text-sm">{error}</p>}
 
         <button
