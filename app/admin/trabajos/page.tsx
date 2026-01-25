@@ -22,9 +22,9 @@ export default function AdminTrabajosPage() {
   const [loading, setLoading] = useState(true);
   
   // Catalogos
-  const [empleados, setEmpleados] = useState([]);
-  const [clientes, setClientes] = useState([]);
-  const [workItems, setWorkItems] = useState([]);
+  const [empleados, setEmpleados] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
+  const [workItems, setWorkItems] = useState<any[]>([]);
 
   // UI State
   const [showForm, setShowForm] = useState(false);

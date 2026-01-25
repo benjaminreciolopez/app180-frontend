@@ -21,8 +21,8 @@ export default function EmpleadoTrabajosPage() {
   const [loading, setLoading] = useState(true);
 
   // Catalogos
-  const [clientes, setClientes] = useState([]);
-  const [workItems, setWorkItems] = useState([]);
+  const [clientes, setClientes] = useState<any[]>([]);
+  const [workItems, setWorkItems] = useState<any[]>([]);
 
   async function loadData() {
     setLoading(true);
