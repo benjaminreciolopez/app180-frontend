@@ -6,7 +6,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { hasModule } from "@/lib/modules";
 
 export default function AdminLayout({
   children,
@@ -18,6 +17,7 @@ export default function AdminLayout({
   const [menuOpen, setMenuOpen] = useState(false);
   const [nombre, setNombre] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
+  const [modulos, setModulos] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     try {
@@ -37,6 +37,7 @@ export default function AdminLayout({
       }
 
       setNombre(user.nombre || "Administrador");
+      setModulos(user.modulos || {});
     } catch {
       router.replace("/login");
       return;
@@ -51,7 +52,7 @@ export default function AdminLayout({
     router.replace("/login");
   }
 
-  if (checking) {
+  if (checking || !Object.keys(modulos).length) {
     return <div className="p-6">Cargando sesión…</div>;
   }
 
@@ -123,15 +124,17 @@ export default function AdminLayout({
     },
   ];
   const visibleMenu = menu.filter(
-    (item) => !item.module || hasModule(item.module),
+    (item) => !item.module || modulos[item.module] !== false,
   );
   useEffect(() => {
+    if (!Object.keys(modulos).length) return;
+
     const current = menu.find((m) => pathname.startsWith(m.path));
 
-    if (current?.module && !hasModule(current.module)) {
+    if (current?.module && modulos[current.module] === false) {
       router.replace("/admin/dashboard");
     }
-  }, [pathname, router]);
+  }, [pathname, router, modulos]);
 
   return (
     <div className="flex h-[100svh] w-screen">
