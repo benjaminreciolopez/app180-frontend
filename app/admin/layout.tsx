@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +13,6 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [session, setSession] = useState<{
     nombre: string;
@@ -23,42 +22,31 @@ export default function AdminLayout({
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    let alive = true;
     try {
-      const token = localStorage.getItem("token");
       const userRaw = localStorage.getItem("user");
 
-      if (!token || !userRaw) {
-        router.replace("/login");
+      if (!userRaw) {
+        setChecking(false);
         return;
       }
 
       const user = JSON.parse(userRaw);
-
-      if (user.role !== "admin") {
-        router.replace("/login");
-        return;
-      }
 
       setSession({
         nombre: user.nombre || "Administrador",
         modulos: user.modulos || {},
       });
     } catch {
-      router.replace("/login");
+      // noop
     } finally {
-      if (alive) setChecking(false);
+      setChecking(false);
     }
-
-    return () => {
-      alive = false;
-    };
-  }, [router]);
+  }, []);
 
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    router.replace("/login");
+    location.href = "/login";
   }
 
   if (checking || !session) {
@@ -135,15 +123,14 @@ export default function AdminLayout({
   const visibleMenu = menu.filter(
     (item) => !item.module || session.modulos[item.module] !== false,
   );
-  useEffect(() => {
-    if (!session) return;
 
+  useEffect(() => {
     const current = menu.find((m) => pathname.startsWith(m.path));
 
     if (current?.module && session.modulos[current.module] === false) {
-      router.replace("/admin/dashboard");
+      location.href = "/admin/dashboard";
     }
-  }, [pathname, router, session]);
+  }, [pathname, session]);
 
   return (
     <div className="flex h-[100svh] w-screen">
