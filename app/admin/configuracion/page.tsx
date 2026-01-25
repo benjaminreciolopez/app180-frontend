@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
+import { useRouter } from "next/navigation";
 
 type Modulos = {
   fichajes?: boolean;
@@ -21,6 +22,7 @@ const DEFAULTS: Modulos = {
 export default function AdminConfiguracionPage() {
   const [modulos, setModulos] = useState<Modulos | null>(null);
   const [saving, setSaving] = useState(false);
+  const router = useRouter();
 
   async function load() {
     try {
@@ -52,11 +54,15 @@ export default function AdminConfiguracionPage() {
       const me = await api.get("/auth/me");
       localStorage.setItem("user", JSON.stringify(me.data));
 
+      // 🔄 refresco completo del árbol admin
+      router.refresh();
+
       alert("Configuración guardada");
     } finally {
       setSaving(false);
     }
   }
+  location.reload();
 
   function toggle(k: keyof Modulos) {
     if (k === "empleados" && modulos?.empleados !== false) {
