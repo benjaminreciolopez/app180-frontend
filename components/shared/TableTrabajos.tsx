@@ -181,7 +181,6 @@ export default function TableTrabajos({ items, isAdmin = false }: Props) {
                 <Th label="Fecha" col="fecha" />
                 {isAdmin && <Th label="Empleado" col="empleado_nombre" />}
                 <Th label="Cliente" col="cliente_nombre" />
-                <Th label="Trabajo" col="work_item_nombre" />
                 <Th label="Duración" col="minutos" />
                 <Th label="Descripción" col="descripcion" />
               </tr>
@@ -189,7 +188,7 @@ export default function TableTrabajos({ items, isAdmin = false }: Props) {
             <tbody className="divide-y">
               {processed.length === 0 ? (
                 <tr>
-                  <td className="p-8 text-center text-gray-500" colSpan={isAdmin ? 6 : 5}>
+                  <td className="p-8 text-center text-gray-500" colSpan={isAdmin ? 5 : 4}>
                     No hay resultados
                   </td>
                 </tr>
@@ -204,19 +203,16 @@ export default function TableTrabajos({ items, isAdmin = false }: Props) {
                         {it.empleado_nombre}
                       </td>
                     )}
-                    <td className="p-3">
-                      {it.cliente_nombre ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                          {it.cliente_nombre}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="p-3 text-gray-500">
-                      {it.work_item_nombre || "—"}
-                    </td>
-                    <td className="p-3 font-mono font-medium">
+                      <td className="p-3">
+                        {it.cliente_nombre ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            {it.cliente_nombre}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="p-3 font-mono font-medium">
                       {formatDuracion(it.minutos)}
                     </td>
                     <td className="p-3 max-w-md truncate text-gray-600" title={it.descripcion}>
