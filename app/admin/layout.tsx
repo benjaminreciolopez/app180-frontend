@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { hasModule } from "@/lib/modules";
 
 export default function AdminLayout({
   children,
@@ -55,24 +56,82 @@ export default function AdminLayout({
   }
 
   const menu = [
-    { path: "/admin/dashboard", label: "Dashboard" },
+    {
+      path: "/admin/dashboard",
+      label: "Dashboard",
+      module: null, // siempre
+    },
+
+    {
+      path: "/admin/calendario",
+      label: "Calendario",
+      module: "fichajes",
+    },
+
+    {
+      path: "/admin/empleados",
+      label: "Empleados",
+      module: "empleados",
+    },
+
+    {
+      path: "/admin/clientes",
+      label: "Clientes",
+      module: null, // SIEMPRE
+    },
+
+    {
+      path: "/admin/jornadas",
+      label: "Jornadas",
+      module: "fichajes",
+    },
+
+    {
+      path: "/admin/fichajes",
+      label: "Fichajes",
+      module: "fichajes",
+    },
+
+    {
+      path: "/admin/fichajes/sospechosos",
+      label: "Sospechosos",
+      module: "fichajes",
+    },
+
+    {
+      path: "/admin/partes-dia",
+      label: "Partes del día",
+      module: "worklogs",
+    },
+
+    {
+      path: "/admin/trabajos",
+      label: "Trabajos",
+      module: "worklogs",
+    },
+
     {
       path: "/admin/configuracion/calendario/importar",
-      label: "Importar calendario laboral",
+      label: "Importar calendario",
+      module: "fichajes",
     },
+
     {
       path: "/admin/configuracion/calendario/importaciones",
-      label: "Historial de importaciones",
+      label: "Historial importaciones",
+      module: "fichajes",
     },
-    { path: "/admin/calendario", label: "Calendario" },
-    { path: "/admin/empleados", label: "Empleados" },
-    { path: "/admin/clientes", label: "Clientes" },
-    { path: "/admin/jornadas", label: "Jornadas" },
-    { path: "/admin/fichajes", label: "Fichajes" },
-    { path: "/admin/fichajes/sospechosos", label: "Sospechosos" },
-    { path: "/admin/partes-dia", label: "Partes del día" },
-    { path: "/admin/trabajos", label: "Trabajos" },
   ];
+  const visibleMenu = menu.filter(
+    (item) => !item.module || hasModule(item.module),
+  );
+  useEffect(() => {
+    const current = menu.find((m) => pathname.startsWith(m.path));
+
+    if (current?.module && !hasModule(current.module)) {
+      router.replace("/admin/dashboard");
+    }
+  }, [pathname, router]);
 
   return (
     <div className="flex h-[100svh] w-screen">
@@ -106,7 +165,7 @@ export default function AdminLayout({
         <h2 className="text-xl font-bold tracking-wide">CONTENDO GESTIONES</h2>
 
         <ul className="mt-8 space-y-2 flex-1 overflow-y-auto">
-          {menu.map((item) => (
+          {visibleMenu.map((item) => (
             <li key={item.path}>
               <Link
                 href={item.path}
