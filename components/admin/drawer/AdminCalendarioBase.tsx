@@ -138,7 +138,8 @@ function colorForIntegrado(ev: CalendarioIntegradoEvento) {
   if (ev.tipo === "jornada_plan") return "#9CA3AF";
 
   if (ev.tipo === "calendario_empresa" || ev.tipo === "no_laborable") {
-    return colorFor("festivo", "aprobado");
+    const calTipo = ev.meta?.cal_tipo || "festivo";
+    return colorFor(calTipo, "aprobado");
   }
 
   return "#6B7280";
