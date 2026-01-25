@@ -15,9 +15,12 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [nombre, setNombre] = useState<string | null>(null);
+  const [session, setSession] = useState<{
+    nombre: string;
+    modulos: Record<string, boolean>;
+  } | null>(null);
+
   const [checking, setChecking] = useState(true);
-  const [modulos, setModulos] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     try {
@@ -36,11 +39,12 @@ export default function AdminLayout({
         return;
       }
 
-      setNombre(user.nombre || "Administrador");
-      setModulos(user.modulos || {});
+      setSession({
+        nombre: user.nombre || "Administrador",
+        modulos: user.modulos || {},
+      });
     } catch {
       router.replace("/login");
-      return;
     } finally {
       setChecking(false);
     }
@@ -52,7 +56,7 @@ export default function AdminLayout({
     router.replace("/login");
   }
 
-  if (checking || !Object.keys(modulos).length) {
+  if (checking || !session) {
     return <div className="p-6">Cargando sesión…</div>;
   }
 
@@ -124,17 +128,17 @@ export default function AdminLayout({
     },
   ];
   const visibleMenu = menu.filter(
-    (item) => !item.module || modulos[item.module] !== false,
+    (item) => !item.module || session.modulos[item.module] !== false,
   );
   useEffect(() => {
-    if (!Object.keys(modulos).length) return;
+    if (!session) return;
 
     const current = menu.find((m) => pathname.startsWith(m.path));
 
-    if (current?.module && modulos[current.module] === false) {
+    if (current?.module && session.modulos[current.module] === false) {
       router.replace("/admin/dashboard");
     }
-  }, [pathname, router, modulos]);
+  }, [pathname, router, session]);
 
   return (
     <div className="flex h-[100svh] w-screen">
@@ -187,7 +191,7 @@ export default function AdminLayout({
 
         <div className="border-t border-border pt-4">
           <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
-          <p className="font-semibold">{nombre}</p>
+          <p className="font-semibold">{session.nombre}</p>
 
           <Button
             variant="destructive"
