@@ -52,7 +52,7 @@ export default function FormTrabajos({
         fecha,
         minutos,
         descripcion,
-        client_id: clienteId || null,
+        cliente_id: clienteId || null,
         work_item_nombre: workItemNombre || null, // Texto libre
         // Solo enviamos empleado_id si es admin y eligió algo (o vacío para auto-asignar)
         empleado_id: isAdmin ? (empleadoId || null) : undefined,
