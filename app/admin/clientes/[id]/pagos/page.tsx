@@ -10,10 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils"; // Ensure you add this helper or use local fmt
 
-// Utils
-function fmt(num: number) {
-  return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(num);
-}
+import { formatCurrency } from "@/lib/utils";
 
 async function api(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem("token");
@@ -133,8 +130,8 @@ export default function PagosPage() {
 
     // Validate if allocations <= total
     const totalAllocated = asignaciones.reduce((a,b) => a + b.importe, 0);
-    if(totalAllocated > Number(newPay.importe) + 0.01) { // epsilon
-        return toast.error(`Has asignado más (${fmt(totalAllocated)}) del importe del pago (${fmt(Number(newPay.importe))})`);
+        if(totalAllocated > Number(newPay.importe) + 0.01) { // epsilon
+        return toast.error(`Has asignado más (${formatCurrency(totalAllocated)}) del importe del pago (${formatCurrency(Number(newPay.importe))})`);
     }
 
     try {
