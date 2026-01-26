@@ -167,7 +167,7 @@ export default function PagosPage() {
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
-          onClick={() => router.push(`/admin/clientes/${id}`)}
+          onClick={() => router.push(`/admin/facturacion`)}
         >
           <ArrowLeft size={18} />
         </Button>
