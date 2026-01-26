@@ -40,7 +40,7 @@ export default function EmpleadoTrabajosPage() {
   async function loadCatalogos() {
     try {
       const results = await Promise.allSettled([
-        api.get("/clientes"),
+        api.get("/empleado/clientes"),
       ]);
       const [cRes] = results;
       
