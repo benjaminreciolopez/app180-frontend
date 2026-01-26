@@ -48,9 +48,9 @@ export default function ClientFiscalForm({
         setSaving(true);
         await onSave(formData);
         setIsEditing(false);
-        // toast.success("Datos guardados");
+        toast.success("Datos guardados");
     } catch(e) {
-        alert("Error al guardar");
+        toast.error("Error al guardar");
     } finally {
         setSaving(false);
     }

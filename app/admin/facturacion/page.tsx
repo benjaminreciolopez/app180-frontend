@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils"; // Assuming you have this now or I will inline
 import { ArrowLeft, ArrowUpRight, DollarSign, Wallet, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
