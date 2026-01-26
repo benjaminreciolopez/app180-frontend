@@ -8,8 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/utils"; // Ensure you add this helper or use local fmt
-
 import { formatCurrency } from "@/lib/utils";
 
 async function api(url: string, options: RequestInit = {}) {
@@ -177,7 +175,7 @@ export default function PagosPage() {
                 <Card key={p.id}>
                     <CardContent className="p-4 flex justify-between items-center">
                         <div>
-                            <div className="font-bold text-lg">{fmt(p.importe)}</div>
+                            <div className="font-bold text-lg">{formatCurrency(p.importe)}</div>
                             <div className="text-sm text-gray-500">
                                 {new Date(p.fecha_pago).toLocaleDateString()} · <span className="capitalize">{p.metodo}</span>
                             </div>
@@ -302,7 +300,7 @@ export default function PagosPage() {
                                          <div className="flex-1">
                                              <div className="font-medium text-gray-800">{new Date(job.fecha).toLocaleDateString()} - {job.descripcion}</div>
                                              <div className="text-xs text-gray-500">
-                                                 Valor: {fmt(job.valor)} · Pagado: {fmt(job.pagado || 0)} · <span className="text-red-600 font-bold">Pendiente: {fmt(debt)}</span>
+                                                 Valor: {formatCurrency(job.valor)} · Pagado: {formatCurrency(job.pagado || 0)} · <span className="text-red-600 font-bold">Pendiente: {formatCurrency(debt)}</span>
                                              </div>
                                          </div>
                                          {isSelected && (
@@ -338,7 +336,7 @@ export default function PagosPage() {
 
               <div className="p-6 border-t bg-gray-50 flex justify-between items-center">
                   <div className="text-sm text-gray-600">
-                      Asignado: <span className="font-bold text-black">{fmt(Object.values(selectedJobs).reduce((a,b)=>a+b, 0))}</span>
+                      Asignado: <span className="font-bold text-black">{formatCurrency(Object.values(selectedJobs).reduce((a,b)=>a+b, 0))}</span>
                   </div>
                   <Button onClick={createPayment} className="w-1/2">
                     Registrar Pago
