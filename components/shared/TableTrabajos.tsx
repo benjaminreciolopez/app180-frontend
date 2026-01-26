@@ -51,13 +51,15 @@ function formatDuracion(item: WorkLogItem) {
   if (item.tipo_facturacion === 'dia') {
       // 8h = 480m = 1 dia
       const dias = m / 480;
-      return `${Number(dias.toFixed(2))} días`;
+      const val = Number(dias.toFixed(2));
+      return `${val} ${val === 1 ? 'día' : 'días'}`;
   }
 
   if (item.tipo_facturacion === 'mes') {
       // 160h = 9600m = 1 mes (aprox standard laboral)
       const meses = m / 9600;
-      return `${Number(meses.toFixed(2))} meses`;
+      const val = Number(meses.toFixed(2));
+      return `${val} ${val === 1 ? 'mes' : 'meses'}`;
   }
 
   // Default horas

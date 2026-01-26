@@ -125,12 +125,14 @@ function formatWorkLogDuracion(item: WorkLogHoy) {
 
   if (item.tipo_facturacion === 'dia') {
       const dias = m / 480;
-      return `${Number(dias.toFixed(2))} días`;
+      const val = Number(dias.toFixed(2));
+      return `${val} ${val === 1 ? 'día' : 'días'}`;
   }
 
   if (item.tipo_facturacion === 'mes') {
       const meses = m / 9600;
-      return `${Number(meses.toFixed(2))} meses`;
+      const val = Number(meses.toFixed(2));
+      return `${val} ${val === 1 ? 'mes' : 'meses'}`;
   }
 
   // Default horas - fallback to avoid "min" text if minutes are large
