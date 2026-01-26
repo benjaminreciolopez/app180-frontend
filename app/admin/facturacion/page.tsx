@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowUpRight, DollarSign, Wallet, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 // Helpers
 function fmt(num: number) {
@@ -49,13 +50,37 @@ export default function FacturacionPage() {
     <div className="p-6 space-y-6">
        <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Control de Cobros {year}</h1>
-        <select 
-            value={year} 
-            onChange={e => setYear(Number(e.target.value))}
-            className="border rounded p-2 text-sm bg-white"
-        >
-            {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
+        <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={async () => {
+                try {
+                    setLoading(true);
+                    const token = localStorage.getItem("token");
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/empleado/fix-values`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if(res.ok) {
+                        toast.success(`Valores recalculados: ${data.fixed} trabajos actualizados`);
+                        load();
+                    } else {
+                        toast.error("Error recalculando");
+                    }
+                } catch(e) {
+                    toast.error("Error de conexión");
+                } finally {
+                    setLoading(false);
+                }
+            }}>
+                Recalcular Valores
+            </Button>
+            <select 
+                value={year} 
+                onChange={e => setYear(Number(e.target.value))}
+                className="border rounded p-2 text-sm bg-white"
+            >
+                {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+        </div>
       </div>
 
        {/* Resumen Global */}
