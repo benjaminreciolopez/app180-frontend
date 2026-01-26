@@ -57,8 +57,8 @@ export default function PagosPage() {
   const [pendientes, setPendientes] = useState<TrabajoPendiente[]>([]);
   const [loadingPendientes, setLoadingPendientes] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<Record<string, number>>({}); 
-  // Map of work_log_id -> amount to pay
-  // If not in map, not selected.
+
+  const [submitting, setSubmitting] = useState(false);
 
   async function load() {
     try {
@@ -96,8 +96,6 @@ export default function PagosPage() {
      }
   }, [drawerOpen]);
 
-      const [submitting, setSubmitting] = useState(false);
-
   // Auto-distribute logic
   function autoDistribute() {
       const totalAmount = Number(newPay.importe);
@@ -106,8 +104,6 @@ export default function PagosPage() {
       let remaining = totalAmount;
       const newSelection: Record<string, number> = {};
 
-      // Sort: prioritario antiguos? 
-      // Por defecto vienen ordenados por fecha en el endpoint (ASC)
       for(const job of pendientes) {
           if(remaining <= 0.01) break;
           
@@ -168,28 +164,70 @@ export default function PagosPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* ... header ... */}
-      
-      {/* ... list ... */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          onClick={() => router.push(`/admin/clientes/${id}`)}
+        >
+          <ArrowLeft size={18} />
+        </Button>
+        <h1 className="text-2xl font-semibold flex-1">Gestión de Pagos</h1>
+        <Button onClick={() => setDrawerOpen(true)} className="gap-2">
+            <Plus size={16} /> Nuevo Pago
+        </Button>
+      </div>
+
+        {/* List */}
+        <div className="space-y-3">
+            {pagos.map(p => (
+                <Card key={p.id}>
+                    <CardContent className="p-4 flex justify-between items-center">
+                        <div>
+                            <div className="font-bold text-lg">{formatCurrency(p.importe)}</div>
+                            <div className="text-sm text-gray-500">
+                                {new Date(p.fecha_pago).toLocaleDateString()} · <span className="capitalize">{p.metodo}</span>
+                            </div>
+                            {p.notas && <div className="text-xs text-gray-400 mt-1">{p.notas}</div>}
+                        </div>
+                        <div className="text-right">
+                             <div className={`text-xs px-2 py-1 rounded capitalize ${p.estado === 'registrado' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>
+                                {p.estado || "Registrado"}
+                             </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+            {!loading && pagos.length === 0 && <div className="text-center py-10 text-gray-400">No hay pagos registrados</div>}
+        </div>
 
       {/* Drawer */}
       <AnimatePresence>
         {drawerOpen && (
           <motion.div
-             // ...
+            className="fixed inset-0 bg-black/40 z-50 flex justify-end"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setDrawerOpen(false)}
           >
             <motion.div
-               // ...
+              className="bg-white w-full max-w-2xl h-full flex flex-col shadow-2xl"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              onClick={e => e.stopPropagation()}
             >
-               {/* ... header ... */}
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-xl font-bold">Registrar Pago</h2>
+                <Button variant="ghost" size="sm" onClick={() => setDrawerOpen(false)}>
+                  <X size={20} />
+                </Button>
+              </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                  
                  {/* Datos Generales */}
                  <div className="grid grid-cols-2 gap-4">
-                     {/* ... inputs ... */}
-                     
-                     {/* INPUT IMPORTE: recalculate distribution if needed? No, just validation */}
                      <div>
                         <label className="text-sm font-medium">Importe (€)</label>
                         <Input 
@@ -199,7 +237,36 @@ export default function PagosPage() {
                             onChange={e => setNewPay({...newPay, importe: e.target.value})}
                         />
                      </div>
-                     {/* ... remaining inputs ... */}
+                     <div>
+                        <label className="text-sm font-medium">Fecha Pago</label>
+                        <Input 
+                            type="date" 
+                            value={newPay.fecha_pago} 
+                            onChange={e => setNewPay({...newPay, fecha_pago: e.target.value})}
+                        />
+                     </div>
+                     <div>
+                        <label className="text-sm font-medium">Método</label>
+                        <select 
+                            className="w-full border rounded px-3 py-2"
+                            value={newPay.metodo}
+                            onChange={e => setNewPay({...newPay, metodo: e.target.value})}
+                        >
+                            <option value="transferencia">Transferencia</option>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta">Tarjeta</option>
+                            <option value="bizum">Bizum</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                     </div>
+                     <div>
+                        <label className="text-sm font-medium">Referencia</label>
+                        <Input 
+                            placeholder="Ej. Factura 123"
+                            value={newPay.referencia} 
+                            onChange={e => setNewPay({...newPay, referencia: e.target.value})}
+                        />
+                     </div>
                  </div>
 
                  {/* Selector de Trabajos */}
@@ -232,19 +299,12 @@ export default function PagosPage() {
                                             onChange={(e) => {
                                                 if(e.target.checked) {
                                                     // Smart Select:
-                                                    // Tomamos lo que falta por pagar de la deuda...
-                                                    // PERO limitado por lo que queda del importe global
                                                     const totalPay = Number(newPay.importe);
                                                     const alreadyAllocated = Object.values(selectedJobs).reduce((a,b) => a+b, 0);
                                                     
                                                     const remainingCapacity = Math.max(0, totalPay - alreadyAllocated);
                                                     
                                                     const amountToAssign = Math.min(debt, remainingCapacity);
-                                                    
-                                                    // Unicamente asignamos si hay capacidad (o si el usuario quiere forzar luego)
-                                                    // UX: Si amountToAssign es 0, quizás deberíamos dejarlo en 0 para que él edite, 
-                                                    // o poner la deuda y dejar que salte el error?
-                                                    // "Mejor poner lo que cabe".
                                                     
                                                     setSelectedJobs(prev => ({ ...prev, [job.id]: Number(amountToAssign.toFixed(2)) }))
                                                 } else {
