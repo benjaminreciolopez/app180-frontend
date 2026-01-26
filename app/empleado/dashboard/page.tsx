@@ -114,6 +114,31 @@ type DrawerKey =
 
 type DrawerScreen = { key: DrawerKey; title: string };
 
+
+function formatWorkLogDuracion(item: WorkLogHoy) {
+  if (item.tipo_facturacion === 'valorado') {
+      return item.duracion_texto || '—';
+  }
+  
+  const m = item.minutos;
+  if (m == null) return "—";
+
+  if (item.tipo_facturacion === 'dia') {
+      const dias = m / 480;
+      return `${Number(dias.toFixed(2))} días`;
+  }
+
+  if (item.tipo_facturacion === 'mes') {
+      const meses = m / 9600;
+      return `${Number(meses.toFixed(2))} meses`;
+  }
+
+  // Default horas - fallback to avoid "min" text if minutes are large
+  // Assuming user wants hours since that's standard for labor
+  const horas = m / 60;
+  return `${Number(horas.toFixed(2))} h`;
+}
+
 export default function EmpleadoDashboardPage() {
   const router = useRouter();
 
@@ -591,43 +616,6 @@ export default function EmpleadoDashboardPage() {
           </ul>
         )}
       </div>
-
-type WorkLogHoy = {
-  id: string;
-  descripcion: string;
-  minutos: number | null;
-  cliente_nombre?: string | null;
-  tipo_facturacion?: 'hora' | 'dia' | 'mes' | 'valorado';
-  duracion_texto?: string | null;
-};
-
-// ... existing code ...
-
-function formatWorkLogDuracion(item: WorkLogHoy) {
-  if (item.tipo_facturacion === 'valorado') {
-      return item.duracion_texto || '—';
-  }
-  
-  const m = item.minutos;
-  if (m == null) return "—";
-
-  if (item.tipo_facturacion === 'dia') {
-      const dias = m / 480;
-      return `${Number(dias.toFixed(2))} días`;
-  }
-
-  if (item.tipo_facturacion === 'mes') {
-      const meses = m / 9600;
-      return `${Number(meses.toFixed(2))} meses`;
-  }
-
-  // Default horas - fallback to avoid "min" text if minutes are large
-  // Assuming user wants hours since that's standard for labor
-  const horas = m / 60;
-  return `${Number(horas.toFixed(2))} h`;
-}
-
-// ... existing code ...
 
       {/* Worklogs hoy */}
       <div className="card">
