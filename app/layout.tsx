@@ -4,6 +4,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import ForceChangePasswordModal from "@/components/ForceChangePasswordModal";
 import AuthInit from "@/components/AuthInit";
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: {
@@ -15,6 +17,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthInit />
           {children}
+          <Toaster />
           <ForceChangePasswordModal />
         </ThemeProvider>
       </body>

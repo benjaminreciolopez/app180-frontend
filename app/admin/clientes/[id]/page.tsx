@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CreditCard, FileText, Settings } from "lucide-react";
 import ClientFiscalForm from "@/components/admin/clientes/ClientFiscalForm";
-import ClientBillingPanel from "@/components/admin/clientes/ClientBillingPanel";
 
 /* =====================================================
    Types
@@ -74,7 +73,7 @@ export default function ClienteDetailPage() {
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'fiscal' | 'billing'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'fiscal'>('general');
 
   /* =========================
      Load
@@ -178,12 +177,6 @@ export default function ClienteDetailPage() {
         >
             Datos Fiscales
         </button>
-        <button 
-            className={`pb-3 border-b-2 transition-colors ${activeTab === 'billing' ? 'border-black text-black' : 'border-transparent hover:text-gray-700'}`}
-            onClick={() => setActiveTab('billing')}
-        >
-            Facturación y Saldos
-        </button>
       </div>
 
       {/* Content */}
@@ -224,26 +217,17 @@ export default function ClienteDetailPage() {
 
         {activeTab === 'fiscal' && (
              <div className="fade-in">
-                <div className="flex justify-end mb-4">
-                     <Button variant="outline" size="sm" onClick={() => router.push(`/admin/clientes/${id}/edit`)}>
-                        <Settings size={14} className="mr-2"/> Editar Datos
-                     </Button>
-                </div>
-                <ClientFiscalForm data={cliente} onChange={() => {}} />
-                <p className="text-xs text-gray-400 mt-2 text-right">Para modificar estos datos, usa el modo edición.</p>
+                <ClientFiscalForm 
+                    data={cliente} 
+                    onSave={async (newData) => {
+                        await api(`/admin/clientes/${id}`, {
+                            method: "PATCH",
+                            body: JSON.stringify(newData)
+                        });
+                        load(); // Reload to confirm
+                    }} 
+                />
              </div>
-        )}
-
-        {activeTab === 'billing' && (
-            <div className="fade-in space-y-6">
-                <ClientBillingPanel clienteId={id} />
-                
-                <div className="flex justify-center pt-8">
-                     <Button onClick={() => router.push(`/admin/clientes/${id}/pagos`)}>
-                        Gestionar Pagos y Tarifas
-                     </Button>
-                </div>
-            </div>
         )}
       </div>
 
