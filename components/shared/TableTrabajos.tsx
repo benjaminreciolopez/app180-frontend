@@ -18,6 +18,10 @@ export type WorkLogItem = {
   valor?: number | null;
   pagado?: number | null;
   estado_pago?: 'pendiente' | 'parcial' | 'pagado';
+
+  // Mixed billing
+  tipo_facturacion?: 'hora' | 'dia' | 'mes' | 'valorado';
+  duracion_texto?: string | null;
 };
 
 type ColKey =
@@ -36,10 +40,28 @@ type Props = {
 };
 
 // Utils para formato
-function formatDuracion(minutos: number | null) {
-  if (minutos == null) return "—";
-  const horas = minutos / 60;
-  // Mostramos hasta 2 decimales si no es entero
+function formatDuracion(item: WorkLogItem) {
+  if (item.tipo_facturacion === 'valorado') {
+      return item.duracion_texto || '—';
+  }
+  
+  const m = item.minutos;
+  if (m == null) return "—";
+
+  if (item.tipo_facturacion === 'dia') {
+      // 8h = 480m = 1 dia
+      const dias = m / 480;
+      return `${Number(dias.toFixed(2))} días`;
+  }
+
+  if (item.tipo_facturacion === 'mes') {
+      // 160h = 9600m = 1 mes (aprox standard laboral)
+      const meses = m / 9600;
+      return `${Number(meses.toFixed(2))} meses`;
+  }
+
+  // Default horas
+  const horas = m / 60;
   return `${Number(horas.toFixed(2))} h`;
 }
 
@@ -154,6 +176,8 @@ export default function TableTrabajos({ items, isAdmin = false }: Props) {
   }
 
   // Totales de la selección actual
+  // OJO: Totalizar minutos mixtos (hora/dia/mes) puede ser confuso. 
+  // Mostramos horas totales como conversión base para tener una referencia.
   const totalMin = processed.reduce((acc, curr) => acc + (curr.minutos || 0), 0);
   const totalHoras = (totalMin / 60).toFixed(2);
 
@@ -175,7 +199,7 @@ export default function TableTrabajos({ items, isAdmin = false }: Props) {
         </div>
 
         <div className="text-sm text-gray-600 font-medium">
-          {processed.length} registros | Total:{" "}
+          {processed.length} registros | Total eq:{" "}
           <span className="text-black font-bold">{totalHoras} h</span>
         </div>
       </div>
@@ -197,7 +221,7 @@ export default function TableTrabajos({ items, isAdmin = false }: Props) {
             <tbody className="divide-y">
               {processed.length === 0 ? (
                 <tr>
-                  <td className="p-8 text-center text-gray-500" colSpan={isAdmin ? 5 : 4}>
+                  <td className="p-8 text-center text-gray-500" colSpan={isAdmin ? 7 : 6}>
                     No hay resultados
                   </td>
                 </tr>
@@ -221,8 +245,8 @@ export default function TableTrabajos({ items, isAdmin = false }: Props) {
                           "—"
                         )}
                       </td>
-                      <td className="p-3 font-mono font-medium">
-                      {formatDuracion(it.minutos)}
+                      <td className="p-3 font-mono font-medium whitespace-nowrap">
+                      {formatDuracion(it)}
                     </td>
                     <td className="p-3 font-mono text-xs">
                         {it.valor ? `${Number(it.valor).toFixed(2)}€` : '—'}
