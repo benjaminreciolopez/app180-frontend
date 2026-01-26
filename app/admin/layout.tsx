@@ -146,7 +146,8 @@ export default function AdminLayout({
 
     { path: "/admin/empleados", label: "Empleados", module: "empleados" },
     { path: "/admin/clientes", label: "Clientes", module: null },
-    { path: "/admin/facturacion", label: "Facturación", module: null },
+    { path: "/admin/clientes", label: "Clientes", module: null },
+    { path: "/admin/facturacion", label: "Control de Cobros", module: null },
 
     { path: "/admin/jornadas", label: "Jornadas", module: "fichajes" },
     { path: "/admin/fichajes", label: "Fichajes", module: "fichajes" },

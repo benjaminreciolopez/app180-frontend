@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, X, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, X, Trash2, Check, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/utils"; // Ensure you add this helper or use local fmt
 
 // Utils
 function fmt(num: number) {
@@ -31,6 +32,15 @@ async function api(url: string, options: RequestInit = {}) {
   return res.json();
 }
 
+type TrabajoPendiente = {
+    id: string;
+    fecha: string;
+    descripcion: string;
+    valor: number;
+    pagado: number;
+    estado_pago: string;
+};
+
 export default function PagosPage() {
   const { id } = useParams(); // Client ID
   const router = useRouter();
@@ -48,31 +58,35 @@ export default function PagosPage() {
     notas: ""
   });
 
+  // Allocation Logic
+  const [pendientes, setPendientes] = useState<TrabajoPendiente[]>([]);
+  const [loadingPendientes, setLoadingPendientes] = useState(false);
+  const [selectedJobs, setSelectedJobs] = useState<Record<string, number>>({}); 
+  // Map of work_log_id -> amount to pay
+  // If not in map, not selected.
+
   async function load() {
     try {
         setLoading(true);
-        const data = await api(`/admin/clientes/${id}/pagos`); // We assume this exists or create it
-        // Wait, current route in `adminClientesRoutes.js`?
-        // Let's check: Yes, `listarPagosCliente` exists (GET /clientes/:clienteId/pagos IS NOT in routes yet, wait checking...)
-        // Actually `paymentsController.js` has `listarPagosCliente`.
-        // I need to ensure the ROUTE exists or I add it.
-        // Assuming route `GET /admin/clientes/:id/pagos` exists? 
-        // No, current routes file had `router.get("/clientes/:id/tarifas", ...)` but I removed the billing/payments logic?
-        // Wait, I need to check `adminClientesRoutes.js` content from previous reads.
-        // It has `listarTarifasCliente`. Does it have `listarPagosCliente`? 
-        // I will assume it DOES NOT and will add it in next tool calls if needed.
-        // For now I write the frontend assuming the route will be `/admin/clientes/${id}/pagos`.
-        
-        // Wait, actually I better verify the route first or assume I'll add it.
-        // I'll proceed creating the file and will fix backend routes in next steps.
-        
+        const data = await api(`/admin/clientes/${id}/pagos`); 
         setPagos(data);
     } catch(e) {
         console.error(e);
-        // If route doesn't exist yet, it fails silentish 
     } finally {
         setLoading(false);
     }
+  }
+
+  async function loadPendientes() {
+      setLoadingPendientes(true);
+      try {
+          const data = await api(`/admin/clientes/${id}/trabajos-pendientes`);
+          setPendientes(data);
+      } catch(e) {
+          toast.error("Error cargando trabajos pendientes");
+      } finally {
+          setLoadingPendientes(false);
+      }
   }
 
   useEffect(() => {
@@ -80,8 +94,49 @@ export default function PagosPage() {
     setNewPay(p => ({ ...p, fecha_pago: new Date().toISOString().slice(0, 10) }));
   }, [id]);
 
+  useEffect(() => {
+     if(drawerOpen) {
+         loadPendientes();
+         setSelectedJobs({});
+     }
+  }, [drawerOpen]);
+
+  // Auto-distribute logic
+  function autoDistribute() {
+      const totalAmount = Number(newPay.importe);
+      if(!totalAmount) return;
+
+      let remaining = totalAmount;
+      const newSelection: Record<string, number> = {};
+
+      // Sort chronological? Or just iterate
+      for(const job of pendientes) {
+          if(remaining <= 0) break;
+          
+          const debt = Number(job.valor) - Number(job.pagado || 0);
+          const pay = Math.min(remaining, debt);
+          
+          newSelection[job.id] = pay;
+          remaining -= pay;
+      }
+      setSelectedJobs(newSelection);
+  }
+
   async function createPayment() {
-    if(!newPay.importe) return alert("Indica importe");
+    if(!newPay.importe) return toast.error("Indica importe");
+    
+    // Prepare Allocations
+    const asignaciones = Object.entries(selectedJobs).map(([work_log_id, importe]) => ({
+        work_log_id,
+        importe
+    })).filter(x => x.importe > 0);
+
+    // Validate if allocations <= total
+    const totalAllocated = asignaciones.reduce((a,b) => a + b.importe, 0);
+    if(totalAllocated > Number(newPay.importe) + 0.01) { // epsilon
+        return toast.error(`Has asignado más (${fmt(totalAllocated)}) del importe del pago (${fmt(Number(newPay.importe))})`);
+    }
+
     try {
         await api(`/admin/pagos`, {
             method: "POST",
@@ -91,10 +146,11 @@ export default function PagosPage() {
                 metodo: newPay.metodo,
                 fecha_pago: newPay.fecha_pago,
                 referencia: newPay.referencia,
-                notas: newPay.notas
+                notas: newPay.notas,
+                asignaciones
             })
         });
-        toast.success("Pago registrado");
+        toast.success("Pago registrado correctamente");
         setDrawerOpen(false);
         load();
         setNewPay({ importe: "", metodo: "transferencia", fecha_pago: new Date().toISOString().slice(0, 10), referencia: "", notas: "" });
@@ -132,7 +188,7 @@ export default function PagosPage() {
                         </div>
                         <div className="text-right">
                              <div className={`text-xs px-2 py-1 rounded capitalize ${p.estado === 'registrado' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>
-                                {p.estado}
+                                {p.estado || "Registrado"}
                              </div>
                         </div>
                     </CardContent>
@@ -152,71 +208,144 @@ export default function PagosPage() {
             onClick={() => setDrawerOpen(false)}
           >
             <motion.div
-              className="bg-white w-full max-w-md h-full p-6"
-              initial={{ x: 400 }}
+              className="bg-white w-full max-w-2xl h-full flex flex-col shadow-2xl"
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: 400 }}
+              exit={{ x: "100%" }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold">Registrar Pago</h2>
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-xl font-bold">Registrar Pago</h2>
                 <Button variant="ghost" size="sm" onClick={() => setDrawerOpen(false)}>
-                  <X size={18} />
+                  <X size={20} />
                 </Button>
               </div>
 
-              <div className="space-y-4">
-                 <div>
-                    <label className="text-sm font-medium">Importe (€)</label>
-                    <Input 
-                        type="number" 
-                        value={newPay.importe} 
-                        onChange={e => setNewPay({...newPay, importe: e.target.value})}
-                    />
-                 </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
                  
-                 <div>
-                    <label className="text-sm font-medium">Método</label>
-                    <select 
-                        className="w-full border rounded px-3 py-2"
-                        value={newPay.metodo}
-                        onChange={e => setNewPay({...newPay, metodo: e.target.value})}
-                    >
-                        <option value="transferencia">Transferencia</option>
-                        <option value="efectivo">Efectivo</option>
-                        <option value="tarjeta">Tarjeta</option>
-                        <option value="bizum">Bizum</option>
-                        <option value="otro">Otro</option>
-                    </select>
+                 {/* Datos Generales */}
+                 <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-sm font-medium">Importe (€)</label>
+                        <Input 
+                            type="number" 
+                            className="text-lg font-bold"
+                            value={newPay.importe} 
+                            onChange={e => setNewPay({...newPay, importe: e.target.value})}
+                        />
+                     </div>
+                     <div>
+                        <label className="text-sm font-medium">Fecha Pago</label>
+                        <Input 
+                            type="date" 
+                            value={newPay.fecha_pago} 
+                            onChange={e => setNewPay({...newPay, fecha_pago: e.target.value})}
+                        />
+                     </div>
+                     <div>
+                        <label className="text-sm font-medium">Método</label>
+                        <select 
+                            className="w-full border rounded px-3 py-2"
+                            value={newPay.metodo}
+                            onChange={e => setNewPay({...newPay, metodo: e.target.value})}
+                        >
+                            <option value="transferencia">Transferencia</option>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta">Tarjeta</option>
+                            <option value="bizum">Bizum</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                     </div>
+                     <div>
+                        <label className="text-sm font-medium">Referencia</label>
+                        <Input 
+                            placeholder="Ej. Factura 123"
+                            value={newPay.referencia} 
+                            onChange={e => setNewPay({...newPay, referencia: e.target.value})}
+                        />
+                     </div>
+                 </div>
+
+                 {/* Selector de Trabajos */}
+                 <div className="border rounded-lg p-4 bg-gray-50">
+                     <div className="flex justify-between items-center mb-4">
+                         <h3 className="font-semibold text-gray-700">Imputar a Trabajos Pendientes</h3>
+                         <Button size="sm" variant="outline" onClick={autoDistribute}>
+                            Auto-distribuir
+                         </Button>
+                     </div>
+
+                     {loadingPendientes ? (
+                         <div className="text-center py-4 text-gray-400">Cargando trabajos...</div>
+                     ) : (
+                         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                             {pendientes.length === 0 && <p className="text-sm text-gray-400 text-center">No hay trabajos pendientes de pago.</p>}
+                             
+                             {pendientes.map(job => {
+                                 const debt = Number(job.valor) - Number(job.pagado || 0);
+                                 const isSelected = selectedJobs[job.id] !== undefined;
+                                 
+                                 return (
+                                     <div key={job.id} className={`p-3 rounded border text-sm flex items-center gap-3 transition-colors ${isSelected ? "bg-blue-50 border-blue-200" : "bg-white"}`}>
+                                         <input 
+                                            type="checkbox" 
+                                            checked={isSelected}
+                                            onChange={(e) => {
+                                                if(e.target.checked) {
+                                                    // Default to full debt match
+                                                    setSelectedJobs(prev => ({ ...prev, [job.id]: debt }))
+                                                } else {
+                                                    const copy = {...selectedJobs};
+                                                    delete copy[job.id];
+                                                    setSelectedJobs(copy);
+                                                }
+                                            }}
+                                            className="h-4 w-4"
+                                         />
+                                         <div className="flex-1">
+                                             <div className="font-medium text-gray-800">{new Date(job.fecha).toLocaleDateString()} - {job.descripcion}</div>
+                                             <div className="text-xs text-gray-500">
+                                                 Valor: {fmt(job.valor)} · Pagado: {fmt(job.pagado || 0)} · <span className="text-red-600 font-bold">Pendiente: {fmt(debt)}</span>
+                                             </div>
+                                         </div>
+                                         {isSelected && (
+                                             <div className="w-24">
+                                                 <Input 
+                                                    type="number" 
+                                                    className="h-8 text-right bg-white"
+                                                    value={selectedJobs[job.id]}
+                                                    onChange={e => {
+                                                        const val = Number(e.target.value);
+                                                        setSelectedJobs(prev => ({...prev, [job.id]: val}));
+                                                    }}
+                                                 />
+                                             </div>
+                                         )}
+                                     </div>
+                                 )
+                             })}
+                         </div>
+                     )}
                  </div>
 
                  <div>
-                    <label className="text-sm font-medium">Fecha Pago</label>
+                    <label className="text-sm font-medium">Notas</label>
                     <Input 
-                        type="date" 
-                        value={newPay.fecha_pago} 
-                        onChange={e => setNewPay({...newPay, fecha_pago: e.target.value})}
-                    />
-                 </div>
-
-                 <div>
-                    <label className="text-sm font-medium">Referencia / Notas</label>
-                    <Input 
-                        placeholder="Ej. Factura 123"
-                        value={newPay.referencia} 
-                        onChange={e => setNewPay({...newPay, referencia: e.target.value})}
-                    />
-                    <Input 
-                        className="mt-2"
                         placeholder="Notas internas..."
                         value={newPay.notas} 
                         onChange={e => setNewPay({...newPay, notas: e.target.value})}
                     />
                  </div>
 
-                 <Button className="w-full mt-4" onClick={createPayment}>
-                    Guardar Pago
-                 </Button>
+              </div>
+
+              <div className="p-6 border-t bg-gray-50 flex justify-between items-center">
+                  <div className="text-sm text-gray-600">
+                      Asignado: <span className="font-bold text-black">{fmt(Object.values(selectedJobs).reduce((a,b)=>a+b, 0))}</span>
+                  </div>
+                  <Button onClick={createPayment} className="w-1/2">
+                    Registrar Pago
+                  </Button>
               </div>
             </motion.div>
           </motion.div>

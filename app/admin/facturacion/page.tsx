@@ -48,7 +48,7 @@ export default function FacturacionPage() {
   return (
     <div className="p-6 space-y-6">
        <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Facturación y Saldos {year}</h1>
+        <h1 className="text-2xl font-semibold">Control de Cobros {year}</h1>
         <select 
             value={year} 
             onChange={e => setYear(Number(e.target.value))}

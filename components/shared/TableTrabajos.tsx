@@ -13,6 +13,11 @@ export type WorkLogItem = {
   empleado_id?: string;
   cliente_nombre?: string | null;
   work_item_nombre?: string | null;
+  
+  // Payment fields
+  valor?: number | null;
+  pagado?: number | null;
+  estado_pago?: 'pendiente' | 'parcial' | 'pagado';
 };
 
 type ColKey =
@@ -21,6 +26,8 @@ type ColKey =
   | "cliente_nombre"
   | "work_item_nombre"
   | "minutos"
+  | "valor"
+  | "estado_pago"
   | "descripcion";
 
 type Props = {
@@ -182,6 +189,8 @@ export default function TableTrabajos({ items, isAdmin = false }: Props) {
                 {isAdmin && <Th label="Empleado" col="empleado_nombre" />}
                 <Th label="Cliente" col="cliente_nombre" />
                 <Th label="Duración" col="minutos" />
+                <Th label="Valor" col="valor" />
+                <Th label="Estado" col="estado_pago" />
                 <Th label="Descripción" col="descripcion" />
               </tr>
             </thead>
@@ -214,6 +223,20 @@ export default function TableTrabajos({ items, isAdmin = false }: Props) {
                       </td>
                       <td className="p-3 font-mono font-medium">
                       {formatDuracion(it.minutos)}
+                    </td>
+                    <td className="p-3 font-mono text-xs">
+                        {it.valor ? `${Number(it.valor).toFixed(2)}€` : '—'}
+                    </td>
+                    <td className="p-3">
+                        {it.valor ? (
+                             <span className={`px-2 py-1 rounded text-xs capitalize 
+                                ${it.estado_pago === 'pagado' ? 'bg-green-100 text-green-800' : 
+                                  it.estado_pago === 'parcial' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                                {it.estado_pago || 'pendiente'}
+                             </span>
+                        ) : (
+                            <span className="text-gray-300 text-xs">—</span>
+                        )}
                     </td>
                     <td className="p-3 max-w-md truncate text-gray-600" title={it.descripcion}>
                         {it.descripcion}
