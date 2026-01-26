@@ -127,7 +127,7 @@ export default function DrawerCalendario({
         allDay,
         backgroundColor: col,
         borderColor: col,
-        textColor: "#fff",
+        textColor: "#f79c9cff",
         display: isBackground ? "background" : "block",
         extendedProps: { ...e },
       };
