@@ -1,12 +1,14 @@
 {
   "name": "CONTENDO GESTIONES",
   "short_name": "CONTENDO",
-  "theme_color": "#0f172a",
-  "background_color": "#ffffff",
-  "display": "standalone",
-  "scope": "/",
+  "description": "Sistema de gestión empresarial para control de empleados, clientes, facturación y jornadas laborales",
   "start_url": "/",
-
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "scope": "/",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/icon-180.png",
@@ -26,5 +28,7 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }

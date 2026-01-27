@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import ForceChangePasswordModal from "@/components/ForceChangePasswordModal";
 import AuthInit from "@/components/AuthInit";
 
 import { Toaster } from "sonner";
@@ -18,7 +17,6 @@ export default function RootLayout({
           <AuthInit />
           {children}
           <Toaster />
-          <ForceChangePasswordModal />
         </ThemeProvider>
       </body>
     </html>

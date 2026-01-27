@@ -32,6 +32,8 @@ function isPublicPath(path: string) {
     path === "/" ||
     path === "/login" ||
     path === "/register" ||
+    path === "/cambiar-password" ||
+    path.startsWith("/empleado/instalar") ||
     path.startsWith("/_next") ||
     path.startsWith("/icons") ||
     path === "/manifest.json" ||

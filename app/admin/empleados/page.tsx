@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
+import ShareInviteLinkModal from "@/components/admin/ShareInviteLinkModal";
 
 interface Empleado {
   id: string;
@@ -20,9 +21,12 @@ interface Empleado {
 export default function EmpleadosPage() {
   const [loading, setLoading] = useState(true);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
-  const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
-  const [inviteEmail, setInviteEmail] = useState<string | null>(null);
+  
+  // Estado para ShareInviteLinkModal
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [inviteData, setInviteData] = useState<any>(null);
+  const [currentEmpleadoId, setCurrentEmpleadoId] = useState<string | null>(null);
+  const [inviteTipo, setInviteTipo] = useState<"nuevo" | "cambio">("nuevo");
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [loadingInviteId, setLoadingInviteId] = useState<string | null>(null);
@@ -75,24 +79,10 @@ export default function EmpleadosPage() {
     return () => window.removeEventListener("click", close);
   }, []);
 
-  // Cerrar modal con Escape
-  useEffect(() => {
-    if (!inviteUrl) return;
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        closeInviteModal();
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [inviteUrl]);
-
-  function closeInviteModal() {
-    setInviteUrl(null);
-    setInviteExpiresAt(null);
-    setInviteEmail(null);
+  function handleCloseShareModal() {
+    setShowShareModal(false);
+    setInviteData(null);
+    setCurrentEmpleadoId(null);
     loadEmpleados();
   }
 
@@ -191,58 +181,15 @@ export default function EmpleadosPage() {
         </table>
       </div>
 
-      {/* MODAL INVITACIÓN */}
-      {inviteUrl && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="card max-w-lg w-full space-y-4">
-            <h2 className="text-xl font-bold">Invitación enviada</h2>
-
-            {inviteEmail && (
-              <p className="text-sm">
-                Se ha enviado el enlace a: <strong>{inviteEmail}</strong>
-              </p>
-            )}
-
-            <input
-              value={inviteUrl}
-              readOnly
-              className="input w-full"
-              onClick={(e) => e.currentTarget.select()}
-            />
-
-            {inviteExpiresAt && (
-              <p className="text-sm text-muted">
-                Caduca: {new Date(inviteExpiresAt).toLocaleString("es-ES")}
-              </p>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => navigator.clipboard.writeText(inviteUrl)}
-                className="btn-primary"
-              >
-                Copiar
-              </button>
-
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(inviteUrl)}`}
-                target="_blank"
-                className="btn-secondary"
-              >
-                WhatsApp
-              </a>
-
-              <button
-                type="button"
-                onClick={closeInviteModal}
-                className="btn-outline ml-auto"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* MODAL COMPARTIR INVITACIÓN */}
+      {showShareModal && inviteData && currentEmpleadoId && (
+        <ShareInviteLinkModal
+          isOpen={showShareModal}
+          onClose={handleCloseShareModal}
+          inviteData={inviteData}
+          empleadoId={currentEmpleadoId}
+          tipo={inviteTipo}
+        />
       )}
 
       {openMenuId && menuPos && (
@@ -271,9 +218,18 @@ export default function EmpleadosPage() {
                         const res = await api.post(
                           `/admin/employees/${e.id}/invite`,
                         );
-                        setInviteUrl(res.data.installUrl);
-                        setInviteExpiresAt(res.data.expires_at);
-                        setInviteEmail(e.email);
+                        setInviteData({
+                          installUrl: res.data.installUrl,
+                          expires_at: res.data.expires_at,
+                          token: res.data.token,
+                          empleado: {
+                            nombre: e.nombre,
+                            email: e.email,
+                          },
+                        });
+                        setCurrentEmpleadoId(e.id);
+                        setInviteTipo("nuevo");
+                        setShowShareModal(true);
                         setOpenMenuId(null);
                         setMenuPos(null);
                       } catch (err: any) {
@@ -288,7 +244,7 @@ export default function EmpleadosPage() {
                     className="block w-full text-left px-3 py-2 hover:bg-muted"
                   >
                     {loadingInviteId === e.id
-                      ? "Enviando email..."
+                      ? "Generando enlace..."
                       : "Invitar / Reenviar"}
                   </button>
 
@@ -302,9 +258,18 @@ export default function EmpleadosPage() {
                         const res = await api.post(
                           `/admin/employees/${e.id}/invite?tipo=cambio`,
                         );
-                        setInviteUrl(res.data.installUrl);
-                        setInviteExpiresAt(res.data.expires_at);
-                        setInviteEmail(e.email);
+                        setInviteData({
+                          installUrl: res.data.installUrl,
+                          expires_at: res.data.expires_at,
+                          token: res.data.token,
+                          empleado: {
+                            nombre: e.nombre,
+                            email: e.email,
+                          },
+                        });
+                        setCurrentEmpleadoId(e.id);
+                        setInviteTipo("cambio");
+                        setShowShareModal(true);
                         setOpenMenuId(null);
                         setMenuPos(null);
                       } catch (err: any) {
