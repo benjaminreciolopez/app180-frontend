@@ -102,7 +102,8 @@ export default function InstalarCliente({ token }: { token?: string }) {
         setMensaje(res.data?.message || "Dispositivo activado correctamente");
 
         setTimeout(() => {
-          router.replace("/empleado/dashboard");
+          // Redirigir a cambiar contraseña ya que password_forced es true
+          router.replace("/cambiar-password");
         }, 1500);
       } catch (err: any) {
         console.error("❌ Error activando dispositivo:", err);
