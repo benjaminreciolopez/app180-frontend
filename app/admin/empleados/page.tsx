@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import ShareInviteLinkModal from "@/components/admin/ShareInviteLinkModal";
+import EditEmployeeModal from "@/components/admin/EditEmployeeModal";
 
 interface Empleado {
   id: string;
@@ -16,6 +17,9 @@ interface Empleado {
 
   plantilla_id: string | null;
   plantilla_nombre: string | null;
+  
+  cliente_defecto_id: string | null;
+  cliente_defecto_nombre: string | null;
 }
 
 export default function EmpleadosPage() {
@@ -27,6 +31,10 @@ export default function EmpleadosPage() {
   const [inviteData, setInviteData] = useState<any>(null);
   const [currentEmpleadoId, setCurrentEmpleadoId] = useState<string | null>(null);
   const [inviteTipo, setInviteTipo] = useState<"nuevo" | "cambio">("nuevo");
+
+  // Estado para EditEmployeeModal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Empleado | null>(null);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [loadingInviteId, setLoadingInviteId] = useState<string | null>(null);
@@ -106,8 +114,8 @@ export default function EmpleadosPage() {
         <table className="table min-w-[750px]">
           <thead>
             <tr>
-              <th>Nombre</th>
-              <th>Email</th>
+              <th>Nombre_</th>
+              <th>Cliente Defecto</th>
               <th>Estado</th>
               <th>Jornada</th>
               <th>Dispositivo</th>
@@ -118,8 +126,17 @@ export default function EmpleadosPage() {
           <tbody>
             {empleados.map((e) => (
               <tr key={e.id}>
-                <td>{e.nombre}</td>
-                <td>{e.email}</td>
+                <td>
+                    <div className="font-medium">{e.nombre}</div>
+                    <div className="text-xs text-muted-foreground">{e.email}</div>
+                </td>
+                <td>
+                    {e.cliente_defecto_nombre ? (
+                        <span className="badge-primary">{e.cliente_defecto_nombre}</span>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                </td>
 
                 <td>
                   {e.activo ? (
@@ -191,6 +208,21 @@ export default function EmpleadosPage() {
           tipo={inviteTipo}
         />
       )}
+      
+      {/* MODAL EDITAR EMPLEADO */}
+      {showEditModal && editingEmployee && (
+        <EditEmployeeModal 
+            isOpen={showEditModal}
+            onClose={() => {
+                setShowEditModal(false);
+                setEditingEmployee(null);
+            }}
+            onSuccess={() => {
+                loadEmpleados();
+            }}
+            empleado={editingEmployee}
+        />
+      )}
 
       {openMenuId && menuPos && (
         <div
@@ -208,6 +240,21 @@ export default function EmpleadosPage() {
 
               return (
                 <>
+                  <button 
+                    type="button"
+                    className="block w-full text-left px-3 py-2 hover:bg-muted font-bold"
+                    onClick={() => {
+                        setEditingEmployee(e);
+                        setShowEditModal(true);
+                        setOpenMenuId(null);
+                        setMenuPos(null);
+                    }}
+                  >
+                    ✏️ Editar datos
+                  </button>
+                  
+                  <div className="border-b border-border my-1"></div>
+
                   <button
                     type="button"
                     disabled={loadingInviteId === e.id}
