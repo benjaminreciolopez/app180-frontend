@@ -54,6 +54,11 @@ export default function InstalarCliente({ token }: { token?: string }) {
       console.log("🔍 Modo standalone:", isPWA);
 
       if (!isPWA) {
+        // Limpiar localStorage para forzar nuevo device_hash cuando instale correctamente
+        localStorage.removeItem("device_hash");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        
         setEstado("no-pwa");
         setMensaje(
           "Debes instalar la aplicación antes de activar tu dispositivo",
@@ -68,17 +73,13 @@ export default function InstalarCliente({ token }: { token?: string }) {
 
     async function activarDispositivo(tokenFinal: string) {
       try {
-        let device_hash: string = localStorage.getItem("device_hash") ?? "";
+        // 🔐 Generar NUEVO device_hash cada vez (no reutilizar del localStorage)
+        // Esto asegura que cada instalación tenga un hash único
+        const device_hash =
+          globalThis.crypto?.randomUUID?.() ||
+          Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-        if (!device_hash) {
-          device_hash =
-            globalThis.crypto?.randomUUID?.() ||
-            Math.random().toString(36).substring(2);
-
-          localStorage.setItem("device_hash", device_hash);
-        }
-
-        console.log("📱 Activando dispositivo con hash:", device_hash);
+        console.log("📱 Activando dispositivo con NUEVO hash:", device_hash);
 
         const res = await api.post("/empleado/activate-install", {
           token: tokenFinal,
@@ -89,6 +90,8 @@ export default function InstalarCliente({ token }: { token?: string }) {
         const { token: jwtToken, user } = res.data;
 
         if (jwtToken && user) {
+          // Guardar device_hash SOLO después de activación exitosa
+          localStorage.setItem("device_hash", device_hash);
           localStorage.setItem("token", jwtToken);
           localStorage.setItem("user", JSON.stringify(user));
           setAuthToken(jwtToken);
