@@ -236,11 +236,39 @@ export default function InstalarCliente({ token }: { token?: string }) {
                   {mensaje}
                 </p>
               </div>
-              <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  Si el problema persiste, contacta con tu administrador para
-                  que te envíe un nuevo enlace de invitación.
+              <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg space-y-3">
+                <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  ¿Qué puedo hacer?
                 </p>
+                <ul className="text-sm text-neutral-600 dark:text-neutral-400 space-y-2">
+                  <li className="flex gap-2">
+                    <span className="flex-shrink-0">•</span>
+                    <span>
+                      Si no instalaste correctamente la aplicación, contacta con
+                      tu administrador para que te envíe un nuevo enlace de
+                      invitación
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="flex-shrink-0">•</span>
+                    <span>
+                      Asegúrate de instalar la aplicación como PWA siguiendo las{" "}
+                      <a
+                        href="/ayuda-instalacion"
+                        className="text-blue-600 dark:text-blue-400 underline"
+                      >
+                        instrucciones de instalación
+                      </a>
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="flex-shrink-0">•</span>
+                    <span>
+                      Si el problema persiste, verifica que estás usando el
+                      navegador correcto (Safari en iPhone, Chrome en Android)
+                    </span>
+                  </li>
+                </ul>
               </div>
             </div>
           )}
