@@ -123,13 +123,18 @@ export default function CambiarPasswordPage() {
             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
               Contraseña actual
             </label>
+            {passwordForced && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
+                Tu contraseña temporal es: <strong>123456</strong>
+              </p>
+            )}
             <div className="relative">
               <input
                 type={showCurrent ? "text" : "password"}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-12 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ingresa tu contraseña actual"
+                placeholder={passwordForced ? "123456" : "Ingresa tu contraseña actual"}
                 required
                 autoComplete="current-password"
               />
