@@ -41,7 +41,7 @@ export default function EditEmployeeModal({
     setLoading(true);
 
     try {
-      await api.put(`/employees/${empleado.id}`, {
+      await api.put(`/admin/employees/${empleado.id}`, {
         nombre,
         cliente_defecto_id: clienteId || null,
       });
