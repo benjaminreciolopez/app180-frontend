@@ -26,7 +26,7 @@ export default function EditEmployeeModal({
 
   useEffect(() => {
     // Cargar clientes para el selector
-    api.get("/clientes")
+    api.get("/admin/clientes")
       .then((res) => {
         setClientes(res.data || []);
       })
