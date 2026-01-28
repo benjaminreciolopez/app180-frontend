@@ -514,8 +514,8 @@ export default function EmpleadoDashboardPage() {
                    const end = hhmmssToMin(b.fin) || 9999;
                    const isTime = now >= start && now <= end;
                    
-                   const isActive = (estadoFichaje === 'dentro' && b.tipo === 'trabajo' && isTime) ||
-                                    (estadoFichaje === 'descanso' && b.tipo === 'pausa' && isTime);
+                   const isClockedIn = estadoFichaje === 'dentro' || estadoFichaje === 'descanso';
+                   const isActive = isClockedIn && isTime;
 
                    return (
                   <li
