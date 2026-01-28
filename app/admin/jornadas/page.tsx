@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import PlantillasPanel from "./PlantillasPanel";
-import AsignacionesPanel from "./AsignacionesPanel";
+import PlantillasAsignacionPanel from "./PlantillasAsignacionPanel";
+import ClientesAsignacionPanel from "./ClientesAsignacionPanel";
 import PreviewPanel from "./PreviewPanel";
 
-type Tab = "plantillas" | "asignaciones" | "preview";
+type Tab = "plantillas" | "asignar_horarios" | "asignar_clientes" | "preview";
 
 export default function JornadasPage() {
   const [tab, setTab] = useState<Tab>("plantillas");
@@ -13,41 +14,53 @@ export default function JornadasPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">Jornadas</h1>
+        <h1 className="text-2xl font-bold">Jornadas y Asignaciones</h1>
 
         <div className="flex gap-2 flex-wrap">
           <button
-            className={`px-3 py-2 rounded ${
-              tab === "plantillas" ? "bg-blue-600 text-white" : "bg-gray-200"
+            className={`px-3 py-2 rounded text-sm font-medium ${
+              tab === "plantillas" ? "bg-blue-600 text-white" : "bg-gray-100 hover:bg-gray-200"
             }`}
             onClick={() => setTab("plantillas")}
           >
-            Plantillas
+            Edición Plantillas
           </button>
+          
           <button
-            className={`px-3 py-2 rounded ${
-              tab === "asignaciones" ? "bg-blue-600 text-white" : "bg-gray-200"
+            className={`px-3 py-2 rounded text-sm font-medium ${
+              tab === "asignar_horarios" ? "bg-indigo-600 text-white" : "bg-gray-100 hover:bg-gray-200"
             }`}
-            onClick={() => setTab("asignaciones")}
+            onClick={() => setTab("asignar_horarios")}
           >
-            Asignaciones
+             Asignar Horarios
           </button>
+
           <button
-            className={`px-3 py-2 rounded ${
-              tab === "preview" ? "bg-blue-600 text-white" : "bg-gray-200"
+            className={`px-3 py-2 rounded text-sm font-medium ${
+              tab === "asignar_clientes" ? "bg-emerald-600 text-white" : "bg-gray-100 hover:bg-gray-200"
+            }`}
+            onClick={() => setTab("asignar_clientes")}
+          >
+             Asignar Clientes
+          </button>
+
+          <button
+            className={`px-3 py-2 rounded text-sm font-medium ${
+              tab === "preview" ? "bg-purple-600 text-white" : "bg-gray-100 hover:bg-gray-200"
             }`}
             onClick={() => setTab("preview")}
           >
-            Preview
+            Vista Previa
           </button>
         </div>
       </div>
 
-      {tab === "plantillas" && <PlantillasPanel />}
-      {tab === "asignaciones" && <AsignacionesPanel />}
-      {tab === "preview" && <PreviewPanel />}
+      <div className="min-h-[400px]">
+        {tab === "plantillas" && <PlantillasPanel />}
+        {tab === "asignar_horarios" && <PlantillasAsignacionPanel />}
+        {tab === "asignar_clientes" && <ClientesAsignacionPanel />}
+        {tab === "preview" && <PreviewPanel />}
+      </div>
     </div>
   );
 }
-
-// app180-frontend/app/admin/jornadas/page.tsx
