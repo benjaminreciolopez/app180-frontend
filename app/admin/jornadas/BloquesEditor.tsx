@@ -71,12 +71,14 @@ export default function BloquesEditor({
   onChange,
   onSave,
   rangoInicio, // Nuevo prop opcional
+  rangoFin,    // Nuevo prop opcional
 }: {
   title: string;
   bloques: Bloque[];
   onChange: (b: Bloque[]) => void;
   onSave: () => void;
   rangoInicio?: string;
+  rangoFin?: string;
 }) {
   const { errs, sorted } = useMemo(() => validate(bloques), [bloques]);
 
@@ -84,8 +86,17 @@ export default function BloquesEditor({
     if (bloques.length === 0) {
       // Default al inicio del rango (si existe), sino 08:00
       const start = rangoInicio ? normalizeTime(rangoInicio) : "08:00:00";
-      // Duración default: 30 min para evitar solapes fáciles o avisos
-      const end = addMinutes(start.slice(0, 5), 30); // antes era 60
+      
+      // Intentar 60 min (petición usuario), pero clipear con fin de rango
+      let end = addMinutes(start.slice(0, 5), 60);
+
+      if (rangoFin) {
+        const rf = normalizeTime(rangoFin);
+        // Si start + 60 > rangoFin => usar rangoFin
+        if (cmpTime(end, rf) > 0) {
+            end = rf;
+        }
+      }
 
       onChange([
         {
@@ -100,7 +111,22 @@ export default function BloquesEditor({
 
     const last = sorted[sorted.length - 1];
     const start = last.hora_fin;
-    const end = addMinutes(start.slice(0, 5), 60);
+    
+    // Default 1 hora
+    let end = addMinutes(start.slice(0, 5), 60);
+
+    // Clamping con fin de rango
+    if (rangoFin) {
+        const rf = normalizeTime(rangoFin);
+        if (cmpTime(end, rf) > 0) {
+            end = rf;
+        }
+        // Seguridad: si start >= rangoFin, bloque de 0 min o no añadir?
+        // Dejamos que el usuario decida o ponemos 0 min, pero aquí ponemos rf
+        if (cmpTime(start, rf) >= 0) {
+            end = start; // Bloque inválido visualmente pero no rompe
+        }
+    }
 
     onChange([
       ...sorted,

@@ -696,7 +696,8 @@ export default function PlantillasPanel() {
                     bloques={bloquesDia}
                     onChange={setBloquesDia}
                     onSave={() => guardarBloquesDia(bloquesDia)}
-                    rangoInicio={diaHoraInicio} // FIX: Pasar inicio del rango
+                    rangoInicio={diaHoraInicio}
+                    rangoFin={diaHoraFin} // FIX: Pasar fin del rango para clamping
                   />
                   {savingBloquesDia ? (
                     <div className="text-xs text-gray-600">
