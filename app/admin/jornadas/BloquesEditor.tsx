@@ -70,21 +70,28 @@ export default function BloquesEditor({
   bloques,
   onChange,
   onSave,
+  rangoInicio, // Nuevo prop opcional
 }: {
   title: string;
   bloques: Bloque[];
   onChange: (b: Bloque[]) => void;
   onSave: () => void;
+  rangoInicio?: string;
 }) {
   const { errs, sorted } = useMemo(() => validate(bloques), [bloques]);
 
   function add() {
     if (bloques.length === 0) {
+      // Default al inicio del rango (si existe), sino 08:00
+      const start = rangoInicio ? normalizeTime(rangoInicio) : "08:00:00";
+      // Duración default: 30 min para evitar solapes fáciles o avisos
+      const end = addMinutes(start.slice(0, 5), 30); // antes era 60
+
       onChange([
         {
           tipo: "trabajo",
-          hora_inicio: "08:00:00",
-          hora_fin: "09:00:00",
+          hora_inicio: start,
+          hora_fin: end,
           obligatorio: true,
         },
       ]);

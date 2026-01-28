@@ -96,7 +96,7 @@ export default function SospechososPage() {
     const hasEmp = empLat && empLng;
     const hasCli = cliLat && cliLng;
 
-    if (!hasEmp && !hasCli) return;
+    // if (!hasEmp && !hasCli) return; // FIX: Siempre renderizar mapa
 
     let map: any = null;
 
@@ -124,14 +124,22 @@ export default function SospechososPage() {
       if(mapContainer) mapContainer.innerHTML = "";
 
       // Center map
-      const centerLat = hasCli ? cliLat : empLat;
-      const centerLng = hasCli ? cliLng : empLng;
+      let centerLat = hasCli ? cliLat : (hasEmp ? empLat : 40.4167); // Default Madrid
+      let centerLng = hasCli ? cliLng : (hasEmp ? empLng : -3.7037);
 
-      map = L.map("map").setView([centerLat, centerLng], 15);
+      map = L.map("map").setView([centerLat, centerLng], hasEmp || hasCli ? 15 : 6);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
       }).addTo(map);
+
+      // Si no tenemos nada, intentar ubicar al admin
+      if (!hasEmp && !hasCli) {
+         map.locate({ setView: true, maxZoom: 16 });
+         map.on("locationfound", (e: any) => {
+             L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actua (Admin)").openPopup();
+         });
+      }
 
       // Marker Empleado (Azul default)
       if (hasEmp) {

@@ -544,6 +544,9 @@ export default function PlantillasPanel() {
                           `/admin/plantillas/dias/${diaSel.id}/reset`,
                         );
 
+                        // FIX: Actualizar UI localmente porque el ID del día no cambia
+                        setBloquesDia([]); // Limpiar bloques en vista
+
                         await loadDetalle(detalle.plantilla.id);
                       } catch (e) {
                         setError(apiErrorMessage(e));
@@ -693,6 +696,7 @@ export default function PlantillasPanel() {
                     bloques={bloquesDia}
                     onChange={setBloquesDia}
                     onSave={() => guardarBloquesDia(bloquesDia)}
+                    rangoInicio={diaHoraInicio} // FIX: Pasar inicio del rango
                   />
                   {savingBloquesDia ? (
                     <div className="text-xs text-gray-600">
