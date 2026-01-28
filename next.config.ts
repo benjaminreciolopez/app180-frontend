@@ -9,9 +9,11 @@ const nextConfig: NextConfig = {
     serverActions: {},
   },
 
+  // @ts-ignore
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // @ts-ignore
   typescript: {
     ignoreBuildErrors: true,
   },
