@@ -470,7 +470,7 @@ export default function EmpleadoDashboardPage() {
           <h3 className="font-semibold">Plan de hoy</h3>
 
           <button
-            className="text-xs px-2 py-1 rounded bg-gray-100 border"
+            className="text-xs px-2 py-1 rounded bg-gray-100 border hover:bg-gray-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
             onClick={reloadPlanDia}
             disabled={loadingPlan}
             title="Refrescar plan"
@@ -692,13 +692,13 @@ export default function EmpleadoDashboardPage() {
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => router.push("/empleado/trabajos")}
-            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm active:bg-black/[0.04]"
+            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm transition-all hover:bg-gray-50 active:scale-95 active:bg-gray-100 cursor-pointer"
           >
             Añadir trabajo
           </button>
           <button
             onClick={openDrawer}
-            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm active:bg-black/[0.04]"
+            className="bg-white border py-3 rounded-xl text-sm font-semibold shadow-sm transition-all hover:bg-gray-50 active:scale-95 active:bg-gray-100 cursor-pointer"
           >
             Menú
           </button>

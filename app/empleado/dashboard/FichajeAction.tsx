@@ -138,7 +138,7 @@ export function FichajeAction({
         <button
           disabled={loading || !boton.puede_fichar}
           onClick={() => fichar(boton.accion!)}
-          className={`w-full py-4 text-lg rounded font-semibold transition disabled:opacity-60 ${colorClass}`}
+          className={`w-full py-4 text-lg rounded font-semibold transition-all shadow-md active:scale-95 cursor-pointer hover:brightness-110 disabled:opacity-60 ${colorClass}`}
         >
           {loading ? "Registrando..." : config[boton.accion].label}
         </button>
