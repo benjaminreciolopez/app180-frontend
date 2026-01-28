@@ -8,10 +8,25 @@ type FichajeRow = {
   nombre_empleado: string;
   fecha: string;
   tipo: string;
+  
+  // Legacy
   sospecha_motivo?: string | null;
   direccion?: string | null;
   ciudad?: string | null;
   pais?: string | null;
+
+  // New Geo
+  geo_direccion?: any;
+  geo_motivos?: string[];
+  geo_sospechoso?: boolean;
+  distancia_km?: number;
+  ip_info?: any;
+
+  // Client Data (for map)
+  nombre_cliente?: string;
+  cliente_lat?: string | number;
+  cliente_lng?: string | number;
+  cliente_radio?: number; // meters
 };
 
 export default function SospechososPage() {
@@ -19,7 +34,7 @@ export default function SospechososPage() {
   const [loading, setLoading] = useState(true);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detalle, setDetalle] = useState<any>(null);
+  const [detalle, setDetalle] = useState<FichajeRow | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -40,20 +55,16 @@ export default function SospechososPage() {
   }
 
   async function verDetalle(id: string) {
-    try {
-      const res = await api.get(`/fichajes/sospechosos/${id}`);
-      setDetalle(res.data);
+    const found = fichajes.find((f) => f.id === id);
+    if (found) {
+      setDetalle(found);
       setSelectedId(id);
-    } catch (e) {
-      console.error(e);
-      alert("No se pudo cargar el detalle");
     }
   }
 
   async function validar(id: string, accion: "confirmar" | "rechazar") {
     try {
       await api.patch(`/fichajes/sospechosos/${id}`, { accion });
-      // refresca lista y cierra modal si el que estás viendo es ese
       await load();
       if (selectedId === id) {
         setSelectedId(null);
@@ -69,42 +80,99 @@ export default function SospechososPage() {
     load();
   }, []);
 
-  // Mapa: usa coords de IP actual si existen
+  // Mapa
   useEffect(() => {
-    if (!detalle?.ip_info?.actual?.lat || !detalle?.ip_info?.actual?.lng)
-      return;
+    if (!detalle || !selectedId) return;
+
+    // Coordenadas Empleado
+    let empLat = detalle.geo_direccion?.lat ?? detalle.ip_info?.actual?.lat;
+    let empLng = detalle.geo_direccion?.lng ?? detalle.ip_info?.actual?.lng;
+
+    // Coordenadas Cliente
+    let cliLat = Number(detalle.cliente_lat);
+    let cliLng = Number(detalle.cliente_lng);
+    let cliRadio = Number(detalle.cliente_radio) || 20;
+
+    const hasEmp = empLat && empLng;
+    const hasCli = cliLat && cliLng;
+
+    if (!hasEmp && !hasCli) return;
 
     let map: any = null;
 
     (async () => {
       const L = await import("leaflet");
+      //@ts-ignore
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+        iconUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+        shadowUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+      });
 
       const mapContainer = document.getElementById("map");
-      if (mapContainer) mapContainer.innerHTML = "";
+      if (mapContainer) {
+        mapContainer.innerHTML = "<div style='height:100%;width:100%;' id='map_inner'></div>"; 
+        // Leaflet needs explicit height or refreshing
+      }
+      
+      // Render inside inner div to avoid cleaning issues? 
+      // Actually standard pattern is removing map instance.
+      if(mapContainer) mapContainer.innerHTML = "";
 
-      map = L.map("map").setView(
-        [detalle.ip_info.actual.lat, detalle.ip_info.actual.lng],
-        9
-      );
+      // Center map
+      const centerLat = hasCli ? cliLat : empLat;
+      const centerLng = hasCli ? cliLng : empLng;
+
+      map = L.map("map").setView([centerLat, centerLng], 15);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
+        maxZoom: 19,
       }).addTo(map);
 
-      L.marker([detalle.ip_info.actual.lat, detalle.ip_info.actual.lng])
-        .addTo(map)
-        .bindPopup("Ubicación actual (IP)");
-
-      if (detalle.ip_info?.habitual?.lat && detalle.ip_info?.habitual?.lng) {
-        L.marker([detalle.ip_info.habitual.lat, detalle.ip_info.habitual.lng], {
-          icon: L.icon({
-            iconUrl:
-              "https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png",
-            iconSize: [24, 24],
-          }),
-        })
+      // Marker Empleado (Azul default)
+      if (hasEmp) {
+        L.marker([empLat, empLng])
           .addTo(map)
-          .bindPopup("Ubicación habitual (IP)");
+          .bindPopup(`<b>Empleado</b><br/>${renderDireccion(detalle)}`)
+          .openPopup();
+      }
+
+      // Marker Cliente (Verde o Rojo) + Circulo
+      if (hasCli) {
+        const greenIcon = new L.Icon({
+          iconUrl:
+            "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+          shadowUrl:
+            "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41],
+        });
+
+        L.marker([cliLat, cliLng], { icon: greenIcon })
+          .addTo(map)
+          .bindPopup(`<b>Cliente:</b> ${detalle.nombre_cliente}`);
+
+        L.circle([cliLat, cliLng], {
+          color: "green",
+          fillColor: "#2f8",
+          fillOpacity: 0.2,
+          radius: cliRadio,
+        }).addTo(map);
+        
+        // Fit bounds if both exist
+        if (hasEmp) {
+            const bounds = L.latLngBounds([
+                [empLat, empLng],
+                [cliLat, cliLng]
+            ]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
       }
     })();
 
@@ -115,13 +183,61 @@ export default function SospechososPage() {
     };
   }, [detalle]);
 
-  const renderDireccion = (x: any) => {
-    const d = x?.direccion || null;
-    const c = x?.ciudad || null;
-    const p = x?.pais || null;
+  const renderDireccion = (x: FichajeRow) => {
+    // Preferir geo_direccion si existe
+    if (x.geo_direccion?.direccion) return x.geo_direccion.direccion;
+    
+    // Si no, construir de partes
+    const d = x.direccion || x.geo_direccion?.direccion || null;
+    const c = x.ciudad || x.geo_direccion?.ciudad || null;
+    const p = x.pais || x.geo_direccion?.pais || null;
 
-    const line = [d, c, p].filter(Boolean).join(" · ");
-    return line || "Sin ubicación";
+    const line = [d, c, p].filter(Boolean).join(", ");
+    if (line) return line;
+
+    // Fallback coords
+    if (x.geo_direccion?.lat) {
+        return `${x.geo_direccion.lat.toFixed(5)}, ${x.geo_direccion.lng.toFixed(5)}`;
+    }
+    
+    return "Ubicación desconocida";
+  };
+
+  const renderMotivos = (f: FichajeRow) => {
+    // Combine legacy and new motives
+    let motives = new Set<string>();
+    
+    if (f.sospecha_motivo) motives.add(f.sospecha_motivo);
+    if (f.geo_motivos && Array.isArray(f.geo_motivos)) {
+        f.geo_motivos.forEach(m => motives.add(m));
+    }
+    
+    // Convert known codes to labels
+    const labels:React.ReactNode[] = [];
+    
+    motives.forEach(m => {
+        if (m.includes("Fuera del área") || m.includes("rango")) {
+            labels.push(
+                <span key={m} className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded border border-yellow-200 font-medium">
+                   📍 Fuera de Rango
+                </span>
+            );
+        } else if (m.includes("vpn") || m.includes("IP")) {
+             labels.push(
+                <span key={m} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded border border-blue-200 font-medium">
+                   🌐 IP / VPN
+                </span>
+            );
+        } else {
+             labels.push(
+                <span key={m} className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded border border-gray-200">
+                   {m}
+                </span>
+            );
+        }
+    });
+
+    return <div className="flex flex-wrap gap-1">{labels}</div>;
   };
 
   return (
@@ -133,154 +249,167 @@ export default function SospechososPage() {
       {loading ? (
         <p>Cargando...</p>
       ) : fichajes.length === 0 ? (
-        <p>No hay fichajes sospechosos.</p>
+        <p className="text-gray-500 italic">No hay fichajes sospechosos pendientes de revisión.</p>
       ) : (
         <>
-          <p className="mb-4">Total: {fichajes.length}</p>
+          <p className="mb-4 text-sm text-gray-600">Total pendientes: {fichajes.length}</p>
 
-          <table className="w-full bg-white border rounded">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-3 text-left">Empleado</th>
-                <th className="p-3 text-left">Fecha</th>
-                <th className="p-3 text-left">Tipo</th>
-                <th className="p-3 text-left">Ubicación</th>
-                <th className="p-3 text-left">Motivo</th>
-                <th className="p-3 text-left">Acción</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {fichajes.map((f) => (
-                <tr key={f.id} className="border-b">
-                  <td className="p-3">{f.nombre_empleado}</td>
-                  <td className="p-3">
-                    {new Date(f.fecha).toLocaleString("es-ES")}
-                  </td>
-                  <td className="p-3">{f.tipo}</td>
-
-                  <td className="p-3">{renderDireccion(f)}</td>
-
-                  <td className="p-3 text-red-600">
-                    {(f as any).sospecha_motivo || f.sospecha_motivo || "-"}
-                  </td>
-
-                  <td className="p-3">
-                    <div className="flex gap-2 flex-wrap">
-                      <button
-                        onClick={() => verDetalle(f.id)}
-                        className="px-3 py-1 bg-neutral-700 text-white rounded"
-                      >
-                        Ver detalle
-                      </button>
-
-                      <button
-                        onClick={() => validar(f.id, "confirmar")}
-                        className="px-3 py-1 bg-green-600 text-white rounded"
-                      >
-                        Confirmar
-                      </button>
-
-                      <button
-                        onClick={() => validar(f.id, "rechazar")}
-                        className="px-3 py-1 bg-red-600 text-white rounded"
-                      >
-                        Rechazar
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto shadow rounded-lg border">
+            <table className="w-full bg-white">
+                <thead className="bg-gray-50 text-gray-700 text-sm uppercase">
+                <tr>
+                    <th className="p-3 text-left">Empleado</th>
+                    <th className="p-3 text-left">Fecha / Tipo</th>
+                    <th className="p-3 text-left">Ubicación Detectada</th>
+                    <th className="p-3 text-left">Motivos de Sospecha</th>
+                    <th className="p-3 text-center">Distancia</th>
+                    <th className="p-3 text-right">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+                </thead>
+
+                <tbody className="divide-y divide-gray-200">
+                {fichajes.map((f) => (
+                    <tr key={f.id} className="hover:bg-gray-50 transition">
+                    <td className="p-3 font-medium text-gray-900">{f.nombre_empleado}</td>
+                    <td className="p-3 text-sm">
+                        <div className="font-semibold">{new Date(f.fecha).toLocaleDateString("es-ES")}</div>
+                        <div className="text-gray-500">{new Date(f.fecha).toLocaleTimeString("es-ES")} • {f.tipo}</div>
+                    </td>
+
+                    <td className="p-3 text-sm text-gray-600 max-w-[200px] truncate" title={renderDireccion(f)}>
+                        {renderDireccion(f)}
+                    </td>
+
+                    <td className="p-3">
+                        {renderMotivos(f)}
+                    </td>
+
+                    <td className="p-3 text-center text-sm font-mono">
+                         {f.distancia_km ? (
+                            <span className={f.distancia_km > 0.05 ? 'text-red-600 font-bold' : 'text-gray-600'}>
+                                { (f.distancia_km * 1000).toFixed(0) } m
+                            </span>
+                         ) : "-"}
+                    </td>
+
+                    <td className="p-3 text-right">
+                         <button
+                            onClick={() => verDetalle(f.id)}
+                            className="text-blue-600 hover:text-blue-900 font-medium text-sm"
+                        >
+                            Revisar
+                        </button>
+                    </td>
+                    </tr>
+                ))}
+                </tbody>
+            </table>
+          </div>
         </>
       )}
 
       {selectedId && detalle ? (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
-          <div className="bg-white rounded p-6 w-[740px] max-w-[95vw]">
-            <h2 className="text-xl font-bold mb-3 text-red-600">
-              Detalle fichaje sospechoso
-            </h2>
-
-            <p>
-              <b>Empleado:</b>{" "}
-              {detalle.empleado_nombre || detalle.nombre_empleado}
-            </p>
-            <p>
-              <b>Fecha:</b>{" "}
-              {detalle.fecha
-                ? new Date(detalle.fecha).toLocaleString("es-ES")
-                : "-"}
-            </p>
-            <p>
-              <b>Tipo:</b> {detalle.tipo || "-"}
-            </p>
-
-            <p className="mt-2">
-              <b>Ubicación:</b> {renderDireccion(detalle)}
-            </p>
-
-            <hr className="my-3" />
-
-            <p>
-              <b>IP Actual:</b> {detalle.ip_info?.actual?.ip || "-"}
-            </p>
-            <p>
-              <b>Ciudad (IP):</b> {detalle.ip_info?.actual?.city || "-"}
-            </p>
-            <p>
-              <b>País (IP):</b> {detalle.ip_info?.actual?.country || "-"}
-            </p>
-
-            <p className="mt-2">
-              <b>IP Habitual:</b> {detalle.ip_info?.habitual?.ip || "-"}
-            </p>
-
-            <p className="mt-2 text-red-600 font-bold">
-              Distancia estimada:{" "}
-              {detalle.distancia_km
-                ? Number(detalle.distancia_km).toFixed(1)
-                : "N/A"}{" "}
-              km
-            </p>
-
-            {detalle?.ip_info?.actual?.lat && detalle?.ip_info?.actual?.lng ? (
-              <div
-                id="map"
-                style={{ height: 300, width: "100%", marginTop: 10 }}
-              />
-            ) : (
-              <div className="mt-3 p-3 bg-gray-100 rounded text-sm text-gray-700">
-                No hay coordenadas suficientes para mostrar el mapa.
-              </div>
-            )}
-
-            <div className="flex justify-end mt-4 gap-2">
-              <button
-                className="px-4 py-2 bg-gray-400 rounded"
-                onClick={() => {
-                  setSelectedId(null);
-                  setDetalle(null);
-                }}
-              >
-                Cerrar
-              </button>
-
-              <button
-                className="px-4 py-2 bg-green-600 text-white rounded"
-                onClick={() => validar(selectedId, "confirmar")}
-              >
-                Confirmar
-              </button>
-
-              <button
-                className="px-4 py-2 bg-red-600 text-white rounded"
-                onClick={() => validar(selectedId, "rechazar")}
-              >
-                Rechazar
-              </button>
+        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            
+            {/* Header */}
+            <div className="p-5 border-b flex justify-between items-center bg-gray-50">
+                <div>
+                     <h2 className="text-xl font-bold text-gray-800">
+                        Revisión de Fichaje
+                    </h2>
+                     <p className="text-sm text-gray-500">ID: {detalle.id}</p>
+                </div>
+                <div className="flex gap-2">
+                     <button
+                        onClick={() => validar(detalle.id, "rechazar")}
+                        className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 font-medium transition"
+                    >
+                        Rechazar (Fraude)
+                    </button>
+                     <button
+                        onClick={() => validar(detalle.id, "confirmar")}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm transition"
+                    >
+                        Validar (Aceptar)
+                    </button>
+                </div>
             </div>
+
+            {/* Content */}
+            <div className="p-0 flex-1 overflow-y-auto bg-gray-50">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
+                    
+                    {/* Info Column */}
+                    <div className="md:col-span-1 space-y-6">
+                        
+                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Datos del Fichaje</h3>
+                            <div className="space-y-2 text-sm">
+                                <p><span className="text-gray-500">Empleado:</span> <br/><span className="font-medium text-lg">{detalle.nombre_empleado}</span></p>
+                                <p><span className="text-gray-500">Fecha:</span> <br/><span className="font-medium">{new Date(detalle.fecha).toLocaleString()}</span></p>
+                                <p><span className="text-gray-500">Tipo:</span> <br/><span className="capitalize badge bg-gray-100 px-2 rounded border">{detalle.tipo}</span></p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                             <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Análisis Geo</h3>
+                             
+                             {detalle.distancia_km != null ? (
+                                 <div className="mb-4 text-center p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                                     <div className="text-xs text-yellow-700 uppercase font-bold">Desviación</div>
+                                     <div className="text-3xl font-bold text-yellow-600">{(detalle.distancia_km * 1000).toFixed(0)} m</div>
+                                     <div className="text-xs text-gray-500 mt-1">Permitido: {detalle.cliente_radio || 20} m</div>
+                                 </div>
+                             ) : null}
+
+                             <div className="space-y-3 text-sm">
+                                <div>
+                                    <span className="text-gray-500 block text-xs">Ubicación Empleado:</span>
+                                    <span className="font-medium bg-blue-50 text-blue-800 px-1 rounded">{renderDireccion(detalle)}</span>
+                                </div>
+                                {detalle.nombre_cliente && (
+                                    <div>
+                                        <span className="text-gray-500 block text-xs">Cliente Asignado:</span>
+                                        <span className="font-medium bg-green-50 text-green-800 px-1 rounded">{detalle.nombre_cliente}</span>
+                                    </div>
+                                )}
+                                
+                                <div>
+                                    <span className="text-gray-500 block text-xs mt-2">Motivos:</span>
+                                    {renderMotivos(detalle)}
+                                </div>
+                             </div>
+                        </div>
+
+                    </div>
+
+                    {/* Map Column */}
+                    <div className="md:col-span-2 h-[400px] md:h-auto min-h-[400px] bg-white rounded-lg shadow-sm border overflow-hidden relative">
+                         <div id="map" className="w-full h-full bg-gray-100"></div>
+                         {!detalle.geo_direccion?.lat && !detalle.ip_info?.actual?.lat && (
+                             <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                                 Sin coordenadas disponibles
+                             </div>
+                         )}
+                    </div>
+
+                </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t bg-white flex justify-end">
+                 <button
+                    className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium"
+                    onClick={() => {
+                        setSelectedId(null);
+                        setDetalle(null);
+                    }}
+                >
+                    Cerrar Detalle
+                </button>
+            </div>
+
           </div>
         </div>
       ) : null}

@@ -508,17 +508,40 @@ export default function EmpleadoDashboardPage() {
               </div>
             ) : (
               <ul className="text-sm space-y-2">
-                {planBloques.map((b, idx) => (
+                {planBloques.map((b, idx) => {
+                   const now = nowMinutes();
+                   const start = hhmmssToMin(b.inicio) || 0;
+                   const end = hhmmssToMin(b.fin) || 9999;
+                   const isTime = now >= start && now <= end;
+                   
+                   const isActive = (estadoFichaje === 'dentro' && b.tipo === 'trabajo' && isTime) ||
+                                    (estadoFichaje === 'descanso' && b.tipo === 'pausa' && isTime);
+
+                   return (
                   <li
                     key={`${b.tipo}-${idx}`}
-                    className="flex items-center justify-between border rounded p-2"
+                    className={`flex items-center justify-between border rounded p-2 transition-all ${
+                        isActive 
+                        ? "border-green-500 bg-green-50 shadow-sm ring-1 ring-green-500 custom-bounce-subtle" 
+                        : "border-gray-200"
+                    }`}
                   >
-                    <span className="font-medium capitalize">{b.tipo}</span>
-                    <span className="text-gray-700">
+                    <div className="flex flex-col">
+                        <span className="font-medium capitalize flex items-center gap-2">
+                            {b.tipo}
+                            {isActive && (
+                                <span className="text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold animate-pulse">
+                                    En curso
+                                </span>
+                            )}
+                        </span>
+                        {isActive && <span className="text-xs text-green-700">Bloque actual</span>}
+                    </div>
+                    <span className={`text-gray-700 ${isActive ? 'font-bold':''}`}>
                       {hhmm(b.inicio)} – {hhmm(b.fin)}
                     </span>
                   </li>
-                ))}
+                )})}
               </ul>
             )}
           </>
