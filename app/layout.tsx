@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   authors: [{ name: "CONTENDO" }],
   generator: "Next.js",
   keywords: ["gestión", "empresa", "rrhh", "fichajes", "facturación"],
-  manifest: "/manifest.json",
+  manifest: process.env.VERCEL_ENV === "preview" ? undefined : "/manifest.json",
   icons: {
     icon: "/icon-192.png",
     shortcut: "/icon-192.png",
