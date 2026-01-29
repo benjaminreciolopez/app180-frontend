@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
+import { showSuccess, showError } from "@/lib/toast";
 
 type TipoFichaje = "entrada" | "salida" | "descanso_inicio" | "descanso_fin";
 
@@ -268,7 +269,7 @@ export default function FichajesPage() {
         });
       }
 
-      alert("Fichaje creado correctamente");
+      showSuccess('Fichaje creado correctamente');
       setShowModal(false);
       setForm({
         empleado_id: "",
@@ -282,7 +283,7 @@ export default function FichajesPage() {
       await loadFichajes();
     } catch (e) {
       console.error(e);
-      alert("Error creando fichaje");
+      showError('Error creando fichaje');
     }
   }
 
