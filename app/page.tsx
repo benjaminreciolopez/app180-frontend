@@ -4,6 +4,7 @@ import { login } from "../services/auth";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import { showSuccess, showError } from "@/lib/toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,6 +27,8 @@ export default function LoginPage() {
       localStorage.setItem("token", result.token);
       localStorage.setItem("user", JSON.stringify(result.decoded));
 
+      showSuccess('¡Bienvenido!');
+
       if (result.decoded.role === "admin") {
         router.push("/admin/dashboard");
       } else {
@@ -33,6 +36,7 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       console.error("❌ Error login:", err);
+      showError(err?.response?.data?.error || 'Error al iniciar sesión');
       setError(err?.response?.data?.error || "Error al iniciar sesión");
     }
   }
