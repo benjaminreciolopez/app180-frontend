@@ -555,8 +555,11 @@ export default function PlantillasPanel() {
                         setBloquesDia([]); // Limpiar bloques en vista
 
                         await loadDetalle(detalle.plantilla.id);
+                        showSuccess('Día reseteado correctamente');
                       } catch (e) {
-                        setError(apiErrorMessage(e));
+                        const msg = apiErrorMessage(e);
+                        setError(msg);
+                        showError(msg);
                       } finally {
                         setResettingDay(false);
                       }
@@ -611,6 +614,7 @@ export default function PlantillasPanel() {
                     open={showCopy}
                     origen={diaSemanaSel}
                     origenLabel={origenLabel}
+                    loading={copying}
                     onClose={() => setShowCopy(false)}
                     onConfirm={async (dias, reset) => {
                       if (copying) return;
@@ -634,8 +638,11 @@ export default function PlantillasPanel() {
 
                         await loadDetalle(detalle.plantilla.id);
                         setShowCopy(false);
+                        showSuccess(`Configuración copiada a ${dias.length} día${dias.length > 1 ? 's' : ''}`);
                       } catch (e) {
-                        setError(apiErrorMessage(e));
+                        const msg = apiErrorMessage(e);
+                        setError(msg);
+                        showError(msg);
                       } finally {
                         setCopying(false);
                       }

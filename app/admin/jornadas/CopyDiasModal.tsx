@@ -17,6 +17,7 @@ type Props = {
   open: boolean;
   origen: number;
   origenLabel: string;
+  loading?: boolean;
   onClose: () => void;
   onConfirm: (dias: number[], reset: boolean) => void;
 };
@@ -25,6 +26,7 @@ export default function CopyDiasModal({
   open,
   origen,
   origenLabel,
+  loading = false,
   onClose,
   onConfirm,
 }: Props) {
@@ -90,7 +92,7 @@ export default function CopyDiasModal({
           </button>
 
           <button
-            disabled={selected.length === 0}
+            disabled={selected.length === 0 || loading}
             className="
               px-3 py-2 rounded
               bg-blue-600 text-white
@@ -99,7 +101,7 @@ export default function CopyDiasModal({
             "
             onClick={() => onConfirm(selected, reset)}
           >
-            Aplicar
+            {loading ? 'Copiando...' : 'Aplicar'}
           </button>
         </div>
       </div>
