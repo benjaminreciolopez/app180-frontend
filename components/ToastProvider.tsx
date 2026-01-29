@@ -15,7 +15,7 @@ export default function ToastProvider() {
           padding: '12px 16px',
         },
         success: {
-          duration: 2000,
+          duration: 4000, // Aumentado a 4 segundos para que se vea mejor
           iconTheme: {
             primary: '#10b981',
             secondary: '#fff',

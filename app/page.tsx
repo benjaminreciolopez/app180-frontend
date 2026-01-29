@@ -29,11 +29,14 @@ export default function LoginPage() {
 
       showSuccess('¡Bienvenido!');
 
-      if (result.decoded.role === "admin") {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/empleado/dashboard");
-      }
+      // Pequeño delay para que se vea el toast antes de redirigir
+      setTimeout(() => {
+        if (result.decoded.role === "admin") {
+          router.push("/admin/dashboard");
+        } else {
+          router.push("/empleado/dashboard");
+        }
+      }, 500);
     } catch (err: any) {
       console.error("❌ Error login:", err);
       showError(err?.response?.data?.error || 'Error al iniciar sesión');
