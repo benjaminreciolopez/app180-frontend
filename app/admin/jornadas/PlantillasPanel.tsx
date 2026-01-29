@@ -7,6 +7,7 @@ import BloquesEditor from "./BloquesEditor";
 import RenamePlantillaModal from "./RenamePlantillaModal";
 import DeletePlantillaModal from "./DeletePlantillaModal";
 import CopyDiasModal from "./CopyDiasModal";
+import { showSuccess, showError } from "@/lib/toast";
 
 const DIAS = [
   { n: 1, label: "Lunes" },
@@ -285,8 +286,11 @@ export default function PlantillasPanel() {
       }
 
       await loadDetalle(detalle.plantilla.id);
+      showSuccess('Rango guardado correctamente');
     } catch (e) {
-      setError(apiErrorMessage(e));
+      const msg = apiErrorMessage(e);
+      setError(msg);
+      showError(msg);
     } finally {
       setSavingDia(false);
     }
@@ -307,8 +311,11 @@ export default function PlantillasPanel() {
 
       const r = await api.get(`/admin/plantillas/dias/${diaSel.id}/bloques`);
       setBloquesDia(Array.isArray(r.data) ? r.data : []);
+      showSuccess('Bloques guardados correctamente');
     } catch (e) {
-      setError(apiErrorMessage(e));
+      const msg = apiErrorMessage(e);
+      setError(msg);
+      showError(msg);
     } finally {
       setSavingBloquesDia(false);
     }

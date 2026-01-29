@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { api, setAuthToken } from "@/services/api";
 import "leaflet/dist/leaflet.css";
+import { showSuccess, showError } from "@/lib/toast";
 
 type FichajeRow = {
   id: string;
@@ -76,7 +77,7 @@ export default function SospechososPage() {
       }
     } catch (e) {
       console.error(e);
-      alert("Error actualizando fichaje");
+      showError('Error actualizando fichaje');
     }
   }
 
@@ -120,12 +121,12 @@ export default function SospechososPage() {
         accion,
       });
       
-      alert(`${idsArray.length} fichaje(s) procesado(s) correctamente`);
+      showSuccess(`${idsArray.length} fichaje(s) procesado(s) correctamente`);
       setSelectedIds(new Set());
       await load();
     } catch (e) {
       console.error(e);
-      alert("Error procesando fichajes");
+      showError('Error procesando fichajes');
     } finally {
       setProcessing(false);
     }

@@ -3,7 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import AuthInit from "@/components/AuthInit";
 
-import { Toaster } from "sonner";
+import { Toaster } from "react-hot-toast";
 
 export default function RootLayout({
   children,
@@ -16,7 +16,32 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthInit />
           {children}
-          <Toaster />
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+                borderRadius: '8px',
+                padding: '12px 16px',
+              },
+              success: {
+                duration: 2000,
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                duration: 4000,
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>
