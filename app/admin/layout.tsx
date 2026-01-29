@@ -134,7 +134,11 @@ export default function AdminLayout({
   }
 
   if (!session) {
-    return <div className="p-6">Sesión no válida</div>;
+    // Redirigir inmediatamente sin mostrar mensaje
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
+    return null;
   }
 
   // ============================
