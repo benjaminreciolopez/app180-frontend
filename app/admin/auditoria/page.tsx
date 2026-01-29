@@ -93,6 +93,112 @@ export default function AuditoriaPage() {
     empleado_desactivado: "bg-orange-100 text-orange-800 border-orange-200",
   };
 
+  // Renderizar cambios de forma legible
+  function renderCambios(antes: any, despues: any, accion: string) {
+    if (!antes || !despues) return null;
+
+    // Para fichajes
+    if (accion.includes("fichaje")) {
+      const cambios = [];
+
+      // Estado
+      if (antes.estado !== despues.estado) {
+        cambios.push(
+          <div key="estado" className="bg-blue-50 p-3 rounded border border-blue-200">
+            <div className="text-xs font-semibold text-blue-700 mb-1">Estado</div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded">
+                {antes.estado}
+              </span>
+              <span>→</span>
+              <span className={`px-2 py-1 rounded ${
+                despues.estado === 'confirmado' ? 'bg-green-200 text-green-800' : 
+                despues.estado === 'rechazado' ? 'bg-red-200 text-red-800' : 
+                'bg-gray-200 text-gray-700'
+              }`}>
+                {despues.estado}
+              </span>
+            </div>
+          </div>
+        );
+      }
+
+      // Sospechoso
+      if (antes.sospechoso !== despues.sospechoso) {
+        cambios.push(
+          <div key="sospechoso" className="bg-yellow-50 p-3 rounded border border-yellow-200">
+            <div className="text-xs font-semibold text-yellow-700 mb-1">Sospechoso</div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded">
+                {antes.sospechoso ? 'Sí' : 'No'}
+              </span>
+              <span>→</span>
+              <span className="px-2 py-1 bg-green-200 text-green-800 rounded">
+                {despues.sospechoso ? 'Sí' : 'No'}
+              </span>
+            </div>
+          </div>
+        );
+      }
+
+      // Motivo de sospecha
+      if (antes.sospecha_motivo && !despues.sospecha_motivo) {
+        cambios.push(
+          <div key="motivo" className="bg-gray-50 p-3 rounded border border-gray-200">
+            <div className="text-xs font-semibold text-gray-700 mb-1">Motivo de Sospecha</div>
+            <div className="text-sm text-gray-600 line-through">
+              {antes.sospecha_motivo}
+            </div>
+            <div className="text-xs text-green-600 mt-1">✓ Limpiado</div>
+          </div>
+        );
+      }
+
+      // Información del fichaje
+      cambios.push(
+        <div key="info" className="bg-gray-50 p-3 rounded border border-gray-200">
+          <div className="text-xs font-semibold text-gray-700 mb-2">Información del Fichaje</div>
+          <div className="space-y-1 text-sm">
+            <div><span className="text-gray-500">Tipo:</span> <span className="font-medium capitalize">{antes.tipo}</span></div>
+            <div><span className="text-gray-500">Fecha:</span> <span className="font-medium">{new Date(antes.fecha).toLocaleString('es-ES')}</span></div>
+            {antes.direccion && (
+              <div><span className="text-gray-500">Ubicación:</span> <span className="font-medium">{antes.direccion}</span></div>
+            )}
+            {antes.geo_direccion && typeof antes.geo_direccion === 'string' && (
+              <div><span className="text-gray-500">Ubicación:</span> <span className="font-medium">{JSON.parse(antes.geo_direccion).direccion}</span></div>
+            )}
+            {antes.geo_direccion && typeof antes.geo_direccion === 'object' && (
+              <div><span className="text-gray-500">Ubicación:</span> <span className="font-medium">{antes.geo_direccion.direccion}</span></div>
+            )}
+          </div>
+        </div>
+      );
+
+      return <div className="space-y-3">{cambios}</div>;
+    }
+
+    // Para otros tipos, mostrar cambios genéricos
+    const keys = new Set([...Object.keys(antes), ...Object.keys(despues)]);
+    const cambios = [];
+
+    for (const key of keys) {
+      if (antes[key] !== despues[key] && !['id', 'created_at', 'user_id', 'empresa_id'].includes(key)) {
+        cambios.push(
+          <div key={key} className="bg-gray-50 p-2 rounded border">
+            <div className="text-xs font-semibold text-gray-600">{key}</div>
+            <div className="flex items-center gap-2 text-sm mt-1">
+              <span className="text-gray-700">{String(antes[key] || '-')}</span>
+              <span>→</span>
+              <span className="text-gray-900 font-medium">{String(despues[key] || '-')}</span>
+            </div>
+          </div>
+        );
+      }
+    }
+
+    return <div className="space-y-2">{cambios}</div>;
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -356,25 +462,13 @@ export default function AuditoriaPage() {
                   </div>
                 )}
 
-                {selectedLog.datos_anteriores && (
-                  <div>
-                    <label className="text-sm font-semibold text-gray-500 mb-2 block">
-                      Datos Anteriores
-                    </label>
-                    <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
-                      {JSON.stringify(selectedLog.datos_anteriores, null, 2)}
-                    </pre>
-                  </div>
-                )}
-
-                {selectedLog.datos_nuevos && (
-                  <div>
-                    <label className="text-sm font-semibold text-gray-500 mb-2 block">
-                      Datos Nuevos
-                    </label>
-                    <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
-                      {JSON.stringify(selectedLog.datos_nuevos, null, 2)}
-                    </pre>
+                {/* Cambios Legibles */}
+                {selectedLog.datos_anteriores && selectedLog.datos_nuevos && (
+                  <div className="border-t pt-4">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                      📋 Cambios Realizados
+                    </h3>
+                    {renderCambios(selectedLog.datos_anteriores, selectedLog.datos_nuevos, selectedLog.accion)}
                   </div>
                 )}
               </div>
