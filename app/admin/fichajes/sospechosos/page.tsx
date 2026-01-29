@@ -36,6 +36,10 @@ export default function SospechososPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detalle, setDetalle] = useState<FichajeRow | null>(null);
 
+  // Bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [processing, setProcessing] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     setAuthToken(token);
@@ -73,6 +77,57 @@ export default function SospechososPage() {
     } catch (e) {
       console.error(e);
       alert("Error actualizando fichaje");
+    }
+  }
+
+  // Bulk actions
+  function toggleSelect(id: string) {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === fichajes.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(fichajes.map(f => f.id)));
+    }
+  }
+
+  async function validarMasivo(ids: string[], accion: "confirmar" | "rechazar") {
+    const idsArray = Array.from(ids);
+    
+    if (idsArray.length === 0) {
+      alert("No hay fichajes seleccionados");
+      return;
+    }
+
+    const confirmMsg = accion === "confirmar" 
+      ? `¿Validar ${idsArray.length} fichaje(s)?`
+      : `¿Rechazar ${idsArray.length} fichaje(s)?`;
+    
+    if (!confirm(confirmMsg)) return;
+
+    setProcessing(true);
+    try {
+      await api.post("/fichajes/sospechosos/bulk", {
+        ids: idsArray,
+        accion,
+      });
+      
+      alert(`${idsArray.length} fichaje(s) procesado(s) correctamente`);
+      setSelectedIds(new Set());
+      await load();
+    } catch (e) {
+      console.error(e);
+      alert("Error procesando fichajes");
+    } finally {
+      setProcessing(false);
     }
   }
 
@@ -260,12 +315,65 @@ export default function SospechososPage() {
         <p className="text-gray-500 italic">No hay fichajes sospechosos pendientes de revisión.</p>
       ) : (
         <>
-          <p className="mb-4 text-sm text-gray-600">Total pendientes: {fichajes.length}</p>
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              Total pendientes: {fichajes.length}
+              {selectedIds.size > 0 && (
+                <span className="ml-2 text-blue-600 font-semibold">
+                  • {selectedIds.size} seleccionado(s)
+                </span>
+              )}
+            </p>
+
+            {selectedIds.size > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => validarMasivo(Array.from(selectedIds), "confirmar")}
+                  disabled={processing}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  ✓ Validar Seleccionados ({selectedIds.size})
+                </button>
+                <button
+                  onClick={() => validarMasivo(Array.from(selectedIds), "rechazar")}
+                  disabled={processing}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  ✗ Rechazar Seleccionados ({selectedIds.size})
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="mb-3 flex gap-2">
+            <button
+              onClick={() => validarMasivo(fichajes.map(f => f.id), "confirmar")}
+              disabled={processing}
+              className="px-4 py-2 bg-green-100 text-green-800 border border-green-300 rounded-lg hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              ✓ Validar Todos
+            </button>
+            <button
+              onClick={() => validarMasivo(fichajes.map(f => f.id), "rechazar")}
+              disabled={processing}
+              className="px-4 py-2 bg-red-100 text-red-800 border border-red-300 rounded-lg hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              ✗ Rechazar Todos
+            </button>
+          </div>
 
           <div className="overflow-x-auto shadow rounded-lg border">
             <table className="w-full bg-white">
                 <thead className="bg-gray-50 text-gray-700 text-sm uppercase">
                 <tr>
+                    <th className="p-3 text-center w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.size === fichajes.length && fichajes.length > 0}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                    </th>
                     <th className="p-3 text-left">Empleado</th>
                     <th className="p-3 text-left">Fecha / Tipo</th>
                     <th className="p-3 text-left">Ubicación Detectada</th>
@@ -278,6 +386,14 @@ export default function SospechososPage() {
                 <tbody className="divide-y divide-gray-200">
                 {fichajes.map((f) => (
                     <tr key={f.id} className="hover:bg-gray-50 transition">
+                    <td className="p-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(f.id)}
+                        onChange={() => toggleSelect(f.id)}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                    </td>
                     <td className="p-3 font-medium text-gray-900">{f.nombre_empleado}</td>
                     <td className="p-3 text-sm">
                         <div className="font-semibold">{new Date(f.fecha).toLocaleDateString("es-ES")}</div>
