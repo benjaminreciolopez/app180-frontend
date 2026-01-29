@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, setAuthToken } from "@/lib/api";
+import { api, setAuthToken } from "@/services/api";
 
 interface FichajeRechazado {
   id: string;
