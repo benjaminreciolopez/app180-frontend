@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import ShareInviteLinkModal from "@/components/admin/ShareInviteLinkModal";
 import EditEmployeeModal from "@/components/admin/EditEmployeeModal";
+import { showSuccess, showError } from "@/lib/toast";
 
 interface Empleado {
   id: string;
@@ -67,9 +68,10 @@ export default function EmpleadosPage() {
     try {
       await api.put(`/employees/${id}/status`, { activo });
       await loadEmpleados();
+      showSuccess(activo ? 'Empleado activado' : 'Empleado desactivado');
     } catch (err) {
       console.error("Error cambiando estado del empleado", err);
-      alert("No se pudo actualizar el estado");
+      showError('No se pudo actualizar el estado');
     }
   }
 
@@ -280,9 +282,9 @@ export default function EmpleadosPage() {
                         setOpenMenuId(null);
                         setMenuPos(null);
                       } catch (err: any) {
-                        alert(
+                        showError(
                           err?.response?.data?.error ||
-                            "No se pudo generar la invitación",
+                            'No se pudo generar la invitación'
                         );
                       } finally {
                         setLoadingInviteId(null);
@@ -320,9 +322,9 @@ export default function EmpleadosPage() {
                         setOpenMenuId(null);
                         setMenuPos(null);
                       } catch (err: any) {
-                        alert(
+                        showError(
                           err?.response?.data?.error ||
-                            "No se pudo autorizar el cambio",
+                            'No se pudo autorizar el cambio'
                         );
                       } finally {
                         setLoadingInviteId(null);

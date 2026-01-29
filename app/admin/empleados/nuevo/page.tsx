@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "@/services/api";
 import { useRouter } from "next/navigation";
+import { showSuccess, showError } from "@/lib/toast";
 
 export default function NuevoEmpleadoPage() {
   const router = useRouter();
@@ -23,14 +24,11 @@ export default function NuevoEmpleadoPage() {
         // 👇 NO mandamos password
       });
 
-      alert(
-        "Empleado creado.\n\nContraseña inicial: 123456\nEl empleado deberá cambiarla al iniciar sesión."
-      );
-
+      showSuccess('Empleado creado correctamente\n\nContraseña inicial: 123456');
       router.push("/admin/empleados");
     } catch (err) {
       console.error(err);
-      alert("Error creando empleado");
+      showError('Error creando empleado');
     } finally {
       setLoading(false);
     }
