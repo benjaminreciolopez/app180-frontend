@@ -32,6 +32,7 @@ export default function PlantillasAsignacionPanel() {
     new Date().toISOString().slice(0, 10),
   );
   const [fechaFin, setFechaFin] = useState<string>("");
+  const [asignando, setAsignando] = useState(false);
 
   async function loadBase() {
     setLoading(true);
@@ -46,7 +47,7 @@ export default function PlantillasAsignacionPanel() {
       setPlantillas(Array.isArray(p.data) ? p.data : []);
     } catch (e) {
       console.error(e);
-      alert("Error cargando base de plantillas/empleados");
+      showError("Error cargando base de plantillas/empleados");
     } finally {
       setLoading(false);
     }
@@ -76,11 +77,12 @@ export default function PlantillasAsignacionPanel() {
 
   async function asignar() {
     if (!empleadoSel || !plantillaSel || !fechaInicio) {
-      alert("Empleado, plantilla y fecha_inicio son obligatorios");
+      showError("Empleado, plantilla y fecha inicio son obligatorios");
       return;
     }
     // NOTA: Ya no mandamos cliente_id
     try {
+      setAsignando(true);
       await api.post("/admin/plantillas/asignar", {
         empleado_id: empleadoSel,
         plantilla_id: plantillaSel,
@@ -89,10 +91,12 @@ export default function PlantillasAsignacionPanel() {
         // cliente_id explícitamente omitido o null
       });
       await loadHist(empleadoSel);
-      alert("Horario asignado correctamente");
+      showSuccess('Horario asignado correctamente');
     } catch (e: any) {
       console.error(e);
-      alert(e.response?.data?.error || "Error al asignar horario");
+      showError(e.response?.data?.error || 'Error al asignar horario');
+    } finally {
+      setAsignando(false);
     }
   }
 
@@ -160,10 +164,11 @@ export default function PlantillasAsignacionPanel() {
 
             <div className="pt-2">
               <button
-                className="px-4 py-2 rounded bg-indigo-600 text-white font-medium hover:bg-indigo-700 w-full md:w-auto"
+                className="px-4 py-2 rounded bg-indigo-600 text-white font-medium hover:bg-indigo-700 w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={asignar}
+                disabled={asignando}
               >
-                Asignar Horario
+                {asignando ? 'Asignando...' : 'Asignar Horario'}
               </button>
             </div>
           </div>

@@ -31,6 +31,7 @@ export default function ClientesAsignacionPanel() {
     new Date().toISOString().slice(0, 10),
   );
   const [fechaFin, setFechaFin] = useState<string>("");
+  const [asignando, setAsignando] = useState(false);
 
   async function loadBase() {
     setLoading(true);
@@ -53,7 +54,7 @@ export default function ClientesAsignacionPanel() {
       );
     } catch(e) {
       console.error(e);
-      alert("Error cargando datos base");
+      showError("Error cargando datos base");
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,7 @@ export default function ClientesAsignacionPanel() {
       setHist(Array.isArray(r.data) ? r.data : []);
     } catch(e) {
       console.error(e);
-      alert("Error cargando historial");
+      showError("Error cargando historial");
     }
   }
 
@@ -84,10 +85,11 @@ export default function ClientesAsignacionPanel() {
 
   async function asignar() {
     if (!empleadoSel || !clienteSel || !fechaInicio) {
-      alert("Empleado, cliente y fecha_inicio son obligatorios");
+      showError("Empleado, cliente y fecha inicio son obligatorios");
       return;
     }
     try {
+      setAsignando(true);
       await api.post("/admin/clientes/asignar", {
         empleado_id: empleadoSel,
         cliente_id: clienteSel,
@@ -96,13 +98,15 @@ export default function ClientesAsignacionPanel() {
       });
       
       await loadHist(empleadoSel);
-      alert("Cliente asignado correctamente");
+      showSuccess('Cliente asignado correctamente');
       
       // Reset form parcial?
       // setClienteSel(""); 
     } catch (e: any) {
       console.error(e);
-      alert(e.response?.data?.error || "Error al asignar cliente");
+      showError(e.response?.data?.error || 'Error al asignar cliente');
+    } finally {
+      setAsignando(false);
     }
   }
 
@@ -172,10 +176,11 @@ export default function ClientesAsignacionPanel() {
             
             <div className="pt-2">
               <button
-                className="px-4 py-2 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 w-full md:w-auto"
+                className="px-4 py-2 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={asignar}
+                disabled={asignando}
               >
-                Asignar Cliente
+                {asignando ? 'Asignando...' : 'Asignar Cliente'}
               </button>
               <p className="text-xs text-gray-500 mt-2">
                 Esto cerrará automáticamente la asignación anterior.
