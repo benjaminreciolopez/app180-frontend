@@ -118,9 +118,9 @@ export default function AuthInit() {
   
         if (hasSession && (pathname === "/login" || pathname === "/")) {
           console.log("AuthInit: Redirecting to DASHBOARD (Has Session)");
-          router.replace(
-            user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard",
-          );
+          // Usamos window.location.href para forzar una navegación limpia
+          // y evitar problemas de estado con Next.js Router en bucles raros
+          window.location.href = user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard";
           return;
         }
   
