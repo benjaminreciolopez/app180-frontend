@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { api } from "@/services/api";
+import { getUser, logout } from "@/services/auth";
 import { Settings } from "lucide-react";
 import Link from "next/link";
 
@@ -68,10 +69,9 @@ export default function DashboardPage() {
 
   function loadSession() {
     try {
-      const raw = localStorage.getItem("user");
-      if (!raw) return;
-
-      const u = JSON.parse(raw);
+      // 🆕 Usar helper
+      const u = getUser(); 
+      if (!u) return;
 
       setSession({
         modulos: u.modulos || {},
@@ -245,9 +245,7 @@ export default function DashboardPage() {
               <button
                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
                 onClick={() => {
-                  localStorage.clear();
-                  window.dispatchEvent(new Event("session-updated"));
-                  location.href = "/login";
+                  logout(); // 🆕 Usar helper
                 }}
               >
                 🚪 Cerrar sesión

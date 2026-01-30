@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api, setAuthToken } from "@/services/api";
+import { getToken, getUser, logout, updateStoredUser } from "@/services/auth";
 
 /* ========================
    Types
@@ -16,16 +17,8 @@ type StoredUser = {
 /* ========================
    Utils
 ======================== */
-
-function safeParseUser(v: string | null): StoredUser | null {
-  if (!v) return null;
-
-  try {
-    return JSON.parse(v);
-  } catch {
-    return null;
-  }
-}
+// (safeParseUser y isPublicPath se mantienen igual, pero safeParseUser ya no lo usamos directamente)
+// Aunque AuthInit lo usaba... mejor eliminamos safeParseUser si usamos getUser() del service
 
 function isPublicPath(path: string) {
   return (
@@ -49,7 +42,7 @@ function isPublicPath(path: string) {
 async function refreshMe() {
   const r = await api.get("/auth/me");
 
-  localStorage.setItem("user", JSON.stringify(r.data));
+  updateStoredUser(r.data); // 🆕 Usar helper que respeta storage
 
   return r.data as StoredUser;
 }
@@ -67,75 +60,76 @@ export default function AuthInit() {
 
     async function init() {
       try {
-        const token = localStorage.getItem("token");
-
         // 👉 Siempre configurar axios primero
-        setAuthToken(token);
-
-        let user = safeParseUser(localStorage.getItem("user"));
-
+        // (Aunque api.ts ya lo hace en el interceptor, esto asegura el header default)
+        setAuthToken(getToken());
+  
+        const token = getToken();
+        let user = getUser();
+  
         // 👉 Si hay token → refrescar sesión real
         if (token) {
           try {
-            user = await refreshMe();
+            const newUser = await refreshMe();
+            // Actualizamos user en memoria para la validación posterior
+            user = newUser;
           } catch {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            router.replace("/login");
-            return;
+             // Si falla el refresh (e.g. token expirado), logout
+             logout();
+             return;
           }
         }
-
+  
         if (cancelled) return;
-
+  
         const forced = user?.password_forced === true;
         const hasSession = !!token && !!user?.role;
-
+  
         /* ==========================
            PASSWORD FORZADO
         ========================== */
-
+  
         if (forced) {
           const allowed =
             pathname === "/cambiar-password" ||
             pathname.startsWith("/empleado/instalar");
-
+  
           if (!allowed) {
             router.replace("/cambiar-password");
             return;
           }
         }
-
+  
         /* ==========================
            SIN SESIÓN
         ========================== */
-
+  
         if (!hasSession && !isPublicPath(pathname)) {
           router.replace("/login");
           return;
         }
-
+  
         /* ==========================
            LOGIN CON SESIÓN
         ========================== */
-
+  
         if (hasSession && pathname === "/login") {
           router.replace(
             user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard",
           );
           return;
         }
-
+  
         /* ==========================
            GUARD POR ROL
         ========================== */
-
+  
         if (hasSession) {
           if (pathname.startsWith("/admin") && user!.role !== "admin") {
             router.replace("/empleado/dashboard");
             return;
           }
-
+  
           if (pathname.startsWith("/empleado") && user!.role !== "empleado") {
             router.replace("/admin/dashboard");
             return;
@@ -143,9 +137,7 @@ export default function AuthInit() {
         }
       } catch (e) {
         console.error("AuthInit error:", e);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        router.replace("/login");
+        logout();
       }
     }
 

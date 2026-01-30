@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
+import { logout } from "@/services/auth";
 import { useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
 import FloatingActionButton from "@/components/ui/FloatingActionButton";
@@ -337,6 +338,9 @@ export default function EmpleadoDashboardPage() {
             onSolicitudes={() =>
               push({ key: "solicitudes", title: "Mis solicitudes" })
             }
+            onLogout={() => {
+              logout();
+            }}
           />
         ) : null}
 

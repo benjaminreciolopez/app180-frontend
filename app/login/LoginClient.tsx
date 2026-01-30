@@ -12,6 +12,7 @@ export default function LoginClient() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false); // 🆕
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -37,7 +38,8 @@ export default function LoginClient() {
     setLoading(true);
 
     try {
-      const result = await login(email, password);
+      // Pasamos 'remember' al servicio
+      const result = await login(email, password, undefined, remember);
       showSuccess('Inicio de sesión exitoso');
 
       if (result?.decoded?.role === "admin") {
@@ -101,6 +103,21 @@ export default function LoginClient() {
               <Eye className="w-5 h-5" />
             )}
           </button>
+        </div>
+
+        {/* REMEMBER ME CHECBOX */}
+        <div className="flex items-center">
+          <input
+            id="remember-me"
+            type="checkbox"
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            disabled={loading}
+          />
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 cursor-pointer select-none">
+            Mantener sesión iniciada
+          </label>
         </div>
 
         <button

@@ -35,11 +35,13 @@ export default function DrawerMenu({
   onVacaciones,
   onBaja,
   onSolicitudes,
+  onLogout,
 }: {
   onCalendario: () => void;
   onVacaciones: () => void;
   onBaja: () => void;
   onSolicitudes: () => void;
+  onLogout: () => void;
 }) {
   return (
     <div className="py-2">
@@ -65,6 +67,12 @@ export default function DrawerMenu({
         title="Mis solicitudes"
         subtitle="Estado: pendiente / aprobado / rechazado"
         onClick={onSolicitudes}
+      />
+      <Divider />
+      <Row
+        title="Cerrar sesión"
+        subtitle="Salir de la aplicación"
+        onClick={onLogout}
       />
     </div>
   );
