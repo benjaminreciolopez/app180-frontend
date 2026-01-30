@@ -81,7 +81,15 @@ export default function AuthInit() {
         }
   
         if (cancelled) return;
-  
+        
+        // Listen for password-forced event from api interceptor
+        const handlePasswordForced = () => {
+          console.log("AuthInit: Received password-forced event");
+          router.replace("/cambiar-password");
+        };
+        
+        window.addEventListener("password-forced", handlePasswordForced);
+
         const forced = user?.password_forced === true;
         const hasSession = !!token && !!user?.role;
         console.log("AuthInit: hasSession?", hasSession, "pathname", pathname);
@@ -153,6 +161,7 @@ export default function AuthInit() {
 
     return () => {
       cancelled = true;
+      window.removeEventListener("password-forced", () => {});
     };
   }, [pathname, router]);
 
