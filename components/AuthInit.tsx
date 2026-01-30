@@ -73,10 +73,11 @@ export default function AuthInit() {
             const newUser = await refreshMe();
             // Actualizamos user en memoria para la validación posterior
             user = newUser;
-          } catch {
-             // Si falla el refresh (e.g. token expirado), logout
-             logout();
-             return;
+          } catch (error) {
+             console.error("Error refreshing session:", error);
+             // No hacemos logout explícito aquí porque el interceptor de api.ts
+             // ya maneja el 401. Si es otro error (red, 500), al menos intentamos
+             // mantener la sesión local si existe.
           }
         }
   
