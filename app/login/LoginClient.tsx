@@ -12,6 +12,21 @@ export default function LoginClient() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  /* ========================
+     BOOTSTRAP CHECK
+  ======================== */
+  useState(() => {
+    // Only check once on mount
+    fetch("https://app180-backend.onrender.com/system/status")
+      .then(r => r.json())
+      .then(status => {
+         if (status.bootstrap === true) {
+            router.replace("/setup");
+         }
+      })
+      .catch(err => console.error("Error checking system status", err));
+  });
+
   const [loading, setLoading] = useState(false);
 
   async function handleLogin(e: FormEvent) {
