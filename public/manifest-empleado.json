@@ -2,7 +2,7 @@
   "name": "CONTENDO - Empleado",
   "short_name": "CONTENDO",
   "description": "Aplicación de empleado para fichajes y gestión de jornadas",
-  "start_url": "/empleado/dashboard",
+  "start_url": "/empleado/instalar",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",

@@ -26,19 +26,33 @@ export default function InstalarCliente({ token }: { token?: string }) {
       if (executed.current) return;
       executed.current = true;
 
-      // ✅ Fallback robusto: si prop token viene vacío, lo leemos de la URL
-      const tokenFinal =
+      // ✅ Fallback robusto: si prop token viene vacío, lo leemos de la URL o localStorage
+      let tokenFinal =
         token ||
         (typeof window !== "undefined"
           ? new URLSearchParams(window.location.search).get("token") ||
             undefined
           : undefined);
 
+      // Si no hay token en URL, intentar recuperar del localStorage
+      if (!tokenFinal && typeof window !== "undefined") {
+        const savedToken = localStorage.getItem("pending_activation_token");
+        if (savedToken) {
+          console.log("📥 Token recuperado de localStorage:", savedToken);
+          tokenFinal = savedToken;
+        }
+      }
+
       if (!tokenFinal) {
         setEstado("error");
         setMensaje("Falta token de invitación (revisa el enlace)");
         return;
       }
+
+      // 💾 Guardar el token ANTES de verificar PWA
+      // Esto asegura que el token esté disponible cuando se abra la PWA instalada
+      localStorage.setItem("pending_activation_token", tokenFinal);
+      console.log("💾 Token guardado para activación:", tokenFinal);
 
       // 🔍 Verificar si es dispositivo móvil
       if (!isMobileDevice()) {
@@ -54,11 +68,7 @@ export default function InstalarCliente({ token }: { token?: string }) {
       console.log("🔍 Modo standalone:", isPWA);
 
       if (!isPWA) {
-        // Limpiar localStorage para forzar nuevo device_hash cuando instale correctamente
-        localStorage.removeItem("device_hash");
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        
+        // NO limpiar localStorage aquí, necesitamos el token guardado
         setEstado("no-pwa");
         setMensaje(
           "Debes instalar la aplicación antes de activar tu dispositivo",
@@ -95,6 +105,10 @@ export default function InstalarCliente({ token }: { token?: string }) {
           localStorage.setItem("token", jwtToken);
           localStorage.setItem("user", JSON.stringify(user));
           setAuthToken(jwtToken);
+          
+          // Limpiar token pendiente
+          localStorage.removeItem("pending_activation_token");
+          
           console.log("✅ Dispositivo activado correctamente");
           console.log("👤 Usuario guardado:", user);
           console.log("🔐 password_forced:", user.password_forced);
