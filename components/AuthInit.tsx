@@ -111,11 +111,12 @@ export default function AuthInit() {
           return;
         }
   
+
         /* ==========================
-           LOGIN CON SESIÓN
+           LOGIN CON SESIÓN (O LANDING)
         ========================== */
   
-        if (hasSession && pathname === "/login") {
+        if (hasSession && (pathname === "/login" || pathname === "/")) {
           console.log("AuthInit: Redirecting to DASHBOARD (Has Session)");
           router.replace(
             user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard",
