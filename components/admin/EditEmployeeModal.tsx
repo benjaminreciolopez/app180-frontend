@@ -10,6 +10,7 @@ interface EditEmployeeModalProps {
   empleado: {
     id: string;
     nombre: string;
+    email: string;
   };
 }
 
@@ -20,6 +21,7 @@ export default function EditEmployeeModal({
   empleado,
 }: EditEmployeeModalProps) {
   const [nombre, setNombre] = useState(empleado.nombre);
+  const [email, setEmail] = useState(empleado.email);
   const [loading, setLoading] = useState(false);
   const [clienteActual, setClienteActual] = useState<{
     nombre: string;
@@ -63,6 +65,7 @@ export default function EditEmployeeModal({
     try {
       await api.put(`/admin/employees/${empleado.id}`, {
         nombre,
+        email,
       });
       showSuccess('Empleado actualizado correctamente');
       onSuccess();
@@ -93,6 +96,17 @@ export default function EditEmployeeModal({
               className="input w-full"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <input
+              type="email"
+              className="input w-full"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
