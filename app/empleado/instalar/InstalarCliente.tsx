@@ -186,22 +186,124 @@ export default function InstalarCliente({ token }: { token?: string }) {
               </div>
 
               {showInstructions && (
-                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg space-y-3">
-                  <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">
-                    📱 Instrucciones de instalación
-                    {platform === "ios" && " (iPhone)"}
-                    {platform === "android" && " (Android)"}
+                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg space-y-4">
+                  <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 text-lg">
+                    📱 Cómo instalar la aplicación
+                    {platform === "ios" && " en iPhone"}
+                    {platform === "android" && " en Android"}
                   </h3>
-                  <ol className="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
-                    {instructions.map((instruction, index) => (
-                      <li key={index} className="flex gap-2">
-                        <span className="font-semibold text-blue-600 flex-shrink-0">
-                          {index + 1}.
-                        </span>
-                        <span>{instruction}</span>
+                  
+                  {platform === "ios" && (
+                    <div className="space-y-3">
+                      <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                        <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                          ⚠️ IMPORTANTE: Debes usar Safari (no Chrome ni otros navegadores)
+                        </p>
+                      </div>
+                      
+                      <ol className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
+                        <li className="flex gap-3">
+                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">1.</span>
+                          <div>
+                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                              Toca el botón de compartir
+                            </p>
+                            <p className="text-xs mt-1">
+                              Es el cuadrado con una flecha hacia arriba ⬆️ en la parte inferior de Safari
+                            </p>
+                          </div>
+                        </li>
+                        
+                        <li className="flex gap-3">
+                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">2.</span>
+                          <div>
+                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                              Desplázate hacia abajo en el menú
+                            </p>
+                            <p className="text-xs mt-1">
+                              Busca la opción "Añadir a pantalla de inicio" o "Add to Home Screen"
+                            </p>
+                          </div>
+                        </li>
+                        
+                        <li className="flex gap-3">
+                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">3.</span>
+                          <div>
+                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                              Toca "Añadir" o "Add"
+                            </p>
+                            <p className="text-xs mt-1">
+                              Confirma que quieres añadir la aplicación a tu pantalla de inicio
+                            </p>
+                          </div>
+                        </li>
+                        
+                        <li className="flex gap-3">
+                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">4.</span>
+                          <div>
+                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                              Cierra Safari y abre la app desde tu pantalla de inicio
+                            </p>
+                            <p className="text-xs mt-1">
+                              Busca el ícono "CONTENDO" en tu pantalla de inicio y ábrelo desde ahí
+                            </p>
+                          </div>
+                        </li>
+                      </ol>
+                    </div>
+                  )}
+                  
+                  {platform === "android" && (
+                    <ol className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
+                      <li className="flex gap-3">
+                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">1.</span>
+                        <div>
+                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            Toca el menú ⋮ (tres puntos)
+                          </p>
+                          <p className="text-xs mt-1">
+                            Está en la esquina superior derecha de Chrome
+                          </p>
+                        </div>
                       </li>
-                    ))}
-                  </ol>
+                      
+                      <li className="flex gap-3">
+                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">2.</span>
+                        <div>
+                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            Selecciona "Instalar aplicación"
+                          </p>
+                          <p className="text-xs mt-1">
+                            O "Añadir a pantalla de inicio" si no ves la opción de instalar
+                          </p>
+                        </div>
+                      </li>
+                      
+                      <li className="flex gap-3">
+                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">3.</span>
+                        <div>
+                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            Toca "Instalar"
+                          </p>
+                          <p className="text-xs mt-1">
+                            Confirma la instalación
+                          </p>
+                        </div>
+                      </li>
+                      
+                      <li className="flex gap-3">
+                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">4.</span>
+                        <div>
+                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            Abre la app desde tu pantalla de inicio
+                          </p>
+                          <p className="text-xs mt-1">
+                            Busca el ícono "CONTENDO" y ábrelo desde ahí
+                          </p>
+                        </div>
+                      </li>
+                    </ol>
+                  )}
                 </div>
               )}
 
@@ -209,8 +311,15 @@ export default function InstalarCliente({ token }: { token?: string }) {
                 onClick={() => window.location.reload()}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
               >
-                Ya instalé la aplicación
+                ✅ Ya instalé la aplicación
               </button>
+              
+              <a
+                href="/empleado/diagnostico"
+                className="block w-full text-center bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-900 dark:text-white font-medium py-2 rounded-lg transition text-sm"
+              >
+                🔍 Ver diagnóstico técnico
+              </a>
             </div>
           )}
 
