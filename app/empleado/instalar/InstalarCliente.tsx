@@ -67,7 +67,7 @@ export default function InstalarCliente({ token }: { token?: string }) {
         return;
       }
 
-      // ✅ Continuar con activación
+      // ✅ Continuar con activación SOLO si es PWA
       await activarDispositivo(tokenFinal);
     }
 
@@ -307,12 +307,23 @@ export default function InstalarCliente({ token }: { token?: string }) {
                 </div>
               )}
 
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
-              >
-                ✅ Ya instalé la aplicación
-              </button>
+              <div className="bg-red-50 dark:bg-red-950/30 border-2 border-red-300 dark:border-red-700 rounded-lg p-4 space-y-3">
+                <p className="text-sm font-bold text-red-900 dark:text-red-100">
+                  ⚠️ NO HAGAS CLIC EN "YA INSTALÉ"
+                </p>
+                <p className="text-sm text-red-800 dark:text-red-200">
+                  Después de instalar la aplicación siguiendo los pasos de arriba:
+                </p>
+                <ol className="text-sm text-red-800 dark:text-red-200 space-y-1 ml-4 list-decimal">
+                  <li><strong>Cierra Safari completamente</strong></li>
+                  <li><strong>Ve a tu pantalla de inicio</strong></li>
+                  <li><strong>Busca el ícono "CONTENDO"</strong></li>
+                  <li><strong>Toca el ícono para abrir la app</strong></li>
+                </ol>
+                <p className="text-xs text-red-700 dark:text-red-300 mt-2">
+                  Si abres desde Safari en lugar del ícono, la aplicación NO funcionará correctamente.
+                </p>
+              </div>
               
               <a
                 href="/empleado/diagnostico"
