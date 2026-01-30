@@ -213,6 +213,7 @@
     px-4 py-2 text-sm font-medium gap-2
     bg-primary text-primary-foreground
     hover:bg-primary/90 hover:brightness-110
+    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:hover:brightness-100
     transition-all;
   }
 
@@ -221,6 +222,7 @@
     px-4 py-2 text-sm font-medium gap-2
     bg-secondary text-secondary-foreground
     hover:bg-secondary/80
+    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-secondary
     transition-colors;
   }
 
@@ -229,6 +231,7 @@
     px-4 py-2 text-sm font-medium gap-2
     border border-border bg-background text-foreground
     hover:bg-muted
+    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-background
     transition-colors;
   }
 
@@ -237,6 +240,7 @@
     px-4 py-2 text-sm font-medium gap-2
     bg-destructive text-white
     hover:bg-destructive/90
+    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-destructive
     transition-colors;
   }
 
