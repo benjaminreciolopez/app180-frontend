@@ -96,6 +96,8 @@ export default function InstalarCliente({ token }: { token?: string }) {
           localStorage.setItem("user", JSON.stringify(user));
           setAuthToken(jwtToken);
           console.log("✅ Dispositivo activado correctamente");
+          console.log("👤 Usuario guardado:", user);
+          console.log("🔐 password_forced:", user.password_forced);
         }
 
         setEstado("ok");

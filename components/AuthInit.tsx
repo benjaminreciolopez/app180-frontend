@@ -85,6 +85,7 @@ export default function AuthInit() {
         const forced = user?.password_forced === true;
         const hasSession = !!token && !!user?.role;
         console.log("AuthInit: hasSession?", hasSession, "pathname", pathname);
+        console.log("AuthInit: password_forced?", forced, "user.password_forced:", user?.password_forced);
   
         /* ==========================
            PASSWORD FORZADO
@@ -96,6 +97,7 @@ export default function AuthInit() {
             pathname.startsWith("/empleado/instalar");
   
           if (!allowed) {
+            console.log("AuthInit: Redirecting to CHANGE PASSWORD (forced)");
             router.replace("/cambiar-password");
             return;
           }
