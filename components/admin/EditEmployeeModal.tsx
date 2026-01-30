@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "@/services/api";
 import Link from "next/link";
+import { showSuccess, showError } from "@/lib/toast";
 
 interface EditEmployeeModalProps {
   isOpen: boolean;
@@ -56,17 +57,19 @@ export default function EditEmployeeModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent double-click
     setLoading(true);
 
     try {
       await api.put(`/admin/employees/${empleado.id}`, {
         nombre,
       });
+      showSuccess('Empleado actualizado correctamente');
       onSuccess();
       onClose();
     } catch (err) {
       console.error("Error updating employee", err);
-      alert("No se pudo actualizar el empleado");
+      showError('No se pudo actualizar el empleado');
     } finally {
       setLoading(false);
     }

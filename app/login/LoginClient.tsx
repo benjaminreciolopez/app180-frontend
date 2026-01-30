@@ -4,21 +4,24 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/services/auth";
 import { Eye, EyeOff } from "lucide-react";
+import { showSuccess, showError } from "@/lib/toast";
 
 export default function LoginClient() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // 👈
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
-    setError("");
+    if (loading) return; // Prevent double-click
+    setLoading(true);
 
     try {
       const result = await login(email, password);
+      showSuccess('Inicio de sesión exitoso');
 
       if (result?.decoded?.role === "admin") {
         router.replace("/admin/dashboard");
@@ -26,7 +29,9 @@ export default function LoginClient() {
         router.replace("/empleado/dashboard");
       }
     } catch (err: any) {
-      setError(err?.response?.data?.error || "Error al iniciar sesión");
+      showError(err?.response?.data?.error || "Error al iniciar sesión");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -44,30 +49,34 @@ export default function LoginClient() {
           <label className="block text-sm font-medium mb-1">Email</label>
           <input
             type="email"
-            className="border rounded w-full px-3 py-2"
+            className="border rounded w-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={loading}
           />
         </div>
 
         {/* PASSWORD */}
         <div className="relative">
+          <label className="block text-sm font-medium mb-1">Contraseña</label>
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Contraseña"
             autoComplete="current-password"
-            className="border p-2 w-full rounded pr-10"
+            className="border p-2 w-full rounded pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            disabled={loading}
           />
 
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            className="absolute right-2 top-[38px] text-gray-500 hover:text-gray-700"
             tabIndex={-1}
+            disabled={loading}
           >
             {showPassword ? (
               <EyeOff className="w-5 h-5" />
@@ -77,14 +86,12 @@ export default function LoginClient() {
           </button>
         </div>
 
-        {/* ERROR */}
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white font-semibold py-2 rounded"
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
         >
-          Entrar
+          {loading ? "Iniciando sesión..." : "Entrar"}
         </button>
       </form>
     </div>

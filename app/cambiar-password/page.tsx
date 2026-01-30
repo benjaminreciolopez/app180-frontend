@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, setAuthToken } from "@/services/api";
 import { Eye, EyeOff, Lock } from "lucide-react";
+import { showSuccess, showError } from "@/lib/toast";
 
 export default function CambiarPasswordPage() {
   const router = useRouter();
@@ -41,27 +42,28 @@ export default function CambiarPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return; // Prevent double-click
     setError("");
 
     // Validaciones
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setError("Todos los campos son obligatorios");
+      showError("Todos los campos son obligatorios");
       return;
     }
 
     const passwordError = validatePassword(newPassword);
     if (passwordError) {
-      setError(passwordError);
+      showError(passwordError);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Las contraseñas no coinciden");
+      showError("Las contraseñas no coinciden");
       return;
     }
 
     if (currentPassword === newPassword) {
-      setError("La nueva contraseña debe ser diferente a la actual");
+      showError("La nueva contraseña debe ser diferente a la actual");
       return;
     }
 
@@ -80,6 +82,8 @@ export default function CambiarPasswordPage() {
       localStorage.setItem("user", JSON.stringify(user));
       setAuthToken(token);
 
+      showSuccess('Contraseña cambiada correctamente');
+
       // Redirigir según el rol
       if (user.role === "admin") {
         router.replace("/admin/dashboard");
@@ -88,7 +92,7 @@ export default function CambiarPasswordPage() {
       }
     } catch (err: any) {
       console.error("Error cambiando contraseña:", err);
-      setError(
+      showError(
         err?.response?.data?.error || "Error al cambiar la contraseña",
       );
     } finally {
@@ -227,7 +231,7 @@ export default function CambiarPasswordPage() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
           >
             {saving ? "Guardando..." : "Cambiar contraseña"}
           </button>
