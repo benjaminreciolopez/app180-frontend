@@ -49,12 +49,7 @@ export default function InstalarCliente({ token }: { token?: string }) {
         return;
       }
 
-      // 💾 Guardar el token ANTES de verificar PWA
-      // Esto asegura que el token esté disponible cuando se abra la PWA instalada
-      localStorage.setItem("pending_activation_token", tokenFinal);
-      console.log("💾 Token guardado para activación:", tokenFinal);
-
-      // 🔍 Verificar si es dispositivo móvil
+      //  Verificar si es dispositivo móvil
       if (!isMobileDevice()) {
         setEstado("no-mobile");
         setMensaje(
@@ -67,18 +62,21 @@ export default function InstalarCliente({ token }: { token?: string }) {
       const isPWA = isStandalone();
       console.log("🔍 Modo standalone:", isPWA);
 
-      if (!isPWA) {
-        // NO limpiar localStorage aquí, necesitamos el token guardado
-        setEstado("no-pwa");
+      // Si ya es PWA pero no tiene sesión, algo salió mal
+      if (isPWA && !localStorage.getItem("token")) {
+        setEstado("error");
         setMensaje(
-          "Debes instalar la aplicación antes de activar tu dispositivo",
+          "Debes activar tu dispositivo desde Safari antes de instalar la aplicación. Por favor, desinstala la app y vuelve a abrir el enlace de invitación en Safari.",
         );
-        setShowInstructions(true);
         return;
       }
 
-      // ✅ Continuar con activación SOLO si es PWA
-      await activarDispositivo(tokenFinal);
+      // Si NO es PWA, activar dispositivo primero
+      if (!isPWA) {
+        console.log("📱 Activando dispositivo desde navegador...");
+        await activarDispositivo(tokenFinal);
+        return; // La función activarDispositivo manejará el resto
+      }
     }
 
     async function activarDispositivo(tokenFinal: string) {
@@ -106,9 +104,6 @@ export default function InstalarCliente({ token }: { token?: string }) {
           localStorage.setItem("user", JSON.stringify(user));
           setAuthToken(jwtToken);
           
-          // Limpiar token pendiente
-          localStorage.removeItem("pending_activation_token");
-          
           console.log("✅ Dispositivo activado correctamente");
           console.log("👤 Usuario guardado:", user);
           console.log("🔐 password_forced:", user.password_forced);
@@ -117,10 +112,8 @@ export default function InstalarCliente({ token }: { token?: string }) {
         setEstado("ok");
         setMensaje(res.data?.message || "Dispositivo activado correctamente");
 
-        setTimeout(() => {
-          // Redirigir a cambiar contraseña ya que password_forced es true
-          router.replace("/cambiar-password");
-        }, 1500);
+        // NO redirigir a cambiar contraseña, mostrar instrucciones de instalación
+        setShowInstructions(true);
       } catch (err: any) {
         console.error("❌ Error activando dispositivo:", err);
         setEstado("error");
@@ -350,7 +343,7 @@ export default function InstalarCliente({ token }: { token?: string }) {
             </div>
           )}
 
-          {/* Éxito */}
+          {/* Éxito - Mostrar instrucciones de instalación */}
           {estado === "ok" && (
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
@@ -360,10 +353,132 @@ export default function InstalarCliente({ token }: { token?: string }) {
                     {mensaje}
                   </p>
                   <p className="text-xs text-green-600 dark:text-green-300 mt-1">
-                    Redirigiendo a la aplicación...
+                    Ahora instala la aplicación para continuar
                   </p>
                 </div>
               </div>
+
+              {showInstructions && (
+                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg space-y-4">
+                  <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 text-lg">
+                    📱 Cómo instalar la aplicación
+                    {platform === "ios" && " en iPhone"}
+                    {platform === "android" && " en Android"}
+                  </h3>
+                  
+                  {platform === "ios" && (
+                    <div className="space-y-3">
+                      <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                        <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                          ⚠️ IMPORTANTE: Debes usar Safari (no Chrome ni otros navegadores)
+                        </p>
+                      </div>
+                      
+                      <ol className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
+                        <li className="flex gap-3">
+                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">1.</span>
+                          <div>
+                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                              Toca el botón de compartir
+                            </p>
+                            <p className="text-xs mt-1">
+                              Es el cuadrado con una flecha hacia arriba ⬆️ en la parte inferior de Safari
+                            </p>
+                          </div>
+                        </li>
+                        
+                        <li className="flex gap-3">
+                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">2.</span>
+                          <div>
+                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                              Desplázate hacia abajo en el menú
+                            </p>
+                            <p className="text-xs mt-1">
+                              Busca la opción "Añadir a pantalla de inicio" o "Add to Home Screen"
+                            </p>
+                          </div>
+                        </li>
+                        
+                        <li className="flex gap-3">
+                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">3.</span>
+                          <div>
+                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                              Toca "Añadir" o "Add"
+                            </p>
+                            <p className="text-xs mt-1">
+                              Confirma que quieres añadir la aplicación a tu pantalla de inicio
+                            </p>
+                          </div>
+                        </li>
+                        
+                        <li className="flex gap-3">
+                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">4.</span>
+                          <div>
+                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                              Cierra Safari y abre la app desde tu pantalla de inicio
+                            </p>
+                            <p className="text-xs mt-1">
+                              Busca el ícono "CONTENDO" en tu pantalla de inicio y ábrelo desde ahí
+                            </p>
+                          </div>
+                        </li>
+                      </ol>
+                    </div>
+                  )}
+                  
+                  {platform === "android" && (
+                    <ol className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
+                      <li className="flex gap-3">
+                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">1.</span>
+                        <div>
+                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            Toca el menú ⋮ (tres puntos)
+                          </p>
+                          <p className="text-xs mt-1">
+                            Está en la esquina superior derecha de Chrome
+                          </p>
+                        </div>
+                      </li>
+                      
+                      <li className="flex gap-3">
+                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">2.</span>
+                        <div>
+                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            Selecciona "Instalar aplicación"
+                          </p>
+                          <p className="text-xs mt-1">
+                            O "Añadir a pantalla de inicio" si no ves la opción de instalar
+                          </p>
+                        </div>
+                      </li>
+                      
+                      <li className="flex gap-3">
+                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">3.</span>
+                        <div>
+                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            Toca "Instalar"
+                          </p>
+                          <p className="text-xs mt-1">
+                            Confirma la instalación
+                          </p>
+                        </div>
+                      </li>
+                      
+                      <li className="flex gap-3">
+                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">4.</span>
+                        <div>
+                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            Abre la app desde tu pantalla de inicio
+                          </p>
+                          <p className="text-xs mt-1">
+                            Busca el ícono "CONTENDO" y ábrelo desde ahí
+                          </p>
+                        </div>
+                      </li>
+                    </ol>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
