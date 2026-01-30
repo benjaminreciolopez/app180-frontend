@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/services/auth";
 import { Eye, EyeOff } from "lucide-react";
@@ -12,20 +12,22 @@ export default function LoginClient() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  /* ========================
-     BOOTSTRAP CHECK
-  ======================== */
-  useState(() => {
-    // Only check once on mount
-    fetch("https://app180-backend.onrender.com/system/status")
-      .then(r => r.json())
-      .then(status => {
-         if (status.bootstrap === true) {
-            router.replace("/setup");
-         }
-      })
-      .catch(err => console.error("Error checking system status", err));
-  });
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const r = await fetch("https://app180-backend.onrender.com/system/status");
+        if (!r.ok) return; // Silent fail if not available
+        const status = await r.json();
+        if (status.bootstrap === true) {
+           router.replace("/setup");
+        }
+      } catch (err) {
+        console.error("Error checking system status", err);
+      }
+    };
+    checkStatus();
+  }, [router]);
 
   const [loading, setLoading] = useState(false);
 
