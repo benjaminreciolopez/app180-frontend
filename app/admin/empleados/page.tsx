@@ -19,8 +19,10 @@ interface Empleado {
   plantilla_id: string | null;
   plantilla_nombre: string | null;
   
-  cliente_defecto_id: string | null;
-  cliente_defecto_nombre: string | null;
+  // Cliente actual desde Jornadas (asignaciones)
+  cliente_actual_id: string | null;
+  cliente_actual_nombre: string | null;
+  cliente_actual_codigo: string | null;
 }
 
 export default function EmpleadosPage() {
@@ -46,7 +48,36 @@ export default function EmpleadosPage() {
   async function loadEmpleados() {
     try {
       const res = await api.get("/employees");
-      setEmpleados(res.data || []);
+      const empleadosData = res.data || [];
+      
+      // Cargar clientes actuales desde Jornadas para cada empleado
+      const empleadosConClientes = await Promise.all(
+        empleadosData.map(async (emp: any) => {
+          try {
+            const asignacionesRes = await api.get(`/admin/clientes/asignaciones/${emp.id}`);
+            const asignaciones = asignacionesRes.data || [];
+            // Buscar la asignación activa (fecha_fin es null)
+            const activa = asignaciones.find((a: any) => !a.fecha_fin);
+            
+            return {
+              ...emp,
+              cliente_actual_id: activa?.cliente_id || null,
+              cliente_actual_nombre: activa?.cliente_nombre || null,
+              cliente_actual_codigo: activa?.cliente_codigo || null,
+            };
+          } catch (err) {
+            // Si falla, devolver sin cliente
+            return {
+              ...emp,
+              cliente_actual_id: null,
+              cliente_actual_nombre: null,
+              cliente_actual_codigo: null,
+            };
+          }
+        })
+      );
+      
+      setEmpleados(empleadosConClientes);
     } catch (err) {
       console.error("Error cargando empleados", err);
     }
@@ -117,7 +148,7 @@ export default function EmpleadosPage() {
           <thead>
             <tr>
               <th>Nombre_</th>
-              <th>Cliente Defecto</th>
+              <th>Cliente Actual</th>
               <th>Estado</th>
               <th>Jornada</th>
               <th>Dispositivo</th>
@@ -133,10 +164,13 @@ export default function EmpleadosPage() {
                     <div className="text-xs text-muted-foreground">{e.email}</div>
                 </td>
                 <td>
-                    {e.cliente_defecto_nombre ? (
-                        <span className="badge-primary">{e.cliente_defecto_nombre}</span>
+                    {e.cliente_actual_nombre ? (
+                        <div className="flex items-center gap-2">
+                          <span className="badge-primary">{e.cliente_actual_nombre}</span>
+                          <div className="h-1.5 w-1.5 rounded-full bg-green-500" title="Asignación activa" />
+                        </div>
                     ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
+                        <span className="text-xs text-muted-foreground">Sin asignar</span>
                     )}
                 </td>
 

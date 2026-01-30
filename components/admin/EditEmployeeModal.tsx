@@ -9,7 +9,6 @@ interface EditEmployeeModalProps {
   empleado: {
     id: string;
     nombre: string;
-    cliente_defecto_id: string | null;
   };
 }
 
