@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "@/services/api";
+import Link from "next/link";
 
 interface EditEmployeeModalProps {
   isOpen: boolean;
@@ -19,20 +20,38 @@ export default function EditEmployeeModal({
   empleado,
 }: EditEmployeeModalProps) {
   const [nombre, setNombre] = useState(empleado.nombre);
-  const [clienteId, setClienteId] = useState(empleado.cliente_defecto_id || "");
   const [loading, setLoading] = useState(false);
-  const [clientes, setClientes] = useState<any[]>([]);
-  const [loadingClientes, setLoadingClientes] = useState(true);
+  const [clienteActual, setClienteActual] = useState<{
+    nombre: string;
+    codigo: string;
+  } | null>(null);
+  const [loadingCliente, setLoadingCliente] = useState(true);
 
   useEffect(() => {
-    // Cargar clientes para el selector
-    api.get("/admin/clientes")
+    if (!isOpen) return;
+    
+    // Cargar el cliente actual desde las asignaciones de Jornadas
+    setLoadingCliente(true);
+    api.get(`/admin/clientes/asignaciones/${empleado.id}`)
       .then((res) => {
-        setClientes(res.data || []);
+        const asignaciones = res.data || [];
+        // Buscar la asignación activa (fecha_fin es null)
+        const activa = asignaciones.find((a: any) => !a.fecha_fin);
+        if (activa && activa.cliente_nombre) {
+          setClienteActual({
+            nombre: activa.cliente_nombre,
+            codigo: activa.cliente_codigo || "",
+          });
+        } else {
+          setClienteActual(null);
+        }
       })
-      .catch((err) => console.error("Error cargando clientes", err))
-      .finally(() => setLoadingClientes(false));
-  }, []);
+      .catch((err) => {
+        console.error("Error cargando cliente actual", err);
+        setClienteActual(null);
+      })
+      .finally(() => setLoadingCliente(false));
+  }, [isOpen, empleado.id]);
 
   if (!isOpen) return null;
 
@@ -43,7 +62,6 @@ export default function EditEmployeeModal({
     try {
       await api.put(`/admin/employees/${empleado.id}`, {
         nombre,
-        cliente_defecto_id: clienteId || null,
       });
       onSuccess();
       onClose();
@@ -79,27 +97,46 @@ export default function EditEmployeeModal({
 
           <div>
             <label className="block text-sm font-medium mb-1">
-              Cliente por Defecto (Geolocalización)
+              Cliente Actual
             </label>
-            <p className="text-xs text-muted-foreground mb-2">
-              Si se asigna, se usará para validar fichajes cuando no haya una jornada específica con cliente.
+            <div className="bg-muted/30 border border-border rounded-lg p-3">
+              {loadingCliente ? (
+                <p className="text-sm text-muted-foreground">Cargando...</p>
+              ) : clienteActual ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{clienteActual.nombre}</p>
+                      {clienteActual.codigo && (
+                        <p className="text-xs text-muted-foreground">Código: {clienteActual.codigo}</p>
+                      )}
+                    </div>
+                    <div className="h-2 w-2 rounded-full bg-green-500" title="Asignación activa" />
+                  </div>
+                  <Link
+                    href="/admin/jornadas?tab=clientes"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    onClick={onClose}
+                  >
+                    Gestionar en Jornadas →
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Sin cliente asignado</p>
+                  <Link
+                    href="/admin/jornadas?tab=clientes"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    onClick={onClose}
+                  >
+                    Asignar en Jornadas →
+                  </Link>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Las asignaciones de clientes se gestionan desde el módulo Jornadas
             </p>
-            {loadingClientes ? (
-              <p className="text-sm text-muted-foreground">Cargando clientes...</p>
-            ) : (
-              <select
-                className="input w-full"
-                value={clienteId}
-                onChange={(e) => setClienteId(e.target.value)}
-              >
-                <option value="">-- Sin cliente asignado --</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre} ({c.codigo})
-                  </option>
-                ))}
-              </select>
-            )}
           </div>
 
           <div className="flex justify-end gap-2 mt-4">
@@ -124,3 +161,4 @@ export default function EditEmployeeModal({
     </div>
   );
 }
+
