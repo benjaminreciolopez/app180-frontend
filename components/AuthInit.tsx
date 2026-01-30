@@ -60,24 +60,23 @@ export default function AuthInit() {
 
     async function init() {
       try {
-        // 👉 Siempre configurar axios primero
-        // (Aunque api.ts ya lo hace en el interceptor, esto asegura el header default)
         setAuthToken(getToken());
-  
         const token = getToken();
         let user = getUser();
+
+        console.log("AuthInit: token present?", !!token, "user present?", !!user);
   
         // 👉 Si hay token → refrescar sesión real
         if (token) {
           try {
+            console.log("AuthInit: refreshing...");
             const newUser = await refreshMe();
             // Actualizamos user en memoria para la validación posterior
             user = newUser;
+            console.log("AuthInit: refresh success", { role: user?.role });
           } catch (error) {
              console.error("Error refreshing session:", error);
-             // No hacemos logout explícito aquí porque el interceptor de api.ts
-             // ya maneja el 401. Si es otro error (red, 500), al menos intentamos
-             // mantener la sesión local si existe.
+             // No hacemos logout explícito...
           }
         }
   
@@ -85,6 +84,7 @@ export default function AuthInit() {
   
         const forced = user?.password_forced === true;
         const hasSession = !!token && !!user?.role;
+        console.log("AuthInit: hasSession?", hasSession, "pathname", pathname);
   
         /* ==========================
            PASSWORD FORZADO
@@ -106,6 +106,7 @@ export default function AuthInit() {
         ========================== */
   
         if (!hasSession && !isPublicPath(pathname)) {
+          console.log("AuthInit: Redirecting to LOGIN (No Session)");
           router.replace("/login");
           return;
         }
@@ -115,6 +116,7 @@ export default function AuthInit() {
         ========================== */
   
         if (hasSession && pathname === "/login") {
+          console.log("AuthInit: Redirecting to DASHBOARD (Has Session)");
           router.replace(
             user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard",
           );
@@ -127,11 +129,13 @@ export default function AuthInit() {
   
         if (hasSession) {
           if (pathname.startsWith("/admin") && user!.role !== "admin") {
+            console.log("AuthInit: Role Mismatch (Admin -> Empleado)");
             router.replace("/empleado/dashboard");
             return;
           }
   
           if (pathname.startsWith("/empleado") && user!.role !== "empleado") {
+            console.log("AuthInit: Role Mismatch (Empleado -> Admin)");
             router.replace("/admin/dashboard");
             return;
           }
