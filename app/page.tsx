@@ -12,11 +12,16 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false); // 👈
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    
+    if (loading) return; // Prevent double-click
+    
     setError("");
+    setLoading(true);
 
     try {
       console.log("➡️ Enviando login...");
@@ -41,6 +46,7 @@ export default function LoginPage() {
       console.error("❌ Error login:", err);
       showError(err?.response?.data?.error || 'Error al iniciar sesión');
       setError(err?.response?.data?.error || "Error al iniciar sesión");
+      setLoading(false);
     }
   }
 
@@ -95,9 +101,10 @@ export default function LoginPage() {
         {/* SUBMIT */}
         <button
           type="submit"
-          className="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 font-semibold shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] focus:ring-4 focus:ring-blue-300"
+          disabled={loading}
+          className="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-400 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] focus:ring-4 focus:ring-blue-300"
         >
-          Entrar
+          {loading ? "Iniciando sesión..." : "Entrar"}
         </button>
       </form>
     </div>
