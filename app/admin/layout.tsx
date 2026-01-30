@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { getUser } from "@/services/auth";
 
 type Modulos = Record<string, boolean>;
 
@@ -35,14 +36,14 @@ export default function AdminLayout({
   // ============================
   function loadSession() {
     try {
-      const raw = localStorage.getItem("user");
-      if (!raw) {
+      // 🆕 Usar helper que mira ambos storages (sessionStorage y localStorage)
+      const user = getUser();
+      if (!user) {
         setSession(null);
         return;
       }
-
-      const user = JSON.parse(raw);
-
+      // getUser ya devuelve el objeto parseado, no strings
+      
       setSession({
         nombre: user.nombre || "Administrador",
         modulos: user.modulos || {},

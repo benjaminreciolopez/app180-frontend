@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, setAuthToken } from "@/services/api";
+import { getUser } from "@/services/auth";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 
@@ -22,14 +23,10 @@ export default function CambiarPasswordPage() {
 
   useEffect(() => {
     // Verificar si el usuario tiene password_forced
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setPasswordForced(user.password_forced === true);
-      } catch (e) {
-        console.error("Error parsing user:", e);
-      }
+    // 🆕 Usar helper
+    const user = getUser();
+    if (user) {
+      setPasswordForced(user.password_forced === true);
     }
   }, []);
 

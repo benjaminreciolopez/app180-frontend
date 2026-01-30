@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
+import { getUser } from "@/services/auth";
 import TableTrabajos, { WorkLogItem } from "@/components/shared/TableTrabajos";
 import FormTrabajos from "@/components/shared/FormTrabajos";
 import { Plus, X } from "lucide-react";
@@ -43,7 +44,8 @@ export default function AdminTrabajosPage() {
       // Verificar si módulo empleados está activo
       let fetchEmpleados = Promise.resolve({ data: [] } as any);
       try {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        // 🆕 Usar helper
+        const user = getUser() || {};
         // Si no existe modulos, asumimos true (legacy). Si es false explícito, no cargamos.
         if (user.modulos?.empleados !== false) {
           fetchEmpleados = api.get("/employees");
