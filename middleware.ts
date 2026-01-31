@@ -5,7 +5,7 @@ export const config = {
   matcher: ["/((?!_next|favicon.ico|manifest.json).*)"],
 };
 
-export async function proxy(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Rutas libres

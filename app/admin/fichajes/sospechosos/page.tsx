@@ -104,7 +104,7 @@ export default function SospechososPage() {
     const idsArray = Array.from(ids);
     
     if (idsArray.length === 0) {
-      alert("No hay fichajes seleccionados");
+      showError("No hay fichajes seleccionados");
       return;
     }
 

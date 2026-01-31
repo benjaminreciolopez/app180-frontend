@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, setAuthToken } from "@/services/api";
+import { showSuccess, showError } from "@/lib/toast";
 
 interface FichajeRechazado {
   id: string;
@@ -52,12 +53,13 @@ export default function FichajesRechazadosPage() {
 
     try {
       await api.delete(`/admin/auditoria/fichajes-rechazados/${id}`);
-      alert("Fichaje eliminado permanentemente");
+      setFichajes(prev => prev.filter(f => f.id !== id));
+      showSuccess("Fichaje eliminado permanentemente");
       loadFichajes();
       setSelectedFichaje(null);
     } catch (error) {
       console.error("Error eliminando fichaje:", error);
-      alert("Error al eliminar fichaje");
+      showError("Error al eliminar fichaje");
     }
   }
 

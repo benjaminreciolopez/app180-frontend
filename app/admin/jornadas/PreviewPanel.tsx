@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
+import { showSuccess, showError } from "@/lib/toast";
 import type { EmpleadoLite, PlanDia } from "./types";
 
 export default function PreviewPanel() {
@@ -24,7 +25,7 @@ export default function PreviewPanel() {
 
   async function load() {
     if (!empleadoSel) {
-      alert("Selecciona un empleado");
+      showError("Selecciona un empleado");
       return;
     }
     setLoading(true);

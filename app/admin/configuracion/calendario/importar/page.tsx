@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { pdfToPngFiles } from "@/lib/pdfToImages";
 import { ocrPreview, ocrReparse, ocrConfirm } from "@/services/calendarioOCR";
+import { showSuccess, showError } from "@/lib/toast";
 
 type Meta = {
   confidence?: number;
@@ -190,7 +191,7 @@ export default function ImportarCalendarioLaboralPage() {
 
       setActiveTab("preview");
     } catch (e: any) {
-      alert(e?.response?.data?.error || e?.message || "Error OCR");
+      showError(e?.response?.data?.error || e?.message || "Error OCR");
     } finally {
       setLoading(false);
       setStage("");
@@ -200,7 +201,7 @@ export default function ImportarCalendarioLaboralPage() {
   async function handleReparse() {
     try {
       if (!rawText || rawText.trim().length < 20) {
-        alert("El texto OCR está vacío o demasiado corto.");
+        showError("El texto OCR está vacío o demasiado corto.");
         return;
       }
       setLoading(true);
@@ -213,7 +214,7 @@ export default function ImportarCalendarioLaboralPage() {
       setPreview(items);
       setActiveTab("preview");
     } catch (e: any) {
-      alert(e?.response?.data?.error || e?.message || "Error reparse");
+      showError(e?.response?.data?.error || e?.message || "Error reparse");
     } finally {
       setLoading(false);
       setStage("");
@@ -224,14 +225,14 @@ export default function ImportarCalendarioLaboralPage() {
     try {
       if (loading) return;
       if (preview.length === 0) {
-        alert("No hay entradas para confirmar.");
+        showError("No hay entradas para confirmar.");
         return;
       }
 
       const activeItems = preview.filter((x) => x.activo !== false);
 
       if (activeItems.length === 0) {
-        alert(
+        showError(
           "Todas las entradas están desactivadas. Activa al menos una antes de confirmar.",
         );
         return;
@@ -248,14 +249,13 @@ export default function ImportarCalendarioLaboralPage() {
         raw_text: rawText,
       });
 
-      alert("Importación completada. El calendario ha sido actualizado.");
-
+      showSuccess("Importación completada. El calendario ha sido actualizado.");
       setFile(null);
       resetWorkspace();
 
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (e: any) {
-      alert(e?.response?.data?.error || e?.message || "Error al confirmar");
+      showError(e?.response?.data?.error || e?.message || "Error al confirmar");
     } finally {
       setLoading(false);
       setStage("");

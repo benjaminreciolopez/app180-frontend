@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
+import { showSuccess, showError } from "@/lib/toast";
+import { Button } from "@/components/ui/button";
 
 type Modulos = {
   fichajes?: boolean;
@@ -33,7 +35,7 @@ export default function AdminConfiguracionPage() {
       });
     } catch (e) {
       console.error("Error cargando config", e);
-      alert("No se pudo cargar la configuración");
+      showError("No se pudo cargar la configuración");
     }
   }
 
@@ -55,7 +57,7 @@ export default function AdminConfiguracionPage() {
       // 🔔 Notificar layout
       window.dispatchEvent(new Event("session-updated"));
 
-      alert("Configuración guardada");
+      showSuccess("Configuración guardada");
     } finally {
       setSaving(false);
     }
@@ -106,9 +108,9 @@ export default function AdminConfiguracionPage() {
         />
       </div>
 
-      <button onClick={save} disabled={saving} className="btn-primary">
+      <Button onClick={save} disabled={saving} className="py-6 font-bold shadow-md">
         {saving ? "Guardando…" : "Guardar cambios"}
-      </button>
+      </Button>
     </div>
   );
 }

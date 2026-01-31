@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import AuthInit from "@/components/AuthInit";
 import ToastProvider from "@/components/ToastProvider";
+import DynamicAuthor from "@/components/DynamicAuthor";
 
 export default function RootLayout({
   children,
@@ -14,6 +15,7 @@ export default function RootLayout({
       <body className="app-shell">
         <ThemeProvider>
           <AuthInit />
+          <DynamicAuthor />
           {children}
           <ToastProvider />
         </ThemeProvider>
@@ -26,7 +28,7 @@ export const metadata: Metadata = {
   title: "CONTENDO GESTIONES",
   description: "Sistema de gestión empresarial para control de empleados, clientes, facturación y jornadas laborales",
   applicationName: "CONTENDO GESTIONES",
-  authors: [{ name: "CONTENDO" }],
+  authors: [{ name: "CONTENDO GESTIONES" }],
   generator: "Next.js",
   keywords: ["gestión", "empresa", "rrhh", "fichajes", "facturación"],
   manifest: "/manifest.json", // Desactivado temporalmente para evitar error 401 en Vercel Auth
