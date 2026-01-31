@@ -57,7 +57,7 @@ export default function PlaningsPage() {
              } 
          }),
          api.get("/employees"),
-         api.get("/admin/clients")
+         api.get("/admin/clientes")
       ]);
       setAsignaciones(resAsig.data || []);
       setEmpleados(Array.isArray(resEmp.data) ? resEmp.data : []);
