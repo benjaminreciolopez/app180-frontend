@@ -13,23 +13,23 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://app180-backend.onrender.com";
-    const r = await fetch(`${apiUrl}/system/status`, {
-      cache: "no-store",
-    });
+  // try {
+  //   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://app180-backend.onrender.com";
+  //   const r = await fetch(`${apiUrl}/system/status`, {
+  //     cache: "no-store",
+  //   });
 
-    const data = await r.json();
+  //   const data = await r.json();
 
-    // Sistema sin inicializar → forzar setup
-    if (data.bootstrap === true) {
-      if (!pathname.startsWith("/setup")) {
-        return NextResponse.redirect(new URL("/setup", req.url));
-      }
-    }
-  } catch (err) {
-    console.error("Bootstrap middleware error:", err);
-  }
+  //   // Sistema sin inicializar → forzar setup
+  //   if (data.bootstrap === true) {
+  //     if (!pathname.startsWith("/setup")) {
+  //       return NextResponse.redirect(new URL("/setup", req.url));
+  //     }
+  //   }
+  // } catch (err) {
+  //   console.error("Bootstrap middleware error:", err);
+  // }
 
   return NextResponse.next();
 }

@@ -58,7 +58,6 @@ export default function AuthInit() {
   const initialized = useRef(false);
 
   useEffect(() => {
-    // Evitar doble ejecución en dev y re-ejecución por cambio de ruta
     if (initialized.current) return;
     initialized.current = true;
 
@@ -68,14 +67,15 @@ export default function AuthInit() {
         const token = getToken();
         let user = getUser();
 
-        // Refrescar sesión solo al cargar la app por primera vez (F5)
+        // Si tenemos usuario local, permitimos renderizar ya (optimistic)
+        // y refrescamos en background
         if (token) {
-          try {
-            const newUser = await refreshMe();
-            user = newUser;
-          } catch (error) {
-            // Silencioso
-          }
+          refreshMe().then((u) => {
+             // Si el usuario cambió drásticamente (ej: rol), podríamos forzar recarga
+             // Por ahora confiamos en que el estado local se actualiza
+          }).catch(() => {
+             console.log("Sesión background refresh falló (puede estar offline o token expirado)");
+          });
         }
         
         // Listen for password-forced event
