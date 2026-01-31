@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpRight, DollarSign, Wallet, FileText } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Wallet, FileText } from "lucide-react";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -115,7 +115,7 @@ export default function FacturacionPage() {
         <Card className={totalDeuda > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Deuda Total Clientes</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground font-bold">€</span>
             </CardHeader>
             <CardContent>
                 <div className={`text-2xl font-bold ${totalDeuda > 0 ? 'text-red-600' : 'text-green-700'}`}>
