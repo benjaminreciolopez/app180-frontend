@@ -51,7 +51,7 @@ export default function DrawerEditarPlaning({
   const [alias, setAlias] = useState(asignacion.alias || "");
   const [color, setColor] = useState(asignacion.color || "");
   const [ignorarFestivos, setIgnorarFestivos] = useState(asignacion.ignorar_festivos);
-  const [fechaFin, setFechaFin] = useState(asignacion.fecha_fin || ""); 
+  const [fechaFin, setFechaFin] = useState(asignacion.fecha_fin ? asignacion.fecha_fin.slice(0, 10) : ""); 
   const [indefinido, setIndefinido] = useState(!asignacion.fecha_fin);
 
   useEffect(() => {
