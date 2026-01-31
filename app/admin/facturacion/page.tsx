@@ -64,17 +64,13 @@ export default function FacturacionPage() {
   async function load() {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
       const from = `${year}-01-01`;
       const to = `${year}-12-31`;
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/billing/clients?desde=${from}&hasta=${to}`, {
-          headers: { Authorization: `Bearer ${token}` }
-      });
-      if(res.ok) {
-          const data = await res.json();
-          setClientsData(data);
-      }
+      const data = await api(`/admin/billing/clients?desde=${from}&hasta=${to}`);
+      setClientsData(data);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -193,19 +189,11 @@ async function createPayment() {
             <Button variant="outline" size="sm" onClick={async () => {
                 try {
                     setLoading(true);
-                    const token = localStorage.getItem("token");
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/empleado/fix-values`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    const data = await res.json();
-                    if(res.ok) {
-                        toast.success(`Valores recalculados: ${data.fixed} trabajos actualizados`);
-                        load();
-                    } else {
-                        toast.error("Error recalculando");
-                    }
+                    const data = await api(`/empleado/fix-values`);
+                    toast.success(`Valores recalculados: ${data.fixed} trabajos actualizados`);
+                    load();
                 } catch(e) {
-                    toast.error("Error de conexión");
+                    toast.error("Error recalculando");
                 } finally {
                     setLoading(false);
                 }
@@ -265,7 +253,7 @@ async function createPayment() {
                         <th className="px-4 py-3 text-right">Trabajo (Est.)</th>
                         <th className="px-4 py-3 text-right">Pagado</th>
                         <th className="px-4 py-3 text-right">Saldo</th>
-                        <th className="px-4 py-3 text-center">Acciones</th>
+                        <th className="px-4 py-3 text-right">Acciones</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -296,7 +284,7 @@ async function createPayment() {
                                                 setDrawerOpen(true);
                                             }}
                                         >
-                                            + Pago
+                                            <Plus className="w-4 h-4" /> Pago
                                         </Button>
                                         <Button 
                                             size="sm" 
@@ -304,7 +292,7 @@ async function createPayment() {
                                             className="h-8"
                                             onClick={() => router.push(`/admin/clientes/${c.id}/pagos`)}
                                         >
-                                            Ver Historial
+                                            Historial
                                         </Button>
                                     </div>
                                 </td>
