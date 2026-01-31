@@ -50,6 +50,51 @@ function titleForTipo(tipo?: string) {
   return t ? t.replaceAll("_", " ") : "Evento";
 }
 
+const GOOGLE_CAL_CSS = `
+  .fc-theme-standard td, .fc-theme-standard th {
+    border: 1px solid #e5e7eb !important;
+  }
+  .fc .fc-daygrid-day-top {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 4px;
+  }
+  .fc .fc-daygrid-day-number {
+    padding: 0 !important;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    color: #3c4043;
+    text-decoration: none !important;
+  }
+  .fc-day-today {
+    background-color: transparent !important;
+  }
+  .fc-day-today .fc-daygrid-day-number {
+    background-color: #1a73e8;
+    color: white !important;
+    border-radius: 50%;
+  }
+  .fc-col-header-cell {
+    padding: 8px 0 !important;
+    background: white;
+    font-weight: 500 !important;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: #70757a;
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+  .fc .fc-daygrid-event-harness {
+    margin-top: 1px !important;
+  }
+`;
+
 export default function DrawerCalendario({
   onSelectDay,
 }: {
@@ -155,6 +200,8 @@ export default function DrawerCalendario({
 
   return (
     <div className={`flex flex-col ${isMobile ? 'h-auto min-h-0' : 'fullscreen-page'}`}>
+      <style>{GOOGLE_CAL_CSS}</style>
+      
       {/* Controls & Legend */}
       <div className="p-3 space-y-3 shrink-0">
         {!isMobile && <CalendarioLegend />}
