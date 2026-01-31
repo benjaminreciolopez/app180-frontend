@@ -29,6 +29,8 @@ export type Bloque = {
   hora_inicio: string; // "HH:MM:SS"
   hora_fin: string;
   obligatorio: boolean;
+  cliente_id?: string | null;
+  cliente_nombre?: string | null;
 };
 
 export type Excepcion = {
@@ -45,7 +47,7 @@ export type Asignacion = {
   id: string;
   cliente_id?: string;
   cliente_nombre?: string;
-  empleado_id: string;
+  empleado_id: string | null;
   plantilla_id: string;
   fecha_inicio: string; // date
   fecha_fin: string | null;
@@ -67,5 +69,7 @@ export type PlanDia = {
     inicio: string;
     fin: string;
     obligatorio: boolean;
+    cliente_id?: string | null;
+    cliente_nombre?: string | null;
   }>;
 };

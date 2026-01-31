@@ -70,8 +70,9 @@ export default function BloquesEditor({
   bloques,
   onChange,
   onSave,
-  rangoInicio, // Nuevo prop opcional
-  rangoFin,    // Nuevo prop opcional
+  rangoInicio,
+  rangoFin,
+  clientes = [],
 }: {
   title: string;
   bloques: Bloque[];
@@ -79,6 +80,7 @@ export default function BloquesEditor({
   onSave: () => void;
   rangoInicio?: string;
   rangoFin?: string;
+  clientes?: { id: string; nombre: string }[];
 }) {
   const { errs, sorted } = useMemo(() => validate(bloques), [bloques]);
 
@@ -210,12 +212,12 @@ export default function BloquesEditor({
         {sorted.map((b, i) => (
           <div
             key={i}
-            className="grid grid-cols-1 md:grid-cols-[180px_160px_160px_140px_80px] gap-2 items-end border rounded p-3"
+            className="grid grid-cols-1 md:grid-cols-[140px_160px_100px_100px_100px_80px] gap-2 items-end border rounded p-3"
           >
             <div>
               <label className="text-xs text-gray-600">Tipo</label>
               <select
-                className="border p-2 rounded w-full"
+                className="border p-2 rounded w-full text-sm"
                 value={b.tipo}
                 onChange={(e) => update(i, { tipo: e.target.value })}
               >
@@ -224,6 +226,22 @@ export default function BloquesEditor({
                 <option value="pausa">pausa</option>
                 <option value="comida">comida</option>
                 <option value="otro">otro</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-600">Sede / Cliente</label>
+              <select
+                className="border p-2 rounded w-full text-sm"
+                value={b.cliente_id || ""}
+                onChange={(e) => update(i, { cliente_id: e.target.value || null })}
+              >
+                <option value="">(Asignación general)</option>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
               </select>
             </div>
 

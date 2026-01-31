@@ -41,6 +41,7 @@ function apiErrorMessage(e: any) {
 export default function PlantillasPanel() {
   const [loading, setLoading] = useState(true);
   const [plantillas, setPlantillas] = useState<Plantilla[]>([]);
+  const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([]);
   const [sel, setSel] = useState<Plantilla | null>(null);
   const [showRename, setShowRename] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -107,8 +108,12 @@ export default function PlantillasPanel() {
     setLoading(true);
     setError(null);
     try {
-      const r = await api.get("/admin/plantillas");
-      setPlantillas(Array.isArray(r.data) ? r.data : []);
+      const [rp, rc] = await Promise.all([
+         api.get("/admin/plantillas"),
+         api.get("/clients")
+      ]);
+      setPlantillas(Array.isArray(rp.data) ? rp.data : []);
+      setClientes(Array.isArray(rc.data) ? rc.data : []);
     } catch (e) {
       setError(apiErrorMessage(e));
     } finally {
@@ -711,7 +716,8 @@ export default function PlantillasPanel() {
                     onChange={setBloquesDia}
                     onSave={() => guardarBloquesDia(bloquesDia)}
                     rangoInicio={diaHoraInicio}
-                    rangoFin={diaHoraFin} // FIX: Pasar fin del rango para clamping
+                    rangoFin={diaHoraFin}
+                    clientes={clientes}
                   />
                   {savingBloquesDia ? (
                     <div className="text-xs text-gray-600">

@@ -5,6 +5,10 @@ import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import type { EmpleadoLite, PlanDia } from "./types";
 
+function apiErrorMessage(e: any) {
+  return e?.response?.data?.error || e?.message || "Error inesperado";
+}
+
 export default function PreviewPanel() {
   const [empleados, setEmpleados] = useState<EmpleadoLite[]>([]);
   const [empleadoSel, setEmpleadoSel] = useState<string>("");
@@ -24,14 +28,13 @@ export default function PreviewPanel() {
   }, []);
 
   async function load() {
-    if (!empleadoSel) {
-      showError("Selecciona un empleado");
-      return;
-    }
     setLoading(true);
     try {
-      const r = await api.get(`/admin/plan-dia/${empleadoSel}?fecha=${fecha}`);
+      const target = empleadoSel || "null";
+      const r = await api.get(`/admin/plan-dia/${target}?fecha=${fecha}`);
       setPlan(r.data);
+    } catch (e: any) {
+      showError(apiErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -50,7 +53,7 @@ export default function PreviewPanel() {
               value={empleadoSel}
               onChange={(e) => setEmpleadoSel(e.target.value)}
             >
-              <option value="">Selecciona...</option>
+                <option value="">(Para el Administrador)</option>
               {empleados.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.nombre}
@@ -100,20 +103,22 @@ export default function PreviewPanel() {
 
             <table className="w-full border rounded overflow-hidden">
               <thead>
-                <tr className="bg-gray-100">
+                <tr className="bg-gray-100 text-xs">
                   <th className="p-3 text-left">Tipo</th>
+                  <th className="p-3 text-left">Sede / Cliente</th>
                   <th className="p-3 text-left">Inicio</th>
                   <th className="p-3 text-left">Fin</th>
-                  <th className="p-3 text-left">Obligatorio</th>
+                  <th className="p-3 text-left">Oblig.</th>
                 </tr>
               </thead>
               <tbody>
                 {plan.bloques.map((b, idx) => (
-                  <tr key={idx} className="border-b">
-                    <td className="p-3">{b.tipo}</td>
-                    <td className="p-3">{b.inicio}</td>
-                    <td className="p-3">{b.fin}</td>
-                    <td className="p-3">{String(b.obligatorio)}</td>
+                  <tr key={idx} className="border-b text-sm">
+                    <td className="p-3 font-medium capitalize">{b.tipo}</td>
+                    <td className="p-3 text-blue-700">{b.cliente_nombre || "-"}</td>
+                    <td className="p-3 font-mono">{b.inicio}</td>
+                    <td className="p-3 font-mono">{b.fin}</td>
+                    <td className="p-3">{b.obligatorio ? "Sí" : "No"}</td>
                   </tr>
                 ))}
                 {plan.bloques.length === 0 ? (

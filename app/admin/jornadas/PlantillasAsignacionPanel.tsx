@@ -34,6 +34,7 @@ export default function PlantillasAsignacionPanel() {
   const [fechaFin, setFechaFin] = useState<string>("");
   const [asignando, setAsignando] = useState(false);
   const [reseteando, setReseteando] = useState(false);
+  const [renovando, setRenovando] = useState<string | null>(null);
 
   async function loadBase() {
     setLoading(true);
@@ -77,8 +78,8 @@ export default function PlantillasAsignacionPanel() {
   }, [empleadoSel]);
 
   async function asignar() {
-    if (!empleadoSel || !plantillaSel || !fechaInicio) {
-      showError("Empleado, plantilla y fecha inicio son obligatorios");
+    if (!plantillaSel || !fechaInicio) {
+      showError("Plantilla y fecha inicio son obligatorios");
       return;
     }
     // NOTA: Ya no mandamos cliente_id
@@ -89,7 +90,6 @@ export default function PlantillasAsignacionPanel() {
         plantilla_id: plantillaSel,
         fecha_inicio: fechaInicio,
         fecha_fin: fechaFin || null,
-        // cliente_id explícitamente omitido o null
       });
       await loadHist(empleadoSel);
       showSuccess('Horario asignado correctamente');
@@ -125,6 +125,25 @@ export default function PlantillasAsignacionPanel() {
     }
   }
 
+  async function renovar(id: string) {
+    const meses = window.prompt("¿Cuántos meses quieres ampliar?", "1");
+    if (!meses || isNaN(parseInt(meses))) return;
+
+    try {
+      setRenovando(id);
+      await api.post("/jornadas/asignar/renovar", {
+        asignacion_id: id,
+        meses: parseInt(meses),
+      });
+      await loadHist(empleadoSel);
+      showSuccess("Planing renovado");
+    } catch (e: any) {
+      showError(e.response?.data?.error || "Error al renovar");
+    } finally {
+      setRenovando(null);
+    }
+  }
+
   if (loading) return <div className="p-4">Cargando...</div>;
 
   return (
@@ -141,7 +160,7 @@ export default function PlantillasAsignacionPanel() {
                 value={empleadoSel}
                 onChange={(e) => setEmpleadoSel(e.target.value)}
               >
-                <option value="">-- Selecciona empleado --</option>
+                <option value="">(Para el Administrador)</option>
                 {empleados.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.nombre}
@@ -207,8 +226,8 @@ export default function PlantillasAsignacionPanel() {
           
           <div className="bg-gray-50 rounded p-3 border">
             <h3 className="font-bold text-sm mb-2 text-gray-700">Historial de Horarios</h3>
-            {!empleadoSel ? (
-               <div className="text-gray-500 text-sm italic">Selecciona un empleado</div>
+             {!empleadoSel ? (
+               <div className="text-blue-600 text-sm italic font-medium">Asignaciones para el Administrador</div>
             ) : hist.length === 0 ? (
                <div className="text-gray-500 text-sm">Sin historial de horarios.</div>
             ) : (
@@ -219,7 +238,7 @@ export default function PlantillasAsignacionPanel() {
                       <th className="pb-2">Plantilla</th>
                       <th className="pb-2">Inicio</th>
                       <th className="pb-2">Fin</th>
-                      <th className="pb-2">Activo</th>
+                      <th className="pb-2 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -228,12 +247,21 @@ export default function PlantillasAsignacionPanel() {
                         <td className="py-2 pr-2 font-medium">{h.plantilla_nombre}</td>
                         <td className="py-2 pr-2 whitespace-nowrap">{h.fecha_inicio}</td>
                         <td className="py-2 pr-2 whitespace-nowrap">{h.fecha_fin || "-"}</td>
-                        <td className="py-2">
-                           {h.activo ? (
-                            <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">Activo</span>
-                          ) : (
-                            <span className="text-gray-500 text-xs">Inactivo</span>
-                          )}
+                        <td className="py-2 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                             {h.activo ? (
+                              <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">Activo</span>
+                            ) : (
+                              <span className="text-gray-500 text-xs">Inactivo</span>
+                            )}
+                            <button
+                              disabled={renovando !== null}
+                              className="text-xs text-indigo-600 font-semibold hover:underline"
+                              onClick={() => renovar(h.id)}
+                            >
+                              {renovando === h.id ? "..." : "Renovar"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
