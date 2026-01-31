@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, X, Trash2, Check, ExternalLink } from "lucide-react";
+import { ArrowLeft, X, Trash2, Check, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
@@ -172,9 +172,6 @@ export default function PagosPage() {
           <ArrowLeft size={18} />
         </Button>
         <h1 className="text-2xl font-semibold flex-1">Gestión de Pagos</h1>
-        <Button onClick={() => setDrawerOpen(true)} className="gap-2">
-            <Plus size={16} /> Nuevo Pago
-        </Button>
       </div>
 
         {/* List */}
