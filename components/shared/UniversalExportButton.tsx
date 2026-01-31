@@ -29,10 +29,13 @@ export const UniversalExportButton = ({
     const [value, setValue] = useState<string>("");
 
     const handleExport = async (format: string) => {
-        if (!format) return;
+        if (!format) {
+            console.warn("⚠️ No se seleccionó formato");
+            return;
+        }
         setLoading(true);
         console.log(`🚀 Iniciando exportación: ${module} (${format})`, queryParams);
-        
+
         try {
             const params: Record<string, string> = { format };
             Object.entries(queryParams).forEach(([key, val]) => {
@@ -41,12 +44,13 @@ export const UniversalExportButton = ({
                 }
             });
 
+            console.log('📤 Parámetros de exportación:', params);
             const response = await api.get(`/admin/export/${module}`, {
                 params,
-                responseType: 'blob' 
+                responseType: 'blob'
             });
 
-            console.log("✅ Respuesta recibida", response.status);
+            console.log("✅ Respuesta recibida", response.status, response.headers);
 
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
@@ -83,18 +87,18 @@ export const UniversalExportButton = ({
 
     return (
         <div className={`relative z-20 ${className}`}>
-            <Select 
-                value={value} 
+            <Select
+                value={value}
                 onValueChange={(v) => {
                     setValue(v);
                     handleExport(v);
                     // Reset después de un momento para permitir re-selección
                     setTimeout(() => setValue(""), 1000);
-                }} 
+                }}
                 disabled={loading}
             >
-                <SelectTrigger className="w-[160px] h-9 bg-white border-slate-200 hover:bg-slate-50 transition-all text-slate-900 cursor-pointer shadow-sm ring-offset-white focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
-                    <div className="flex items-center gap-2">
+                <SelectTrigger className="w-[180px] h-9 bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-900 cursor-pointer shadow-sm ring-offset-white focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
+                    <div className="flex items-center gap-2 flex-1">
                         {loading ? (
                             <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
                         ) : (
@@ -105,20 +109,20 @@ export const UniversalExportButton = ({
                         </span>
                     </div>
                 </SelectTrigger>
-                <SelectContent className="z-[100]">
-                    <SelectItem value="pdf" className="cursor-pointer py-2">
+                <SelectContent className="z-[100] bg-white">
+                    <SelectItem value="pdf" className="cursor-pointer py-2 hover:bg-red-50">
                         <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-red-500" />
                             <span>Documento PDF</span>
                         </div>
                     </SelectItem>
-                    <SelectItem value="csv" className="cursor-pointer py-2">
+                    <SelectItem value="csv" className="cursor-pointer py-2 hover:bg-green-50">
                         <div className="flex items-center gap-2">
                             <Table className="h-4 w-4 text-green-600" />
                             <span>Excel / CSV</span>
                         </div>
                     </SelectItem>
-                    <SelectItem value="html" className="cursor-pointer py-2">
+                    <SelectItem value="html" className="cursor-pointer py-2 hover:bg-blue-50">
                         <div className="flex items-center gap-2">
                             <FileCode className="h-4 w-4 text-blue-500" />
                             <span>Vista Web (HTML)</span>
