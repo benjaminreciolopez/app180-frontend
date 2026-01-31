@@ -161,38 +161,31 @@ const GOOGLE_CAL_CSS = `
   }
 `;
 
-// Paleta de colores para empleados (Pastel / Suaves pero distinguibles)
-const EMPLOYEE_COLORS = [
-  '#ef4444', // Red 500
-  '#f97316', // Orange 500
-  '#f59e0b', // Amber 500
-  '#84cc16', // Lime 500
-  '#10b981', // Emerald 500
-  '#06b6d4', // Cyan 500
-  '#3b82f6', // Blue 500
-  '#6366f1', // Indigo 500
-  '#8b5cf6', // Violet 500
-  '#d946ef', // Fuchsia 500
-  '#f43f5e', // Rose 500
-  '#64748b', // Slate 500
-  '#c026d3', // Fuchsia 600
-  '#059669', // Emerald 600
-  '#7c3aed', // Violet 600
-  '#db2777', // Pink 600
-  '#ea580c', // Orange 600
-  '#0891b2', // Cyan 600
-  '#4f46e5', // Indigo 600
-  '#be123c', // Rose 700
-];
+// Función para generar color consistente y "bonito" basado en un string (ID)
+// Usa HSL para asegurar que sean colores pastel/vivos legibles y no demasiado oscuros/claros.
+function stringToColor(str: string): string {
+  if (!str) return "#9CA3AF"; // Gray fallback
+  
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  // Generar HSL
+  // H: Usar el hash para rotar por todo el espectro (0-360)
+  // S: Mantener saturación alta (65-85%) para que se vean vivos
+  // L: Mantener luminosidad media-alta (45-65%) para buen contraste con texto blanco o negro
+  
+  const h = Math.abs(hash) % 360;
+  const s = 65 + (Math.abs(hash) % 20); // 65% - 85%
+  const l = 45 + (Math.abs(hash) % 20); // 45% - 65%
+  
+  return `hsl(${h}, ${s}%, ${l}%)`;
+}
 
 function getColorForEmployee(id: string | null | undefined): string {
-  if (!id) return "#9CA3AF"; // Gray for unknown
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % EMPLOYEE_COLORS.length;
-  return EMPLOYEE_COLORS[index];
+  if (!id) return "#9CA3AF";
+  return stringToColor(id);
 }
 
 function priorityFor(ev: CalendarioIntegradoEvento) {
