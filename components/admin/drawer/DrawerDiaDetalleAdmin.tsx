@@ -174,9 +174,18 @@ export default function DrawerDiaDetalleAdmin({
                       className="w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-md"
                       style={{ backgroundColor: col }}
                     />
-                    <span className="font-bold text-gray-900 truncate text-[14px]">
-                      {ev.title}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-gray-900 truncate text-[14px]">
+                        {ev.title}
+                      </span>
+                      {/* NEW: Mostrar cliente si es un bloque con asignación específica */}
+                      {ev.tipo === "jornada_plan" && ev.meta?.bloques?.[0]?.cliente_nombre && (
+                        <span className="text-[10px] font-semibold text-indigo-600 truncate">
+                          ➜ {ev.meta.bloques[0].cliente_nombre}
+                          {ev.meta.bloques.length > 1 && new Set(ev.meta.bloques.map((b: any) => b.cliente_nombre)).size > 1 ? " y otros" : ""}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">

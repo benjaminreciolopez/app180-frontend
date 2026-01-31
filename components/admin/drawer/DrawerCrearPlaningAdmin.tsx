@@ -29,7 +29,8 @@ export default function DrawerCrearPlaningAdmin({
   const [plantillaSel, setPlantillaSel] = useState("");
   const [clienteSel, setClienteSel] = useState("");
   const [fechaInicio, setFechaInicio] = useState(fechaDefault || new Date().toISOString().slice(0, 10));
-  const [fechaFin, setFechaFin] = useState("");
+  const [recurrenciaMode, setRecurrenciaMode] = useState<string>("single"); // single, custom
+  const [fechaFin, setFechaFin] = useState(fechaDefault || new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -110,7 +111,7 @@ export default function DrawerCrearPlaningAdmin({
         </div>
 
         <div>
-          <label className="block text-sm font-semibold mb-1">Centro / Cliente Principal (Opcional)</label>
+          <label className="block text-sm font-semibold mb-1">Adjudicar trabajo principal a (Cliente)</label>
           <select
             className="w-full border p-2 rounded-xl text-sm"
             value={clienteSel}
@@ -128,24 +129,50 @@ export default function DrawerCrearPlaningAdmin({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-semibold mb-1">Fecha Inicio</label>
+            <label className="block text-sm font-semibold mb-1">Empieza el</label>
             <input
               type="date"
               className="w-full border p-2 rounded-xl text-sm"
               value={fechaInicio}
-              onChange={(e) => setFechaInicio(e.target.value)}
+              onChange={(e) => {
+                setFechaInicio(e.target.value);
+                // Si estamos en modo "un solo día", actualizar fin
+                if (recurrenciaMode === "single") setFechaFin(e.target.value);
+              }}
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold mb-1">Fecha Fin (Opc.)</label>
-            <input
-              type="date"
-              className="w-full border p-2 rounded-xl text-sm"
-              value={fechaFin}
-              onChange={(e) => setFechaFin(e.target.value)}
-            />
+            <label className="block text-sm font-semibold mb-1">Repetir</label>
+            <select
+              className="w-full border p-2 rounded-xl text-sm bg-gray-50"
+              value={recurrenciaMode}
+              onChange={(e) => {
+                const m = e.target.value;
+                setRecurrenciaMode(m);
+                if (m === "single") setFechaFin(fechaInicio);
+                if (m === "forever") setFechaFin("");
+                // Para meses/semanas habría que calcular, pero por simplicidad dejamos que el usuario elija o limpiamos
+                if (m === "custom") setFechaFin(""); 
+              }}
+            >
+              <option value="single">Un solo día</option>
+              {/* <option value="forever">Indefinidamente</option> Pospuesto por complejidad de UI */}
+              <option value="custom">Rango de fechas</option>
+            </select>
           </div>
         </div>
+
+        {recurrenciaMode === "custom" && (
+           <div className="mt-2">
+             <label className="block text-sm font-semibold mb-1">Termina el (inclusive)</label>
+             <input
+               type="date"
+               className="w-full border p-2 rounded-xl text-sm border-indigo-200 bg-indigo-50"
+               value={fechaFin}
+               onChange={(e) => setFechaFin(e.target.value)}
+             />
+           </div>
+        )}
       </div>
 
       <div className="pt-4 flex flex-col gap-2">

@@ -579,12 +579,34 @@ export default function AdminCalendarioBase() {
               dayMaxEvents={true}
               dateClick={handleDateClick}
               eventClick={handleEventClick}
-              eventContent={(arg) => (
-                <div className="truncate px-1 py-0.5 text-[10px] font-semibold leading-tight flex items-center gap-1">
-                   <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: arg.backgroundColor }} />
-                   <span className="truncate">{arg.event.title}</span>
-                </div>
-              )}
+              eventContent={(arg) => {
+                const props = arg.event.extendedProps;
+                // Intentar sacar cliente del primer bloque si es plan
+                let clienteLabel = "";
+                if (props.tipo === "jornada_plan" && props.meta?.bloques?.length) {
+                   const c = props.meta.bloques[0].cliente_nombre;
+                   if (c) clienteLabel = c;
+                   if (props.meta.bloques.length > 1) {
+                     // Check si todos son el mismo
+                     const unique = new Set(props.meta.bloques.map((b:any) => b.cliente_nombre));
+                     if (unique.size > 1) clienteLabel = "Varios clientes";
+                   }
+                }
+
+                return (
+                  <div className="truncate px-1 py-0.5 text-[10px] font-semibold leading-tight flex flex-col gap-0.5">
+                     <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: arg.backgroundColor }} />
+                        <span className="truncate">{arg.event.title}</span>
+                     </div>
+                     {clienteLabel && (
+                       <div className="text-[9px] text-gray-500 pl-2.5 truncate">
+                         {clienteLabel}
+                       </div>
+                     )}
+                  </div>
+                );
+              }}
             />
           </div>
         </div>
