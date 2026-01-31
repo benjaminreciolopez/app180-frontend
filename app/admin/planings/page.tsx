@@ -100,15 +100,21 @@ export default function PlaningsPage() {
       return matchEmpleado || matchPlantilla || matchCliente || matchAlias;
   });
 
+  // Estado para borrado seguro
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const borrarAsignacion = async (id: string) => {
       if(!confirm("¿Seguro que quieres eliminar este planing? Esta acción no se puede deshacer.")) return;
       
+      setDeletingId(id);
       try {
           await api.delete(`/admin/plantillas/asignaciones/${id}`);
           showSuccess("Planing eliminado");
           loadData();
       } catch(err) {
           showError("Error al eliminar");
+      } finally {
+          setDeletingId(null);
       }
   }
 
@@ -302,11 +308,19 @@ export default function PlaningsPage() {
                         </td>
                         <td className="text-right">
                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button className="btn-secondary btn-sm" onClick={() => handleEdit(asig)}>
+                                <button 
+                                  className="btn-secondary btn-sm disabled:opacity-50" 
+                                  onClick={() => handleEdit(asig)}
+                                  disabled={!!deletingId}
+                                >
                                     ✏️ Editar
                                 </button>
-                                <button className="btn-danger btn-sm" onClick={() => borrarAsignacion(asig.id)}>
-                                    🗑️ Borrar
+                                <button 
+                                  className="btn-danger btn-sm disabled:opacity-50 flex items-center gap-1" 
+                                  onClick={() => borrarAsignacion(asig.id)}
+                                  disabled={!!deletingId}
+                                >
+                                    {deletingId === asig.id ? "⏳" : "🗑️ Borrar"}
                                 </button>
                             </div>
                         </td>

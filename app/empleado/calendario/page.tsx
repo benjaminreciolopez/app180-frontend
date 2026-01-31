@@ -75,15 +75,15 @@ export default function EmpleadoCalendarioPage() {
   }
 
   return (
-    <div className="app-main space-y-4">
-      <div>
+    <div className="h-full flex flex-col md:space-y-4 md:p-6 p-0">
+      <div className="hidden md:block">
         <h1 className="text-2xl font-bold">Calendario laboral</h1>
         <p className="text-sm text-gray-500">
           Festivos, vacaciones y ausencias
         </p>
       </div>
 
-      <div className="bg-white p-4 border rounded">
+      <div className="flex-1 bg-white md:border md:rounded-xl overflow-hidden flex flex-col">
         <FullCalendar
           plugins={[
             dayGridPlugin,
@@ -96,10 +96,16 @@ export default function EmpleadoCalendarioPage() {
           headerToolbar={{
             left: "prev,next today",
             center: "title",
-            right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+            right: "dayGridMonth,listWeek",
           }}
           events={events}
-          height="auto"
+          height="100%"
+          eventDisplay="block"
+          views={{
+            dayGridMonth: {
+              titleFormat: { year: 'numeric', month: 'short' } 
+            }
+          }}
         />
       </div>
     </div>

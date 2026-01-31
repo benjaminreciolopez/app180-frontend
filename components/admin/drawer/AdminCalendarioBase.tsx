@@ -7,8 +7,9 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import listPlugin from "@fullcalendar/list";
 import esLocale from "@fullcalendar/core/locales/es";
-import { ChevronLeft, ChevronRight, RefreshCw, Plus, Calendar, Clock, UserCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus } from "lucide-react";
 
 import { api } from "@/services/api";
 import { colorFor } from "@/components/empleado/calendarioColors";
@@ -30,7 +31,7 @@ type Session = {
   modulos: Record<string, boolean>;
 };
 
-type ViewMode = "dayGridMonth" | "timeGridWeek";
+type ViewMode = "dayGridMonth" | "timeGridWeek" | "timeGridDay" | "listWeek";
 
 type Empleado = {
   id: string;
@@ -436,9 +437,11 @@ export default function AdminCalendarioBase() {
       <div className="px-2 text-xs text-gray-500 mb-2">
          Los horarios de trabajo se muestran con el color asignado a cada empleado (ver lista arriba) o el color del servicio si es específico.
       </div>
-
+    
+      {/* ... rest of sidebar ... */}
+      
       {hasModule("ausencias") && (
-        <div className="space-y-2">
+        <div className="space-y-2 mt-4 pt-4 border-t border-gray-100">
           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2">Filtrar Ausencias</label>
           <div className="grid grid-cols-1 gap-1">
             {["todos", "pendiente", "aprobado", "rechazado"].map((est) => (
@@ -464,7 +467,7 @@ export default function AdminCalendarioBase() {
 
       <button
         onClick={loadEventsForCurrentView}
-        className="w-full py-2.5 text-[11px] text-gray-400 flex items-center justify-center gap-2 hover:text-gray-600 transition-colors"
+        className="w-full mt-4 py-2.5 text-[11px] text-gray-400 flex items-center justify-center gap-2 hover:text-gray-600 transition-colors"
       >
         <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
         Actualizar calendario
@@ -511,24 +514,46 @@ export default function AdminCalendarioBase() {
       </div>
     </div>
   );
+  
+  // Estado para el drawer de filtros en móvil
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   if (isMobile) {
     return (
-      <div className="fullscreen-page w-full max-w-full overflow-x-hidden pt-4 bg-white">
-        <div className="px-4 mb-4">
-           <CalendarioLegend />
+      <div className="fullscreen-page w-full h-[100dvh] flex flex-col bg-white overflow-hidden">
+        {/* Header Mobile Google Style */}
+        <div className="px-4 py-3 border-b flex items-center justify-between shrink-0 bg-white z-20 shadow-sm">
+           <div className="flex items-center gap-3">
+             <button onClick={() => setShowMobileFilters(true)} className="p-2 -ml-2 text-gray-600 rounded-full hover:bg-gray-100">
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+               </svg>
+             </button>
+             <h1 className="text-lg font-bold text-gray-900 truncate max-w-[150px]">{title}</h1>
+           </div>
+           
+           <div className="flex items-center gap-1">
+              <button 
+                onClick={() => { apiCalendar()?.today(); syncTitle(); loadEventsForCurrentView(); }}
+                className="w-8 h-8 flex items-center justify-center border rounded-full text-xs font-bold text-gray-700 active:bg-gray-100"
+              >
+                12
+              </button>
+              <div className="flex bg-gray-100 rounded-lg p-0.5 ml-2">
+                 <button onClick={() => changeView('dayGridMonth')} className={`p-1.5 rounded ${view === 'dayGridMonth' ? 'bg-white shadow text-black' : 'text-gray-500'}`}><Calendar size={16}/></button>
+                 <button onClick={() => changeView('listWeek')} className={`p-1.5 rounded ${view === 'listWeek' ? 'bg-white shadow text-black' : 'text-gray-500'}`}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></button>
+              </div>
+           </div>
         </div>
-        <div className="px-4 pb-4 border-b">
-           <div className="text-xl font-bold text-gray-900">{title}</div>
-           <div className="mt-4">{FiltersSidebar}</div>
-        </div>
-        <div className="fullscreen-content relative w-full h-[500px]">
+
+        {/* Calendar Area */}
+        <div className="flex-1 relative w-full overflow-hidden">
           {loading && <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">Cargando...</div>}
           <FullCalendar
             ref={calendarRef}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
             locale={esLocale}
-            initialView={view}
+            initialView={view} // Mobile default usually list or dayGrid
             headerToolbar={false}
             events={fcEvents as any}
             height="100%"
@@ -538,8 +563,33 @@ export default function AdminCalendarioBase() {
             dayMaxEvents={true}
             dateClick={handleDateClick}
             eventClick={handleEventClick}
+            eventContent={(arg) => {
+                 // Simplified mobile content
+                 return (
+                  <div className="truncate px-1 py-0.5 text-[10px] font-semibold leading-tight flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: arg.backgroundColor }} />
+                      <span className="truncate">{arg.event.title}</span>
+                   </div>
+                 );
+            }}
           />
         </div>
+        
+        {/* FAB para Crear */}
+        <button 
+           onClick={() => { setOpenDayYmd(ymdFromDate(new Date())); setOpenCrearPlaning(true); }}
+           className="absolute bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-xl flex items-center justify-center z-30 active:scale-95 transition-transform"
+        >
+          <Plus size={32} />
+        </button>
+
+        {/* Drawer de Filtros Mobile */}
+        <IOSDrawer open={showMobileFilters} onClose={() => setShowMobileFilters(false)} header={{ title: "Filtros y Leyenda", onClose: () => setShowMobileFilters(false), canGoBack: false, onBack: () => {} }}>
+           <div className="p-4 space-y-6 pb-20">
+              <CalendarioLegend />
+              {FiltersSidebar}
+           </div>
+        </IOSDrawer>
 
         {openDayYmd && (
           <IOSDrawer open onClose={() => setOpenDayYmd(null)} header={{ title: "Detalle del día", canGoBack: true, onBack: () => setOpenDayYmd(null), onClose: () => setOpenDayYmd(null) }}>
@@ -586,6 +636,7 @@ export default function AdminCalendarioBase() {
     );
   }
 
+  // Desktop Return
   return (
     <div className="bg-gray-50 min-h-screen">
       <style>{GOOGLE_CAL_CSS}</style>
