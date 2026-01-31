@@ -59,6 +59,17 @@ export const UniversalExportButton = ({
 
             console.log("✅ Respuesta recibida", response.status, response.headers);
 
+            // Verificar si el blob es un JSON de error antes de intentar descargarlo
+            if (response.headers['content-type']?.includes('application/json')) {
+                 const text = await response.data.text();
+                 try {
+                     const jsonError = JSON.parse(text);
+                     throw new Error(jsonError.error || "Error desconocido del servidor");
+                 } catch (e) {
+                     // Si no es JSON válido, continuar (aunque sería raro con content-type json)
+                 }
+            }
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
