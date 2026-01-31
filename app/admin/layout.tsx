@@ -85,8 +85,8 @@ export default function AdminLayout({
       { path: "/admin/jornadas", module: "fichajes" },
       { path: "/admin/fichajes", module: "fichajes" },
       { path: "/admin/fichajes/sospechosos", module: "fichajes" },
-      { path: "/admin/auditoria", module: null },
-      { path: "/admin/auditoria/rechazados", module: null },
+      { path: "/admin/auditoria", module: "fichajes" },
+      { path: "/admin/auditoria/rechazados", module: "fichajes" },
 
       { path: "/admin/partes-dia", module: "worklogs" },
       { path: "/admin/trabajos", module: "worklogs" },
@@ -163,8 +163,8 @@ export default function AdminLayout({
       module: "fichajes",
     },
 
-    { path: "/admin/auditoria", label: "🔍 Auditoría", module: null },
-    { path: "/admin/auditoria/rechazados", label: "🚫 Rechazados", module: null },
+    { path: "/admin/auditoria", label: "🔍 Auditoría", module: "fichajes" },
+    { path: "/admin/auditoria/rechazados", label: "🚫 Rechazados", module: "fichajes" },
 
     { path: "/admin/partes-dia", label: "Partes del día", module: "worklogs" },
     { path: "/admin/trabajos", label: "Trabajos", module: "worklogs" },

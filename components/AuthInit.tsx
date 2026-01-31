@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api, setAuthToken } from "@/services/api";
 import { getToken, getUser, logout, updateStoredUser } from "@/services/auth";
@@ -55,8 +55,12 @@ export default function AuthInit() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const initialized = useRef(false);
+
   useEffect(() => {
-    let cancelled = false;
+    // Evitar doble ejecución en dev y re-ejecución por cambio de ruta
+    if (initialized.current) return;
+    initialized.current = true;
 
     async function init() {
       try {
@@ -64,95 +68,63 @@ export default function AuthInit() {
         const token = getToken();
         let user = getUser();
 
-        console.log("AuthInit: token present?", !!token, "user present?", !!user);
-  
-        // 👉 Si hay token → refrescar sesión real
+        // Refrescar sesión solo al cargar la app por primera vez (F5)
         if (token) {
           try {
-            console.log("AuthInit: refreshing...");
             const newUser = await refreshMe();
-            // Actualizamos user en memoria para la validación posterior
             user = newUser;
-            console.log("AuthInit: refresh success", { role: user?.role });
           } catch (error) {
-             console.error("Error refreshing session:", error);
-             // No hacemos logout explícito...
+            // Silencioso
           }
         }
-  
-        if (cancelled) return;
         
-        // Listen for password-forced event from api interceptor
+        // Listen for password-forced event
         const handlePasswordForced = () => {
-          console.log("AuthInit: Received password-forced event");
           router.replace("/cambiar-password");
         };
-        
         window.addEventListener("password-forced", handlePasswordForced);
 
         const forced = user?.password_forced === true;
         const hasSession = !!token && !!user?.role;
-        console.log("AuthInit: hasSession?", hasSession, "pathname", pathname);
-        console.log("AuthInit: password_forced?", forced, "user.password_forced:", user?.password_forced);
   
-        /* ==========================
-           PASSWORD FORZADO
-        ========================== */
-  
+        // 1. Password Forzado
         if (forced) {
           const allowed =
             pathname === "/cambiar-password" ||
             pathname.startsWith("/empleado/instalar");
   
           if (!allowed) {
-            console.log("AuthInit: Redirecting to CHANGE PASSWORD (forced)");
             router.replace("/cambiar-password");
             return;
           }
         }
   
-        /* ==========================
-           SIN SESIÓN
-        ========================== */
-  
+        // 2. Sin sesión
         if (!hasSession && !isPublicPath(pathname)) {
-          console.log("AuthInit: Redirecting to LOGIN (No Session)");
           router.replace("/login");
           return;
         }
   
-
-        /* ==========================
-           LOGIN CON SESIÓN (O LANDING O INSTALACIÓN)
-        ========================== */
-  
+        // 3. Login con sesión
         if (hasSession && (pathname === "/login" || pathname === "/")) {
-          console.log("AuthInit: Redirecting to DASHBOARD (Has Session)");
-          // Usamos window.location.href para forzar una navegación limpia
-          // y evitar problemas de estado con Next.js Router en bucles raros
+          // Navegación hard para asegurar estado limpio
           window.location.href = user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard";
           return;
         }
   
-        /* ==========================
-           GUARD POR ROL
-        ========================== */
-  
+        // 4. Role Guard
         if (hasSession) {
           if (pathname.startsWith("/admin") && user!.role !== "admin") {
-            console.log("AuthInit: Role Mismatch (Admin -> Empleado)");
             router.replace("/empleado/dashboard");
             return;
           }
   
           if (pathname.startsWith("/empleado") && user!.role !== "empleado") {
-            console.log("AuthInit: Role Mismatch (Empleado -> Admin)");
             router.replace("/admin/dashboard");
             return;
           }
         }
       } catch (e) {
-        console.error("AuthInit error:", e);
         logout();
       }
     }
@@ -160,10 +132,10 @@ export default function AuthInit() {
     init();
 
     return () => {
-      cancelled = true;
       window.removeEventListener("password-forced", () => {});
     };
-  }, [pathname, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Solo al montar
 
   return null;
 }
