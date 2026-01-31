@@ -311,7 +311,7 @@ export default function AdminCalendarioBase() {
 
   const fcEvents = useMemo(() => {
     return filteredEvents.map((e) => {
-      const col = colorForIntegrado(e);
+      const col = (e as any).color || (e as any).backgroundColor || colorForIntegrado(e);
       return {
         id: String(e.id),
         title: e.title,
@@ -583,12 +583,17 @@ export default function AdminCalendarioBase() {
                 const props = arg.event.extendedProps;
                 // Intentar sacar cliente del primer bloque si es plan
                 let clienteLabel = "";
-                if (props.tipo === "jornada_plan" && props.meta?.bloques?.length) {
-                   const c = props.meta.bloques[0].cliente_nombre;
+                const meta = props.meta || {};
+                
+                // V5: Si es asignación continua, cliente_nombre viene directo en meta
+                if (meta.es_asignacion && meta.cliente_nombre) {
+                   clienteLabel = meta.cliente_nombre;
+                } else if (props.tipo === "jornada_plan" && meta.bloques?.length) {
+                   // Legacy / Detail logic
+                   const c = meta.bloques[0].cliente_nombre;
                    if (c) clienteLabel = c;
-                   if (props.meta.bloques.length > 1) {
-                     // Check si todos son el mismo
-                     const unique = new Set(props.meta.bloques.map((b:any) => b.cliente_nombre));
+                   if (meta.bloques.length > 1) {
+                     const unique = new Set(meta.bloques.map((b:any) => b.cliente_nombre));
                      if (unique.size > 1) clienteLabel = "Varios clientes";
                    }
                 }

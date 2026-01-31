@@ -31,6 +31,9 @@ export default function DrawerCrearPlaningAdmin({
   const [fechaInicio, setFechaInicio] = useState(fechaDefault || new Date().toISOString().slice(0, 10));
   const [recurrenciaMode, setRecurrenciaMode] = useState<string>("single"); // single, custom
   const [fechaFin, setFechaFin] = useState(fechaDefault || new Date().toISOString().slice(0, 10));
+  const [alias, setAlias] = useState("");
+  const [color, setColor] = useState<string>("");
+  const [ignorarFestivos, setIgnorarFestivos] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -64,6 +67,9 @@ export default function DrawerCrearPlaningAdmin({
         cliente_id: clienteSel || null,
         fecha_inicio: fechaInicio,
         fecha_fin: fechaFin || null,
+        alias: alias || null,
+        color: color || null,
+        ignorar_festivos: ignorarFestivos,
       });
       showSuccess("Planing creado correctamente");
       onCreated();
@@ -125,6 +131,70 @@ export default function DrawerCrearPlaningAdmin({
           <p className="text-[11px] text-gray-500 mt-1">
             Si la plantilla tiene bloques con clientes específicos, prevalecerán sobre este.
           </p>
+        </div>
+
+        {/* V5: Personalización */}
+        <div className="p-3 bg-gray-50 rounded-xl space-y-3 border border-gray-100">
+           <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nombre Personalizado (Opcional)</label>
+              <input 
+                type="text" 
+                placeholder="Ej: Obra Calle Mayor"
+                className="w-full border p-2 rounded-lg text-sm bg-white"
+                value={alias}
+                onChange={e => setAlias(e.target.value)}
+              />
+           </div>
+           
+           <div className="flex items-center gap-4">
+             <div className="flex-1">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Color</label>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                  {[
+                    // Palette Google Calendar style
+                    "#039BE5", // Blue (Default)
+                    "#D50000", // Tomato
+                    "#F4511E", // Tangerine
+                    "#E67C73", // Flaming
+                    "#F6BF26", // Banana
+                    "#33B679", // Sage
+                    "#0B8043", // Basil
+                    "#8E24AA", // Grape
+                    "#7986CB", // Lavender
+                    "#616161", // Graphite
+                  ].map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setColor(c)}
+                      className={`w-6 h-6 rounded-full shrink-0 transition-transform ${color === c ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : ''}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                  <button 
+                    onClick={() => setColor("")}
+                    className={`w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[10px] text-gray-500 bg-white ${!color ? 'ring-2 ring-offset-2 ring-gray-400' : ''}`}
+                  >
+                   X
+                  </button>
+                </div>
+             </div>
+           </div>
+
+           <div className="flex items-center gap-2 pt-1">
+              <input 
+                type="checkbox" 
+                id="ignorarFestivos"
+                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                checked={ignorarFestivos}
+                onChange={e => setIgnorarFestivos(e.target.checked)}
+              />
+              <label htmlFor="ignorarFestivos" className="text-sm font-medium text-gray-700 select-none cursor-pointer">
+                Forzar trabajo en festivos/bajas
+              </label>
+           </div>
+           <p className="text-[10px] text-gray-400 leading-tight pl-6">
+             Si marcas esta opción, el planing no se cortará en días festivos o ausencias médicas.
+           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
