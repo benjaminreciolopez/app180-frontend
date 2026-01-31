@@ -187,7 +187,7 @@ export default function DrawerCalendario({
               initialView="listMonth"
               headerToolbar={false}
               events={fcEvents}
-              height="100%"
+              height="auto"
               datesSet={(arg) => {
                 syncTitle();
                 load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
