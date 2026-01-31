@@ -259,8 +259,10 @@ export default function AdminCalendarioBase() {
           include_ausencias: hasModule("ausencias") ? 1 : 0,
         },
       });
+      console.log("[DEBUG] Calendar Response:", res.data); // DEBUG
       const arr: CalendarioIntegradoEvento[] = Array.isArray(res.data) ? res.data : [];
       const normalized = arr.map((e) => normalizeIntegratedForFC(e, desdeYear));
+      console.log("[DEBUG] Normalized Events:", normalized); // DEBUG
       const map = new Map<string, CalendarioIntegradoEvento>();
       for (const ev of normalized) {
         const key = semanticKey(ev);
@@ -268,7 +270,7 @@ export default function AdminCalendarioBase() {
         if (!prev || priorityFor(ev) > priorityFor(prev)) map.set(key, ev);
       }
       setEvents(Array.from(map.values()));
-    } catch (e) { setEvents([]); } finally { setLoading(false); }
+    } catch (e) { console.error(e); setEvents([]); } finally { setLoading(false); }
   }
 
   useEffect(() => {
