@@ -27,20 +27,15 @@ export default function PlaningsPage() {
   const [loading, setLoading] = useState(true);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
   const [filtros, setFiltros] = useState({
-      estado: 'activos', // 'activos' | 'historial'
-      busqueda: ''
+      estado: 'activos', // 'activos' | 'historial' | '' (todos)
+      busqueda: '',
+      empleado_id: ''
   });
 
   // Drawer edición/creación
   const [showDrawer, setShowDrawer] = useState(false);
-  // Para editar, pasaremos datos al drawer.
-  // Nota: DrawerCrearPlaningAdmin actualmente está pensado para crear desde calendario (recibiendo fechaStr y empleadoId).
-  // Tendremos que adaptarlo o usar uno nuevo. Por ahora intentaré reutilizar o envolver.
-  // Al abrir el drawer para "crear" desde aquí, no tenemos fecha preseleccionada.
-  // Al "editar", necesitamos pre-rellenar.
-  // Por simplicidad en V1, el botón "Nuevo" abrirá el drawer vacío.
-  // "Editar" necesitará que el Drawer soporte `initialData`.
-
+  // ... (comments removed for brevity)
+  
   // Estado para edición
   const [editingAsignacion, setEditingAsignacion] = useState<Asignacion | null>(null);
 
@@ -51,7 +46,12 @@ export default function PlaningsPage() {
     setLoading(true);
     try {
       const [resAsig, resEmp] = await Promise.all([
-         api.get("/admin/plantillas/asignaciones", { params: { estado: filtros.estado } }),
+         api.get("/admin/plantillas/asignaciones", { 
+             params: { 
+                 estado: filtros.estado,
+                 empleado_id: filtros.empleado_id // Backend ya lo soporta o debería ignorarlo si es empty
+             } 
+         }),
          api.get("/employees")
       ]);
       setAsignaciones(resAsig.data || []);
@@ -66,7 +66,7 @@ export default function PlaningsPage() {
 
   useEffect(() => {
     loadData();
-  }, [filtros.estado]);
+  }, [filtros.estado, filtros.empleado_id]);
 
   // Filtrado local por texto (nombre empleado, alias, cliente, plantilla)
   const filtered = asignaciones.filter(a => {
@@ -122,26 +122,58 @@ export default function PlaningsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-4 items-center shrink-0">
-         <div className="flex items-center gap-2 border rounded p-1 bg-card">
+      <div className="flex flex-wrap gap-4 mb-4 items-end shrink-0">
+         {/* Filtro Empleado */}
+         <div className="form-control w-full max-w-xs">
+           <label className="label py-1"><span className="label-text text-xs font-semibold">Empleado</span></label>
+           <select 
+              className="select select-bordered select-sm w-full"
+              value={filtros.empleado_id}
+              onChange={(e) => {
+                 // Si selecciono empleado, pongo estado en TODOS ("") por defecto si estaba en activos/historial
+                 // o lo dejamos. El usuario quiere VER todo. Poner "" en estado cargará todo.
+                 setFiltros({
+                   ...filtros, 
+                   empleado_id: e.target.value,
+                   estado: e.target.value ? '' : 'activos' // Si borra empleado, volver a activos
+                 })
+              }}
+           >
+              <option value="">-- Todos los empleados --</option>
+              {empleados.map(emp => (
+                <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+              ))}
+           </select>
+         </div>
+         
+         {/* Filtro Estado (oculto/opcional si hay empleado?) No, dejémoslo visible pero con opción "Todos" */}
+         <div className="flex items-center gap-2 border rounded p-1 bg-card self-end">
              <button 
                 className={`px-3 py-1 rounded text-sm ${filtros.estado === 'activos' ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted'}`}
                 onClick={() => setFiltros({...filtros, estado: 'activos'})}
              >
-                 Vigentes / Futuros
+                 Vigentes
              </button>
              <button 
                 className={`px-3 py-1 rounded text-sm ${filtros.estado === 'historial' ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted'}`}
                 onClick={() => setFiltros({...filtros, estado: 'historial'})}
              >
-                 Historial Pasado
+                 Historial
              </button>
+             {filtros.empleado_id && (
+               <button 
+                  className={`px-3 py-1 rounded text-sm ${filtros.estado === '' ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted'}`}
+                  onClick={() => setFiltros({...filtros, estado: ''})}
+               >
+                   Todos
+               </button>
+             )}
          </div>
 
          <input 
             type="text" 
-            placeholder="Buscar por empleado, obra, alias..." 
-            className="input max-w-xs"
+            placeholder="Buscar texto..." 
+            className="input input-sm border-gray-300 max-w-[200px] self-end"
             value={filtros.busqueda}
             onChange={(e) => setFiltros({...filtros, busqueda: e.target.value})}
          />
