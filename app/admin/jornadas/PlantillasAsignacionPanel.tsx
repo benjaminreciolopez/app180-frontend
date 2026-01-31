@@ -61,8 +61,17 @@ export default function PlantillasAsignacionPanel() {
       return;
     }
     try {
-      const r = await api.get(`/admin/plantillas/asignaciones/${empleado_id}`);
-      setHist(Array.isArray(r.data) ? r.data : []);
+      const r = await api.get(`/admin/jornadas/asignar/${empleado_id}`);
+      const data = Array.isArray(r.data) ? r.data : [];
+      // Calcular "activo" en cliente
+      const now = new Date();
+      now.setHours(0,0,0,0);
+      const withActive = data.map((x: any) => {
+         const fFin = x.fecha_fin ? new Date(x.fecha_fin) : null;
+         const isActive = !fFin || fFin >= now;
+         return { ...x, activo: isActive };
+      });
+      setHist(withActive);
     } catch(e) {
       console.error(e);
     }
