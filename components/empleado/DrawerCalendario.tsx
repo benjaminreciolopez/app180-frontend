@@ -153,133 +153,125 @@ export default function DrawerCalendario({
     syncTitle();
   }, []);
 
-  if (isMobile) {
-      return (
-        <div className="flex flex-col h-full bg-white">
-          {/* Mobile Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b sticky top-0 bg-white z-20">
-             <div className="flex items-center gap-2">
-                 <div className="p-2 bg-indigo-50 rounded-lg">
-                     <CalendarIcon className="w-5 h-5 text-indigo-600" />
-                 </div>
-                 <span className="font-bold text-gray-900">{title || "Calendario"}</span>
-             </div>
-             
-             <div className="flex gap-2">
-                <button onClick={() => apiCalendar()?.prev()} className="p-2 hover:bg-gray-100 rounded-full"><ChevronLeft className="w-5 h-5" /></button>
-                <div className="flex bg-gray-100 rounded-lg p-0.5">
-                   <button onClick={() => setView('dayGridMonth')} className={`px-3 py-1 text-xs font-bold rounded-md ${view === 'dayGridMonth' ? 'bg-white shadow-sm' : 'text-gray-500'}`}>Mes</button>
-                   <button onClick={() => setView('listMonth')} className={`px-3 py-1 text-xs font-bold rounded-md ${view === 'listMonth' ? 'bg-white shadow-sm' : 'text-gray-500'}`}>Lista</button>
-                </div>
-                <button onClick={() => apiCalendar()?.next()} className="p-2 hover:bg-gray-100 rounded-full"><ChevronRight className="w-5 h-5" /></button>
-             </div>
-          </div>
-
-          <div className="flex-1 relative overflow-auto">
-            {loading && (
-                 <div className="absolute inset-0 bg-white/60 z-10 grid place-items-center backdrop-blur-[1px]">
-                     <span className="text-xs font-medium text-gray-500">Cargando...</span>
-                 </div>
-            )}
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-              locale={esLocale}
-              initialView="listMonth"
-              headerToolbar={false}
-              events={fcEvents}
-              height="auto"
-              datesSet={(arg) => {
-                syncTitle();
-                load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
-              }}
-              dateClick={(arg) => onSelectDay(arg.dateStr.slice(0, 10))}
-              eventClick={(arg) => onSelectDay(arg.event.startStr.slice(0, 10))}
-              views={{
-                  listWeek: { titleFormat: { day: 'numeric', month: 'short' } },
-                  listMonth: { buttonText: 'Mes', titleFormat: { year: 'numeric', month: 'long' } }
-              }}
-            />
-          </div>
-        </div>
-      );
-  }
-
   return (
-    <div className="fullscreen-page">
+    <div className={`flex flex-col ${isMobile ? 'h-auto min-h-0' : 'fullscreen-page'}`}>
+      {/* Controls & Legend */}
       <div className="p-3 space-y-3 shrink-0">
-        <CalendarioLegend />
+        {!isMobile && <CalendarioLegend />}
 
-        <div className="bg-white border border-black/5 rounded-2xl overflow-hidden">
-          <div className="px-3 h-12 border-b flex items-center justify-between">
+        <div className="bg-white border border-black/5 rounded-2xl overflow-hidden shadow-sm">
+          <div className="px-3 h-12 flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  apiCalendar()?.prev();
-                }}
-                type="button"
-              >
-                <ChevronLeft size={18} />
+              <button onClick={() => apiCalendar()?.prev()} className="p-2 hover:bg-gray-100 rounded-full" type="button">
+                <ChevronLeft size={20} className="text-gray-600" />
               </button>
-              <button
-                onClick={() => {
-                  apiCalendar()?.next();
-                }}
-                type="button"
-              >
-                <ChevronRight size={18} />
+              <div className="font-bold text-lg text-gray-800 px-2">{title}</div>
+              <button onClick={() => apiCalendar()?.next()} className="p-2 hover:bg-gray-100 rounded-full" type="button">
+                <ChevronRight size={20} className="text-gray-600" />
               </button>
-              <div className="ml-2 font-semibold">{title}</div>
+              <button onClick={() => apiCalendar()?.today()} className="ml-1 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors hidden sm:block" type="button">
+                Hoy
+              </button>
             </div>
 
-            <div className="flex rounded-full border overflow-hidden text-sm">
+            <div className="flex bg-gray-100 p-0.5 rounded-lg">
               <button
-                className={`px-3 py-1 ${view === "dayGridMonth" ? "bg-gray-100" : ""}`}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                   view === "dayGridMonth" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                }`}
                 onClick={() => setView("dayGridMonth")}
                 type="button"
               >
                 Mes
               </button>
               <button
-                className={`px-3 py-1 ${view === "timeGridWeek" ? "bg-gray-100" : ""}`}
-                onClick={() => setView("timeGridWeek")}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                   view === "listMonth" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setView("listMonth")}
                 type="button"
               >
-                Semana
+                Lista
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="fullscreen-content relative">
+      {/* Calendar Area */}
+      <div className={`relative ${isMobile ? 'flex-1' : 'fullscreen-content'}`}>
         {loading && (
-          <div className="absolute inset-0 grid place-items-center bg-white/70 z-10">
-            Cargando…
+          <div className="absolute inset-0 grid place-items-center bg-white/70 z-10 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-2">
+                 <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                 <span className="text-xs font-medium text-gray-500">Cargando...</span>
+            </div>
           </div>
         )}
 
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-          locale={esLocale}
-          initialView={view}
-          headerToolbar={false}
-          events={fcEvents}
-          height="100%"
-          contentHeight="100%"
-          expandRows
-          handleWindowResize
-          datesSet={(arg) => {
-            syncTitle();
-            load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
-          }}
-          dateClick={(arg) => onSelectDay(arg.dateStr.slice(0, 10))}
-          dayCellClassNames={(arg) => {
-            const isSunday = arg.date.getDay() === 0;
-            return isSunday ? ["fc-sunday"] : [];
-          }}
-        />
+        {/* Height wrapper to fix scroll issues: Mobile uses auto to let drawer scroll, Desktop uses 100% */}
+        <div className={isMobile ? "" : "h-full"}>
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+              locale={esLocale}
+              initialView={view}
+              headerToolbar={false}
+              events={fcEvents}
+              height={isMobile ? "auto" : "100%"}
+              contentHeight={isMobile ? "auto" : "100%"}
+              expandRows={!isMobile}
+              handleWindowResize
+              datesSet={(arg) => {
+                syncTitle();
+                load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
+              }}
+              dateClick={(arg) => onSelectDay(arg.dateStr.slice(0, 10))}
+              eventClick={(arg) => onSelectDay(arg.event.startStr.slice(0, 10))}
+              dayCellClassNames={(arg) => {
+                const isSunday = arg.date.getDay() === 0;
+                return isSunday ? ["fc-sunday"] : [];
+              }}
+              eventContent={(arg) => {
+                 // Estilo estilo "Google Calendar" mejorado
+                 if (view === 'listMonth' || view === 'listWeek') return null; // Default list render
+
+                 const props = arg.event.extendedProps;
+                 const meta = props.meta || {};
+                 let clienteLabel = "";
+                 
+                 if (meta.es_asignacion && meta.cliente_nombre) {
+                    clienteLabel = meta.cliente_nombre;
+                 } else if (props.tipo === "jornada_plan" && meta.bloques?.length) {
+                    const c = meta.bloques[0].cliente_nombre;
+                    if (c) clienteLabel = c;
+                    if (meta.bloques.length > 1) {
+                       const unique = new Set(meta.bloques.map((b:any) => b.cliente_nombre));
+                       if (unique.size > 1) clienteLabel = "Varios";
+                    }
+                 }
+
+                 return (
+                   <div className="truncate px-1 py-0.5 text-[10px] font-semibold leading-tight flex flex-col gap-0.5 rounded-sm hover:brightness-95 transition-all">
+                      <div className="flex items-center gap-1">
+                         <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: arg.backgroundColor }} />
+                         <span className="truncate text-gray-700">{arg.event.title}</span>
+                      </div>
+                      {clienteLabel && (
+                        <div className="text-[9px] text-gray-500 pl-2.5 truncate font-normal">
+                          {clienteLabel}
+                        </div>
+                      )}
+                   </div>
+                 );
+              }}
+              views={{
+                  listWeek: { titleFormat: { day: 'numeric', month: 'short' } },
+                  listMonth: { buttonText: 'Lista Mensual', titleFormat: { year: 'numeric', month: 'long' } },
+                  dayGridMonth: { titleFormat: { year: 'numeric', month: 'long' } }
+              }}
+            />
+        </div>
       </div>
     </div>
   );
