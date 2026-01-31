@@ -15,7 +15,7 @@ import type { CalendarioEvento } from "./calendarioTypes";
 import { colorFor } from "./calendarioColors";
 import CalendarioLegend from "./CalendarioLegend";
 
-type ViewMode = "dayGridMonth" | "timeGridWeek" | "listWeek";
+type ViewMode = "dayGridMonth" | "timeGridWeek" | "listWeek" | "listMonth";
 
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -61,13 +61,14 @@ export default function DrawerCalendario({
   const [events, setEvents] = useState<CalendarioEvento[]>([]);
   const [loading, setLoading] = useState(false);
   const isMobile = useIsMobile();
-  const [view, setView] = useState<ViewMode>(isMobile ? "listWeek" : "dayGridMonth"); // Default adaptable
-  const [title, setTitle] = useState("");
+  const [view, setView] = useState<ViewMode>(isMobile ? "listMonth" : "dayGridMonth"); // Default adaptable
 
   // Force view change on mobile detect
   useEffect(() => {
-     if(isMobile && view === 'dayGridMonth') setView('listWeek');
-  }, [isMobile]);
+     if(isMobile && (view === 'dayGridMonth' || view === 'timeGridWeek')) setView('listMonth');
+  }, [isMobile, view]);
+
+  const [title, setTitle] = useState("");
 
   function apiCalendar() {
     return calendarRef.current?.getApi();
@@ -183,7 +184,7 @@ export default function DrawerCalendario({
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
               locale={esLocale}
-              initialView="listWeek"
+              initialView="listMonth"
               headerToolbar={false}
               events={fcEvents}
               height="100%"
@@ -194,7 +195,8 @@ export default function DrawerCalendario({
               dateClick={(arg) => onSelectDay(arg.dateStr.slice(0, 10))}
               eventClick={(arg) => onSelectDay(arg.event.startStr.slice(0, 10))}
               views={{
-                  listWeek: { titleFormat: { day: 'numeric', month: 'short' } }
+                  listWeek: { titleFormat: { day: 'numeric', month: 'short' } },
+                  listMonth: { buttonText: 'Mes', titleFormat: { year: 'numeric', month: 'long' } }
               }}
             />
           </div>
