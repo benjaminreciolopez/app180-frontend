@@ -1,5 +1,7 @@
 "use client";
 
+// Admin Dashboard with Recharts
+
 import { useEffect, useState, useRef } from "react";
 import { api } from "@/services/api";
 import { getUser, logout } from "@/services/auth";
