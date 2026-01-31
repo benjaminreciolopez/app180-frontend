@@ -237,9 +237,14 @@ export default function AdminCalendarioBase() {
 
   async function loadEmpleados() {
     try {
+      console.log("[DEBUG] Fetching employees...");
       const res = await api.get("/employees");
+      console.log("[DEBUG] Employees res:", res.data);
       setEmpleados(Array.isArray(res.data) ? res.data : []);
-    } catch { setEmpleados([]); }
+    } catch (e) {
+      console.error("[DEBUG] Error fetching employees:", e);
+      setEmpleados([]);
+    }
   }
 
   async function loadEventsForCurrentView() {
