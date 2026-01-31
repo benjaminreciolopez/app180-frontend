@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { isStandalone, getPlatform, getDeviceInfo } from "@/utils/pwaDetection";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 export default function DiagnosticoPage() {
   const [info, setInfo] = useState<any>(null);
@@ -32,7 +33,7 @@ export default function DiagnosticoPage() {
   }, []);
 
   if (!info) {
-    return <div className="p-4">Cargando diagnóstico...</div>;
+    return <LoadingSpinner fullPage />;
   }
 
   return (

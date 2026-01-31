@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { getUser } from "@/services/auth";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type Modulos = Record<string, boolean>;
 
@@ -131,7 +132,7 @@ export default function AdminLayout({
   // Estados iniciales
   // ============================
   if (checking) {
-    return <div className="p-6">Cargando sesión…</div>;
+    return <LoadingSpinner fullPage />;
   }
 
   if (!session) {

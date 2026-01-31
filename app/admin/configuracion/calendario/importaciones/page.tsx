@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/services/api";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type Importacion = {
   id: string;
@@ -127,7 +128,11 @@ export default function ImportacionesPage() {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="p-3 text-muted-foreground">
-                  {loading ? "Cargando…" : "No hay importaciones todavía."}
+                {loading ? (
+                    <div className="flex justify-center p-4">
+                        <LoadingSpinner showText={false} />
+                    </div>
+                ) : "No hay importaciones todavía."}
                 </td>
               </tr>
             )}

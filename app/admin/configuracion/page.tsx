@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type Modulos = {
   fichajes?: boolean;
@@ -70,7 +71,7 @@ export default function AdminConfiguracionPage() {
     }));
   }
 
-  if (!modulos) return <p>Cargando…</p>;
+  if (!modulos) return <LoadingSpinner fullPage />;
 
   return (
     <div className="app-main max-w-xl space-y-4">

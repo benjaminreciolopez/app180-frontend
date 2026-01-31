@@ -6,6 +6,7 @@ import { showSuccess, showError } from "@/lib/toast";
 import { Edit2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EmailConfigPanel from "@/components/admin/EmailConfigPanel";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type ProfileData = {
   nombre_fiscal: string;
@@ -99,7 +100,7 @@ export default function AdminPerfilPage() {
     }
   }
 
-  if (loading) return <div className="p-8">Cargando perfil...</div>;
+  if (loading) return <LoadingSpinner fullPage />;
 
   return (
     <div className="app-main max-w-4xl pb-20">

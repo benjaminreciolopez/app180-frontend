@@ -5,7 +5,7 @@ import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import DrawerCrearPlaningAdmin from "@/components/admin/drawer/DrawerCrearPlaningAdmin";
 import DrawerEditarPlaning from "@/components/admin/drawer/DrawerEditarPlaning";
-import { useSearchParams } from "next/navigation";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 // Interfaz para la tabla
 interface Asignacion {
@@ -255,7 +255,11 @@ export default function PlaningsPage() {
           </thead>
           <tbody>
             {loading ? (
-                <tr><td colSpan={5} className="text-center p-8 text-muted-foreground">Cargando datos...</td></tr>
+                <tr>
+                    <td colSpan={5} className="text-center p-8">
+                        <LoadingSpinner />
+                    </td>
+                </tr>
             ) : filtered.length === 0 ? (
                 <tr><td colSpan={5} className="text-center p-8 text-muted-foreground">No se encontraron planings</td></tr>
             ) : (

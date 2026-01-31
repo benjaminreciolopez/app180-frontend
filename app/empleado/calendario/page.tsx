@@ -9,6 +9,7 @@ import { api } from "@/services/api";
 import listPlugin from "@fullcalendar/list";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { LogOut, Calendar as CalendarIcon } from "lucide-react";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type EventoCalendario = {
   title: string;
@@ -74,7 +75,7 @@ export default function EmpleadoCalendarioPage() {
   }, []);
 
   if (loading) {
-    return <div className="p-6">Cargando calendario…</div>;
+    return <LoadingSpinner fullPage />;
   }
 
   const MobileHeader = (

@@ -21,6 +21,7 @@ import type { EstadoAusencia } from "@/types/ausencias";
 import { useEstadoFichaje } from "./useEstadoFichaje";
 import { usePlanDiaEmpleado } from "./usePlanDiaEmpleado";
 import PlanVsRealTimeline from "./PlanVsRealTimeline";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type FichajeHoy = { id: string; tipo_label: string; hora: string };
 type WorkLogHoy = {
@@ -293,7 +294,7 @@ export default function EmpleadoDashboardPage() {
     };
   }, [planDia?.plan?.plantilla_id, avisos, outsideRange]);
 
-  if (loading) return <p className="p-4">Cargando…</p>;
+  if (loading) return <LoadingSpinner fullPage />;
 
   if (error) {
     return (
@@ -487,7 +488,7 @@ export default function EmpleadoDashboardPage() {
         {errorPlan ? (
           <div className="text-sm text-red-600">{errorPlan}</div>
         ) : loadingPlan ? (
-          <div className="text-sm text-gray-500">Cargando plan…</div>
+          <div className="text-sm text-gray-500 py-4"><LoadingSpinner showText={false} /></div>
         ) : (
           <>
             <div className="text-sm text-gray-700">
@@ -568,7 +569,7 @@ export default function EmpleadoDashboardPage() {
         <h3 className="font-semibold">Lo que llevas hoy</h3>
 
         {loadingPlan ? (
-          <div className="text-sm text-gray-500">Cargando…</div>
+          <div className="text-sm text-gray-500 py-4"><LoadingSpinner showText={false} /></div>
         ) : realBloques.length === 0 ? (
           <div className="text-sm text-gray-500">
             Aún no hay bloques reales.

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type ParteItem = {
   empleado_id: string;
@@ -143,7 +144,7 @@ export default function AdminPartesDiaPage() {
         </div>
       </div>
 
-      {loading && <p className="p-2">Cargando…</p>}
+      {loading && <LoadingSpinner fullPage />}
       {error && <div className="p-2 text-red-600 font-semibold">{error}</div>}
 
       {!loading && !error && (

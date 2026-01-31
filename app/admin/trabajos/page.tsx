@@ -8,6 +8,7 @@ import TableTrabajos, { WorkLogItem } from "@/components/shared/TableTrabajos";
 import FormTrabajos from "@/components/shared/FormTrabajos";
 import { Plus, X } from "lucide-react";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 
 export default function AdminTrabajosPage() {
@@ -158,7 +159,9 @@ export default function AdminTrabajosPage() {
 
       {/* Tabla */}
       {loading ? (
-        <div className="py-12 text-center text-gray-500">Cargando datos...</div>
+        <div className="py-12">
+            <LoadingSpinner />
+        </div>
       ) : (
         <TableTrabajos items={items} isAdmin={true} />
       )}

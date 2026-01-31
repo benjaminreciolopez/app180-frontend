@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 interface Reporte {
   id: string;
@@ -29,7 +30,7 @@ export default function MisReportes() {
     load();
   }, []);
 
-  if (loading) return <p className="app-main">Cargando…</p>;
+  if (loading) return <LoadingSpinner fullPage />;
 
   function badgeEstado(estado: Reporte["estado"]) {
     switch (estado) {

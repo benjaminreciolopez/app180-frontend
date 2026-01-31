@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/services/api";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 export default function ImportacionDetalle() {
   const params = useParams<{ id: string }>();
@@ -37,7 +38,7 @@ export default function ImportacionDetalle() {
       </div>
 
       {loading && (
-        <div className="text-sm text-muted-foreground">Cargando…</div>
+        <LoadingSpinner />
       )}
 
       {head && (
