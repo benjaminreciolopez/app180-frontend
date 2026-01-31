@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, setAuthToken } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 interface FichajeRechazado {
   id: string;
@@ -119,7 +120,9 @@ export default function FichajesRechazadosPage() {
       {/* Tabla */}
       <div className="bg-white rounded-lg shadow border overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Cargando...</div>
+          <div className="p-8">
+            <LoadingSpinner />
+          </div>
         ) : fichajes.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             No hay fichajes rechazados

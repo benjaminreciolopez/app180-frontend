@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import TableTrabajos, { WorkLogItem } from "@/components/shared/TableTrabajos";
 import FormTrabajos from "@/components/shared/FormTrabajos";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 function ymd(d = new Date()) {
   const yyyy = d.getFullYear();
@@ -110,7 +111,9 @@ export default function EmpleadoTrabajosPage() {
 
       {/* Tabla */}
       {loading ? (
-        <div className="text-center py-10 text-gray-500">Cargando...</div>
+        <div className="py-10">
+            <LoadingSpinner />
+        </div>
       ) : (
         <TableTrabajos items={items} isAdmin={false} />
       )}

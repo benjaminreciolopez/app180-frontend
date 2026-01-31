@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 // Interfaces
 interface ReporteItem {
@@ -93,7 +94,7 @@ export default function ReporteRentabilidadPage() {
                 onClick={loadReporte}
                 disabled={loading}
             >
-                {loading ? 'Cargando...' : 'Generar'}
+                {loading ? 'Generando...' : 'Generar'}
             </button>
             
             <div className="ml-2">
@@ -146,7 +147,11 @@ export default function ReporteRentabilidadPage() {
              </thead>
              <tbody>
                  {loading ? (
-                     <tr><td colSpan={5} className="text-center p-8 text-muted-foreground">Calculando datos... (puede tardar unos segundos)</td></tr>
+                     <tr>
+                        <td colSpan={5} className="text-center p-8">
+                            <LoadingSpinner />
+                        </td>
+                     </tr>
                  ) : reporte.length === 0 ? (
                      <tr><td colSpan={5} className="text-center p-8 text-muted-foreground">No hay datos para este periodo</td></tr>
                  ) : (

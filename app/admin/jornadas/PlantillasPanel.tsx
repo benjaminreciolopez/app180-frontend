@@ -8,6 +8,7 @@ import RenamePlantillaModal from "./RenamePlantillaModal";
 import DeletePlantillaModal from "./DeletePlantillaModal";
 import CopyDiasModal from "./CopyDiasModal";
 import { showSuccess, showError } from "@/lib/toast";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 const DIAS = [
   { n: 1, label: "Lunes" },
@@ -432,7 +433,7 @@ export default function PlantillasPanel() {
     }
   }
 
-  if (loading) return <div className="p-4">Cargando...</div>;
+  if (loading) return <LoadingSpinner fullPage />;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
@@ -621,7 +622,7 @@ export default function PlantillasPanel() {
                     origenLabel={origenLabel}
                     loading={copying}
                     onClose={() => setShowCopy(false)}
-                    onConfirm={async (dias, reset) => {
+                    onConfirm={async (dias: number[], reset: boolean) => {
                       if (copying) return;
 
                       if (!dias.length) {
@@ -703,7 +704,9 @@ export default function PlantillasPanel() {
               </div>
 
               {cargandoBloquesDia ? (
-                <div className="text-sm text-gray-600">Cargando bloques...</div>
+                <div className="p-4">
+                    <LoadingSpinner showText={false} />
+                </div>
               ) : (
                 <div
                   className={

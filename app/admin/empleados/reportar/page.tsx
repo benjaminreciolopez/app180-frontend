@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { useRouter } from "next/navigation";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 export default function ReportarPage() {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function ReportarPage() {
     }
   }
 
-  if (loading) return <p className="app-main">Cargando...</p>;
+  if (loading) return <LoadingSpinner fullPage />;
 
   return (
     <div className="app-main max-w-xl space-y-4">

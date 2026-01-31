@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import type { Asignacion, EmpleadoLite, Plantilla } from "./types";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 export default function AsignacionesPanel() {
   const [empleados, setEmpleados] = useState<EmpleadoLite[]>([]);
@@ -79,7 +80,7 @@ export default function AsignacionesPanel() {
     alert("Asignación creada");
   }
 
-  if (loading) return <div className="p-4">Cargando...</div>;
+  if (loading) return <LoadingSpinner fullPage />;
 
   return (
     <div className="space-y-4">

@@ -7,6 +7,7 @@ import { api } from "@/services/api";
 import { getUser, logout } from "@/services/auth";
 import { Settings, Users, Clock, AlertTriangle, Briefcase, Calendar } from "lucide-react";
 import Link from "next/link";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import {
   BarChart,
   Bar,
@@ -219,11 +220,7 @@ export default function DashboardPage() {
      Render
   ======================== */
 
-  if (loading) return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-  );
+  if (loading) return <LoadingSpinner fullPage />;
 
   if (error || !data) {
     return (
@@ -360,7 +357,10 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Activity Chart */}
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6">Actividad Semanal</h3>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Actividad Semanal</h3>
+                    <p className="text-sm text-gray-500 mb-6">Total de fichajes realizados en los últimos 7 días</p>
+                  </div>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.stats.fichajesUltimosDias}>

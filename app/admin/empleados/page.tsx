@@ -7,6 +7,7 @@ import { api } from "@/services/api";
 import ShareInviteLinkModal from "@/components/admin/ShareInviteLinkModal";
 import EditEmployeeModal from "@/components/admin/EditEmployeeModal";
 import { showSuccess, showError } from "@/lib/toast";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 interface Empleado {
   id: string;
@@ -129,7 +130,7 @@ export default function EmpleadosPage() {
     loadEmpleados();
   }
 
-  if (loading) return <p>Cargando...</p>;
+  if (loading) return <LoadingSpinner fullPage />;
 
   return (
     <div className="app-main">

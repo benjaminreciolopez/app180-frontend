@@ -4,6 +4,7 @@ import { api, setAuthToken } from "@/services/api";
 import "leaflet/dist/leaflet.css";
 import { showSuccess, showError } from "@/lib/toast";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type FichajeRow = {
   id: string;
@@ -313,7 +314,7 @@ export default function SospechososPage() {
       </div>
 
       {loading ? (
-        <p>Cargando...</p>
+        <LoadingSpinner fullPage />
       ) : fichajes.length === 0 ? (
         <p className="text-gray-500 italic">No hay fichajes sospechosos pendientes de revisión.</p>
       ) : (

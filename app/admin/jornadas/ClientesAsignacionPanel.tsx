@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type EmpleadoLite = { id: string; nombre: string };
 type ClienteLite = { id: string; nombre: string; codigo?: string };
@@ -135,7 +136,7 @@ export default function ClientesAsignacionPanel() {
     }
   }
 
-  if (loading) return <div className="p-4">Cargando datos...</div>;
+  if (loading) return <LoadingSpinner fullPage />;
 
   return (
     <div className="space-y-6">

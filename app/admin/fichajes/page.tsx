@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type TipoFichaje = "entrada" | "salida" | "descanso_inicio" | "descanso_fin";
 
@@ -316,7 +317,7 @@ export default function FichajesPage() {
     });
   }, [jornadaSel, detalleModoFecha, detalleFecha]);
 
-  if (loading) return <p className="p-4">Cargando...</p>;
+  if (loading) return <LoadingSpinner fullPage />;
 
   return (
     <div className="p-4 space-y-4">

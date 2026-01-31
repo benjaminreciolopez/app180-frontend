@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import type { EmpleadoLite, PlanDia } from "./types";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 function apiErrorMessage(e: any) {
   return e?.response?.data?.error || e?.message || "Error inesperado";
@@ -85,7 +86,7 @@ export default function PreviewPanel() {
 
       <div className="bg-white border rounded p-4">
         {loading ? (
-          <div className="text-gray-600">Cargando...</div>
+          <LoadingSpinner />
         ) : !plan ? (
           <div className="text-gray-600">Selecciona empleado y fecha.</div>
         ) : (

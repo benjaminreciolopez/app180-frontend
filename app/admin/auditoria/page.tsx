@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, setAuthToken } from "@/services/api";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 interface AuditLog {
   id: string;
@@ -332,7 +333,9 @@ export default function AuditoriaPage() {
       {/* Tabla de Logs */}
       <div className="bg-white rounded-lg shadow border overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Cargando...</div>
+          <div className="p-8">
+            <LoadingSpinner />
+          </div>
         ) : logs.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             No hay registros de auditoría
