@@ -24,13 +24,26 @@ export default function IOSDrawer({
   children: ReactNode;
   width?: string;
 }) {
-  // Lock body scroll
+  // Lock body scroll (iOS safe)
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    
+    // Guardar posición actual
+    const scrollY = window.scrollY;
+    
+    // Aplicar bloqueo
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    
     return () => {
-      document.body.style.overflow = prev;
+      // Restaurar
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, scrollY);
     };
   }, [open]);
 

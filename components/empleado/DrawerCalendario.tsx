@@ -7,7 +7,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
 import esLocale from "@fullcalendar/core/locales/es";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, LogOut, Info, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
 import { api } from "@/services/api";
@@ -107,6 +107,7 @@ export default function DrawerCalendario({
   const [loading, setLoading] = useState(false);
   const isMobile = useIsMobile();
   const [view, setView] = useState<ViewMode>(isMobile ? "listMonth" : "dayGridMonth"); // Default adaptable
+  const [showLegend, setShowLegend] = useState(false);
 
   // Force view change on mobile detect
   // No forcing view change loop
@@ -221,7 +222,7 @@ export default function DrawerCalendario({
               </button>
             </div>
 
-            <div className="flex bg-gray-100 p-0.5 rounded-lg">
+            <div className="flex bg-gray-100 p-0.5 rounded-lg mr-2">
               <button
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                    view === "dayGridMonth" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
@@ -241,6 +242,14 @@ export default function DrawerCalendario({
                 Lista
               </button>
             </div>
+
+            <button
+               onClick={() => setShowLegend(true)}
+               className="p-2 ml-1 text-gray-500 hover:bg-gray-100 rounded-full"
+               title="Ver Leyenda"
+            >
+               <Info size={20} />
+            </button>
           </div>
         </div>
       </div>
@@ -320,6 +329,23 @@ export default function DrawerCalendario({
             />
         </div>
       </div>
+
+      {/* Mobile Legend Modal (Simple Overlay) */}
+      {showLegend && (
+        <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="px-4 py-3 border-b flex items-center justify-between bg-gray-50">
+                  <h3 className="font-bold text-gray-900">Leyenda de Colores</h3>
+                  <button onClick={() => setShowLegend(false)} className="p-1 hover:bg-gray-200 rounded-full">
+                     <X size={20} className="text-gray-500" />
+                  </button>
+              </div>
+              <div className="p-4 overflow-y-auto">
+                 <CalendarioLegend />
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
