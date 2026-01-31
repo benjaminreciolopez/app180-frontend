@@ -44,25 +44,28 @@ export default function PlaningsPage() {
   // Estado para edición
   const [editingAsignacion, setEditingAsignacion] = useState<Asignacion | null>(null);
 
-  const loadAsignaciones = async () => {
+  // Estado para empleados
+  const [empleados, setEmpleados] = useState<{ id: string; nombre: string }[]>([]);
+
+  const loadData = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/admin/plantillas/asignaciones", {
-          params: {
-              estado: filtros.estado
-          }
-      });
-      setAsignaciones(res.data || []);
+      const [resAsig, resEmp] = await Promise.all([
+         api.get("/admin/plantillas/asignaciones", { params: { estado: filtros.estado } }),
+         api.get("/employees")
+      ]);
+      setAsignaciones(resAsig.data || []);
+      setEmpleados(Array.isArray(resEmp.data) ? resEmp.data : []);
     } catch (err) {
-      console.error("Error cargando asignaciones", err);
-      showError("Error al cargar planings");
+      console.error("Error cargando datos", err);
+      showError("Error al cargar datos");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadAsignaciones();
+    loadData();
   }, [filtros.estado]);
 
   // Filtrado local por texto (nombre empleado, alias, cliente, plantilla)
@@ -81,7 +84,7 @@ export default function PlaningsPage() {
       try {
           await api.delete(`/admin/plantillas/asignaciones/${id}`);
           showSuccess("Planing eliminado");
-          loadAsignaciones();
+          loadData();
       } catch(err) {
           showError("Error al eliminar");
       }
@@ -229,10 +232,11 @@ export default function PlaningsPage() {
        {showDrawer && (
            <DrawerCrearPlaningAdmin
                fechaDefault={new Date().toISOString().slice(0, 10)}
+               empleados={empleados}
                onClose={() => setShowDrawer(false)}
                onCreated={() => {
                    setShowDrawer(false);
-                   loadAsignaciones();
+                   loadData();
                    showSuccess("Planing creado correctamente");
                }}
            />
