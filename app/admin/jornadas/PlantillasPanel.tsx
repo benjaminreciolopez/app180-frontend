@@ -110,7 +110,7 @@ export default function PlantillasPanel() {
     try {
       const [rp, rc] = await Promise.all([
          api.get("/admin/plantillas"),
-         api.get("/clients")
+         api.get("/admin/clientes")
       ]);
       setPlantillas(Array.isArray(rp.data) ? rp.data : []);
       setClientes(Array.isArray(rc.data) ? rc.data : []);

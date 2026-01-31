@@ -20,6 +20,7 @@ import DrawerPendientesAdmin from "@/components/admin/drawer/DrawerPendientesAdm
 import DrawerCrearAusenciaAdmin from "@/components/admin/drawer/DrawerCrearAusenciaAdmin";
 import DrawerDetalleJornadaAdmin from "@/components/admin/drawer/DrawerDetalleJornadaAdmin";
 import DrawerDiaDetalleAdmin from "@/components/admin/drawer/DrawerDiaDetalleAdmin";
+import DrawerCrearPlaningAdmin from "@/components/admin/drawer/DrawerCrearPlaningAdmin";
 
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { EventoAdmin } from "@/types/ausencias";
@@ -262,6 +263,7 @@ export default function AdminCalendarioBase() {
 
   const [openPendientes, setOpenPendientes] = useState(false);
   const [openCrear, setOpenCrear] = useState(false);
+  const [openCrearPlaning, setOpenCrearPlaning] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
 
   function loadSession() {
@@ -533,6 +535,18 @@ export default function AdminCalendarioBase() {
               Pendientes
             </button>
           </div>
+
+          <div className="mt-2">
+            <button
+               onClick={() => {
+                 setOpenDayYmd(new Date().toISOString().slice(0, 10));
+                 setOpenCrearPlaning(true);
+               }}
+               className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold"
+             >
+               + Crear Planing
+             </button>
+          </div>
         </div>
       )}
       <button
@@ -643,6 +657,7 @@ export default function AdminCalendarioBase() {
               ymd={openDayYmd}
               allEvents={filteredEvents}
               onSelectEvent={(ev) => setSelected(ev)}
+              onCreatePlaning={() => setOpenCrearPlaning(true)}
               onClose={() => setOpenDayYmd(null)}
             />
           </IOSDrawer>
@@ -751,6 +766,28 @@ export default function AdminCalendarioBase() {
               empleados={empleados}
               empleadoDefaultId={empleadoActivo || undefined}
               onClose={() => setOpenCrear(false)}
+              onCreated={() => loadEventsForCurrentView()}
+            />
+          </IOSDrawer>
+        )}
+
+        {/* Crear planing */}
+        {openCrearPlaning && (
+          <IOSDrawer
+            open
+            onClose={() => setOpenCrearPlaning(false)}
+            header={{
+              title: "Asignar Planing",
+              canGoBack: true,
+              onBack: () => setOpenCrearPlaning(false),
+              onClose: () => setOpenCrearPlaning(false),
+            }}
+          >
+            <DrawerCrearPlaningAdmin
+              fechaDefault={openDayYmd || undefined}
+              empleadoDefaultId={empleadoActivo || undefined}
+              empleados={empleados}
+              onClose={() => setOpenCrearPlaning(false)}
               onCreated={() => loadEventsForCurrentView()}
             />
           </IOSDrawer>
@@ -867,6 +904,7 @@ export default function AdminCalendarioBase() {
             ymd={openDayYmd}
             allEvents={filteredEvents}
             onSelectEvent={(ev) => setSelected(ev)}
+            onCreatePlaning={() => setOpenCrearPlaning(true)}
             onClose={() => setOpenDayYmd(null)}
           />
         </IOSDrawer>

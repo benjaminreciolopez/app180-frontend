@@ -128,11 +128,13 @@ export default function DrawerDiaDetalleAdmin({
   ymd,
   allEvents,
   onSelectEvent,
+  onCreatePlaning,
   onClose,
 }: {
   ymd: string;
   allEvents: CalendarioIntegradoEvento[];
   onSelectEvent: (ev: CalendarioIntegradoEvento) => void;
+  onCreatePlaning?: () => void;
   onClose: () => void;
 }) {
   const dayEvents = useMemo(() => {
@@ -171,6 +173,13 @@ export default function DrawerDiaDetalleAdmin({
         {data.laborable ? "Día laborable" : "Día no laborable"} ·{" "}
         {data.eventos.length} evento(s)
       </div>
+
+      <button
+        onClick={onCreatePlaning}
+        className="w-full py-3 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 text-sm font-semibold active:scale-95"
+      >
+        + Asignar / Crear Planing
+      </button>
 
       {/* Lista de eventos */}
       {data.eventos.length === 0 ? (
