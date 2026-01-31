@@ -150,6 +150,7 @@ export default function AdminLayout({
 
     // ✅ Calendario separado de fichajes
     { path: "/admin/calendario", label: "Calendario", module: "calendario" },
+    { path: "/admin/planings", label: "Gestión Planings", module: "calendario" }, // Nueva ruta V5.5
 
     { path: "/admin/empleados", label: "Empleados", module: "empleados" },
     { path: "/admin/clientes", label: "Clientes", module: null },
