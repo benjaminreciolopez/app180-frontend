@@ -40,13 +40,21 @@ export default function InstalarCliente({ token }: { token?: string }) {
     
     // 4. Si es PWA, intentar recuperar token de localStorage (por si Safari lo pasó)
     if (pwa && !urlToken) {
+        // 5. Verificar si YA estamos logueados (para evitar pedir activación de nuevo)
+        const existingToken = localStorage.getItem("token");
+        if (existingToken) {
+            console.log("🔄 Sesión detectada en PWA, redirigiendo...");
+            router.replace("/empleado/dashboard");
+            return;
+        }
+
         const storedToken = localStorage.getItem("pending_activation_token");
         if (storedToken) {
             setTokenActivo(storedToken);
             setInputToken(storedToken);
         }
     }
-  }, [token]);
+  }, [token, router]);
 
   // Función para activar el dispositivo
   const handleActivation = async (tokenToUse: string) => {
