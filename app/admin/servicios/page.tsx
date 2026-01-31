@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Pencil, X } from "lucide-react";
+import { showSuccess, showError } from "@/lib/toast";
 import { motion, AnimatePresence } from "framer-motion";
 
 /* =====================================================
@@ -116,8 +117,9 @@ export default function AdminTrabajosPage() {
       setDrawerOpen(false);
       setEditing(null);
       await load();
+      showSuccess("Trabajo guardado correctamente");
     } catch (e: any) {
-      alert(e.message);
+      showError(e.message || "Error al guardar");
     } finally {
       setLoading(false);
     }
@@ -130,8 +132,9 @@ export default function AdminTrabajosPage() {
         body: JSON.stringify({ activo: !t.activo }),
       });
       await load();
+      showSuccess("Estado actualizado");
     } catch (e: any) {
-      alert(e.message);
+      showError(e.message || "Error al actualizar estado");
     }
   }
 

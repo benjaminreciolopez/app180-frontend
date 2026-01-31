@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@/services/api";
+import { showError } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -16,7 +17,7 @@ export default function NuevaPlantillaPage() {
 
   async function guardar() {
     if (!form.nombre.trim()) {
-      alert("Nombre obligatorio");
+      showError("Nombre obligatorio");
       return;
     }
     setSaving(true);
@@ -31,7 +32,7 @@ export default function NuevaPlantillaPage() {
       else router.replace("/admin/jornadas");
     } catch (e) {
       console.error(e);
-      alert("No se pudo crear");
+      showError("No se pudo crear");
     } finally {
       setSaving(false);
     }

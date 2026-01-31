@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
+import { showSuccess, showError } from "@/lib/toast";
 
 type ParteItem = {
   empleado_id: string;
@@ -85,7 +86,7 @@ export default function AdminPartesDiaPage() {
     if (!selected) return;
 
     if (!validado && nota.trim().length === 0) {
-      alert("La nota es obligatoria para marcar incidencia");
+      showError("La nota es obligatoria para marcar incidencia");
       return;
     }
 
@@ -105,7 +106,7 @@ export default function AdminPartesDiaPage() {
       load(fecha);
     } catch (e) {
       console.error(e);
-      alert("Error validando el parte");
+      showError("Error validando el parte");
     } finally {
       setSaving(false);
     }

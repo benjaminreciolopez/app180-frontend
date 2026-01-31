@@ -223,13 +223,13 @@ export default function FichajesPage() {
   async function registrarManual() {
     try {
       if (!form.empleado_id || !form.fecha) {
-        alert("Empleado y fecha obligatorios");
+        showError("Empleado y fecha obligatorios");
         return;
       }
 
       if (form.tipo !== "completa") {
         if (!form.hora) {
-          alert("Debes indicar la hora");
+          showError("Debes indicar la hora");
           return;
         }
         const fechaHora = withLocalOffset(form.fecha, form.hora);
@@ -242,7 +242,7 @@ export default function FichajesPage() {
         });
       } else {
         if (!form.horaEntrada || !form.horaSalida) {
-          alert("Debes indicar hora de entrada y salida");
+          showError("Debes indicar hora de entrada y salida");
           return;
         }
 
@@ -250,7 +250,7 @@ export default function FichajesPage() {
         const salida = withLocalOffset(form.fecha, form.horaSalida);
 
         if (entrada >= salida) {
-          alert("La salida debe ser posterior a la entrada");
+          showError("La salida debe ser posterior a la entrada");
           return;
         }
 

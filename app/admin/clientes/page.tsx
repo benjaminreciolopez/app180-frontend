@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Pencil, X } from "lucide-react";
+import { showSuccess, showError } from "@/lib/toast";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -121,7 +122,7 @@ export default function AdminClientesPage() {
 
       setDrawerOpen(true);
     } catch (e: any) {
-      alert("No se pudo generar código");
+      showError("No se pudo generar código");
     }
   }
 
@@ -151,8 +152,9 @@ export default function AdminClientesPage() {
       setDrawerOpen(false);
       setEditing(null);
       await load();
+      showSuccess("Cliente guardado correctamente");
     } catch (e: any) {
-      alert(e.message);
+      showError(e.message || "Error al guardar");
     } finally {
       setLoading(false);
     }
@@ -167,8 +169,9 @@ export default function AdminClientesPage() {
       });
 
       await load();
+      showSuccess("Cliente desactivado");
     } catch (e: any) {
-      alert(e.message);
+      showError(e.message || "Error al desactivar");
     }
   }
 
