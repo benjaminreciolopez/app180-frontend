@@ -476,11 +476,10 @@ export default function AdminCalendarioBase() {
       <button
         onClick={() => {
            if(confirm("¿Cerrar sesión?")) {
-             window.location.href = "/login";
-             // Ideally use logout() service but navigation is faster here
              document.cookie = "token=; Max-Age=0; path=/;";
              localStorage.removeItem("token");
              localStorage.removeItem("user_180");
+             window.location.href = "/login";
            }
         }}
         className="w-full mt-4 py-2.5 text-[11px] text-red-500 font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
