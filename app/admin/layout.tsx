@@ -147,16 +147,14 @@ export default function AdminLayout({
   // ============================
   const menu = [
     { path: "/admin/dashboard", label: "Dashboard", module: null },
+    { path: "/admin/empleados", label: "Empleados", module: "empleados" },
 
     // ✅ Calendario separado de fichajes
     { path: "/admin/calendario", label: "Calendario", module: "calendario" },
     { path: "/admin/planings", label: "Gestión Planings", module: "calendario" }, // Nueva ruta V5.5
-
-    { path: "/admin/empleados", label: "Empleados", module: "empleados" },
-    { path: "/admin/clientes", label: "Clientes", module: null },
     { path: "/admin/reportes/rentabilidad", label: "Reporte Rentabilidad", module: "fichajes" },
-    { path: "/admin/configuracion", label: "Configuración", module: null },
 
+    { path: "/admin/clientes", label: "Clientes", module: null },
     { path: "/admin/facturacion", label: "Control de Cobros", module: null },
 
     { path: "/admin/jornadas", label: "Jornadas", module: "fichajes" },
