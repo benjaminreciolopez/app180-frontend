@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 
 type TipoFichaje = "entrada" | "salida" | "descanso_inicio" | "descanso_fin";
 
@@ -322,12 +323,24 @@ export default function FichajesPage() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-bold">Fichajes (Jornadas)</h1>
 
-        <button
-          className="bg-green-600 text-white px-4 py-2 rounded"
-          onClick={() => setShowModal(true)}
-        >
-          + Registrar fichaje manual
-        </button>
+        <div className="flex gap-2">
+            <UniversalExportButton 
+                module="fichajes" 
+                queryParams={{ 
+                    desde: modoFecha === 'fecha' ? fechaFiltro : (modoFecha === 'hoy' ? ymdLocal() : undefined),
+                    hasta: modoFecha === 'fecha' ? fechaFiltro : (modoFecha === 'hoy' ? ymdLocal() : undefined),
+                    // Buscamos el ID si hay nombre seleccionado
+                    empleado_id: empleadoFiltro ? empleados.find(e => e.nombre === empleadoFiltro)?.id : undefined
+                }} 
+                label="Exportar"
+            />
+            <button
+            className="bg-green-600 text-white px-4 py-2 rounded"
+            onClick={() => setShowModal(true)}
+            >
+            + Registrar fichaje manual
+            </button>
+        </div>
       </div>
 
       {/* FILTROS GLOBAL */}

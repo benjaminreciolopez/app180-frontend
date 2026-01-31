@@ -7,6 +7,7 @@ import { getUser } from "@/services/auth";
 import TableTrabajos, { WorkLogItem } from "@/components/shared/TableTrabajos";
 import FormTrabajos from "@/components/shared/FormTrabajos";
 import { Plus, X } from "lucide-react";
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 
 
 export default function AdminTrabajosPage() {
@@ -98,6 +99,11 @@ export default function AdminTrabajosPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
+            <UniversalExportButton 
+                module="trabajos" 
+                queryParams={{ desde, hasta }} 
+                label="Exportar"
+            />
            <div className="flex items-center gap-2 bg-white border rounded-lg p-1 px-2">
             <span className="text-xs text-gray-500 font-medium">Desde</span>
             <input

@@ -16,6 +16,7 @@ import { showSuccess, showError } from "@/lib/toast";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 
 const GeoPicker = dynamic(() => import("@/components/GeoPicker"), {
   ssr: false,
@@ -183,9 +184,16 @@ export default function AdminClientesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Clientes</h1>
 
-        <Button onClick={openCreate} className="gap-2">
-          <Plus size={18} /> Nuevo cliente
-        </Button>
+        <div className="flex gap-2">
+             <UniversalExportButton 
+                module="clientes" 
+                queryParams={{}} 
+                label="Exportar"
+            />
+            <Button onClick={openCreate} className="gap-2">
+            <Plus size={18} /> Nuevo cliente
+            </Button>
+        </div>
       </div>
 
       {error && <div className="text-red-600">{error}</div>}

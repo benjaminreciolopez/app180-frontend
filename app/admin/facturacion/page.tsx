@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowUpRight, DollarSign, Wallet, FileText } from "lucide-react";
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
@@ -51,6 +52,14 @@ export default function FacturacionPage() {
        <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Control de Cobros {year}</h1>
         <div className="flex gap-2">
+            <UniversalExportButton 
+                module="cobros"
+                queryParams={{ 
+                    desde: `${year}-01-01`,
+                    hasta: `${year}-12-31`
+                }}
+                label="Exportar"
+            />
             <Button variant="outline" size="sm" onClick={async () => {
                 try {
                     setLoading(true);

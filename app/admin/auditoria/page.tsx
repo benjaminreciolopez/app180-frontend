@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, setAuthToken } from "@/services/api";
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 
 interface AuditLog {
   id: string;
@@ -201,11 +202,22 @@ export default function AuditoriaPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">🔍 Auditoría</h1>
-        <p className="text-gray-600 mt-1">
-          Registro de acciones administrativas y eventos del sistema
-        </p>
+      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 className="text-3xl font-bold text-gray-900">🔍 Auditoría</h1>
+            <p className="text-gray-600 mt-1">
+            Registro de acciones administrativas y eventos del sistema
+            </p>
+        </div>
+        <UniversalExportButton 
+            module="auditoria"
+            queryParams={{ 
+                accion: accionFilter, 
+                fecha_desde: fechaDesde,
+                fecha_hasta: fechaHasta 
+            }}
+            label="Exportar"
+        />
       </div>
 
       {/* Estadísticas */}

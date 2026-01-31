@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api, setAuthToken } from "@/services/api";
 import "leaflet/dist/leaflet.css";
 import { showSuccess, showError } from "@/lib/toast";
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 
 type FichajeRow = {
   id: string;
@@ -306,9 +307,10 @@ export default function SospechososPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6 text-red-600">
-        Fichajes sospechosos
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-red-600">Fichajes sospechosos</h1>
+          <UniversalExportButton module="sospechosos" queryParams={{}} label="Exportar" />
+      </div>
 
       {loading ? (
         <p>Cargando...</p>
