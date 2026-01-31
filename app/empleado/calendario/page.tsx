@@ -7,6 +7,8 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { api } from "@/services/api";
 import listPlugin from "@fullcalendar/list";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { LogOut, Calendar as CalendarIcon } from "lucide-react";
 
 type EventoCalendario = {
   title: string;
@@ -29,6 +31,7 @@ const COLOR_MAP: Record<string, string> = {
 export default function EmpleadoCalendarioPage() {
   const [events, setEvents] = useState<EventoCalendario[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   async function loadCalendario() {
     try {
@@ -74,16 +77,14 @@ export default function EmpleadoCalendarioPage() {
     return <div className="p-6">Cargando calendario…</div>;
   }
 
-  return (
-    <div className="h-full flex flex-col md:space-y-4 md:p-6 p-0">
-      <div className="hidden md:block">
-        <h1 className="text-2xl font-bold">Calendario laboral</h1>
-        <p className="text-sm text-gray-500">
-          Festivos, vacaciones y ausencias
-        </p>
-      </div>
-
-      <div className="flex-1 bg-white md:border md:rounded-xl overflow-hidden flex flex-col relative">
+  const MobileHeader = (
+    <div className="flex items-center justify-between px-4 py-3 bg-white border-b sticky top-0 z-20 shadow-sm md:hidden">
+        <div className="flex items-center gap-2">
+            <div className="p-2 bg-indigo-50 rounded-lg">
+                <CalendarIcon className="w-5 h-5 text-indigo-600" />
+            </div>
+            <span className="font-bold text-gray-900">Mi Calendario</span>
+        </div>
         <button 
            onClick={() => {
              if(confirm("¿Cerrar sesión?")) {
@@ -93,11 +94,28 @@ export default function EmpleadoCalendarioPage() {
                window.location.href = "/login";
              }
            }}
-           className="absolute top-2 right-14 z-10 bg-white/90 border border-gray-200 text-red-500 p-1.5 rounded-lg shadow-sm hover:bg-red-50 text-xs font-bold uppercase tracking-wider md:hidden"
+           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+           title="Cerrar sesión"
         >
-           Salir
+           <LogOut className="w-5 h-5" />
         </button>
+    </div>
+  );
 
+  return (
+    <div className="h-full flex flex-col md:space-y-4 md:p-6 p-0 bg-gray-50 md:bg-transparent">
+      {/* Desktop Header */}
+      <div className="hidden md:block">
+        <h1 className="text-2xl font-bold">Calendario laboral</h1>
+        <p className="text-sm text-gray-500">
+          Festivos, vacaciones y ausencias
+        </p>
+      </div>
+
+      {/* Mobile Header */}
+      {isMobile && MobileHeader}
+
+      <div className="flex-1 bg-white md:border md:rounded-xl overflow-hidden flex flex-col relative shadow-sm md:shadow-none">
         <FullCalendar
           plugins={[
             dayGridPlugin,
@@ -105,9 +123,13 @@ export default function EmpleadoCalendarioPage() {
             interactionPlugin,
             listPlugin,
           ]}
-          initialView="dayGridMonth"
+          initialView={isMobile ? "listWeek" : "dayGridMonth"}
           locale="es"
-          headerToolbar={{
+          headerToolbar={isMobile ? {
+            left: "prev,next",
+            center: "title",
+            right: "dayGridMonth,listWeek"
+          } : {
             left: "prev,next today",
             center: "title",
             right: "dayGridMonth,listWeek",
@@ -118,6 +140,9 @@ export default function EmpleadoCalendarioPage() {
           views={{
             dayGridMonth: {
               titleFormat: { year: 'numeric', month: 'short' } 
+            },
+            listWeek: {
+              titleFormat: { day: 'numeric', month: 'short' }
             }
           }}
         />
