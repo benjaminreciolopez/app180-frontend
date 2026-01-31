@@ -2,6 +2,7 @@
 
 import { CalendarOff, BedDouble, Ban } from "lucide-react";
 import { useFichaje } from "./useFichaje";
+import { Button } from "@/components/ui/button";
 
 export type AccionFichaje =
   | "entrada"
@@ -126,22 +127,18 @@ export function FichajeAction({
     descanso_fin: { label: "Finalizar descanso" },
   };
 
-  const colorClass =
-    boton.color === "rojo"
-      ? "bg-red-600 hover:bg-red-700 text-white"
-      : "bg-gray-300 hover:bg-gray-400 text-black";
-
   return (
     <div className="space-y-2">
       {/* BOTÓN (solo si visible) */}
       {boton.visible && boton.accion && (
-        <button
+        <Button
           disabled={loading || !boton.puede_fichar}
           onClick={() => fichar(boton.accion!)}
-          className={`w-full py-4 text-lg rounded font-semibold transition-all shadow-md active:scale-95 cursor-pointer hover:brightness-110 disabled:opacity-60 ${colorClass}`}
+          variant={boton.color === "rojo" ? "destructive" : "secondary"}
+          className="w-full py-6 text-xl font-bold shadow-lg"
         >
           {loading ? "Registrando..." : config[boton.accion].label}
-        </button>
+        </Button>
       )}
 
       {/* MENSAJE NORMAL */}

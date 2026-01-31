@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "@/services/api";
 import { useRouter } from "next/navigation";
 import { showSuccess, showError } from "@/lib/toast";
+import { Button } from "@/components/ui/button";
 
 export default function NuevoEmpleadoPage() {
   const router = useRouter();
@@ -67,9 +68,9 @@ export default function NuevoEmpleadoPage() {
           El empleado deberá cambiarla en su primer inicio de sesión.
         </div>
 
-        <button type="submit" disabled={loading} className="btn-primary w-full">
+        <Button type="submit" disabled={loading} className="w-full py-6 font-bold">
           {loading ? "Creando…" : "Crear empleado"}
-        </button>
+        </Button>
       </form>
     </div>
   );

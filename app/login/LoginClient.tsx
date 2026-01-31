@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { login } from "@/services/auth";
 import { Eye, EyeOff } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
+import { Button } from "@/components/ui/button";
 
 export default function LoginClient() {
   const router = useRouter();
@@ -120,13 +121,13 @@ export default function LoginClient() {
           </label>
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-all duration-200 shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] focus:ring-4 focus:ring-blue-300"
+          className="w-full py-6 text-lg font-bold shadow-md hover:shadow-xl transition-all"
         >
           {loading ? "Iniciando sesión..." : "Entrar"}
-        </button>
+        </Button>
       </form>
     </div>
   );

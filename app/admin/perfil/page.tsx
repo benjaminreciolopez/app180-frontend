@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { Edit2, Save, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import EmailConfigPanel from "@/components/admin/EmailConfigPanel";
 
 type ProfileData = {
@@ -111,13 +112,13 @@ export default function AdminPerfilPage() {
         </div>
         
         {!isEditing && (
-          <button
+          <Button
             onClick={handleEdit}
-            className="btn-primary flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             <Edit2 className="w-4 h-4" />
             Editar Perfil
-          </button>
+          </Button>
         )}
       </div>
 
@@ -264,23 +265,24 @@ export default function AdminPerfilPage() {
         {/* Botones */}
         {isEditing && (
           <div className="md:col-span-2 pt-4 flex justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={handleCancel}
               disabled={saving}
-              className="btn-secondary flex items-center gap-2"
+              className="flex items-center gap-2"
             >
               <X className="w-4 h-4" />
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={saving}
-              className="btn-primary flex items-center gap-2"
+              className="flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
               {saving ? "Guardando..." : "Guardar Cambios"}
-            </button>
+            </Button>
           </div>
         )}
 

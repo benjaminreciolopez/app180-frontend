@@ -6,6 +6,7 @@ import { api, setAuthToken } from "@/services/api";
 import { getUser } from "@/services/auth";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
+import { Button } from "@/components/ui/button";
 
 export default function CambiarPasswordPage() {
   const router = useRouter();
@@ -225,24 +226,25 @@ export default function CambiarPasswordPage() {
           )}
 
           {/* Submit */}
-          <button
+          <Button
             type="submit"
             disabled={saving}
-            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+            className="w-full py-6 text-lg font-bold shadow-md hover:shadow-lg transition-all"
           >
             {saving ? "Guardando..." : "Cambiar contraseña"}
-          </button>
+          </Button>
         </form>
 
         {/* Footer */}
         {!passwordForced && (
-          <div className="px-6 pb-6">
-            <button
+          <div className="px-6 pb-6 text-center">
+            <Button
+              variant="ghost"
               onClick={() => router.back()}
-              className="w-full text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 text-sm font-medium transition"
+              className="w-full text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
             >
               Cancelar
-            </button>
+            </Button>
           </div>
         )}
       </div>

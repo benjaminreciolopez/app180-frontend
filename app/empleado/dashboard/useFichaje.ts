@@ -3,6 +3,7 @@ import { api } from "@/services/api";
 import type { AccionFichaje } from "./FichajeAction";
 import { getCurrentPosition } from "@/hooks/useGeolocation";
 import { checkGeoPermission } from "@/hooks/useGeoPermission";
+import { showSuccess, showError } from "@/lib/toast";
 
 export function useFichaje(reload: () => void) {
   const [loading, setLoading] = useState(false);
@@ -31,10 +32,11 @@ export function useFichaje(reload: () => void) {
         lng,
       });
 
+      showSuccess(`Registro de ${accion} realizado con éxito`);
       reload();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fichando", err);
-      alert("No se ha podido registrar el fichaje");
+      showError(err?.response?.data?.error || "No se ha podido registrar el fichaje");
     } finally {
       setLoading(false);
     }

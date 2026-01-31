@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   authors: [{ name: "CONTENDO" }],
   generator: "Next.js",
   keywords: ["gestión", "empresa", "rrhh", "fichajes", "facturación"],
-  // manifest: "/manifest.json", // Desactivado temporalmente para evitar error 401 en Vercel Auth
+  manifest: "/manifest.json", // Desactivado temporalmente para evitar error 401 en Vercel Auth
   icons: {
     icon: "/icon-192.png",
     shortcut: "/icon-192.png",
