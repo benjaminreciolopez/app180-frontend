@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 
 type ParteItem = {
   empleado_id: string;
@@ -134,6 +135,11 @@ export default function AdminPartesDiaPage() {
           <button className="btn-primary px-4 py-2" onClick={() => load(fecha)}>
             Cargar
           </button>
+          <UniversalExportButton 
+              module="partes-dia" 
+              queryParams={{ fecha }} 
+              label="Exportar"
+          />
         </div>
       </div>
 
