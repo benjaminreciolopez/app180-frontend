@@ -60,6 +60,65 @@ export default function InstalarCliente({ token }: { token?: string }) {
     setCheckingSession(false);
   }, [token, router]);
 
+  // Función para activar el dispositivo
+  const handleActivation = async (tokenToUse: string) => {
+    if (!tokenToUse) {
+      showError("El código de invitación es necesario");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Generar hash único
+      const device_hash =
+          globalThis.crypto?.randomUUID?.() ||
+          Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+      console.log("📱 Activando dispositivo con hash:", device_hash);
+
+      const res = await api.post("/empleado/activate-install", {
+        token: tokenToUse,
+        device_hash,
+        user_agent: navigator.userAgent,
+      });
+
+      const { token: jwtToken, user } = res.data;
+
+      if (jwtToken && user) {
+        // Guardar sesión
+        localStorage.setItem("device_hash", device_hash);
+        localStorage.setItem("token", jwtToken);
+        localStorage.setItem("user", JSON.stringify(user));
+        setAuthToken(jwtToken);
+        
+        // Limpiar tokens temporales
+        localStorage.removeItem("pending_activation_token");
+        
+        showSuccess("¡Dispositivo activado correctamente!");
+        
+        // Redirigir inmediatamente
+        router.replace("/cambiar-password");
+      }
+    } catch (err: any) {
+      console.error("❌ Error activando:", err);
+      const msg = err?.response?.data?.error || "Error al activar el dispositivo";
+      showError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Copiar token al portapapeles
+  const copyToken = () => {
+    navigator.clipboard.writeText(tokenActivo);
+    showSuccess("Código copiado al portapapeles");
+    
+    // Intentar guardar en localStorage por si acaso Safari lo comparte
+    if (tokenActivo) {
+        localStorage.setItem("pending_activation_token", tokenActivo);
+    }
+  };
+
   // Si estamos chequeando sesión en modo PWA, mostramos spinner limpio
   if (checkingSession) {
     return (
