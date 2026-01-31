@@ -12,6 +12,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        {/* Forzar credenciales para el manifest PWA (evita 401 en Vercel Preview) */}
+        <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
+      </head>
       <body className="app-shell">
         <ThemeProvider>
           <AuthInit />
@@ -31,7 +35,7 @@ export const metadata: Metadata = {
   authors: [{ name: "CONTENDO GESTIONES" }],
   generator: "Next.js",
   keywords: ["gestión", "empresa", "rrhh", "fichajes", "facturación"],
-  // manifest: "/manifest.json", // Gestionado por app/manifest.ts
+  // manifest: "/manifest.json", // Gestionado manualmente en <head> para soporte de credenciales
   icons: {
     icon: "/icon-192.png",
     shortcut: "/icon-192.png",

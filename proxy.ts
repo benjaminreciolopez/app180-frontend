@@ -9,7 +9,12 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Rutas libres
-  if (pathname.startsWith("/setup") || pathname.startsWith("/api")) {
+  if (
+    pathname.startsWith("/setup") ||
+    pathname.startsWith("/api") ||
+    pathname.endsWith("manifest.json") ||
+    pathname.endsWith("manifest.webmanifest")
+  ) {
     return NextResponse.next();
   }
 
