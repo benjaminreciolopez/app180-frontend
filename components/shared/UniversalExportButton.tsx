@@ -26,17 +26,14 @@ export const UniversalExportButton = ({
     className = "" 
 }: UniversalExportButtonProps) => {
     const [loading, setLoading] = useState(false);
-    // Controlamos el valor para poder resetearlo y permitir seleccionar la misma opción varias veces
     const [value, setValue] = useState<string>("");
 
     const handleExport = async (format: string) => {
         if (!format) return;
         setLoading(true);
-        // No seteamos el valor 'value' aquí para evitar que se muestre seleccionado visualmente si no queremos
-        // O lo dejamos en blanco para que siempre parezca un botón de acción
+        console.log(`🚀 Iniciando exportación: ${module} (${format})`, queryParams);
         
         try {
-            // Construir Query String
             const params: Record<string, string> = { format };
             Object.entries(queryParams).forEach(([key, val]) => {
                 if (val !== undefined && val !== null && val !== '') {
@@ -48,6 +45,8 @@ export const UniversalExportButton = ({
                 params,
                 responseType: 'blob' 
             });
+
+            console.log("✅ Respuesta recibida", response.status);
 
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
@@ -69,55 +68,60 @@ export const UniversalExportButton = ({
             
             showSuccess(`Exportación ${format.toUpperCase()} completada`);
             
-        } catch (err) {
-            console.error(err);
-            showError("No se pudo descargar el archivo");
+        } catch (err: any) {
+            console.error("❌ Error en exportación:", err);
+            // Si el backend es Render y está despertando o fallando, aquí lo veremos
+            const errorMsg = err.response?.status === 404 
+                ? "Función de exportación no encontrada en el servidor. Verifica que el backend esté actualizado."
+                : "No se pudo descargar el archivo. Comprueba la consola.";
+            showError(errorMsg);
         } finally {
             setLoading(false);
-            setValue(""); // Resetear valor siempre
+            setValue("");
         }
     };
 
     return (
-        <div className={`relative z-10 ${className}`}>
+        <div className={`relative z-20 ${className}`}>
             <Select 
                 value={value} 
                 onValueChange={(v) => {
+                    setValue(v);
                     handleExport(v);
-                    // Hack: forzar reset visual inmediato si fuera necesario, 
-                    // aunque el reset en finally suele bastar. 
-                    // Si se resetea muy rápido el menú se cierra (es lo deseado).
-                    setTimeout(() => setValue(""), 0); 
+                    // Reset después de un momento para permitir re-selección
+                    setTimeout(() => setValue(""), 1000);
                 }} 
                 disabled={loading}
             >
-                <SelectTrigger className="w-[140px] h-9 bg-white border-input hover:bg-gray-100 transition-colors text-gray-900 cursor-pointer shadow-sm">
+                <SelectTrigger className="w-[160px] h-9 bg-white border-slate-200 hover:bg-slate-50 transition-all text-slate-900 cursor-pointer shadow-sm ring-offset-white focus:ring-2 focus:ring-slate-400 focus:ring-offset-2">
                     <div className="flex items-center gap-2">
                         {loading ? (
-                            <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                            <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
                         ) : (
-                            <Download className="h-4 w-4 text-gray-900" />
+                            <Download className="h-4 w-4 text-slate-600" />
                         )}
-                        <span className="font-medium">{loading ? "Generando..." : label}</span>
+                        <span className="font-semibold text-sm">
+                            {loading ? "Generando..." : label}
+                        </span>
                     </div>
                 </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="pdf" className="cursor-pointer">
+                <SelectContent className="z-[100]">
+                    <SelectItem value="pdf" className="cursor-pointer py-2">
                         <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-red-500" />
-                            <span>PDF Documento</span>
+                            <span>Documento PDF</span>
                         </div>
                     </SelectItem>
-                    <SelectItem value="csv" className="cursor-pointer">
+                    <SelectItem value="csv" className="cursor-pointer py-2">
                         <div className="flex items-center gap-2">
                             <Table className="h-4 w-4 text-green-600" />
                             <span>Excel / CSV</span>
                         </div>
                     </SelectItem>
-                    <SelectItem value="html" className="cursor-pointer">
+                    <SelectItem value="html" className="cursor-pointer py-2">
                         <div className="flex items-center gap-2">
                             <FileCode className="h-4 w-4 text-blue-500" />
-                            <span>Vista HTML</span>
+                            <span>Vista Web (HTML)</span>
                         </div>
                     </SelectItem>
                 </SelectContent>
