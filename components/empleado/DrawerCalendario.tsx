@@ -64,9 +64,7 @@ export default function DrawerCalendario({
   const [view, setView] = useState<ViewMode>(isMobile ? "listMonth" : "dayGridMonth"); // Default adaptable
 
   // Force view change on mobile detect
-  useEffect(() => {
-     if(isMobile && (view === 'dayGridMonth' || view === 'timeGridWeek')) setView('listMonth');
-  }, [isMobile, view]);
+  // No forcing view change loop
 
   const [title, setTitle] = useState("");
 
@@ -169,7 +167,10 @@ export default function DrawerCalendario({
              
              <div className="flex gap-2">
                 <button onClick={() => apiCalendar()?.prev()} className="p-2 hover:bg-gray-100 rounded-full"><ChevronLeft className="w-5 h-5" /></button>
-                <button onClick={() => apiCalendar()?.today()} className="px-3 py-1 bg-gray-100 rounded text-xs font-bold">Hoy</button>
+                <div className="flex bg-gray-100 rounded-lg p-0.5">
+                   <button onClick={() => setView('dayGridMonth')} className={`px-3 py-1 text-xs font-bold rounded-md ${view === 'dayGridMonth' ? 'bg-white shadow-sm' : 'text-gray-500'}`}>Mes</button>
+                   <button onClick={() => setView('listMonth')} className={`px-3 py-1 text-xs font-bold rounded-md ${view === 'listMonth' ? 'bg-white shadow-sm' : 'text-gray-500'}`}>Lista</button>
+                </div>
                 <button onClick={() => apiCalendar()?.next()} className="p-2 hover:bg-gray-100 rounded-full"><ChevronRight className="w-5 h-5" /></button>
              </div>
           </div>
@@ -187,7 +188,7 @@ export default function DrawerCalendario({
               initialView="listMonth"
               headerToolbar={false}
               events={fcEvents}
-              height="auto"
+              height={view === 'listMonth' ? "auto" : "100%"}
               datesSet={(arg) => {
                 syncTitle();
                 load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
