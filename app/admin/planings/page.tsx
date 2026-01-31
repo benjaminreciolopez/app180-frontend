@@ -228,7 +228,6 @@ export default function PlaningsPage() {
         </table>
       </div>
 
-       {/* Drawer de Creación (Reutilizado) */}
        {showDrawer && (
            <DrawerCrearPlaningAdmin
                fechaDefault={new Date().toISOString().slice(0, 10)}
@@ -242,7 +241,6 @@ export default function PlaningsPage() {
            />
        )}
 
-       {/* Drawer de Edición */}
        {editingAsignacion && (
            <DrawerEditarPlaning
                isOpen={!!editingAsignacion}
@@ -250,7 +248,7 @@ export default function PlaningsPage() {
                asignacion={editingAsignacion}
                onSuccess={() => {
                    setEditingAsignacion(null);
-                   loadAsignaciones();
+                   loadData();
                    showSuccess("Planing actualizado");
                }}
            />
