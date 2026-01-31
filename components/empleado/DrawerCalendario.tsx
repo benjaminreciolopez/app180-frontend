@@ -5,15 +5,17 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import listPlugin from "@fullcalendar/list";
 import esLocale from "@fullcalendar/core/locales/es";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, LogOut } from "lucide-react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 import { api } from "@/services/api";
 import type { CalendarioEvento } from "./calendarioTypes";
 import { colorFor } from "./calendarioColors";
 import CalendarioLegend from "./CalendarioLegend";
 
-type ViewMode = "dayGridMonth" | "timeGridWeek";
+type ViewMode = "dayGridMonth" | "timeGridWeek" | "listWeek";
 
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -58,8 +60,14 @@ export default function DrawerCalendario({
 
   const [events, setEvents] = useState<CalendarioEvento[]>([]);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<ViewMode>("dayGridMonth");
+  const isMobile = useIsMobile();
+  const [view, setView] = useState<ViewMode>(isMobile ? "listWeek" : "dayGridMonth"); // Default adaptable
   const [title, setTitle] = useState("");
+
+  // Force view change on mobile detect
+  useEffect(() => {
+     if(isMobile && view === 'dayGridMonth') setView('listWeek');
+  }, [isMobile]);
 
   function apiCalendar() {
     return calendarRef.current?.getApi();
@@ -146,6 +154,54 @@ export default function DrawerCalendario({
     syncTitle();
   }, []);
 
+  if (isMobile) {
+      return (
+        <div className="flex flex-col h-full bg-white">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b sticky top-0 bg-white z-20">
+             <div className="flex items-center gap-2">
+                 <div className="p-2 bg-indigo-50 rounded-lg">
+                     <CalendarIcon className="w-5 h-5 text-indigo-600" />
+                 </div>
+                 <span className="font-bold text-gray-900">{title || "Calendario"}</span>
+             </div>
+             
+             <div className="flex gap-2">
+                <button onClick={() => apiCalendar()?.prev()} className="p-2 hover:bg-gray-100 rounded-full"><ChevronLeft className="w-5 h-5" /></button>
+                <button onClick={() => apiCalendar()?.today()} className="px-3 py-1 bg-gray-100 rounded text-xs font-bold">Hoy</button>
+                <button onClick={() => apiCalendar()?.next()} className="p-2 hover:bg-gray-100 rounded-full"><ChevronRight className="w-5 h-5" /></button>
+             </div>
+          </div>
+
+          <div className="flex-1 relative overflow-auto">
+            {loading && (
+                 <div className="absolute inset-0 bg-white/60 z-10 grid place-items-center backdrop-blur-[1px]">
+                     <span className="text-xs font-medium text-gray-500">Cargando...</span>
+                 </div>
+            )}
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+              locale={esLocale}
+              initialView="listWeek"
+              headerToolbar={false}
+              events={fcEvents}
+              height="100%"
+              datesSet={(arg) => {
+                syncTitle();
+                load(arg.startStr.slice(0, 10), arg.endStr.slice(0, 10));
+              }}
+              dateClick={(arg) => onSelectDay(arg.dateStr.slice(0, 10))}
+              eventClick={(arg) => onSelectDay(arg.event.startStr.slice(0, 10))}
+              views={{
+                  listWeek: { titleFormat: { day: 'numeric', month: 'short' } }
+              }}
+            />
+          </div>
+        </div>
+      );
+  }
+
   return (
     <div className="fullscreen-page">
       <div className="p-3 space-y-3 shrink-0">
@@ -202,7 +258,7 @@ export default function DrawerCalendario({
 
         <FullCalendar
           ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
           locale={esLocale}
           initialView={view}
           headerToolbar={false}
