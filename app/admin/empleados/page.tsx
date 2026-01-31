@@ -328,7 +328,7 @@ export default function EmpleadosPage() {
                   >
                     {loadingInviteId === e.id
                       ? "Generando enlace..."
-                      : "Invitar / Reenviar"}
+                      : (!e.device_hash ? "Generar Invitación" : "Reenviar Invitación")}
                   </button>
 
                   <button

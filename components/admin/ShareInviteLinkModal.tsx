@@ -11,6 +11,7 @@ interface ShareInviteLinkModalProps {
     installUrl: string;
     expires_at: string;
     token: string;
+    code?: string;
     empleado: {
       nombre: string;
       email: string;
@@ -150,6 +151,32 @@ Si tienes problemas, contáctame.`;
               enlace caduca el <strong>{expiresFormatted}</strong>.
             </p>
           </div>
+
+          {inviteData.code && (
+             <div className="mb-6">
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                  Código de Activación Manual
+                </label>
+                <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-4 flex items-center justify-between">
+                   <div className="text-3xl font-mono font-bold text-indigo-700 tracking-[0.2em]">
+                      {inviteData.code}
+                   </div>
+                   <button
+                    onClick={() => {
+                        navigator.clipboard.writeText(inviteData.code!);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="p-2 text-indigo-600 hover:bg-indigo-100 rounded transition"
+                   >
+                     {copied ? <Check size={20} /> : <Copy size={20} />}
+                   </button>
+                </div>
+                <p className="text-xs text-neutral-500 mt-2">
+                   Envía este código al empleado. Deberá introducirlo en <strong className="text-indigo-600 font-mono">/activar</strong>
+                </p>
+             </div>
+          )}
 
           {/* Enlace */}
           <div>
