@@ -26,36 +26,42 @@ interface Asignacion {
 export default function PlaningsPage() {
   const [loading, setLoading] = useState(true);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
-  const [filtros, setFiltros] = useState({
-      estado: 'activos', // 'activos' | 'historial' | '' (todos)
-      busqueda: '',
-      empleado_id: ''
-  });
-
   // Drawer edición/creación
   const [showDrawer, setShowDrawer] = useState(false);
-  // ... (comments removed for brevity)
   
   // Estado para edición
   const [editingAsignacion, setEditingAsignacion] = useState<Asignacion | null>(null);
 
-  // Estado para empleados
+  // Estado para empleados y clientes
   const [empleados, setEmpleados] = useState<{ id: string; nombre: string }[]>([]);
+  const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([]);
+
+  const [filtros, setFiltros] = useState({
+      estado: 'activos', // 'activos' | 'historial' | '' (todos)
+      busqueda: '',
+      empleado_id: '',
+      cliente_id: '',
+      tipo: 'proyecto' // 'proyecto' (Default: Solo con Alias/Cliente) | 'horario' (Solo Plantilla base) | 'todos'
+  });
+
+  // ... (drawer states)
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [resAsig, resEmp] = await Promise.all([
+      const [resAsig, resEmp, resCli] = await Promise.all([
          api.get("/admin/plantillas/asignaciones", { 
              params: { 
                  estado: filtros.estado,
-                 empleado_id: filtros.empleado_id // Backend ya lo soporta o debería ignorarlo si es empty
+                 empleado_id: filtros.empleado_id
              } 
          }),
-         api.get("/employees")
+         api.get("/employees"),
+         api.get("/clients")
       ]);
       setAsignaciones(resAsig.data || []);
       setEmpleados(Array.isArray(resEmp.data) ? resEmp.data : []);
+      setClientes(Array.isArray(resCli.data) ? resCli.data : []);
     } catch (err) {
       console.error("Error cargando datos", err);
       showError("Error al cargar datos");
@@ -68,13 +74,29 @@ export default function PlaningsPage() {
     loadData();
   }, [filtros.estado, filtros.empleado_id]);
 
-  // Filtrado local por texto (nombre empleado, alias, cliente, plantilla)
+  // Filtrado local
   const filtered = asignaciones.filter(a => {
+      // 1. Filtro Tipo
+      if (filtros.tipo === 'proyecto') {
+          // Un "Planing/Proyecto" tiene Alias O Cliente asignado.
+          // Si solo es Plantilla base sin alias/cliente, es "Horario".
+          const esProyecto = !!a.alias || !!a.cliente_id;
+          if (!esProyecto) return false;
+      } else if (filtros.tipo === 'horario') {
+          const esProyecto = !!a.alias || !!a.cliente_id;
+          if (esProyecto) return false;
+      }
+
+      // 2. Filtro Cliente
+      if (filtros.cliente_id && a.cliente_id !== filtros.cliente_id) return false;
+
+      // 3. Busqueda Texto
       const search = filtros.busqueda.toLowerCase();
-      const matchEmpleado = (a.empleado_nombre || "Sin Asignar (Admin/Vacante)").toLowerCase().includes(search);
+      const matchEmpleado = (a.empleado_nombre || "Sin Asignar").toLowerCase().includes(search);
       const matchPlantilla = (a.plantilla_nombre || "").toLowerCase().includes(search);
       const matchCliente = (a.cliente_nombre || "").toLowerCase().includes(search);
       const matchAlias = (a.alias || "").toLowerCase().includes(search);
+      
       return matchEmpleado || matchPlantilla || matchCliente || matchAlias;
   });
 
@@ -122,47 +144,82 @@ export default function PlaningsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-4 items-end shrink-0">
+      {/* Tabs Principales: Planings vs Horarios */}
+      <div className="flex gap-4 mb-4 border-b">
+          <button 
+             className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors ${filtros.tipo === 'proyecto' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+             onClick={() => setFiltros({...filtros, tipo: 'proyecto'})}
+          >
+             🏗️ Planings de Obra
+          </button>
+          <button 
+             className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors ${filtros.tipo === 'horario' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+             onClick={() => setFiltros({...filtros, tipo: 'horario'})}
+          >
+             📅 Horarios Base
+          </button>
+          <button 
+             className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors ${filtros.tipo === 'todos' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+             onClick={() => setFiltros({...filtros, tipo: 'todos'})}
+          >
+             Ver Todo
+          </button>
+      </div>
+
+      <div className="flex flex-wrap gap-4 mb-4 items-end shrink-0 bg-gray-50 p-3 rounded-lg border">
+         {/* Filtro Cliente */}
+         <div className="form-control w-full max-w-xs">
+           <label className="label py-1"><span className="label-text text-xs font-semibold">Cliente / Obra</span></label>
+           <select 
+              className="select select-bordered select-sm w-full bg-white"
+              value={filtros.cliente_id}
+              onChange={(e) => setFiltros({...filtros, cliente_id: e.target.value})}
+           >
+              <option value="">-- Todos --</option>
+              {clientes.map(c => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+           </select>
+         </div>
+
          {/* Filtro Empleado */}
          <div className="form-control w-full max-w-xs">
            <label className="label py-1"><span className="label-text text-xs font-semibold">Empleado</span></label>
            <select 
-              className="select select-bordered select-sm w-full"
+              className="select select-bordered select-sm w-full bg-white"
               value={filtros.empleado_id}
               onChange={(e) => {
-                 // Si selecciono empleado, pongo estado en TODOS ("") por defecto si estaba en activos/historial
-                 // o lo dejamos. El usuario quiere VER todo. Poner "" en estado cargará todo.
                  setFiltros({
                    ...filtros, 
                    empleado_id: e.target.value,
-                   estado: e.target.value ? '' : 'activos' // Si borra empleado, volver a activos
+                   estado: e.target.value ? '' : 'activos' 
                  })
               }}
            >
-              <option value="">-- Todos los empleados --</option>
+              <option value="">-- Todos --</option>
               {empleados.map(emp => (
                 <option key={emp.id} value={emp.id}>{emp.nombre}</option>
               ))}
            </select>
          </div>
          
-         {/* Filtro Estado (oculto/opcional si hay empleado?) No, dejémoslo visible pero con opción "Todos" */}
-         <div className="flex items-center gap-2 border rounded p-1 bg-card self-end">
+         {/* Botones de Estado */}
+         <div className="flex items-center gap-1 border rounded p-1 bg-white ml-auto">
              <button 
-                className={`px-3 py-1 rounded text-sm ${filtros.estado === 'activos' ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted'}`}
+                className={`px-3 py-1 rounded text-xs font-medium uppercase tracking-wide ${filtros.estado === 'activos' ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100 text-gray-600'}`}
                 onClick={() => setFiltros({...filtros, estado: 'activos'})}
              >
                  Vigentes
              </button>
              <button 
-                className={`px-3 py-1 rounded text-sm ${filtros.estado === 'historial' ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted'}`}
+                className={`px-3 py-1 rounded text-xs font-medium uppercase tracking-wide ${filtros.estado === 'historial' ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100 text-gray-600'}`}
                 onClick={() => setFiltros({...filtros, estado: 'historial'})}
              >
                  Historial
              </button>
              {filtros.empleado_id && (
                <button 
-                  className={`px-3 py-1 rounded text-sm ${filtros.estado === '' ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted'}`}
+                  className={`px-3 py-1 rounded text-xs font-medium uppercase tracking-wide ${filtros.estado === '' ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100 text-gray-600'}`}
                   onClick={() => setFiltros({...filtros, estado: ''})}
                >
                    Todos
@@ -172,8 +229,8 @@ export default function PlaningsPage() {
 
          <input 
             type="text" 
-            placeholder="Buscar texto..." 
-            className="input input-sm border-gray-300 max-w-[200px] self-end"
+            placeholder="Buscar..." 
+            className="input input-sm border-gray-300 max-w-[150px] bg-white"
             value={filtros.busqueda}
             onChange={(e) => setFiltros({...filtros, busqueda: e.target.value})}
          />
