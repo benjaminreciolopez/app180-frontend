@@ -23,6 +23,7 @@ const COLOR_MAP: Record<string, string> = {
   vacaciones: "#f59e0b",
   baja_medica: "#2563eb",
   no_laborable: "#6b7280",
+  jornada_plan: "#6366f1", // Indigo para planificados
 };
 
 export default function EmpleadoCalendarioPage() {
@@ -42,16 +43,17 @@ export default function EmpleadoCalendarioPage() {
           title:
             e.tipo === "festivo"
               ? e.label || "Festivo"
+              : e.tipo === "jornada_plan"
+              ? e.title || "Turno"
               : `${e.tipo.replace("_", " ")}${
                   e.estado ? ` (${e.estado})` : ""
                 }`,
-          start: e.fecha_inicio || e.fecha,
-          end: e.fecha_fin
-            ? new Date(new Date(e.fecha_fin).getTime() + 86400000).toISOString()
-            : undefined,
-          allDay: true,
+          start: e.start,
+          end: e.end,
+          allDay: !!e.allDay,
           backgroundColor: color,
           borderColor: color,
+          extendedProps: { ...e },
         };
       });
 
