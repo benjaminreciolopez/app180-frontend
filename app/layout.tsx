@@ -23,6 +23,8 @@ export default function RootLayout({
           {children}
           <ToastProvider />
         </ThemeProvider>
+        {/* Portal container para evitar conflictos con aria-hidden */}
+        <div id="portal-root" />
       </body>
     </html>
   );

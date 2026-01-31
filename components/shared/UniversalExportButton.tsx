@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download, FileText, Table, FileCode, Loader2 } from "lucide-react";
-import { 
-    Select, 
-    SelectContent, 
-    SelectItem, 
-    SelectTrigger, 
-    SelectValue 
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
 } from "../ui/select";
 import { showSuccess, showError } from "@/lib/toast";
 import { api } from "@/services/api";
@@ -19,14 +19,21 @@ interface UniversalExportButtonProps {
     className?: string;
 }
 
-export const UniversalExportButton = ({ 
-    module, 
-    queryParams, 
+export const UniversalExportButton = ({
+    module,
+    queryParams,
     label = "Exportar",
-    className = "" 
+    className = ""
 }: UniversalExportButtonProps) => {
     const [loading, setLoading] = useState(false);
     const [value, setValue] = useState<string>("");
+    const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+
+    useEffect(() => {
+        // Usar portal-root si está disponible, si no usar body
+        const container = document.getElementById('portal-root');
+        setPortalContainer(container || document.body);
+    }, []);
 
     const handleExport = async (format: string) => {
         if (!format) {
@@ -109,7 +116,13 @@ export const UniversalExportButton = ({
                         </span>
                     </div>
                 </SelectTrigger>
-                <SelectContent className="z-[100] bg-white">
+                <SelectContent
+                    className="z-[9999] bg-white"
+                    position="popper"
+                    sideOffset={5}
+                    align="start"
+                    container={portalContainer}
+                >
                     <SelectItem value="pdf" className="cursor-pointer py-2 hover:bg-red-50">
                         <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-red-500" />
