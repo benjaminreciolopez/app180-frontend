@@ -59,6 +59,11 @@ export default function DrawerCrearPlaningAdmin({
       return;
     }
 
+    if (fechaFin && new Date(fechaFin) < new Date(fechaInicio)) {
+      showError("La fecha de fin no puede ser anterior a la de inicio");
+      return;
+    }
+
     setSaving(true);
     try {
       await api.post("/admin/plantillas/asignar", {
