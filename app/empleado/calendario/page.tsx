@@ -83,7 +83,21 @@ export default function EmpleadoCalendarioPage() {
         </p>
       </div>
 
-      <div className="flex-1 bg-white md:border md:rounded-xl overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white md:border md:rounded-xl overflow-hidden flex flex-col relative">
+        <button 
+           onClick={() => {
+             if(confirm("¿Cerrar sesión?")) {
+               window.location.href = "/login";
+               document.cookie = "token=; Max-Age=0; path=/;";
+               localStorage.removeItem("token");
+               localStorage.removeItem("user_180");
+             }
+           }}
+           className="absolute top-2 right-14 z-10 bg-white/90 border border-gray-200 text-red-500 p-1.5 rounded-lg shadow-sm hover:bg-red-50 text-xs font-bold uppercase tracking-wider md:hidden"
+        >
+           Salir
+        </button>
+
         <FullCalendar
           plugins={[
             dayGridPlugin,
