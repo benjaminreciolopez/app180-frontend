@@ -8,7 +8,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import esLocale from "@fullcalendar/core/locales/es";
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Plus, Calendar, Clock, UserCheck } from "lucide-react";
 
 import { api } from "@/services/api";
 import { colorFor } from "@/components/empleado/calendarioColors";
@@ -25,6 +25,7 @@ import DrawerCrearPlaningAdmin from "@/components/admin/drawer/DrawerCrearPlanin
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { EventoAdmin } from "@/types/ausencias";
 import type { CalendarioIntegradoEvento } from "@/types/calendario";
+
 type Session = {
   modulos: Record<string, boolean>;
 };
@@ -60,67 +61,28 @@ function addOneDayYMD(ymd: string) {
   return d.toISOString().slice(0, 10);
 }
 
-/**
- * Parsea fechas "all-day" de forma robusta:
- * - Si viene YYYY-MM-DD => ok.
- * - Si viene algo tipo "Sun Feb 08" / "Thu Jan 01" (sin año) => inyecta el año del rango (desdeYear).
- * - Si viene datetime ISO => recorta a YYYY-MM-DD.
- */
 function toAllDayYMD(value: string | Date, desdeYear: string) {
   const raw = String(value).trim();
-
-  // YYYY-MM-DD
   if (isISODate(raw)) return raw;
-
-  // datetime ISO -> YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return raw.slice(0, 10);
-
-  // "Sun Feb 08" / "Thu Jan 01" (sin año) -> inyecta año del rango
-  // Nota: new Date("Sun Feb 08 2026") ya incluye año y no cae en 2001
   const injected = `${raw} ${desdeYear}`;
   const d = new Date(injected);
   if (!isNaN(d.getTime())) return ymdFromDate(d);
-
-  // fallback conservador
   return raw.slice(0, 10);
 }
 
-/**
- * Normaliza evento para FullCalendar.
- * Reglas:
- * - allDay: start/end en YYYY-MM-DD (end exclusivo garantizado)
- * - timed: respetar datetimes (no convertir a YYYY-MM-DD)
- */
 function normalizeIntegratedForFC(
   e: CalendarioIntegradoEvento,
   desdeYear: string,
 ): CalendarioIntegradoEvento {
   const isAllDay = Boolean(e.allDay);
-
   if (isAllDay) {
     const start = toAllDayYMD(e.start, desdeYear);
     let end = e.end ? toAllDayYMD(e.end, desdeYear) : null;
-
-    // Si end falta o viene igual que start, lo convertimos a end exclusivo +1 día
     if (!end || end === start) end = addOneDayYMD(start);
-
-    return {
-      ...e,
-      id: String(e.id),
-      allDay: true,
-      start,
-      end,
-    };
+    return { ...e, id: String(e.id), allDay: true, start, end };
   }
-
-  // timed events: no tocar TZ ni recortar
-  return {
-    ...e,
-    id: String(e.id),
-    allDay: false,
-    start: String(e.start),
-    end: e.end ? String(e.end) : null,
-  };
+  return { ...e, id: String(e.id), allDay: false, start: String(e.start), end: e.end ? String(e.end) : null };
 }
 
 function colorForIntegrado(ev: CalendarioIntegradoEvento) {
@@ -128,49 +90,88 @@ function colorForIntegrado(ev: CalendarioIntegradoEvento) {
     const ausTipo = ev?.meta?.ausencia_tipo || "vacaciones";
     return colorFor(ausTipo, (ev.estado as any) || "aprobado");
   }
-
   if (ev.tipo === "jornada_real") {
     const wc = Number(ev?.meta?.warn_count || 0);
     if (wc >= 2) return colorFor("fichaje", "rechazado");
     if (wc >= 1) return colorFor("fichaje", "pendiente");
     return colorFor("fichaje", "aprobado");
   }
-
   if (ev.tipo === "jornada_plan") return "#9CA3AF";
-
   if (ev.tipo === "calendario_empresa" || ev.tipo === "no_laborable") {
     const calTipo = ev.meta?.cal_tipo || "festivo";
     return colorFor(calTipo, "aprobado");
   }
-
   return "#6B7280";
 }
 
-// Prioridad para resolver duplicados semánticos
+const GOOGLE_CAL_CSS = `
+  .fc-theme-standard td, .fc-theme-standard th {
+    border: 1px solid #e5e7eb !important;
+  }
+  .fc .fc-daygrid-day-top {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 4px;
+  }
+  .fc .fc-daygrid-day-number {
+    padding: 0 !important;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    color: #3c4043;
+    text-decoration: none !important;
+  }
+  .fc-day-today {
+    background-color: transparent !important;
+  }
+  .fc-day-today .fc-daygrid-day-number {
+    background-color: #1a73e8;
+    color: white !important;
+    border-radius: 50%;
+  }
+  .fc-col-header-cell {
+    padding: 8px 0 !important;
+    background: white;
+    font-weight: 500 !important;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: #70757a;
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+  .fc .fc-daygrid-event-harness {
+    margin-top: 1px !important;
+  }
+  .fc-h-event {
+    border: none !important;
+    padding: 2px 4px !important;
+    font-size: 11px !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+  }
+  .fc-daygrid-more-link {
+    font-size: 11px !important;
+    font-weight: bold !important;
+    color: #3c4043 !important;
+  }
+`;
+
 function priorityFor(ev: CalendarioIntegradoEvento) {
   switch (ev.tipo) {
-    case "ausencia":
-      return 100;
-    case "jornada_real":
-      return 80;
-    case "jornada_plan":
-      return 60;
-    case "no_laborable":
-      return 40;
-    case "calendario_empresa":
-      return 30;
-    default:
-      return 10;
+    case "ausencia": return 100;
+    case "jornada_real": return 80;
+    case "jornada_plan": return 60;
+    case "no_laborable": return 40;
+    case "calendario_empresa": return 30;
+    default: return 10;
   }
 }
 
-/**
- * Key semántica:
- * - allDay => por día (start), tipo, empleado (si aplica) y title
- * - timed => por start completo, tipo, empleado y title
- *
- * Esto elimina duplicados provenientes de distintas fuentes con ids distintos.
- */
 function semanticKey(ev: CalendarioIntegradoEvento) {
   const empleado = ev.empleado_id || "";
   const baseDate = ev.allDay ? String(ev.start).slice(0, 10) : String(ev.start);
@@ -179,22 +180,13 @@ function semanticKey(ev: CalendarioIntegradoEvento) {
   return `${tipo}|${empleado}|${baseDate}|${title}`;
 }
 
-// Drawer genérico informativo
-function DrawerInfoEventoAdmin({
-  evento,
-  onClose,
-}: {
-  evento: CalendarioIntegradoEvento;
-  onClose: () => void;
-}) {
+function DrawerInfoEventoAdmin({ evento, onClose }: { evento: CalendarioIntegradoEvento; onClose: () => void; }) {
   return (
     <div className="p-4 space-y-3">
       <div className="text-sm text-gray-500">Tipo</div>
       <div className="text-base font-semibold">{evento.tipo}</div>
-
       <div className="text-sm text-gray-500">Título</div>
       <div className="text-base">{evento.title}</div>
-
       <div className="grid grid-cols-2 gap-3">
         <div>
           <div className="text-sm text-gray-500">Inicio</div>
@@ -205,36 +197,10 @@ function DrawerInfoEventoAdmin({
           <div className="text-sm">{evento.end ? String(evento.end) : "-"}</div>
         </div>
       </div>
-
       {evento.empleado_nombre && (
-        <>
-          <div className="text-sm text-gray-500">Empleado</div>
-          <div className="text-sm">{evento.empleado_nombre}</div>
-        </>
+        <><div className="text-sm text-gray-500">Empleado</div><div className="text-sm">{evento.empleado_nombre}</div></>
       )}
-
-      {evento.estado && (
-        <>
-          <div className="text-sm text-gray-500">Estado</div>
-          <div className="text-sm">{evento.estado}</div>
-        </>
-      )}
-
-      {evento?.meta && (
-        <>
-          <div className="text-sm text-gray-500">Meta</div>
-          <pre className="text-xs bg-gray-50 border rounded-xl p-3 overflow-auto">
-            {JSON.stringify(evento.meta, null, 2)}
-          </pre>
-        </>
-      )}
-
-      <button
-        onClick={onClose}
-        className="w-full py-3 rounded-xl border text-sm font-semibold"
-      >
-        Cerrar
-      </button>
+      <button onClick={onClose} className="w-full py-3 rounded-xl border text-sm font-semibold mt-4">Cerrar</button>
     </div>
   );
 }
@@ -245,22 +211,13 @@ export default function AdminCalendarioBase() {
 
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [empleadoActivo, setEmpleadoActivo] = useState<string>("");
-
   const [events, setEvents] = useState<CalendarioIntegradoEvento[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [view, setView] = useState<ViewMode>("dayGridMonth");
   const [title, setTitle] = useState("");
-
-  const [estadoFiltro, setEstadoFiltro] = useState<
-    "todos" | "pendiente" | "aprobado" | "rechazado"
-  >("todos");
-
+  const [estadoFiltro, setEstadoFiltro] = useState<"todos" | "pendiente" | "aprobado" | "rechazado">("todos");
   const [openDayYmd, setOpenDayYmd] = useState<string | null>(null);
-  const [selected, setSelected] = useState<CalendarioIntegradoEvento | null>(
-    null,
-  );
-
+  const [selected, setSelected] = useState<CalendarioIntegradoEvento | null>(null);
   const [openPendientes, setOpenPendientes] = useState(false);
   const [openCrear, setOpenCrear] = useState(false);
   const [openCrearPlaning, setOpenCrearPlaning] = useState(false);
@@ -270,165 +227,96 @@ export default function AdminCalendarioBase() {
     try {
       const raw = localStorage.getItem("user");
       if (!raw) return;
-
       const u = JSON.parse(raw);
-
-      setSession({
-        modulos: u.modulos || {},
-      });
+      setSession({ modulos: u.modulos || {} });
     } catch {}
   }
 
-  function apiCalendar() {
-    return calendarRef.current?.getApi();
-  }
-
-  function syncTitle() {
-    const api = apiCalendar();
-    if (!api) return;
-    setTitle(cap(api.view.title));
-  }
+  function apiCalendar() { return calendarRef.current?.getApi(); }
+  function syncTitle() { const api = apiCalendar(); if (api) setTitle(cap(api.view.title)); }
 
   async function loadEmpleados() {
     try {
       const res = await api.get("/employees");
       setEmpleados(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      setEmpleados([]);
-    }
+    } catch { setEmpleados([]); }
   }
 
   async function loadEventsForCurrentView() {
     const apiCal = apiCalendar();
     if (!apiCal) return;
-
     const desde = ymdFromDate(apiCal.view.activeStart);
     const hasta = ymdFromDate(apiCal.view.activeEnd);
     const desdeYear = String(desde).slice(0, 4);
-
     setLoading(true);
-
     try {
       const res = await api.get("/admin/calendario/integrado", {
         params: {
-          desde,
-          hasta,
+          desde, hasta,
           empleado_id: empleadoActivo || undefined,
           include_real: hasModule("fichajes") ? 1 : 0,
-          include_plan: empleadoActivo && hasModule("empleados") ? 1 : 0,
+          include_plan: hasModule("empleados") ? 1 : 0,
           include_ausencias: hasModule("ausencias") ? 1 : 0,
         },
       });
-
-      const arr: CalendarioIntegradoEvento[] = Array.isArray(res.data)
-        ? res.data
-        : [];
-
+      const arr: CalendarioIntegradoEvento[] = Array.isArray(res.data) ? res.data : [];
       const normalized = arr.map((e) => normalizeIntegratedForFC(e, desdeYear));
-
-      // Dedupe semántico con prioridad
       const map = new Map<string, CalendarioIntegradoEvento>();
       for (const ev of normalized) {
         const key = semanticKey(ev);
         const prev = map.get(key);
-        if (!prev || priorityFor(ev) > priorityFor(prev)) {
-          map.set(key, ev);
-        }
+        if (!prev || priorityFor(ev) > priorityFor(prev)) map.set(key, ev);
       }
-
-      const deduped = Array.from(map.values());
-
-      // Debug
-      // console.log("EVENTOS NORMALIZADOS+DEDUP:", deduped);
-
-      setEvents(deduped);
-    } catch (e) {
-      console.error("Error cargando calendario integrado admin", e);
-      setEvents([]);
-    } finally {
-      setLoading(false);
-    }
+      setEvents(Array.from(map.values()));
+    } catch (e) { setEvents([]); } finally { setLoading(false); }
   }
+
   useEffect(() => {
     loadSession();
-
-    function onSessionUpdated() {
-      loadSession();
-    }
-
+    const onSessionUpdated = () => loadSession();
     window.addEventListener("session-updated", onSessionUpdated);
-
-    return () => {
-      window.removeEventListener("session-updated", onSessionUpdated);
-    };
+    return () => window.removeEventListener("session-updated", onSessionUpdated);
   }, []);
 
   function hasModule(name: string) {
-    if (!session) return true; // mientras carga, no bloquees
+    if (!session) return true;
     return session.modulos?.[name] !== false;
   }
 
-  // =========================
-  // Effects
-  // =========================
-
   useEffect(() => {
-    if (hasModule("empleados")) {
-      loadEmpleados();
-    } else {
-      setEmpleados([]);
-      setEmpleadoActivo("");
-    }
+    if (hasModule("empleados")) loadEmpleados();
+    else { setEmpleados([]); setEmpleadoActivo(""); }
   }, [session]);
 
   useEffect(() => {
     if (calendarRef.current) loadEventsForCurrentView();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empleadoActivo, estadoFiltro]);
 
   useEffect(() => {
     const t = setTimeout(() => {
-      if (calendarRef.current) {
-        syncTitle();
-        loadEventsForCurrentView();
-      }
+      if (calendarRef.current) { syncTitle(); loadEventsForCurrentView(); }
     }, 0);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // =========================
-  // Derived (filtro)
-  // =========================
 
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
       if (e.tipo === "ausencia" && !hasModule("ausencias")) return false;
       if (e.tipo === "jornada_real" && !hasModule("fichajes")) return false;
       if (e.tipo === "jornada_plan" && !hasModule("empleados")) return false;
-
-      if (estadoFiltro !== "todos" && e.tipo === "ausencia") {
-        return e.estado === estadoFiltro;
-      }
-
+      if (estadoFiltro !== "todos" && e.tipo === "ausencia") return e.estado === estadoFiltro;
       return true;
     });
   }, [events, estadoFiltro, session]);
 
-  // =========================
-  // FullCalendar events (pintado)
-  // =========================
-
   const fcEvents = useMemo(() => {
     return filteredEvents.map((e) => {
       const col = colorForIntegrado(e);
-      const end = e.end ?? undefined;
-
       return {
         id: String(e.id),
         title: e.title,
         start: e.start,
-        end,
+        end: e.end ?? undefined,
         allDay: Boolean(e.allDay),
         backgroundColor: col,
         borderColor: col,
@@ -438,182 +326,156 @@ export default function AdminCalendarioBase() {
     });
   }, [filteredEvents]);
 
-  // =========================
-  // Navigation / view
-  // =========================
+  function goPrev() { apiCalendar()?.prev(); syncTitle(); loadEventsForCurrentView(); }
+  function goNext() { apiCalendar()?.next(); syncTitle(); loadEventsForCurrentView(); }
+  function changeView(v: ViewMode) { setView(v); apiCalendar()?.changeView(v); syncTitle(); loadEventsForCurrentView(); }
+  function handleDateClick(info: any) { const ymd = String(info?.dateStr || "").slice(0, 10); if (ymd) { setOpenDayYmd(ymd); setSelected(null); } }
+  function handleEventClick(info: any) { const start: Date | null = info?.event?.start || null; if (start) { setOpenDayYmd(ymdFromDate(start)); } }
 
-  function goPrev() {
-    apiCalendar()?.prev();
-    syncTitle();
-    loadEventsForCurrentView();
-  }
+  const FiltersSidebar = (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <button
+          onClick={() => { setOpenDayYmd(ymdFromDate(new Date())); setOpenCrearPlaning(true); }}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-full shadow-sm hover:shadow-md transition-shadow text-sm font-medium text-gray-700"
+        >
+          <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+            <Calendar size={18} />
+          </div>
+          Crear Planing
+        </button>
 
-  function goNext() {
-    apiCalendar()?.next();
-    syncTitle();
-    loadEventsForCurrentView();
-  }
+        {hasModule("ausencias") && (
+          <button
+            onClick={() => setOpenCrear(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-full shadow-sm hover:shadow-md transition-shadow text-sm font-medium text-gray-700 font-medium"
+          >
+            <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600">
+               <Clock size={18} />
+            </div>
+            Ausencia
+          </button>
+        )}
+      </div>
 
-  function changeView(v: ViewMode) {
-    setView(v);
-    apiCalendar()?.changeView(v);
-    syncTitle();
-    loadEventsForCurrentView();
-  }
-
-  // =========================
-  // Clicks
-  // =========================
-
-  function openDay(ymd: string) {
-    setSelected(null);
-    setOpenDayYmd(ymd);
-  }
-
-  function handleDateClick(info: any) {
-    const ymd = String(info?.dateStr || "").slice(0, 10);
-    if (!ymd) return;
-    openDay(ymd);
-  }
-
-  function handleEventClick(info: any) {
-    const start: Date | null = info?.event?.start || null;
-    if (!start) return;
-    openDay(ymdFromDate(start));
-  }
-
-  // =========================
-  // Filters UI
-  // =========================
-
-  const Filters = (
-    <div className="space-y-3 px-3 pt-3">
       {hasModule("empleados") && (
-        <div className="bg-white border rounded-2xl px-3 py-3">
-          <label className="block text-[12px] mb-1">Empleado</label>
-          <select
-            value={empleadoActivo}
-            onChange={(e) => setEmpleadoActivo(e.target.value)}
-            className="w-full text-sm"
-          >
-            <option value="">Todos los empleados</option>
-            {empleados.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.nombre}
-              </option>
-            ))}
-          </select>
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2">Visualización</label>
+          <div className="space-y-1">
+            <button
+               onClick={() => setEmpleadoActivo("")}
+               className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors flex items-center gap-2 ${
+                 empleadoActivo === "" ? "bg-indigo-50 text-indigo-700 font-semibold" : "hover:bg-gray-100 text-gray-600"
+               }`}
+            >
+              <UserCheck size={16} />
+              Todos los empleados
+            </button>
+            <div className="max-h-[300px] overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
+              {empleados.map((e) => (
+                <button
+                  key={e.id}
+                  onClick={() => setEmpleadoActivo(e.id)}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2 ${
+                    empleadoActivo === e.id ? "bg-indigo-50 text-indigo-700 font-semibold" : "hover:bg-gray-50 text-gray-600"
+                  }`}
+                >
+                  <div className={`w-1.5 h-1.5 rounded-full ${empleadoActivo === e.id ? "bg-indigo-600" : "bg-gray-300"}`} />
+                  {e.nombre}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
+
       {hasModule("ausencias") && (
-        <div className="bg-white border rounded-2xl px-3 py-3">
-          <label className="block text-[12px] mb-1">
-            Estado (solo ausencias)
-          </label>
-          <select
-            value={estadoFiltro}
-            onChange={(e) => setEstadoFiltro(e.target.value as any)}
-            className="w-full text-sm"
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2">Filtrar Ausencias</label>
+          <div className="grid grid-cols-1 gap-1">
+            {["todos", "pendiente", "aprobado", "rechazado"].map((est) => (
+               <button
+                 key={est}
+                 onClick={() => setEstadoFiltro(est as any)}
+                 className={`text-left px-3 py-1.5 rounded-lg text-sm transition-colors capitalize ${
+                   estadoFiltro === est ? "bg-gray-100 text-gray-900 font-semibold" : "hover:bg-gray-50 text-gray-600"
+                 }`}
+               >
+                 {est}
+               </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setOpenPendientes(true)}
+            className="w-full mt-2 py-2.5 rounded-xl border border-dashed border-gray-200 text-gray-400 text-xs font-medium hover:border-gray-300 hover:text-gray-500 transition-colors"
           >
-            <option value="todos">Todos</option>
-            <option value="pendiente">Pendientes</option>
-            <option value="aprobado">Aprobados</option>
-            <option value="rechazado">Rechazados</option>
-          </select>
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setOpenCrear(true)}
-              className="py-3 rounded-xl bg-black text-white text-sm font-semibold"
-            >
-              + Crear
-            </button>
-            <button
-              onClick={() => setOpenPendientes(true)}
-              className="py-3 rounded-xl border text-sm font-semibold"
-            >
-              Pendientes
-            </button>
-          </div>
-
-          <div className="mt-2">
-            <button
-               onClick={() => {
-                 setOpenDayYmd(new Date().toISOString().slice(0, 10));
-                 setOpenCrearPlaning(true);
-               }}
-               className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold"
-             >
-               + Crear Planing
-             </button>
-          </div>
+            Ver Pendientes
+          </button>
         </div>
       )}
+
       <button
         onClick={loadEventsForCurrentView}
-        className="w-full py-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2"
+        className="w-full py-2.5 text-[11px] text-gray-400 flex items-center justify-center gap-2 hover:text-gray-600 transition-colors"
       >
-        <RefreshCw size={16} />
-        Recargar
+        <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+        Actualizar calendario
       </button>
     </div>
   );
 
   const CalendarControls = (
-    <div className="px-3 py-3 border-b bg-background">
-      <div className="flex flex-col gap-2">
-        <div className="text-sm font-semibold truncate">{title}</div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-full border overflow-hidden text-[13px] font-medium">
-            <button
-              onClick={() => changeView("dayGridMonth")}
-              className={`px-3 py-1.5 ${
-                view === "dayGridMonth" ? "bg-black text-white" : "bg-white"
-              }`}
-            >
-              Mes
-            </button>
-            <button
-              onClick={() => changeView("timeGridWeek")}
-              className={`px-3 py-1.5 ${
-                view === "timeGridWeek" ? "bg-black text-white" : "bg-white"
-              }`}
-            >
-              Semana
-            </button>
-          </div>
-
-          <button onClick={goPrev} className="w-9 h-9 grid place-items-center">
-            <ChevronLeft size={18} />
+    <div className="px-5 py-3 flex items-center justify-between bg-white border-b">
+      <div className="flex items-center gap-6">
+        <div className="text-xl font-semibold text-gray-800 min-w-[180px]">{title}</div>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => { apiCalendar()?.today(); syncTitle(); loadEventsForCurrentView(); }}
+            className="px-4 py-1.5 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors mr-2"
+          >
+            Hoy
           </button>
-          <button onClick={goNext} className="w-9 h-9 grid place-items-center">
-            <ChevronRight size={18} />
+          <button onClick={goPrev} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
+            <ChevronLeft size={20} />
+          </button>
+          <button onClick={goNext} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
+            <ChevronRight size={20} />
           </button>
         </div>
+      </div>
+      <div className="flex rounded-lg border border-gray-200 p-1 bg-gray-50/50">
+        <button
+          onClick={() => changeView("dayGridMonth")}
+          className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
+            view === "dayGridMonth" ? "bg-white text-gray-900 shadow-sm border border-gray-100" : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Mes
+        </button>
+        <button
+          onClick={() => changeView("timeGridWeek")}
+          className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
+            view === "timeGridWeek" ? "bg-white text-gray-900 shadow-sm border border-gray-100" : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Semana
+        </button>
       </div>
     </div>
   );
 
-  // =========================
-  // MOBILE
-  // =========================
   if (isMobile) {
     return (
-      <div className="fullscreen-page w-full max-w-full overflow-x-hidden">
-        <div className="w-full max-w-full overflow-x-hidden">
-          <CalendarioLegend />
-          {CalendarControls}
-          {Filters}
+      <div className="fullscreen-page w-full max-w-full overflow-x-hidden pt-4 bg-white">
+        <div className="px-4 mb-4">
+           <CalendarioLegend />
         </div>
-
-        <div className="fullscreen-content relative w-full max-w-full overflow-x-hidden">
-          {loading && (
-            <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">
-              Cargando calendario…
-            </div>
-          )}
-
+        <div className="px-4 pb-4 border-b">
+           <div className="text-xl font-bold text-gray-900">{title}</div>
+           <div className="mt-4">{FiltersSidebar}</div>
+        </div>
+        <div className="fullscreen-content relative w-full h-[500px]">
+          {loading && <div className="absolute inset-0 bg-white/70 z-50 grid place-items-center text-sm">Cargando...</div>}
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -622,395 +484,153 @@ export default function AdminCalendarioBase() {
             headerToolbar={false}
             events={fcEvents as any}
             height="100%"
-            contentHeight="100%"
             expandRows
-            handleWindowResize
-            datesSet={() => {
-              syncTitle();
-              loadEventsForCurrentView();
-            }}
+            datesSet={() => { syncTitle(); loadEventsForCurrentView(); }}
             eventDisplay="block"
             dayMaxEvents={true}
             dateClick={handleDateClick}
             eventClick={handleEventClick}
-            eventContent={(arg) => {
-              return (
-                <div style={{ pointerEvents: "none" }}>{arg.event.title}</div>
-              );
-            }}
           />
         </div>
 
-        {/* Detalle día */}
         {openDayYmd && (
-          <IOSDrawer
-            open
-            onClose={() => setOpenDayYmd(null)}
-            header={{
-              title: "Detalle del día",
-              canGoBack: true,
-              onBack: () => setOpenDayYmd(null),
-              onClose: () => setOpenDayYmd(null),
-            }}
-          >
-            <DrawerDiaDetalleAdmin
-              ymd={openDayYmd}
-              allEvents={filteredEvents}
-              onSelectEvent={(ev) => setSelected(ev)}
-              onCreatePlaning={() => setOpenCrearPlaning(true)}
-              onClose={() => setOpenDayYmd(null)}
-            />
+          <IOSDrawer open onClose={() => setOpenDayYmd(null)} header={{ title: "Detalle del día", canGoBack: true, onBack: () => setOpenDayYmd(null), onClose: () => setOpenDayYmd(null) }}>
+            <DrawerDiaDetalleAdmin ymd={openDayYmd} allEvents={filteredEvents} onSelectEvent={(ev) => setSelected(ev)} onCreatePlaning={() => setOpenCrearPlaning(true)} onClose={() => setOpenDayYmd(null)} />
           </IOSDrawer>
         )}
 
-        {/* Detalle ausencia */}
-        {hasModule("ausencias") && selected && selected.tipo === "ausencia" && (
-          <IOSDrawer
-            open
-            onClose={() => setSelected(null)}
-            header={{
-              title: "Detalle de ausencia",
-              canGoBack: true,
-              onBack: () => setSelected(null),
-              onClose: () => setSelected(null),
-            }}
-          >
-            <DrawerDetalleAusenciaAdmin
-              evento={selected as any as EventoAdmin}
-              onClose={() => setSelected(null)}
-              onUpdated={() => {
-                setSelected(null);
-                loadEventsForCurrentView();
-              }}
-            />
-          </IOSDrawer>
+        {selected && selected.tipo === "ausencia" && (
+           <IOSDrawer open onClose={() => setSelected(null)} header={{ title: "Detalle ausencia", canGoBack: true, onBack: () => setSelected(null), onClose: () => setSelected(null) }}>
+             <DrawerDetalleAusenciaAdmin evento={selected as any as EventoAdmin} onClose={() => setSelected(null)} onUpdated={() => { setSelected(null); loadEventsForCurrentView(); }} />
+           </IOSDrawer>
         )}
 
-        {/* Detalle jornada */}
-        {hasModule("fichajes") &&
-          selected &&
-          selected.tipo === "jornada_real" && (
-            <IOSDrawer
-              open
-              onClose={() => setSelected(null)}
-              header={{
-                title: "Detalle de jornada",
-                canGoBack: true,
-                onBack: () => setSelected(null),
-                onClose: () => setSelected(null),
-              }}
-            >
-              <DrawerDetalleJornadaAdmin
-                jornadaId={selected.meta?.jornada_id}
-                onClose={() => setSelected(null)}
-              />
-            </IOSDrawer>
-          )}
-
-        {/* Detalle genérico */}
-        {selected &&
-          selected.tipo !== "ausencia" &&
-          selected.tipo !== "jornada_real" && (
-            <IOSDrawer
-              open
-              onClose={() => setSelected(null)}
-              header={{
-                title: "Detalle",
-                canGoBack: true,
-                onBack: () => setSelected(null),
-                onClose: () => setSelected(null),
-              }}
-            >
-              <DrawerInfoEventoAdmin
-                evento={selected}
-                onClose={() => setSelected(null)}
-              />
-            </IOSDrawer>
-          )}
-
-        {/* Pendientes */}
-        {hasModule("ausencias") && openPendientes && (
-          <IOSDrawer
-            open
-            onClose={() => setOpenPendientes(false)}
-            header={{
-              title: "Pendientes",
-              canGoBack: true,
-              onBack: () => setOpenPendientes(false),
-              onClose: () => setOpenPendientes(false),
-            }}
-          >
-            <DrawerPendientesAdmin
-              onClose={() => setOpenPendientes(false)}
-              onUpdated={() => loadEventsForCurrentView()}
-              onOpenDetalle={(p) => {
-                console.log("Pendiente detalle:", p);
-              }}
-            />
-          </IOSDrawer>
+        {selected && selected.tipo === "jornada_real" && (
+           <IOSDrawer open onClose={() => setSelected(null)} header={{ title: "Detalle jornada", canGoBack: true, onBack: () => setSelected(null), onClose: () => setSelected(null) }}>
+             <DrawerDetalleJornadaAdmin jornadaId={selected.meta?.jornada_id} onClose={() => setSelected(null)} />
+           </IOSDrawer>
         )}
 
-        {/* Crear ausencia */}
-        {hasModule("ausencias") && openCrear && (
-          <IOSDrawer
-            open
-            onClose={() => setOpenCrear(false)}
-            header={{
-              title: "Crear ausencia",
-              canGoBack: true,
-              onBack: () => setOpenCrear(false),
-              onClose: () => setOpenCrear(false),
-            }}
-          >
-            <DrawerCrearAusenciaAdmin
-              empleados={empleados}
-              empleadoDefaultId={empleadoActivo || undefined}
-              onClose={() => setOpenCrear(false)}
-              onCreated={() => loadEventsForCurrentView()}
-            />
-          </IOSDrawer>
+        {selected && selected.tipo !== "ausencia" && selected.tipo !== "jornada_real" && (
+           <IOSDrawer open onClose={() => setSelected(null)} header={{ title: "Detalle", canGoBack: true, onBack: () => setSelected(null), onClose: () => setSelected(null) }}>
+             <DrawerInfoEventoAdmin evento={selected} onClose={() => setSelected(null)} />
+           </IOSDrawer>
         )}
 
-        {/* Crear planing */}
+        {openPendientes && (
+           <IOSDrawer open onClose={() => setOpenPendientes(false)} header={{ title: "Pendientes", canGoBack: true, onBack: () => setOpenPendientes(false), onClose: () => setOpenPendientes(false) }}>
+             <DrawerPendientesAdmin onClose={() => setOpenPendientes(false)} onUpdated={() => loadEventsForCurrentView()} onOpenDetalle={() => {}} />
+           </IOSDrawer>
+        )}
+
+        {openCrear && (
+           <IOSDrawer open onClose={() => setOpenCrear(false)} header={{ title: "Crear ausencia", canGoBack: true, onBack: () => setOpenCrear(false), onClose: () => setOpenCrear(false) }}>
+             <DrawerCrearAusenciaAdmin empleados={empleados} empleadoDefaultId={empleadoActivo || undefined} onClose={() => setOpenCrear(false)} onCreated={() => loadEventsForCurrentView()} />
+           </IOSDrawer>
+        )}
+
         {openCrearPlaning && (
-          <IOSDrawer
-            open
-            onClose={() => setOpenCrearPlaning(false)}
-            header={{
-              title: "Asignar Planing",
-              canGoBack: true,
-              onBack: () => setOpenCrearPlaning(false),
-              onClose: () => setOpenCrearPlaning(false),
-            }}
-          >
-            <DrawerCrearPlaningAdmin
-              fechaDefault={openDayYmd || undefined}
-              empleadoDefaultId={empleadoActivo || undefined}
-              empleados={empleados}
-              onClose={() => setOpenCrearPlaning(false)}
-              onCreated={() => loadEventsForCurrentView()}
-            />
-          </IOSDrawer>
+           <IOSDrawer open onClose={() => setOpenCrearPlaning(false)} header={{ title: "Asignar Planing", canGoBack: true, onBack: () => setOpenCrearPlaning(false), onClose: () => setOpenCrearPlaning(false) }}>
+             <DrawerCrearPlaningAdmin fechaDefault={openDayYmd || undefined} empleadoDefaultId={empleadoActivo || undefined} empleados={empleados} onClose={() => setOpenCrearPlaning(false)} onCreated={() => loadEventsForCurrentView()} />
+           </IOSDrawer>
         )}
       </div>
     );
   }
 
-  // =========================
-  // DESKTOP
-  // =========================
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Calendario laboral</h1>
-          <div className="shrink-0">
+    <div className="bg-gray-50 min-h-screen">
+      <style>{GOOGLE_CAL_CSS}</style>
+      {CalendarControls}
+
+      <div className="flex h-[calc(100vh-65px)] overflow-hidden">
+        {/* Sidebar Desktop */}
+        <div className="w-72 h-full border-r bg-white p-5 overflow-y-auto hidden lg:block border-gray-200">
+          {FiltersSidebar}
+          <div className="mt-8 pt-8 border-t border-gray-100">
             <CalendarioLegend />
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="font-semibold text-[15px] text-gray-900">{title}</div>
-
-          <div className="flex rounded-full border border-black/10 overflow-hidden text-[13px] font-medium">
-            <button
-              onClick={() => changeView("dayGridMonth")}
-              className={[
-                "px-3 py-1.5",
-                view === "dayGridMonth"
-                  ? "bg-black text-white"
-                  : "bg-white text-gray-700",
-              ].join(" ")}
-            >
-              Mes
-            </button>
-            <button
-              onClick={() => changeView("timeGridWeek")}
-              className={[
-                "px-3 py-1.5",
-                view === "timeGridWeek"
-                  ? "bg-black text-white"
-                  : "bg-white text-gray-700",
-              ].join(" ")}
-            >
-              Semana
-            </button>
-          </div>
-
-          <button
-            onClick={goPrev}
-            className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            onClick={goNext}
-            className="w-9 h-9 rounded-full grid place-items-center hover:bg-black/5 active:bg-black/10"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 lg:col-span-3">{Filters}</div>
-
-        <div className="col-span-12 lg:col-span-9 bg-white border border-black/5 rounded-2xl overflow-hidden">
-          <div className="relative">
-            {loading && (
-              <div className="absolute inset-0 bg-white/70 z-10 grid place-items-center text-sm text-gray-500">
-                Cargando calendario…
-              </div>
-            )}
-
-            <div className="p-4">
-              <FullCalendar
-                ref={calendarRef}
-                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                locale={esLocale}
-                initialView={view}
-                headerToolbar={false}
-                events={fcEvents as any}
-                height="calc(100vh - 220px)"
-                contentHeight="auto"
-                expandRows
-                handleWindowResize
-                datesSet={() => {
-                  syncTitle();
-                  loadEventsForCurrentView();
-                }}
-                eventDisplay="block"
-                dayMaxEvents={true}
-                dateClick={handleDateClick}
-                eventClick={handleEventClick}
-              />
+        {/* main Area */}
+        <div className="flex-1 h-full bg-white relative">
+          {loading && (
+            <div className="absolute inset-0 bg-white/60 z-10 grid place-items-center backdrop-blur-[1px]">
+               <div className="flex flex-col items-center gap-3">
+                 <RefreshCw size={24} className="animate-spin text-indigo-600" />
+                 <span className="text-xs font-medium text-gray-500">Sincronizando...</span>
+               </div>
             </div>
+          )}
+
+          <div className="h-full">
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              locale={esLocale}
+              initialView={view}
+              headerToolbar={false}
+              events={fcEvents as any}
+              height="100%"
+              expandRows
+              handleWindowResize
+              datesSet={() => { syncTitle(); loadEventsForCurrentView(); }}
+              eventDisplay="block"
+              dayMaxEvents={true}
+              dateClick={handleDateClick}
+              eventClick={handleEventClick}
+              eventContent={(arg) => (
+                <div className="truncate px-1 py-0.5 text-[10px] font-semibold leading-tight flex items-center gap-1">
+                   <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: arg.backgroundColor }} />
+                   <span className="truncate">{arg.event.title}</span>
+                </div>
+              )}
+            />
           </div>
         </div>
       </div>
 
+      {/* Shared Drawers (Desktop uses them too for actions) */}
       {openDayYmd && (
-        <IOSDrawer
-          open
-          onClose={() => setOpenDayYmd(null)}
-          header={{
-            title: "Detalle del día",
-            canGoBack: true,
-            onBack: () => setOpenDayYmd(null),
-            onClose: () => setOpenDayYmd(null),
-          }}
-        >
-          <DrawerDiaDetalleAdmin
-            ymd={openDayYmd}
-            allEvents={filteredEvents}
-            onSelectEvent={(ev) => setSelected(ev)}
-            onCreatePlaning={() => setOpenCrearPlaning(true)}
-            onClose={() => setOpenDayYmd(null)}
-          />
+        <IOSDrawer open onClose={() => setOpenDayYmd(null)} header={{ title: cap(new Date(openDayYmd).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })), canGoBack: true, onBack: () => setOpenDayYmd(null), onClose: () => setOpenDayYmd(null) }}>
+          <DrawerDiaDetalleAdmin ymd={openDayYmd} allEvents={filteredEvents} onSelectEvent={(ev) => setSelected(ev)} onCreatePlaning={() => setOpenCrearPlaning(true)} onClose={() => setOpenDayYmd(null)} />
         </IOSDrawer>
       )}
 
-      {hasModule("ausencias") && selected && selected.tipo === "ausencia" && (
-        <IOSDrawer
-          open
-          onClose={() => setSelected(null)}
-          header={{
-            title: "Detalle de ausencia",
-            canGoBack: true,
-            onBack: () => setSelected(null),
-            onClose: () => setSelected(null),
-          }}
-        >
-          <DrawerDetalleAusenciaAdmin
-            evento={selected as any as EventoAdmin}
-            onClose={() => setSelected(null)}
-            onUpdated={() => {
-              setSelected(null);
-              loadEventsForCurrentView();
-            }}
-          />
-        </IOSDrawer>
+      {selected && selected.tipo === "ausencia" && (
+         <IOSDrawer open onClose={() => setSelected(null)} header={{ title: "Detalle ausencia", canGoBack: true, onBack: () => setSelected(null), onClose: () => setSelected(null) }}>
+           <DrawerDetalleAusenciaAdmin evento={selected as any as EventoAdmin} onClose={() => setSelected(null)} onUpdated={() => { setSelected(null); loadEventsForCurrentView(); }} />
+         </IOSDrawer>
       )}
 
-      {hasModule("fichajes") &&
-        selected &&
-        selected.tipo === "jornada_real" && (
-          <IOSDrawer
-            open
-            onClose={() => setSelected(null)}
-            header={{
-              title: "Detalle de jornada",
-              canGoBack: true,
-              onBack: () => setSelected(null),
-              onClose: () => setSelected(null),
-            }}
-          >
-            <DrawerDetalleJornadaAdmin
-              jornadaId={selected.meta?.jornada_id}
-              onClose={() => setSelected(null)}
-            />
-          </IOSDrawer>
-        )}
-
-      {selected &&
-        selected.tipo !== "ausencia" &&
-        selected.tipo !== "jornada_real" && (
-          <IOSDrawer
-            open
-            onClose={() => setSelected(null)}
-            header={{
-              title: "Detalle",
-              canGoBack: true,
-              onBack: () => setSelected(null),
-              onClose: () => setSelected(null),
-            }}
-          >
-            <DrawerInfoEventoAdmin
-              evento={selected}
-              onClose={() => setSelected(null)}
-            />
-          </IOSDrawer>
-        )}
-
-      {hasModule("ausencias") && openPendientes && (
-        <IOSDrawer
-          open
-          onClose={() => setOpenPendientes(false)}
-          header={{
-            title: "Pendientes",
-            canGoBack: true,
-            onBack: () => setOpenPendientes(false),
-            onClose: () => setOpenPendientes(false),
-          }}
-        >
-          <DrawerPendientesAdmin
-            onClose={() => setOpenPendientes(false)}
-            onUpdated={() => loadEventsForCurrentView()}
-            onOpenDetalle={(p) => {
-              console.log("Pendiente detalle:", p);
-            }}
-          />
-        </IOSDrawer>
+      {selected && selected.tipo === "jornada_real" && (
+         <IOSDrawer open onClose={() => setSelected(null)} header={{ title: "Detalle jornada", canGoBack: true, onBack: () => setSelected(null), onClose: () => setSelected(null) }}>
+           <DrawerDetalleJornadaAdmin jornadaId={selected.meta?.jornada_id} onClose={() => setSelected(null)} />
+         </IOSDrawer>
       )}
 
-      {hasModule("ausencias") && openCrear && (
-        <IOSDrawer
-          open
-          onClose={() => setOpenCrear(false)}
-          header={{
-            title: "Crear ausencia",
-            canGoBack: true,
-            onBack: () => setOpenCrear(false),
-            onClose: () => setOpenCrear(false),
-          }}
-        >
-          <DrawerCrearAusenciaAdmin
-            empleados={empleados}
-            empleadoDefaultId={empleadoActivo || undefined}
-            onClose={() => setOpenCrear(false)}
-            onCreated={() => loadEventsForCurrentView()}
-          />
-        </IOSDrawer>
+      {selected && selected.tipo !== "ausencia" && selected.tipo !== "jornada_real" && (
+         <IOSDrawer open onClose={() => setSelected(null)} header={{ title: "Detalle", canGoBack: true, onBack: () => setSelected(null), onClose: () => setSelected(null) }}>
+           <DrawerInfoEventoAdmin evento={selected} onClose={() => setSelected(null)} />
+         </IOSDrawer>
+      )}
+
+      {openPendientes && (
+         <IOSDrawer open onClose={() => setOpenPendientes(false)} header={{ title: "Pendientes", canGoBack: true, onBack: () => setOpenPendientes(false), onClose: () => setOpenPendientes(false) }}>
+           <DrawerPendientesAdmin onClose={() => setOpenPendientes(false)} onUpdated={() => loadEventsForCurrentView()} onOpenDetalle={() => {}} />
+         </IOSDrawer>
+      )}
+
+      {openCrear && (
+         <IOSDrawer open onClose={() => setOpenCrear(false)} header={{ title: "Crear ausencia", canGoBack: true, onBack: () => setOpenCrear(false), onClose: () => setOpenCrear(false) }}>
+           <DrawerCrearAusenciaAdmin empleados={empleados} empleadoDefaultId={empleadoActivo || undefined} onClose={() => setOpenCrear(false)} onCreated={() => loadEventsForCurrentView()} />
+         </IOSDrawer>
+      )}
+
+      {openCrearPlaning && (
+         <IOSDrawer open onClose={() => setOpenCrearPlaning(false)} header={{ title: "Asignar Planing", canGoBack: true, onBack: () => setOpenCrearPlaning(false), onClose: () => setOpenCrearPlaning(false) }}>
+           <DrawerCrearPlaningAdmin fechaDefault={openDayYmd || undefined} empleadoDefaultId={empleadoActivo || undefined} empleados={empleados} onClose={() => setOpenCrearPlaning(false)} onCreated={() => loadEventsForCurrentView()} />
+         </IOSDrawer>
       )}
     </div>
   );

@@ -1,13 +1,11 @@
-// =========================
-// 2) FRONTEND: Drawer del día (Admin) -> igual empleado, pero con CalendarioIntegradoEvento
-// Archivo: app180-frontend/components/admin/drawer/DrawerDiaDetalleAdmin.tsx
-// =========================
+// app180-frontend/components/admin/drawer/DrawerDiaDetalleAdmin.tsx
 
 "use client";
 
 import { useMemo } from "react";
 import type { CalendarioIntegradoEvento } from "@/types/calendario";
 import { colorFor } from "@/components/empleado/calendarioColors";
+import { Calendar, ChevronRight, UserCheck } from "lucide-react";
 
 type DiaDetalleAdminData = {
   fecha: string; // YYYY-MM-DD
@@ -26,49 +24,30 @@ function addOneDayYMD(ymd: string) {
 
 function safeYMD(value: string | Date) {
   const s = String(value).trim();
-
-  // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-
-  // YYYY-MM-DDTHH:mm...
   if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
-
-  // Fallback: no tocar
   return s.slice(0, 10);
 }
 
 function eventTouchesDay(ev: CalendarioIntegradoEvento, ymd: string) {
   const isAllDay = Boolean(ev.allDay);
-
   if (isAllDay) {
     const s = safeYMD(ev.start);
     const endEx = ev.end ? safeYMD(ev.end) : addOneDayYMD(s);
     return ymd >= s && ymd < endEx;
   }
-
-  // Timed → comparar solo fecha del start
   const s = safeYMD(String(ev.start).slice(0, 10));
   return s === ymd;
 }
 
-function sortDayEvents(
-  a: CalendarioIntegradoEvento,
-  b: CalendarioIntegradoEvento,
-) {
+function sortDayEvents(a: CalendarioIntegradoEvento, b: CalendarioIntegratedEvento) {
   const ad = Boolean(a.allDay);
   const bd = Boolean(b.allDay);
   if (ad !== bd) return ad ? -1 : 1;
-
-  const as = String(a.start);
-  const bs = String(b.start);
-  return as.localeCompare(bs);
+  return String(a.start).localeCompare(String(b.start));
 }
 
-function buildDiaDetalleData(
-  ymd: string,
-  dayEvents: CalendarioIntegradoEvento[],
-): DiaDetalleAdminData {
-  // Prioridad: festivo -> no_laborable -> laborable
+function buildDiaDetalleData(ymd: string, dayEvents: CalendarioIntegradoEvento[]): DiaDetalleAdminData {
   const festivo = dayEvents.find((e) => e.tipo === "calendario_empresa");
   const noLab = dayEvents.find((e) => e.tipo === "no_laborable");
 
@@ -91,18 +70,12 @@ function buildDiaDetalleData(
 
 function tipoLabel(t: CalendarioIntegradoEvento["tipo"]) {
   switch (t) {
-    case "calendario_empresa":
-      return "Festivo";
-    case "no_laborable":
-      return "No laborable";
-    case "ausencia":
-      return "Ausencia";
-    case "jornada_real":
-      return "Jornada real";
-    case "jornada_plan":
-      return "Plan";
-    default:
-      return t;
+    case "calendario_empresa": return "Festivo";
+    case "no_laborable": return "No laborable";
+    case "ausencia": return "Ausencia";
+    case "jornada_real": return "Jornada real";
+    case "jornada_plan": return "Plan";
+    default: return t;
   }
 }
 
@@ -138,59 +111,50 @@ export default function DrawerDiaDetalleAdmin({
   onClose: () => void;
 }) {
   const dayEvents = useMemo(() => {
-    const arr = (allEvents || [])
+    return (allEvents || [])
       .filter((ev) => eventTouchesDay(ev, ymd))
       .slice()
-      .sort(sortDayEvents);
-    return arr;
+      .sort(sortDayEvents as any);
   }, [allEvents, ymd]);
 
-  const data = useMemo(
-    () => buildDiaDetalleData(ymd, dayEvents),
-    [ymd, dayEvents],
-  );
+  const data = useMemo(() => buildDiaDetalleData(ymd, dayEvents), [ymd, dayEvents]);
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="p-4 space-y-4">
       {/* Cabecera */}
-      <div className="text-sm text-gray-500">
-        <span className="font-medium text-gray-700">{data.label}</span>
-        {" · "}
-        {new Date(data.fecha).toLocaleDateString("es-ES", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })}
-      </div>
-
-      {data.descripcion ? (
-        <div className="text-xs text-gray-500">{data.descripcion}</div>
-      ) : null}
-
-      {/* Resumen */}
-      <div className="text-xs text-gray-500">
-        {data.laborable ? "Día laborable" : "Día no laborable"} ·{" "}
-        {data.eventos.length} evento(s)
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-500">
+          <span className="font-semibold text-gray-900">{data.label}</span>
+          {" · "}
+          {new Date(data.fecha).toLocaleDateString("es-ES", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
+        </div>
+        <div className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-tight">
+           {data.eventos.length} Eventos
+        </div>
       </div>
 
       <button
         onClick={onCreatePlaning}
-        className="w-full py-3 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 text-sm font-semibold active:scale-95"
+        className="w-full py-3.5 rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-200 flex items-center justify-center gap-2 text-sm font-bold active:scale-[0.98] transition-all"
       >
-        + Asignar / Crear Planing
+        <Plus size={18} />
+        Asignar nuevo Planing
       </button>
 
       {/* Lista de eventos */}
       {data.eventos.length === 0 ? (
-        <div className="text-sm text-gray-500">
-          No hay eventos para este día.
+        <div className="flex flex-col items-center justify-center py-10 opacity-20">
+          <Calendar size={64} strokeWidth={1} />
+          <p className="text-sm font-medium mt-2">No hay actividad</p>
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {data.eventos.map((ev) => {
             const col = colorForEvento(ev);
-
             const rightLabel =
               ev.tipo === "ausencia" && ev.estado
                 ? ev.estado
@@ -202,30 +166,40 @@ export default function DrawerDiaDetalleAdmin({
               <li
                 key={String(ev.id)}
                 onClick={() => onSelectEvent(ev)}
-                className="border rounded p-3 flex items-center justify-between cursor-pointer active:bg-black/[0.04]"
+                className="group border border-gray-100 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition-all bg-white shadow-sm"
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 pr-2">
+                  <div className="flex items-center gap-2.5">
                     <span
-                      className="w-2.5 h-2.5 rounded-full"
+                      className="w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-md"
                       style={{ backgroundColor: col }}
                     />
-                    <span className="font-medium truncate">
+                    <span className="font-bold text-gray-900 truncate text-[14px]">
                       {ev.title}
-                      {ev.empleado_nombre ? ` · ${ev.empleado_nombre}` : ""}
                     </span>
                   </div>
 
-                  {/* Subtexto (rango) */}
-                  <div className="text-xs text-gray-500 mt-1">
-                    {String(ev.start).slice(0, 10)}
-                    {ev.end ? ` → ${String(ev.end).slice(0, 10)}` : ""}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                    {ev.empleado_nombre && (
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">
+                         <UserCheck size={10} />
+                         {ev.empleado_nombre}
+                      </div>
+                    )}
+                    <div className="text-[11px] text-gray-400 font-medium">
+                      {String(ev.start).includes("T") ? String(ev.start).split("T")[1].slice(0, 5) : "Todo el día"}
+                    </div>
                   </div>
                 </div>
 
-                <span className="text-xs text-gray-500 shrink-0">
-                  {rightLabel}
-                </span>
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest ${
+                    ev.tipo === 'ausencia' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {rightLabel}
+                  </span>
+                  <ChevronRight size={16} className="text-gray-300 group-hover:text-indigo-400 transition-colors" />
+                </div>
               </li>
             );
           })}
@@ -234,10 +208,13 @@ export default function DrawerDiaDetalleAdmin({
 
       <button
         onClick={onClose}
-        className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04]"
+        className="w-full py-4 rounded-xl border border-gray-100 text-gray-400 text-sm font-bold hover:bg-gray-50 transition-colors"
       >
-        Cerrar
+        Cerrar agenda
       </button>
     </div>
   );
 }
+
+import { Plus } from "lucide-react";
+import type { CalendarioIntegradoEvento as CalendarioIntegratedEvento } from "@/types/calendario";
