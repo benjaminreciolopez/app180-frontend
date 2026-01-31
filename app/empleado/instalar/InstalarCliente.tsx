@@ -1,532 +1,247 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { api } from "@/services/api";
+import { api, setAuthToken } from "@/services/api";
 import { useRouter } from "next/navigation";
-import { setAuthToken } from "@/services/api";
-import { AlertCircle, CheckCircle, Smartphone, HelpCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Smartphone, HelpCircle, Copy, Download } from "lucide-react";
 import {
   isStandalone,
   getPlatform,
   getInstallInstructions,
   isMobileDevice,
 } from "@/utils/pwaDetection";
+import { showSuccess, showError } from "@/lib/toast";
 
 export default function InstalarCliente({ token }: { token?: string }) {
-  const [estado, setEstado] = useState<
-    "cargando" | "ok" | "error" | "no-pwa" | "no-mobile"
-  >("cargando");
-  const [mensaje, setMensaje] = useState("");
-  const [showInstructions, setShowInstructions] = useState(false);
   const router = useRouter();
-  const executed = useRef(false);
-
+  const [isPWA, setIsPWA] = useState(false);
+  const [platform, setPlatform] = useState<"ios" | "android" | "unknown" | "desktop">("unknown");
+  const [tokenActivo, setTokenActivo] = useState("");
+  
+  // Estado para la activación manual
+  const [inputToken, setInputToken] = useState("");
+  const [loading, setLoading] = useState(false);
+  
+  // Inicialización
   useEffect(() => {
-    async function verificarYActivar() {
-      if (executed.current) return;
-      executed.current = true;
+    // 1. Detectar plataforma y modo
+    const pwa = isStandalone();
+    setIsPWA(pwa);
+    setPlatform(getPlatform());
 
-      // ✅ Fallback robusto: si prop token viene vacío, lo leemos de la URL o localStorage
-      let tokenFinal =
-        token ||
-        (typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("token") ||
-            undefined
-          : undefined);
-
-      // Si no hay token en URL, intentar recuperar del localStorage
-      if (!tokenFinal && typeof window !== "undefined") {
-        const savedToken = localStorage.getItem("pending_activation_token");
-        if (savedToken) {
-          console.log("📥 Token recuperado de localStorage:", savedToken);
-          tokenFinal = savedToken;
+    // 2. Obtener token de URL
+    let urlToken = token || new URLSearchParams(window.location.search).get("token") || "";
+    
+    // 3. Si tenemos token, lo guardamos en estado
+    if (urlToken) {
+      setTokenActivo(urlToken);
+      setInputToken(urlToken);
+    }
+    
+    // 4. Si es PWA, intentar recuperar token de localStorage (por si Safari lo pasó)
+    if (pwa && !urlToken) {
+        const storedToken = localStorage.getItem("pending_activation_token");
+        if (storedToken) {
+            setTokenActivo(storedToken);
+            setInputToken(storedToken);
         }
-      }
+    }
+  }, [token]);
 
-      if (!tokenFinal) {
-        setEstado("error");
-        setMensaje("Falta token de invitación (revisa el enlace)");
-        return;
-      }
-
-      //  Verificar si es dispositivo móvil
-      if (!isMobileDevice()) {
-        setEstado("no-mobile");
-        setMensaje(
-          "Esta aplicación debe instalarse desde un dispositivo móvil (iPhone o Android)",
-        );
-        return;
-      }
-
-      // 🔍 Verificar si está en modo standalone (PWA instalada)
-      const isPWA = isStandalone();
-      console.log("🔍 Modo standalone:", isPWA);
-
-      // Si ya es PWA pero no tiene sesión, algo salió mal
-      if (isPWA && !localStorage.getItem("token")) {
-        setEstado("error");
-        setMensaje(
-          "Debes activar tu dispositivo desde Safari antes de instalar la aplicación. Por favor, desinstala la app y vuelve a abrir el enlace de invitación en Safari.",
-        );
-        return;
-      }
-
-      // Si NO es PWA, activar dispositivo primero
-      if (!isPWA) {
-        console.log("📱 Activando dispositivo desde navegador...");
-        await activarDispositivo(tokenFinal);
-        return; // La función activarDispositivo manejará el resto
-      }
+  // Función para activar el dispositivo
+  const handleActivation = async (tokenToUse: string) => {
+    if (!tokenToUse) {
+      showError("El código de invitación es necesario");
+      return;
     }
 
-    async function activarDispositivo(tokenFinal: string) {
-      try {
-        // 🔐 Generar NUEVO device_hash cada vez (no reutilizar del localStorage)
-        // Esto asegura que cada instalación tenga un hash único
-        const device_hash =
+    setLoading(true);
+    try {
+      // Generar hash único
+      const device_hash =
           globalThis.crypto?.randomUUID?.() ||
           Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-        console.log("📱 Activando dispositivo con NUEVO hash:", device_hash);
+      console.log("📱 Activando dispositivo con hash:", device_hash);
 
-        const res = await api.post("/empleado/activate-install", {
-          token: tokenFinal,
-          device_hash,
-          user_agent: navigator.userAgent,
-        });
+      const res = await api.post("/empleado/activate-install", {
+        token: tokenToUse,
+        device_hash,
+        user_agent: navigator.userAgent,
+      });
 
-        const { token: jwtToken, user } = res.data;
+      const { token: jwtToken, user } = res.data;
 
-        if (jwtToken && user) {
-          // Guardar device_hash SOLO después de activación exitosa
-          localStorage.setItem("device_hash", device_hash);
-          localStorage.setItem("token", jwtToken);
-          localStorage.setItem("user", JSON.stringify(user));
-          setAuthToken(jwtToken);
-          
-          console.log("✅ Dispositivo activado correctamente");
-          console.log("👤 Usuario guardado:", user);
-          console.log("🔐 password_forced:", user.password_forced);
-        }
-
-        setEstado("ok");
-        setMensaje(res.data?.message || "Dispositivo activado correctamente");
-
-        // NO redirigir a cambiar contraseña, mostrar instrucciones de instalación
-        setShowInstructions(true);
-      } catch (err: any) {
-        console.error("❌ Error activando dispositivo:", err);
-        setEstado("error");
-
-        const errorMsg = err?.response?.data?.error;
-        let mensajeUsuario = "No se pudo activar este dispositivo";
-
-        if (errorMsg?.includes("ya fue usada")) {
-          mensajeUsuario =
-            "Esta invitación ya fue usada. Solicita otra al administrador.";
-        } else if (errorMsg?.includes("caducada")) {
-          mensajeUsuario =
-            "Esta invitación ha caducado. Solicita otra al administrador.";
-        } else if (errorMsg?.includes("inválido")) {
-          mensajeUsuario =
-            "El enlace de invitación no es válido. Verifica que lo copiaste correctamente.";
-        } else if (errorMsg) {
-          mensajeUsuario = errorMsg;
-        }
-
-        setMensaje(mensajeUsuario);
+      if (jwtToken && user) {
+        // Guardar sesión
+        localStorage.setItem("device_hash", device_hash);
+        localStorage.setItem("token", jwtToken);
+        localStorage.setItem("user", JSON.stringify(user));
+        setAuthToken(jwtToken);
+        
+        // Limpiar tokens temporales
+        localStorage.removeItem("pending_activation_token");
+        
+        showSuccess("¡Dispositivo activado correctamente!");
+        
+        // Redirigir inmediatamente
+        router.replace("/cambiar-password");
       }
+    } catch (err: any) {
+      console.error("❌ Error activando:", err);
+      const msg = err?.response?.data?.error || "Error al activar el dispositivo";
+      showError(msg);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    verificarYActivar();
-  }, [token, router]);
+  // Copiar token al portapapeles
+  const copyToken = () => {
+    navigator.clipboard.writeText(tokenActivo);
+    showSuccess("Código copiado al portapapeles");
+    
+    // Intentar guardar en localStorage por si acaso Safari lo comparte
+    if (tokenActivo) {
+        localStorage.setItem("pending_activation_token", tokenActivo);
+    }
+  };
 
-  const platform = getPlatform();
-  const instructions = getInstallInstructions(platform);
+  // VISTA: NAVEGADOR (Instrucciones)
+  if (!isPWA) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 font-sans text-slate-800">
+        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden mt-4">
+          <div className="bg-blue-600 p-6 text-center">
+            <h1 className="text-2xl font-bold text-white mb-2">Instalar Aplicación</h1>
+            <p className="text-blue-100 text-sm">Paso 1 de 2: Instalación</p>
+          </div>
 
+          <div className="p-6 space-y-6">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-4 items-start">
+              <Download className="w-8 h-8 text-blue-600 shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-blue-900">Esta app debe instalarse</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  Para garantizar el acceso seguro y el fichaje correcto, debes instalar la aplicación en tu móvil.
+                </p>
+              </div>
+            </div>
+
+            {tokenActivo && (
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block pl-1">
+                  Tu Código de Invitación
+                </label>
+                <div 
+                  onClick={copyToken}
+                  className="bg-slate-100 border-2 border-slate-200 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:bg-slate-200 transition-colors group"
+                >
+                    <code className="text-xl font-mono font-bold text-slate-700 tracking-wider">
+                        {tokenActivo}
+                    </code>
+                    <Copy className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
+                </div>
+                <p className="text-xs text-center text-slate-500">
+                  👆 Toca para copiar (lo necesitarás si la app no se activa sola)
+                </p>
+              </div>
+            )}
+
+            <div className="border-t border-slate-100 pt-6">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-indigo-600" />
+                Cómo Instalar
+              </h3>
+              
+              {platform === "ios" ? (
+                <ol className="space-y-4 text-sm text-slate-600">
+                    <li className="flex gap-3">
+                        <span className="bg-indigo-100 text-indigo-700 font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0">1</span>
+                        <span>Toca el botón <strong>Compartir</strong> <span className="inline-block px-1 bg-slate-200 rounded text-xs align-middle">⬆️</span> en la barra inferior de Safari.</span>
+                    </li>
+                    <li className="flex gap-3">
+                        <span className="bg-indigo-100 text-indigo-700 font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0">2</span>
+                        <span>Busca y selecciona <strong>"Añadir a pantalla de inicio"</strong>.</span>
+                    </li>
+                    <li className="flex gap-3">
+                        <span className="bg-indigo-100 text-indigo-700 font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0">3</span>
+                        <span>Confirma tocando <strong>"Añadir"</strong>.</span>
+                    </li>
+                    <li className="flex gap-3">
+                        <span className="bg-indigo-100 text-indigo-700 font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0">4</span>
+                        <span>Cierra Safari y abre la app <strong>CONTENDO</strong> desde tu inicio.</span>
+                    </li>
+                </ol>
+              ) : (
+                <ol className="space-y-4 text-sm text-slate-600">
+                    <li className="flex gap-3">
+                        <span className="bg-indigo-100 text-indigo-700 font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0">1</span>
+                        <span>Toca el menú de tres puntos <span className="inline-block px-1 bg-slate-200 rounded text-xs align-middle">⋮</span> arriba a la derecha.</span>
+                    </li>
+                    <li className="flex gap-3">
+                        <span className="bg-indigo-100 text-indigo-700 font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0">2</span>
+                        <span>Selecciona <strong>"Instalar aplicación"</strong> o "Añadir a pantalla de inicio".</span>
+                    </li>
+                    <li className="flex gap-3">
+                        <span className="bg-indigo-100 text-indigo-700 font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0">3</span>
+                        <span>Abre la app instalada.</span>
+                    </li>
+                </ol>
+              )}
+            </div>
+            
+            <div className="bg-red-50 p-4 rounded-xl text-center">
+                <p className="text-red-600 font-bold text-sm">
+                    ⚠️ NO INTENTES ENTRAR DESDE AQUÍ
+                </p>
+                <p className="text-red-500 text-xs mt-1">
+                    La aplicación solo funcionará si la instalas primero.
+                </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // VISTA: PWA (Activación)
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-900 dark:to-neutral-800 p-4">
-      <div className="bg-white dark:bg-neutral-900 shadow-2xl rounded-xl max-w-md w-full">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-t-xl">
-          <h1 className="text-2xl font-bold text-white text-center">
-            Activación de dispositivo
-          </h1>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="max-w-sm w-full bg-white rounded-2xl shadow-xl p-8">
+        <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800">¡App Instalada!</h1>
+            <p className="text-slate-500 mt-2">Ahora activemos tu cuenta</p>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-4">
-          {/* Cargando */}
-          {estado === "cargando" && (
-            <div className="text-center space-y-3">
-              <div className="w-16 h-16 mx-auto border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-neutral-600 dark:text-neutral-400">
-                Validando invitación y registrando dispositivo...
-              </p>
+        <div className="space-y-6">
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Código de Invitación
+                </label>
+                <input
+                    type="text"
+                    value={inputToken}
+                    onChange={(e) => setInputToken(e.target.value)}
+                    placeholder="Pega tu código aquí"
+                    className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center font-mono text-lg tracking-widest uppercase transition-all"
+                />
             </div>
-          )}
 
-          {/* No es móvil */}
-          {estado === "no-mobile" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <Smartphone className="w-6 h-6 text-yellow-600 flex-shrink-0" />
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  {mensaje}
-                </p>
-              </div>
-              <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  Por favor, abre este enlace desde tu teléfono móvil (iPhone o
-                  Android).
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* No está en PWA */}
-          {estado === "no-pwa" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <HelpCircle className="w-6 h-6 text-blue-600 flex-shrink-0" />
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  {mensaje}
-                </p>
-              </div>
-
-              {showInstructions && (
-                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg space-y-4">
-                  <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 text-lg">
-                    📱 Cómo instalar la aplicación
-                    {platform === "ios" && " en iPhone"}
-                    {platform === "android" && " en Android"}
-                  </h3>
-                  
-                  {platform === "ios" && (
-                    <div className="space-y-3">
-                      <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                        <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-                          ⚠️ IMPORTANTE: Debes usar Safari (no Chrome ni otros navegadores)
-                        </p>
-                      </div>
-                      
-                      <ol className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
-                        <li className="flex gap-3">
-                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">1.</span>
-                          <div>
-                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                              Toca el botón de compartir
-                            </p>
-                            <p className="text-xs mt-1">
-                              Es el cuadrado con una flecha hacia arriba ⬆️ en la parte inferior de Safari
-                            </p>
-                          </div>
-                        </li>
-                        
-                        <li className="flex gap-3">
-                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">2.</span>
-                          <div>
-                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                              Desplázate hacia abajo en el menú
-                            </p>
-                            <p className="text-xs mt-1">
-                              Busca la opción "Añadir a pantalla de inicio" o "Add to Home Screen"
-                            </p>
-                          </div>
-                        </li>
-                        
-                        <li className="flex gap-3">
-                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">3.</span>
-                          <div>
-                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                              Toca "Añadir" o "Add"
-                            </p>
-                            <p className="text-xs mt-1">
-                              Confirma que quieres añadir la aplicación a tu pantalla de inicio
-                            </p>
-                          </div>
-                        </li>
-                        
-                        <li className="flex gap-3">
-                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">4.</span>
-                          <div>
-                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                              Cierra Safari y abre la app desde tu pantalla de inicio
-                            </p>
-                            <p className="text-xs mt-1">
-                              Busca el ícono "CONTENDO" en tu pantalla de inicio y ábrelo desde ahí
-                            </p>
-                          </div>
-                        </li>
-                      </ol>
-                    </div>
-                  )}
-                  
-                  {platform === "android" && (
-                    <ol className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
-                      <li className="flex gap-3">
-                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">1.</span>
-                        <div>
-                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                            Toca el menú ⋮ (tres puntos)
-                          </p>
-                          <p className="text-xs mt-1">
-                            Está en la esquina superior derecha de Chrome
-                          </p>
-                        </div>
-                      </li>
-                      
-                      <li className="flex gap-3">
-                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">2.</span>
-                        <div>
-                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                            Selecciona "Instalar aplicación"
-                          </p>
-                          <p className="text-xs mt-1">
-                            O "Añadir a pantalla de inicio" si no ves la opción de instalar
-                          </p>
-                        </div>
-                      </li>
-                      
-                      <li className="flex gap-3">
-                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">3.</span>
-                        <div>
-                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                            Toca "Instalar"
-                          </p>
-                          <p className="text-xs mt-1">
-                            Confirma la instalación
-                          </p>
-                        </div>
-                      </li>
-                      
-                      <li className="flex gap-3">
-                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">4.</span>
-                        <div>
-                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                            Abre la app desde tu pantalla de inicio
-                          </p>
-                          <p className="text-xs mt-1">
-                            Busca el ícono "CONTENDO" y ábrelo desde ahí
-                          </p>
-                        </div>
-                      </li>
-                    </ol>
-                  )}
-                </div>
-              )}
-
-              <div className="bg-red-50 dark:bg-red-950/30 border-2 border-red-300 dark:border-red-700 rounded-lg p-4 space-y-3">
-                <p className="text-sm font-bold text-red-900 dark:text-red-100">
-                  ⚠️ NO HAGAS CLIC EN "YA INSTALÉ"
-                </p>
-                <p className="text-sm text-red-800 dark:text-red-200">
-                  Después de instalar la aplicación siguiendo los pasos de arriba:
-                </p>
-                <ol className="text-sm text-red-800 dark:text-red-200 space-y-1 ml-4 list-decimal">
-                  <li><strong>Cierra Safari completamente</strong></li>
-                  <li><strong>Ve a tu pantalla de inicio</strong></li>
-                  <li><strong>Busca el ícono "CONTENDO"</strong></li>
-                  <li><strong>Toca el ícono para abrir la app</strong></li>
-                </ol>
-                <p className="text-xs text-red-700 dark:text-red-300 mt-2">
-                  Si abres desde Safari en lugar del ícono, la aplicación NO funcionará correctamente.
-                </p>
-              </div>
-              
-              <a
-                href="/empleado/diagnostico"
-                className="block w-full text-center bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-900 dark:text-white font-medium py-2 rounded-lg transition text-sm"
-              >
-                🔍 Ver diagnóstico técnico
-              </a>
-            </div>
-          )}
-
-          {/* Éxito - Mostrar instrucciones de instalación */}
-          {estado === "ok" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-green-800 dark:text-green-200">
-                    {mensaje}
-                  </p>
-                  <p className="text-xs text-green-600 dark:text-green-300 mt-1">
-                    Ahora instala la aplicación para continuar
-                  </p>
-                </div>
-              </div>
-
-              {showInstructions && (
-                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg space-y-4">
-                  <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 text-lg">
-                    📱 Cómo instalar la aplicación
-                    {platform === "ios" && " en iPhone"}
-                    {platform === "android" && " en Android"}
-                  </h3>
-                  
-                  {platform === "ios" && (
-                    <div className="space-y-3">
-                      <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                        <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-                          ⚠️ IMPORTANTE: Debes usar Safari (no Chrome ni otros navegadores)
-                        </p>
-                      </div>
-                      
-                      <ol className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
-                        <li className="flex gap-3">
-                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">1.</span>
-                          <div>
-                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                              Toca el botón de compartir
-                            </p>
-                            <p className="text-xs mt-1">
-                              Es el cuadrado con una flecha hacia arriba ⬆️ en la parte inferior de Safari
-                            </p>
-                          </div>
-                        </li>
-                        
-                        <li className="flex gap-3">
-                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">2.</span>
-                          <div>
-                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                              Desplázate hacia abajo en el menú
-                            </p>
-                            <p className="text-xs mt-1">
-                              Busca la opción "Añadir a pantalla de inicio" o "Add to Home Screen"
-                            </p>
-                          </div>
-                        </li>
-                        
-                        <li className="flex gap-3">
-                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">3.</span>
-                          <div>
-                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                              Toca "Añadir" o "Add"
-                            </p>
-                            <p className="text-xs mt-1">
-                              Confirma que quieres añadir la aplicación a tu pantalla de inicio
-                            </p>
-                          </div>
-                        </li>
-                        
-                        <li className="flex gap-3">
-                          <span className="font-bold text-blue-600 flex-shrink-0 text-lg">4.</span>
-                          <div>
-                            <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                              Cierra Safari y abre la app desde tu pantalla de inicio
-                            </p>
-                            <p className="text-xs mt-1">
-                              Busca el ícono "CONTENDO" en tu pantalla de inicio y ábrelo desde ahí
-                            </p>
-                          </div>
-                        </li>
-                      </ol>
-                    </div>
-                  )}
-                  
-                  {platform === "android" && (
-                    <ol className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
-                      <li className="flex gap-3">
-                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">1.</span>
-                        <div>
-                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                            Toca el menú ⋮ (tres puntos)
-                          </p>
-                          <p className="text-xs mt-1">
-                            Está en la esquina superior derecha de Chrome
-                          </p>
-                        </div>
-                      </li>
-                      
-                      <li className="flex gap-3">
-                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">2.</span>
-                        <div>
-                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                            Selecciona "Instalar aplicación"
-                          </p>
-                          <p className="text-xs mt-1">
-                            O "Añadir a pantalla de inicio" si no ves la opción de instalar
-                          </p>
-                        </div>
-                      </li>
-                      
-                      <li className="flex gap-3">
-                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">3.</span>
-                        <div>
-                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                            Toca "Instalar"
-                          </p>
-                          <p className="text-xs mt-1">
-                            Confirma la instalación
-                          </p>
-                        </div>
-                      </li>
-                      
-                      <li className="flex gap-3">
-                        <span className="font-bold text-blue-600 flex-shrink-0 text-lg">4.</span>
-                        <div>
-                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                            Abre la app desde tu pantalla de inicio
-                          </p>
-                          <p className="text-xs mt-1">
-                            Busca el ícono "CONTENDO" y ábrelo desde ahí
-                          </p>
-                        </div>
-                      </li>
-                    </ol>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Error */}
-          {estado === "error" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
-                <p className="text-sm text-red-800 dark:text-red-200">
-                  {mensaje}
-                </p>
-              </div>
-              <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-lg space-y-3">
-                <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                  ¿Qué puedo hacer?
-                </p>
-                <ul className="text-sm text-neutral-600 dark:text-neutral-400 space-y-2">
-                  <li className="flex gap-2">
-                    <span className="flex-shrink-0">•</span>
-                    <span>
-                      Si no instalaste correctamente la aplicación, contacta con
-                      tu administrador para que te envíe un nuevo enlace de
-                      invitación
-                    </span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="flex-shrink-0">•</span>
-                    <span>
-                      Asegúrate de instalar la aplicación como PWA siguiendo las{" "}
-                      <a
-                        href="/ayuda-instalacion"
-                        className="text-blue-600 dark:text-blue-400 underline"
-                      >
-                        instrucciones de instalación
-                      </a>
-                    </span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="flex-shrink-0">•</span>
-                    <span>
-                      Si el problema persiste, verifica que estás usando el
-                      navegador correcto (Safari en iPhone, Chrome en Android)
-                    </span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          )}
+            <button
+                onClick={() => handleActivation(inputToken)}
+                disabled={loading || !inputToken}
+                className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {loading ? "Activando..." : "Activar Dispositivo"}
+            </button>
+            
+            <p className="text-xs text-center text-slate-400">
+                Si no tienes el código, pide a tu administrador que te envíe uno nuevo.
+            </p>
         </div>
       </div>
     </div>
