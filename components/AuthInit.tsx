@@ -126,7 +126,7 @@ export default function AuthInit() {
            LOGIN CON SESIÓN (O LANDING O INSTALACIÓN)
         ========================== */
   
-        if (hasSession && (pathname === "/login" || pathname === "/" || pathname.startsWith("/empleado/instalar"))) {
+        if (hasSession && (pathname === "/login" || pathname === "/")) {
           console.log("AuthInit: Redirecting to DASHBOARD (Has Session)");
           // Usamos window.location.href para forzar una navegación limpia
           // y evitar problemas de estado con Next.js Router en bucles raros
