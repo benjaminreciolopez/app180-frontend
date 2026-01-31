@@ -161,6 +161,40 @@ const GOOGLE_CAL_CSS = `
   }
 `;
 
+// Paleta de colores para empleados (Pastel / Suaves pero distinguibles)
+const EMPLOYEE_COLORS = [
+  '#ef4444', // Red 500
+  '#f97316', // Orange 500
+  '#f59e0b', // Amber 500
+  '#84cc16', // Lime 500
+  '#10b981', // Emerald 500
+  '#06b6d4', // Cyan 500
+  '#3b82f6', // Blue 500
+  '#6366f1', // Indigo 500
+  '#8b5cf6', // Violet 500
+  '#d946ef', // Fuchsia 500
+  '#f43f5e', // Rose 500
+  '#64748b', // Slate 500
+  '#c026d3', // Fuchsia 600
+  '#059669', // Emerald 600
+  '#7c3aed', // Violet 600
+  '#db2777', // Pink 600
+  '#ea580c', // Orange 600
+  '#0891b2', // Cyan 600
+  '#4f46e5', // Indigo 600
+  '#be123c', // Rose 700
+];
+
+function getColorForEmployee(id: string | null | undefined): string {
+  if (!id) return "#9CA3AF"; // Gray for unknown
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % EMPLOYEE_COLORS.length;
+  return EMPLOYEE_COLORS[index];
+}
+
 function priorityFor(ev: CalendarioIntegradoEvento) {
   switch (ev.tipo) {
     case "ausencia": return 100;
@@ -318,7 +352,16 @@ export default function AdminCalendarioBase() {
 
   const fcEvents = useMemo(() => {
     return filteredEvents.map((e) => {
-      const col = (e as any).color || (e as any).backgroundColor || colorForIntegrado(e);
+      let col = (e as any).color || (e as any).backgroundColor;
+      
+      // Si no hay color explícito (override en DB) y es jornada_plan, usar color por empleado
+      if (!col && e.tipo === "jornada_plan") {
+          col = getColorForEmployee(e.empleado_id);
+      }
+      
+      // Fallback a lógica standard
+      if (!col) col = colorForIntegrado(e);
+
       return {
         id: String(e.id),
         title: e.title,
@@ -387,7 +430,7 @@ export default function AdminCalendarioBase() {
                     empleadoActivo === e.id ? "bg-indigo-50 text-indigo-700 font-semibold" : "hover:bg-gray-50 text-gray-600"
                   }`}
                 >
-                  <div className={`w-1.5 h-1.5 rounded-full ${empleadoActivo === e.id ? "bg-indigo-600" : "bg-gray-300"}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full`} style={{ backgroundColor: getColorForEmployee(e.id) }} />
                   {e.nombre}
                 </button>
               ))}
@@ -395,6 +438,11 @@ export default function AdminCalendarioBase() {
           </div>
         </div>
       )}
+
+      <div className="pt-2 pb-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2">Mapa de Colores</div>
+      <div className="px-2 text-xs text-gray-500 mb-2">
+         Los horarios de trabajo se muestran con el color asignado a cada empleado (ver lista arriba) o el color del servicio si es específico.
+      </div>
 
       {hasModule("ausencias") && (
         <div className="space-y-2">
