@@ -57,7 +57,7 @@ export default function PlaningsPage() {
              } 
          }),
          api.get("/employees"),
-         api.get("/clients")
+         api.get("/admin/clients")
       ]);
       setAsignaciones(resAsig.data || []);
       setEmpleados(Array.isArray(resEmp.data) ? resEmp.data : []);
@@ -150,7 +150,7 @@ export default function PlaningsPage() {
              className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors ${filtros.tipo === 'proyecto' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
              onClick={() => setFiltros({...filtros, tipo: 'proyecto'})}
           >
-             🏗️ Planings de Obra
+             🏗️ Servicios / Proyectos
           </button>
           <button 
              className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors ${filtros.tipo === 'horario' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
@@ -169,7 +169,7 @@ export default function PlaningsPage() {
       <div className="flex flex-wrap gap-4 mb-4 items-end shrink-0 bg-gray-50 p-3 rounded-lg border">
          {/* Filtro Cliente */}
          <div className="form-control w-full max-w-xs">
-           <label className="label py-1"><span className="label-text text-xs font-semibold">Cliente / Obra</span></label>
+           <label className="label py-1"><span className="label-text text-xs font-semibold">Cliente / Servicio</span></label>
            <select 
               className="select select-bordered select-sm w-full bg-white"
               value={filtros.cliente_id}
@@ -241,7 +241,7 @@ export default function PlaningsPage() {
           <thead className="sticky top-0 bg-card z-10 shadow-sm">
             <tr>
               <th>Empleado</th>
-              <th>Planing / Obra</th>
+              <th>Planing / Servicio</th>
               <th>Cliente / Ubicación</th>
               <th>Fechas</th>
               <th className="text-right">Acciones</th>
