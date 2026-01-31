@@ -25,6 +25,8 @@ interface Empleado {
   cliente_actual_codigo: string | null;
 }
 
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
+
 export default function EmpleadosPage() {
   const [loading, setLoading] = useState(true);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
@@ -134,13 +136,20 @@ export default function EmpleadosPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold">Empleados</h1>
 
-        <button
-          type="button"
-          className="btn-primary w-fit"
-          onClick={() => (window.location.href = "/admin/empleados/nuevo")}
-        >
-          + Nuevo empleado
-        </button>
+        <div className="flex gap-2">
+            <UniversalExportButton 
+                module="empleados" 
+                queryParams={{}} 
+                label="Exportar"
+            />
+            <button
+            type="button"
+            className="btn-primary w-fit"
+            onClick={() => (window.location.href = "/admin/empleados/nuevo")}
+            >
+            + Nuevo empleado
+            </button>
+        </div>
       </div>
 
       <div className="card p-0 overflow-x-auto">

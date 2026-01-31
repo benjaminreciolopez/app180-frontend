@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 
 // Interfaces
 interface ReporteItem {
@@ -40,6 +41,7 @@ export default function ReporteRentabilidadPage() {
           params: { desde, hasta, empleado_id: empleadoId || undefined }
       });
       setReporte(res.data);
+      showSuccess("Reporte actualizado correctamente");
     } catch (err) {
       console.error(err);
       showError("Error al cargar reporte");
@@ -91,8 +93,16 @@ export default function ReporteRentabilidadPage() {
                 onClick={loadReporte}
                 disabled={loading}
             >
-                {loading ? 'Cargando...' : 'Generar Reporte'}
+                {loading ? 'Cargando...' : 'Generar'}
             </button>
+            
+            <div className="ml-2">
+                <UniversalExportButton 
+                    module="rentabilidad" 
+                    queryParams={{ desde, hasta, empleado_id: empleadoId }} 
+                    label="Exportar"
+                />
+            </div>
         </div>
       </div>
 
