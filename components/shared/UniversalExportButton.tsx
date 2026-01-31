@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileText, Table, FileCode } from "lucide-react";
+import { Download, FileText, Table, FileCode, Loader2 } from "lucide-react";
 import { 
     Select, 
     SelectContent, 
@@ -26,10 +26,14 @@ export const UniversalExportButton = ({
     className = "" 
 }: UniversalExportButtonProps) => {
     const [loading, setLoading] = useState(false);
+    // Controlamos el valor para poder resetearlo y permitir seleccionar la misma opción varias veces
+    const [value, setValue] = useState<string>("");
 
     const handleExport = async (format: string) => {
         if (!format) return;
         setLoading(true);
+        // No seteamos el valor 'value' aquí para evitar que se muestre seleccionado visualmente si no queremos
+        // O lo dejamos en blanco para que siempre parezca un botón de acción
         
         try {
             // Construir Query String
@@ -40,18 +44,15 @@ export const UniversalExportButton = ({
                 }
             });
 
-            // Usamos api.get para incluir el token de autorización automáticamente
             const response = await api.get(`/admin/export/${module}`, {
                 params,
-                responseType: 'blob' // Importante para archivos binarios (PDF)
+                responseType: 'blob' 
             });
 
-            // Crear URL temporal para descarga
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
             
-            // Intentar obtener nombre de archivo del header content-disposition
             let filename = `export-${module}.${format}`;
             const contentDisposition = response.headers['content-disposition'];
             if (contentDisposition) {
@@ -73,16 +74,31 @@ export const UniversalExportButton = ({
             showError("No se pudo descargar el archivo");
         } finally {
             setLoading(false);
+            setValue(""); // Resetear valor siempre
         }
     };
 
     return (
-        <div className={className}>
-            <Select onValueChange={handleExport}>
-                <SelectTrigger className="w-[140px] h-9 bg-white border-input">
+        <div className={`relative z-10 ${className}`}>
+            <Select 
+                value={value} 
+                onValueChange={(v) => {
+                    handleExport(v);
+                    // Hack: forzar reset visual inmediato si fuera necesario, 
+                    // aunque el reset en finally suele bastar. 
+                    // Si se resetea muy rápido el menú se cierra (es lo deseado).
+                    setTimeout(() => setValue(""), 0); 
+                }} 
+                disabled={loading}
+            >
+                <SelectTrigger className="w-[140px] h-9 bg-white border-input hover:bg-gray-100 transition-colors text-gray-900 cursor-pointer shadow-sm">
                     <div className="flex items-center gap-2">
-                        <Download className="h-4 w-4" />
-                        <span>{label}</span>
+                        {loading ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                        ) : (
+                            <Download className="h-4 w-4 text-gray-900" />
+                        )}
+                        <span className="font-medium">{loading ? "Generando..." : label}</span>
                     </div>
                 </SelectTrigger>
                 <SelectContent>
