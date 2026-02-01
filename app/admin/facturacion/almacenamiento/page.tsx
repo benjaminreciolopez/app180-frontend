@@ -21,7 +21,8 @@ import {
   ArrowLeft,
   FolderOpen,
   CheckSquare,
-  Package
+  Package,
+  Eye
 } from "lucide-react"
 import { api } from "@/services/api"
 import { Button } from "@/components/ui/button"
@@ -477,16 +478,59 @@ export default function AlmacenamientoPage() {
                 {selectedItems.size > 0 && (
                     <>
                         <div className="h-4 w-[1px] bg-slate-300 mx-1"></div>
-                        <Button 
-                            size="sm" 
-                            variant="secondary" 
-                            className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
-                            onClick={handleBulkDownload}
-                            disabled={isDownloading}
-                        >
-                            <Package className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
-                            Descargar ZIP ({selectedItems.size})
-                        </Button>
+                        
+                        {selectedItems.size === 1 ? (
+                            <>
+                                <Button 
+                                    size="sm" 
+                                    variant="secondary" 
+                                    className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
+                                    onClick={async () => {
+                                        const id = Array.from(selectedItems)[0]
+                                        const file = currentFiles.find(f => f.id === id)
+                                        if (!file) return
+                                        
+                                        try {
+                                            const res = await api.get(`/admin/storage/files/${id}/download`, { responseType: 'blob' })
+                                            const url = window.URL.createObjectURL(new Blob([res.data], { type: file.mime_type || 'application/pdf' }))
+                                            window.open(url, '_blank')
+                                        } catch (e) {
+                                            toast.error("Error al abrir archivo")
+                                        }
+                                    }}
+                                    disabled={isDownloading}
+                                >
+                                    <Eye className="w-3.5 h-3.5 mr-1.5 text-slate-600" />
+                                    Visualizar
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    variant="secondary" 
+                                    className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
+                                    onClick={() => {
+                                        const id = Array.from(selectedItems)[0]
+                                        const file = currentFiles.find(f => f.id === id)
+                                        if (file) handleDownload(file.id, file.nombre)
+                                    }}
+                                    disabled={isDownloading}
+                                >
+                                    <Download className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+                                    Descargar
+                                </Button>
+                            </>
+                        ) : (
+                            <Button 
+                                size="sm" 
+                                variant="secondary" 
+                                className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
+                                onClick={handleBulkDownload}
+                                disabled={isDownloading}
+                            >
+                                <Package className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+                                Descargar ZIP ({selectedItems.size})
+                            </Button>
+                        )}
+
                         <Button 
                             size="sm" 
                             variant="ghost" 
