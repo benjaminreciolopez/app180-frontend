@@ -16,7 +16,8 @@ import {
   FileIcon,
   Clock,
   LayoutGrid,
-  List
+  List,
+  Loader2
 } from "lucide-react"
 import { api } from "@/services/api"
 import { Button } from "@/components/ui/button"
@@ -235,10 +236,8 @@ export default function AlmacenamientoPage() {
 
           <div className="min-h-[500px]">
             {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                  <div key={i} className="h-40 bg-slate-50 animate-pulse rounded-xl border border-slate-100" />
-                ))}
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
               </div>
             ) : filteredFiles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">

@@ -281,14 +281,8 @@ export default function CrearFacturaPage() {
 
   if (loadingClientes) {
     return (
-        <div className="max-w-5xl mx-auto space-y-6 pb-20 pt-10">
-             <div className="space-y-4">
-                  <div className="h-10 w-48 bg-slate-100 animate-pulse rounded" />
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      <div className="lg:col-span-2 h-96 bg-slate-100 animate-pulse rounded" />
-                      <div className="lg:col-span-1 h-96 bg-slate-100 animate-pulse rounded" />
-                  </div>
-             </div>
+        <div className="flex items-center justify-center min-h-screen pb-20 pt-10">
+             <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
         </div>
     )
   }

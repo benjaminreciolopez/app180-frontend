@@ -252,10 +252,8 @@ export default function FacturasListadoPage() {
         </div>
 
         {loading ? (
-           <div className="p-4 space-y-3">
-             <Skeleton className="h-12 w-full" />
-             <Skeleton className="h-12 w-full" />
-             <Skeleton className="h-12 w-full" />
+           <div className="flex items-center justify-center py-20">
+             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
            </div>
         ) : filteredFacturas.length === 0 ? (
             <div className="p-12 text-center text-slate-400 flex flex-col items-center">

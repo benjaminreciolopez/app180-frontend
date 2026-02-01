@@ -225,10 +225,8 @@ export default function ConceptosPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-48 bg-white border rounded-xl animate-pulse" />
-          ))}
+        <div className="flex items-center justify-center py-20">
+           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
       ) : filteredItems.length === 0 ? (
         <Card className="border-dashed border-2 py-12 text-center">
