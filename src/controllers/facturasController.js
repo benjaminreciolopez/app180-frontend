@@ -523,7 +523,7 @@ export async function validarFactura(req, res) {
       const pdfBuffer = await generarPdfFactura(id);
       const baseFolder = await getInvoiceStorageFolder(empresaId);
 
-      await saveToStorage({
+      const savedFile = await saveToStorage({
         empresaId,
         nombre: `Factura_${numero.replace(/\//g, '-')}.pdf`,
         buffer: pdfBuffer,
@@ -531,6 +531,12 @@ export async function validarFactura(req, res) {
         mimeType: 'application/pdf',
         useTimestamp: false
       });
+
+      // Actualizar path en la factura
+      if (savedFile && savedFile.storage_path) {
+        await sql`update factura_180 set pdf_path = ${savedFile.storage_path} where id = ${id}`;
+      }
+
       console.log(`✅ PDF guardado en Storage para: ${numero}`);
     } catch (storageErr) {
       console.error("⚠️ No se pudo auto-almacenar el PDF:", storageErr);
@@ -775,10 +781,11 @@ export async function generarPdf(req, res) {
 
     const pdfBuffer = await generarPdfFactura(id, { modo });
 
-    // --- AUTO-ARCHIVAR ---
+    // --- AUTO-ARCHIVAR Y ACTUALIZAR DB ---
+    let savedPath = null;
     try {
       const baseFolder = await getInvoiceStorageFolder(empresaId);
-      await saveToStorage({
+      const savedFile = await saveToStorage({
         empresaId,
         nombre: `Factura_${String(numToUse).replace(/\//g, '-')}.pdf`,
         buffer: pdfBuffer,
@@ -786,8 +793,22 @@ export async function generarPdf(req, res) {
         mimeType: 'application/pdf',
         useTimestamp: false
       });
+
+      if (savedFile && savedFile.storage_path) {
+        savedPath = savedFile.storage_path;
+        await sql`update factura_180 set pdf_path = ${savedPath} where id = ${id}`;
+      }
     } catch (archiveErr) {
       console.error("⚠️ No se pudo auto-archivar el PDF en generarPdf:", archiveErr);
+    }
+
+    // SI LA ACCION ES SOLO GUARDAR (desde botón "Crear PDF")
+    if (req.query.action === 'save') {
+      return res.json({
+        success: true,
+        message: "PDF Generado y guardado correctamente",
+        pdf_path: savedPath
+      });
     }
 
     res.setHeader("Content-Type", "application/pdf");
