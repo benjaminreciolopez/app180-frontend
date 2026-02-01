@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: Mejorar detección de Chrome para PDFs en Render Standard\n\n- Agregar postinstall script para instalar Chrome via Puppeteer\n- Implementar función findChrome\\(\\) que busca Chrome en múltiples ubicaciones\n- Agregar logging detallado para debugging de Puppeteer\n- Cambiar branding de App180 a CONTENDO GESTIONES en exportaciones\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(dir:*)",
+      "Bash(sqlite3:*)",
+      "Bash(node scripts/run_facturacion_migration.js:*)"
+    ]
+  }
+}
