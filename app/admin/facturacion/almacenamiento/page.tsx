@@ -115,9 +115,25 @@ export default function AlmacenamientoPage() {
     }
   }
 
-  const handleDownload = (id: string) => {
-    // Redirigir directamente al endpoint de descarga
-    window.open(`${process.env.NEXT_PUBLIC_API_URL}/admin/storage/files/${id}/download`, '_blank')
+  const handleDownload = async (id: string, nombre: string) => {
+    try {
+      const response = await api.get(`/admin/storage/files/${id}/download`, {
+        responseType: 'blob',
+      })
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', nombre)
+      document.body.appendChild(link)
+      link.click()
+      
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error(err)
+      toast.error("Error al descargar el archivo")
+    }
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -312,7 +328,7 @@ export default function AlmacenamientoPage() {
                            <Button 
                               variant="link" 
                               className="h-auto p-0 text-blue-600 text-xs font-semibold"
-                              onClick={() => handleDownload(file.id)}
+                              onClick={() => handleDownload(file.id, file.nombre)}
                             >
                              <Download className="w-3.5 h-3.5 mr-1" /> Descargar
                            </Button>
@@ -343,7 +359,7 @@ export default function AlmacenamientoPage() {
                           <td className="p-4 text-slate-500">{formatSize(file.size_bytes)}</td>
                           <td className="p-4 text-slate-500">{format(new Date(file.created_at), "dd/MM/yyyy HH:mm", { locale: es })}</td>
                           <td className="p-4 text-right space-x-2">
-                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDownload(file.id)}>
+                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDownload(file.id, file.nombre)}>
                                <Download className="w-4 h-4 text-blue-600" />
                              </Button>
                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDelete(file.id)}>
