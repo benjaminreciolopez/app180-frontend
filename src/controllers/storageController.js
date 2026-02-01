@@ -189,7 +189,7 @@ export async function saveToStorage({ empresaId, nombre, buffer, folder, mimeTyp
             console.warn('⚠️ Supabase Storage no configurado. Solo guardando metadatos localmente (simulado).');
             const [record] = await sql`
         INSERT INTO storage_180 (empresa_id, nombre, storage_path, folder, mime_type, size_bytes)
-        VALUES (${empresaId}, ${nombre}, 'local_placeholder/' + ${fileName}, ${folder}, ${mimeType}, ${buffer.length})
+        VALUES (${empresaId}, ${nombre}, ${'local_placeholder/' + fileName}, ${folder}, ${mimeType}, ${buffer.length})
         RETURNING *
       `;
             return record;
