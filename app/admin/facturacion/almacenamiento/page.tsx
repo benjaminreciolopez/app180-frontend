@@ -75,22 +75,27 @@ export default function AlmacenamientoPage() {
       try {
           const res = await api.get('/admin/storage/folders')
           if (res.data.success) {
-              const fetchedFolders = res.data.data
-              setFolders(fetchedFolders)
-              
-              // Set default folder if not set
-              if (!currentFolder && fetchedFolders.length > 0) {
-                  // Prefer 'facturas' or the first one available
-                  // Or better: the one that includes 'Factura'
-                  const defaultFolder = fetchedFolders.find((f: string) => f.toLowerCase().includes('facturas')) || fetchedFolders[0]
+              const fetchedFolders = res.data.data || []
+
+              if (fetchedFolders.length === 0) {
+                  // Si no hay carpetas físicas, mostramos "Facturas emitidas" virtualmente
+                  // para evitar loading infinito y permitir subidas.
+                  const defaultFolder = "Facturas emitidas"
+                  setFolders([defaultFolder])
                   setCurrentFolder(defaultFolder)
-              } else if (!currentFolder) {
-                   // Fallback if no folders at all
-                  setFolders([])
+              } else {
+                  setFolders(fetchedFolders)
+                  
+                  // Set default folder if not set
+                  if (!currentFolder) {
+                      const defaultFolder = fetchedFolders.find((f: string) => f.toLowerCase().includes('facturas')) || fetchedFolders[0]
+                      setCurrentFolder(defaultFolder)
+                  }
               }
           }
       } catch (err) {
           console.error("Error fetching folders", err)
+          setLoading(false)
       }
   }
 
