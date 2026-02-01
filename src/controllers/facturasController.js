@@ -31,6 +31,28 @@ function n(v) {
   return v === undefined || v === null ? null : v;
 }
 
+function getTrimestre(fecha) {
+  const f = new Date(fecha);
+  const mes = f.getUTCMonth(); // 0-11
+  return Math.floor(mes / 3) + 1;
+}
+
+function getStoragePath(fecha, baseFolder = 'Facturas emitidas') {
+  const f = new Date(fecha);
+  const year = f.getUTCFullYear();
+  const trim = getTrimestre(fecha);
+  return `${baseFolder}/${year}/T${trim}`;
+}
+
+async function getInvoiceStorageFolder(empresaId) {
+  try {
+    const [config] = await sql`select storage_facturas_folder from configuracionsistema_180 where empresa_id=${empresaId}`;
+    return config?.storage_facturas_folder || 'Facturas emitidas';
+  } catch (e) {
+    return 'Facturas emitidas';
+  }
+}
+
 // Parse número de factura para ordenación
 function parseNumeroFactura(numero) {
   if (!numero) return { year: 0, correlativo: 0, esRect: 0 };
@@ -499,11 +521,13 @@ export async function validarFactura(req, res) {
     try {
       console.log(`📑 Generando PDF para auto-almacenamiento: ${numero}`);
       const pdfBuffer = await generarPdfFactura(id);
+      const baseFolder = await getInvoiceStorageFolder(empresaId);
+
       await saveToStorage({
         empresaId,
         nombre: `Factura_${numero.replace(/\//g, '-')}.pdf`,
         buffer: pdfBuffer,
-        folder: 'facturas',
+        folder: getStoragePath(fecha, baseFolder),
         mimeType: 'application/pdf',
         useTimestamp: false
       });
@@ -744,19 +768,21 @@ export async function generarPdf(req, res) {
     const { modo } = req.query; // TEST or PROD
 
     const [facturaData] = await sql`
-      select numero from factura_180 where id=${id} limit 1
+      select numero, fecha from factura_180 where id=${id} limit 1
     `;
     const numToUse = facturaData?.numero || id;
+    const fechaToUse = facturaData?.fecha || new Date();
 
     const pdfBuffer = await generarPdfFactura(id, { modo });
 
     // --- AUTO-ARCHIVAR ---
     try {
+      const baseFolder = await getInvoiceStorageFolder(empresaId);
       await saveToStorage({
         empresaId,
         nombre: `Factura_${String(numToUse).replace(/\//g, '-')}.pdf`,
         buffer: pdfBuffer,
-        folder: 'facturas',
+        folder: getStoragePath(fechaToUse, baseFolder),
         mimeType: 'application/pdf',
         useTimestamp: false
       });
@@ -808,11 +834,12 @@ export async function enviarEmail(req, res) {
 
       // --- AUTO-ARCHIVAR ---
       try {
+        const baseFolder = await getInvoiceStorageFolder(empresaId);
         await saveToStorage({
           empresaId,
           nombre: `Factura_${String(factura.numero || id).replace(/\//g, '-')}.pdf`,
           buffer: pdfBuffer,
-          folder: 'facturas',
+          folder: getStoragePath(factura.fecha, baseFolder),
           mimeType: 'application/pdf',
           useTimestamp: false
         });
