@@ -17,7 +17,8 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   ChevronsUpDown,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -73,6 +74,7 @@ export default function FacturasListadoPage() {
 
   // Acciones
   const [procesandoId, setProcesandoId] = useState<number | null>(null)
+  const [downloadingId, setDownloadingId] = useState<number | null>(null)
   const [facturaToDelete, setFacturaToDelete] = useState<any>(null)
 
   // Cargar datos
@@ -136,11 +138,12 @@ export default function FacturasListadoPage() {
   }
 
   const handleDescargarPDF = async (id: number, numero: string) => {
-    try {
-      toast.promise(
-        // Simular descarga directa o abrir en nueva pestaña
-        // Nota: En frontend real, solemos usar un <a> oculto o window.open
-        api.get(`/admin/facturacion/facturas/${id}/pdf`, { responseType: 'blob' }).then((response: any) => {
+    if (downloadingId) return
+    setDownloadingId(id)
+    
+    // Usamos toast.promise pero mantenemos el estado local para bloquear el botón
+    const promise = api.get(`/admin/facturacion/facturas/${id}/pdf`, { responseType: 'blob' })
+      .then((response: any) => {
            const url = window.URL.createObjectURL(new Blob([response.data]));
            const link = document.createElement('a');
            link.href = url;
@@ -148,16 +151,16 @@ export default function FacturasListadoPage() {
            document.body.appendChild(link);
            link.click();
            link.remove();
-        }),
-        {
-          loading: 'Generando PDF...',
-          success: 'PDF descargado',
-          error: 'Error al descargar PDF'
-        }
-      )
-    } catch (error) {
-      console.error(error)
-    }
+      })
+      .finally(() => {
+        setDownloadingId(null)
+      })
+
+    toast.promise(promise, {
+      loading: 'Generando PDF...',
+      success: 'PDF descargado y archivado',
+      error: 'Error al descargar PDF'
+    })
   }
 
   const handleAnular = async (id: number) => {
@@ -278,6 +281,7 @@ export default function FacturasListadoPage() {
                             onDelete={() => setFacturaToDelete(factura)}
                             onEdit={() => router.push(`/admin/facturacion/editar/${factura.id}`)}
                             isProcessing={procesandoId === factura.id}
+                            isDownloading={downloadingId === factura.id}
                         />
                     ))}
                 </AnimatePresence>
@@ -307,7 +311,7 @@ export default function FacturasListadoPage() {
   )
 }
 
-function FacturaRow({ factura, onValidar, onDescargar, onAnular, onDelete, onEdit, isProcessing }: any) {
+function FacturaRow({ factura, onValidar, onDescargar, onAnular, onDelete, onEdit, isProcessing, isDownloading }: any) {
     const isBorrador = factura.estado === "BORRADOR"
     const isValidada = factura.estado === "VALIDADA"
     const isAnulada = factura.estado === "ANULADA"
@@ -384,8 +388,15 @@ function FacturaRow({ factura, onValidar, onDescargar, onAnular, onDelete, onEdi
                 {/* VALIDADA: PDF / Email / Anular */}
                 {isValidada && (
                     <>
-                        <Button size="sm" variant="outline" className="h-8 hover:bg-blue-600 hover:text-white transition-colors" onClick={onDescargar}>
-                            <FileText className="w-4 h-4 mr-1" /> CREAR PDF
+                        <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-8 hover:bg-blue-600 hover:text-white transition-colors" 
+                            onClick={onDescargar}
+                            disabled={isDownloading}
+                        >
+                            {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileText className="w-4 h-4 mr-1" />}
+                            {isDownloading ? "CREANDO..." : "CREAR PDF"}
                         </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>

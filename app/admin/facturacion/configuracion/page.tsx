@@ -14,7 +14,8 @@ import {
   Phone,
   Sparkles,
   Hash,
-  Plus
+  Plus,
+  Loader2
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -96,6 +97,7 @@ export default function ConfiguracionPage() {
   const [passModalOpen, setPassModalOpen] = useState(false)
   const [certPassword, setCertPassword] = useState("")
   const [pendingCert, setPendingCert] = useState<any>(null)
+  const [generatingAiField, setGeneratingAiField] = useState<string | null>(null)
 
   // REFS para subida de archivos
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -298,6 +300,8 @@ export default function ConfiguracionPage() {
   }
 
   const handleMagicAI = async (type: string) => {
+    if (generatingAiField) return
+    setGeneratingAiField(type)
     try {
       const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type })
       if (res.data.success) {
@@ -311,6 +315,8 @@ export default function ConfiguracionPage() {
       }
     } catch (err) {
       toast.error("Error al generar texto")
+    } finally {
+      setGeneratingAiField(null)
     }
   }
 
@@ -329,7 +335,7 @@ export default function ConfiguracionPage() {
             disabled={saving}
             className="bg-blue-600 hover:bg-blue-700 text-white min-w-[140px]"
         >
-            {saving ? "Guardando..." : <><Save className="w-4 h-4 mr-2" /> Guardar Todo</>}
+            {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando...</> : <><Save className="w-4 h-4 mr-2" /> Guardar Todo</>}
         </Button>
       </div>
 
@@ -477,8 +483,15 @@ export default function ConfiguracionPage() {
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <Label>Términos y Condiciones (Pie de PDF)</Label>
-                                <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleMagicAI('pie')}>
-                                    <Sparkles className="w-3 h-3 mr-1" /> Generar con IA
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50" 
+                                    onClick={() => handleMagicAI('pie')}
+                                    disabled={!!generatingAiField}
+                                >
+                                    {generatingAiField === 'pie' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                                    {generatingAiField === 'pie' ? "Generando..." : "Generar con IA"}
                                 </Button>
                             </div>
                             <Textarea rows={3} value={formData.texto_pie} onChange={e => handleChange('texto_pie', e.target.value)} placeholder="Ej: Inscrita en el Registro Mercantil..." />
@@ -490,8 +503,15 @@ export default function ConfiguracionPage() {
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <Label>Texto para Operaciones Exentas</Label>
-                                    <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleMagicAI('exento')}>
-                                        <Sparkles className="w-3 h-3 mr-1" /> IA
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50" 
+                                        onClick={() => handleMagicAI('exento')}
+                                        disabled={!!generatingAiField}
+                                    >
+                                        {generatingAiField === 'exento' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                                        IA
                                     </Button>
                                 </div>
                                 <Textarea rows={3} value={formData.texto_exento} onChange={e => handleChange('texto_exento', e.target.value)} placeholder="Texto que aparecerá si el IVA es 0%" />
@@ -499,8 +519,15 @@ export default function ConfiguracionPage() {
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <Label>Texto para Rectificativas</Label>
-                                    <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleMagicAI('rectificativa')}>
-                                        <Sparkles className="w-3 h-3 mr-1" /> IA
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50" 
+                                        onClick={() => handleMagicAI('rectificativa')}
+                                        disabled={!!generatingAiField}
+                                    >
+                                        {generatingAiField === 'rectificativa' ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                                        IA
                                     </Button>
                                 </div>
                                 <Textarea rows={3} value={formData.texto_rectificativa} onChange={e => handleChange('texto_rectificativa', e.target.value)} placeholder="Referencia a la factura original..." />
@@ -787,7 +814,7 @@ export default function ConfiguracionPage() {
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setPassModalOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={saving}>
-                {saving ? "Subiendo..." : "Validar y Subir"}
+                {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Subiendo...</> : "Validar y Subir"}
               </Button>
             </DialogFooter>
           </form>

@@ -12,7 +12,8 @@ import {
   Trash2,
   Calculator,
   Search,
-  Check
+  Check,
+  Loader2
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -575,7 +576,7 @@ export default function CrearFacturaPage() {
                         >
                             {saving ? (
                                 <span className="flex items-center gap-2">
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <Loader2 className="w-5 h-5 animate-spin" />
                                     Guardando...
                                 </span>
                             ) : (
