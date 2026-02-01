@@ -140,7 +140,7 @@ export const storageController = {
 /**
  * Helper para guardar archivo (usado por otros controladores)
  */
-export async function saveToStorage({ empresaId, nombre, buffer, folder, mimeType, useTimestamp = true }) {
+export async function saveToStorage({ empresaId, nombre, buffer, folder, mimeType, useTimestamp = true, dbFolder = null }) {
     try {
         const finalName = useTimestamp ? `${Date.now()}_${nombre}` : nombre;
         const fileName = `${empresaId}/${folder}/${finalName}`;
@@ -179,17 +179,19 @@ export async function saveToStorage({ empresaId, nombre, buffer, folder, mimeTyp
                 }
             }
 
+            const folderToSave = dbFolder || folder;
             const [record] = await sql`
                 INSERT INTO storage_180 (empresa_id, nombre, storage_path, folder, mime_type, size_bytes)
-                VALUES (${empresaId}, ${nombre}, ${fileName}, ${folder}, ${mimeType}, ${buffer.length})
+                VALUES (${empresaId}, ${nombre}, ${fileName}, ${folderToSave}, ${mimeType}, ${buffer.length})
                 RETURNING *
             `;
             return record;
         } else {
             console.warn('⚠️ Supabase Storage no configurado. Solo guardando metadatos localmente (simulado).');
+            const folderToSave = dbFolder || folder;
             const [record] = await sql`
         INSERT INTO storage_180 (empresa_id, nombre, storage_path, folder, mime_type, size_bytes)
-        VALUES (${empresaId}, ${nombre}, ${'local_placeholder/' + fileName}, ${folder}, ${mimeType}, ${buffer.length})
+        VALUES (${empresaId}, ${nombre}, ${'local_placeholder/' + fileName}, ${folderToSave}, ${mimeType}, ${buffer.length})
         RETURNING *
       `;
             return record;
