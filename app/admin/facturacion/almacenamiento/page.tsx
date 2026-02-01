@@ -675,7 +675,7 @@ export default function AlmacenamientoPage() {
                                      <tr 
                                         key={item.type === 'folder' ? item.fullPath : item.data.id}
                                         className={cn(
-                                            "hover:bg-slate-50 transition-colors cursor-pointer group",
+                                            "hover:bg-slate-50 transition-colors cursor-pointer group select-none",
                                             item.type === 'file' && selectedItems.has(item.data.id) && "bg-blue-50/60 hover:bg-blue-50"
                                         )}
                                         onDoubleClick={() => {

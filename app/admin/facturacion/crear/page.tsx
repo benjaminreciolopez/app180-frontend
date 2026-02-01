@@ -319,7 +319,7 @@ export default function CrearFacturaPage() {
                       variant="outline"
                       role="combobox"
                       aria-expanded={clienteOpen}
-                      className="w-full justify-between bg-white h-12"
+                      className="w-full justify-between bg-white h-12 cursor-pointer"
                     >
                       {clienteId
                         ? clientes.find((c) => c.id === clienteId)?.nombre
@@ -517,7 +517,7 @@ export default function CrearFacturaPage() {
                                     {lineas.length > 1 && (
                                         <button 
                                             onClick={() => handleRemoveLine(linea.id)}
-                                            className="text-slate-300 hover:text-red-500 transition-colors"
+                                            className="text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>

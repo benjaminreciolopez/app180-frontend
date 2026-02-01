@@ -345,13 +345,13 @@ export default function ConfiguracionPage() {
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="bg-white p-1 border">
-          <TabsTrigger value="empresa" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700">
+          <TabsTrigger value="empresa" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700 cursor-pointer">
             <Building2 className="w-4 h-4 mr-2" /> Datos Empresa
           </TabsTrigger>
-          <TabsTrigger value="factura" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700">
+          <TabsTrigger value="factura" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700 cursor-pointer">
             <FileText className="w-4 h-4 mr-2" /> Personalización
           </TabsTrigger>
-          <TabsTrigger value="verifactu" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700">
+          <TabsTrigger value="verifactu" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700 cursor-pointer">
             <ShieldCheck className="w-4 h-4 mr-2" /> Veri*Factu
           </TabsTrigger>
         </TabsList>
