@@ -19,13 +19,16 @@ import {
   List,
   Loader2,
   ArrowLeft,
-  FolderOpen
+  FolderOpen,
+  CheckSquare,
+  Package
 } from "lucide-react"
 import { api } from "@/services/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -38,6 +41,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import JSZip from "jszip"
+import { saveAs } from "file-saver"
 
 interface FileInfo {
   id: string
@@ -72,15 +77,18 @@ export default function AlmacenamientoPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [uploading, setUploading] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
 
-  // 1. Cargar la estructura de carpetas (todas las rutas existentes)
+  // Selección
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+
+  // 1. Cargar la estructura de carpetas
   const fetchStructure = async () => {
       try {
           setLoadingFolders(true)
           const res = await api.get('/admin/storage/folders')
           if (res.data.success) {
               const paths = res.data.data || []
-              // Asegurar que "Facturas emitidas" exista si está vacío
               if (paths.length === 0) {
                  setAllDefinedPaths(["Facturas emitidas"])
               } else {
@@ -89,19 +97,16 @@ export default function AlmacenamientoPage() {
           }
       } catch (err) {
           console.error("Error fetching folders", err)
-          // Fallback seguro
           setAllDefinedPaths(["Facturas emitidas"])
       } finally {
           setLoadingFolders(false)
       }
   }
 
-  // 2. Cargar archivos de la carpeta actual (exact match)
+  // 2. Cargar archivos de la carpeta actual
   const fetchFiles = async () => {
     try {
       setLoadingFiles(true)
-      // Si estamos en root, normalmente no hay archivos, pero consultamos igual con folder="" o folder="/"
-      // El backend espera 'folder' como query param. 
       const res = await api.get(`/admin/storage/files?folder=${currentPath}`)
       if (res.data.success) {
         setCurrentFiles(res.data.data)
@@ -120,24 +125,19 @@ export default function AlmacenamientoPage() {
   }, [])
 
   useEffect(() => {
+    // Al cambiar de carpeta, limpiamos selecciones y recargamos
+    setSelectedItems(new Set())
     fetchFiles()
   }, [currentPath])
 
-  // 3. Calcular subcarpetas basándonos en 'currentPath' y 'allDefinedPaths'
+  // 3. Calcular subcarpetas
   const subFolders = useMemo(() => {
     if (loadingFolders) return []
-    
     const subs = new Set<string>()
     const prefix = currentPath ? `${currentPath}/` : ""
     
     allDefinedPaths.forEach(path => {
       if (path.startsWith(prefix)) {
-        // Ejemplo: path="Facturas/2026/T1", current="" -> prefix=""
-        // remainder="Facturas/2026/T1" -> segment="Facturas"
-        
-        // Ejemplo: path="Facturas/2026/T1", current="Facturas" -> prefix="Facturas/"
-        // remainder="2026/T1" -> segment="2026"
-        
         const remainder = path.slice(prefix.length)
         if (remainder) {
           const firstSegment = remainder.split('/')[0]
@@ -145,15 +145,14 @@ export default function AlmacenamientoPage() {
         }
       }
     })
-    
     return Array.from(subs).sort()
   }, [allDefinedPaths, currentPath, loadingFolders])
 
-  // 4. Items combinados para el Grid (Carpetas + Archivos) filtrados por búsqueda
+  // 4. Items combinados para el Grid
   const gridItems: GridItem[] = useMemo(() => {
     let items: GridItem[] = []
     
-    // Agregar carpetas primero
+    // Agregar carpetas
     items = items.concat(subFolders.map(name => ({
       type: 'folder',
       name,
@@ -180,11 +179,13 @@ export default function AlmacenamientoPage() {
 
   // Acciones
   const handleNavigate = (path: string) => {
-    setSearchTerm("") // Limpiar búsqueda al navegar
+    if (isDownloading) return // Bloqueo si hay descarga
+    setSearchTerm("") 
     setCurrentPath(path)
   }
 
   const handleNavigateUp = () => {
+    if (isDownloading) return 
     if (!currentPath) return
     const parts = currentPath.split('/')
     parts.pop()
@@ -192,22 +193,40 @@ export default function AlmacenamientoPage() {
   }
 
   const handleDelete = async (id: string) => {
+    if (isDownloading) return
     if (!confirm("¿Seguro que quieres eliminar este archivo?")) return
     try {
       await api.delete(`/admin/storage/files/${id}`)
       toast.success("Archivo eliminado")
-      fetchFiles() // Recargar archivos
-      // No recargamos estructura completa a menos que sea critico, 
-      // pero si borramos el ultimo archivo de una carpeta, esa carpeta desaparece conceptualmente
-      // asi que quizas deberiamos:
+      fetchFiles()
       fetchStructure() 
     } catch (err) {
       toast.error("Error al eliminar")
     }
   }
 
-  const handleDownload = async (id: string, nombre: string) => {
+  const handleDeleteBulk = async () => {
+    if (isDownloading) return
+    if (!confirm(`¿Seguro que quieres eliminar ${selectedItems.size} archivos?`)) return
+    
+    // Eliminar uno a uno (simple) o endpoint bulk (ideal)
+    // Usaremos promises paralelas simple
     try {
+        const promises = Array.from(selectedItems).map(id => api.delete(`/admin/storage/files/${id}`))
+        await Promise.all(promises)
+        toast.success(`${selectedItems.size} archivos eliminados`)
+        setSelectedItems(new Set())
+        fetchFiles()
+        fetchStructure()
+    } catch(err) {
+        toast.error("Error eliminando algunos archivos")
+    }
+  }
+
+  const handleDownload = async (id: string, nombre: string) => {
+    if (isDownloading) return
+    try {
+      setIsDownloading(true)
       const response = await api.get(`/admin/storage/files/${id}/download`, {
         responseType: 'blob',
       })
@@ -224,17 +243,68 @@ export default function AlmacenamientoPage() {
     } catch (err) {
       console.error(err)
       toast.error("Error al descargar el archivo")
+    } finally {
+      setIsDownloading(false)
     }
   }
 
+  const handleBulkDownload = async () => {
+      if (selectedItems.size === 0) return
+      if (isDownloading) return
+
+      try {
+          setIsDownloading(true)
+          toast.info("Iniciando descarga y compresión...")
+
+          const zip = new JSZip()
+          
+          // Filtrar items seleccionados que sean archivos (no soportamos bajar carpetas en bulk aun)
+          const filesToDownload = currentFiles.filter(f => selectedItems.has(f.id))
+          
+          let processed = 0
+          
+          const promises = filesToDownload.map(async (file) => {
+              try {
+                  const res = await api.get(`/admin/storage/files/${file.id}/download`, {
+                      responseType: 'blob'
+                  })
+                  zip.file(file.nombre, res.data)
+                  processed++
+              } catch (err) {
+                  console.error(`Error bajando ${file.nombre}`, err)
+              }
+          })
+
+          await Promise.all(promises)
+
+          if (processed === 0) {
+              toast.error("Error al procesar archivos")
+              return
+          }
+
+          toast.info("Generando ZIP...")
+          const content = await zip.generateAsync({ type: "blob" })
+          
+          const zipName = `archivos_${currentPath.replace(/\//g, '_') || 'root'}_${format(new Date(), 'yyyyMMdd')}.zip`
+          saveAs(content, zipName)
+
+          toast.success("Descarga completada")
+          setSelectedItems(new Set()) // Opcional: limpiar selección
+
+      } catch (err) {
+          console.error("Error bulk download", err)
+          toast.error("Error al generar el archivo ZIP")
+      } finally {
+          setIsDownloading(false)
+      }
+  }
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isDownloading) return
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Si estamos en root, no deberíamos dejar subir archivos sueltos idealmente, 
-    // pero si el usuario quiere, se crea en "general" o similar, 
-    // O mejor, forzamos carpeta 'General' si currentPath vacio.
-    const targetFolder = currentPath || "General"
+    const targetFolder = currentPath || "Facturas emitidas" // Default inteligente
 
     setUploading(true)
     const formData = new FormData()
@@ -246,17 +316,33 @@ export default function AlmacenamientoPage() {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       toast.success("Archivo subido correctamente")
-      
-      // Actualizar todo
       fetchFiles()
       fetchStructure()
     } catch (err) {
       toast.error("Error al subir archivo")
     } finally {
-        // Limpiar input
         e.target.value = "" 
         setUploading(false)
     }
+  }
+
+  const toggleSelection = (id: string) => {
+      if (isDownloading) return
+      const newSet = new Set(selectedItems)
+      if (newSet.has(id)) newSet.delete(id)
+      else newSet.add(id)
+      setSelectedItems(newSet)
+  }
+
+  const toggleSelectAll = () => {
+      if (isDownloading) return
+      if (selectedItems.size === currentFiles.length && currentFiles.length > 0) {
+          setSelectedItems(new Set())
+      } else {
+          // Solo seleccionamos archivos, no carpetas de momento para simplificar
+          const allIds = new Set(currentFiles.map(f => f.id))
+          setSelectedItems(allIds)
+      }
   }
 
   const formatSize = (bytes: number) => {
@@ -267,13 +353,31 @@ export default function AlmacenamientoPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  // Breadcrumb helper
   const breadcrumbSegments = useMemo(() => {
     return currentPath ? currentPath.split('/') : []
   }, [currentPath])
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto h-[calc(100vh-80px)] flex flex-col">
+    <div className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto h-[calc(100vh-80px)] flex flex-col relative">
+      
+      {/* Overlay de Bloqueo / Descarga */}
+      <AnimatePresence>
+          {(isDownloading || uploading) && (
+              <motion.div 
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 exit={{ opacity: 0 }}
+                 className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-50 flex flex-col items-center justify-center rounded-xl"
+              >
+                  <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+                  <h3 className="text-xl font-semibold text-slate-800">
+                      {isDownloading ? "Descargando archivos..." : "Subiendo archivo..."}
+                  </h3>
+                  <p className="text-slate-500">Por favor espere, no cierre la ventana.</p>
+              </motion.div>
+          )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
         <div className="space-y-1">
@@ -295,10 +399,10 @@ export default function AlmacenamientoPage() {
              <div className="h-8 w-[1px] bg-slate-200 mx-2 hidden md:block"></div>
 
            <label className="cursor-pointer">
-              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
-              <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm" disabled={uploading}>
-                {uploading ? <Clock className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                {uploading ? "Subiendo..." : "Subir Archivo"}
+              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading || isDownloading} />
+              <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm" disabled={uploading || isDownloading}>
+                <Plus className="w-4 h-4 mr-2" />
+                Subir Archivo
               </Button>
            </label>
         </div>
@@ -307,18 +411,16 @@ export default function AlmacenamientoPage() {
       {/* Toolbar & Breadcrumbs */}
       <div className="bg-white p-3 border rounded-xl shadow-sm flex flex-col gap-3 flex-shrink-0">
          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-            {/* Botón atrás */}
             <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={handleNavigateUp}
-                disabled={!currentPath}
+                disabled={!currentPath || isDownloading}
                 className="mr-2 text-slate-500 hover:text-slate-900"
             >
                 <ArrowLeft className="w-4 h-4" />
             </Button>
 
-            {/* Breadcrumb Component */}
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
@@ -332,7 +434,6 @@ export default function AlmacenamientoPage() {
                 </BreadcrumbItem>
                 
                 {breadcrumbSegments.map((segment, index) => {
-                    // Reconstruct path up to this segment
                     const path = breadcrumbSegments.slice(0, index + 1).join('/')
                     const isLast = index === breadcrumbSegments.length - 1
                     
@@ -358,35 +459,81 @@ export default function AlmacenamientoPage() {
             </Breadcrumb>
          </div>
 
-         <div className="flex justify-between gap-3">
-             <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input 
-                placeholder={`Buscar en ${currentPath ? currentPath.split('/').pop() : 'Inicio'}...`} 
-                className="pl-10 h-9 border-slate-200 bg-slate-50 focus:bg-white transition-colors"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <div className="flex border rounded-lg overflow-hidden bg-slate-50 p-1 shrink-0">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className={cn("h-7 w-7", viewMode === 'grid' && "bg-white shadow-sm text-blue-600")}
-                    onClick={() => setViewMode('grid')}
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className={cn("h-7 w-7", viewMode === 'list' && "bg-white shadow-sm text-blue-600")}
-                    onClick={() => setViewMode('list')}
-                  >
-                    <List className="w-4 h-4" />
-                  </Button>
-            </div>
+         <div className="flex justify-between items-center gap-3 flex-wrap">
+             {/* Acciones de Selección */}
+             <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-100">
+                <div className="flex items-center gap-2 px-2">
+                    <Checkbox 
+                        id="select-all" 
+                        checked={currentFiles.length > 0 && selectedItems.size === currentFiles.length}
+                        onCheckedChange={toggleSelectAll}
+                        disabled={currentFiles.length === 0 || isDownloading}
+                    />
+                    <label htmlFor="select-all" className="text-sm font-medium text-slate-600 cursor-pointer select-none">
+                        Todos
+                    </label>
+                </div>
+                
+                {selectedItems.size > 0 && (
+                    <>
+                        <div className="h-4 w-[1px] bg-slate-300 mx-1"></div>
+                        <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
+                            onClick={handleBulkDownload}
+                            disabled={isDownloading}
+                        >
+                            <Package className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+                            Descargar ZIP ({selectedItems.size})
+                        </Button>
+                        <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                            onClick={handleDeleteBulk}
+                            disabled={isDownloading}
+                        >
+                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                            Eliminar ({selectedItems.size})
+                        </Button>
+                    </>
+                )}
+             </div>
+
+             <div className="flex gap-3 ml-auto">
+                 <div className="relative w-48 md:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input 
+                    placeholder="Buscar..." 
+                    className="pl-10 h-9 border-slate-200 bg-slate-50 focus:bg-white transition-colors"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    disabled={isDownloading}
+                  />
+                </div>
+                
+                <div className="flex border rounded-lg overflow-hidden bg-slate-50 p-1 shrink-0">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={cn("h-7 w-7", viewMode === 'grid' && "bg-white shadow-sm text-blue-600")}
+                        onClick={() => setViewMode('grid')}
+                        disabled={isDownloading}
+                      >
+                        <LayoutGrid className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={cn("h-7 w-7", viewMode === 'list' && "bg-white shadow-sm text-blue-600")}
+                        onClick={() => setViewMode('list')}
+                        disabled={isDownloading}
+                      >
+                        <List className="w-4 h-4" />
+                      </Button>
+                </div>
+             </div>
          </div>
       </div>
 
@@ -419,49 +566,47 @@ export default function AlmacenamientoPage() {
                                 transition={{ delay: idx * 0.03 }}
                                 className={cn(
                                     "group relative flex flex-col items-center p-4 rounded-xl border border-transparent hover:bg-blue-50/50 hover:border-blue-100 transition-all cursor-pointer",
-                                    "active:scale-95 duration-100"
+                                    "active:scale-95 duration-100",
+                                    item.type === 'file' && selectedItems.has(item.data.id) && "bg-blue-50 border-blue-200 ring-1 ring-blue-300"
                                 )}
                                 onDoubleClick={() => {
                                     if (item.type === 'folder') handleNavigate(item.fullPath)
-                                    else handleDownload(item.data.id, item.data.nombre)
+                                    // else handleDownload(item.data.id, item.data.nombre) // Doble click en archivo = toggle selección o nada
+                                }}
+                                onClick={() => {
+                                    if (item.type === 'file') toggleSelection(item.data.id)
                                 }}
                              >
+                                 {/* Checkbox Overlay para selección */}
+                                 {item.type === 'file' && (
+                                     <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
+                                         <Checkbox 
+                                            checked={selectedItems.has(item.data.id)}
+                                            onCheckedChange={() => toggleSelection(item.data.id)}
+                                            className={cn("bg-white/80 border-slate-300", 
+                                                selectedItems.has(item.data.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                            )}
+                                         />
+                                     </div>
+                                 )}
+
                                  <div className="w-16 h-16 mb-3 flex items-center justify-center transition-transform group-hover:-translate-y-1">
                                      {item.type === 'folder' ? (
                                          <Folder className="w-14 h-14 text-yellow-400 drop-shadow-sm fill-yellow-400/20" />
                                      ) : (
-                                         <FileText className="w-12 h-12 text-blue-500 drop-shadow-sm" />
+                                         <FileText className={cn("w-12 h-12 drop-shadow-sm transition-colors", 
+                                            selectedItems.has(item.data.id) ? "text-blue-600" : "text-blue-500"
+                                         )} />
                                      )}
                                  </div>
-                                 <span className="text-sm font-medium text-slate-700 text-center line-clamp-2 w-full break-words">
+                                 <span className="text-sm font-medium text-slate-700 text-center line-clamp-2 w-full break-words select-none">
                                      {item.type === 'folder' ? item.name : item.data.nombre}
                                  </span>
                                  
-                                 {/* Metadatos extra visibles al hover */}
                                  {item.type === 'file' && (
                                      <span className="text-[10px] text-slate-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                          {formatSize(item.data.size_bytes)}
                                      </span>
-                                 )}
-
-                                 {/* Acciones flotantes */}
-                                 {item.type === 'file' && (
-                                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm rounded-lg p-1 shadow-sm">
-                                         <Button 
-                                            size="icon" 
-                                            variant="ghost" 
-                                            className="h-6 w-6 text-slate-600 hover:text-blue-600"
-                                            onClick={(e) => { e.stopPropagation(); handleDownload(item.data.id, item.data.nombre) }}>
-                                             <Download className="w-3.5 h-3.5" />
-                                         </Button>
-                                         <Button 
-                                            size="icon" 
-                                            variant="ghost" 
-                                            className="h-6 w-6 text-slate-600 hover:text-red-600"
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(item.data.id) }}>
-                                             <Trash2 className="w-3.5 h-3.5" />
-                                         </Button>
-                                     </div>
                                  )}
                              </motion.div>
                          ))}
@@ -470,7 +615,10 @@ export default function AlmacenamientoPage() {
                    <div className="min-w-full inline-block align-middle">
                         <table className="min-w-full divide-y divide-slate-100">
                              <thead>
-                                 <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                 <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                                     <th className="px-4 py-3 w-10">
+                                         {/* Header Checkbox */}
+                                     </th>
                                      <th className="px-4 py-3">Nombre</th>
                                      <th className="px-4 py-3">Tipo</th>
                                      <th className="px-4 py-3">Tamaño</th>
@@ -482,12 +630,25 @@ export default function AlmacenamientoPage() {
                                  {gridItems.map((item) => (
                                      <tr 
                                         key={item.type === 'folder' ? item.fullPath : item.data.id}
-                                        className="hover:bg-slate-50 transition-colors cursor-pointer group"
+                                        className={cn(
+                                            "hover:bg-slate-50 transition-colors cursor-pointer group",
+                                            item.type === 'file' && selectedItems.has(item.data.id) && "bg-blue-50/60 hover:bg-blue-50"
+                                        )}
                                         onDoubleClick={() => {
                                             if (item.type === 'folder') handleNavigate(item.fullPath)
-                                            else handleDownload(item.data.id, item.data.nombre)
+                                        }}
+                                        onClick={() => {
+                                            if (item.type === 'file') toggleSelection(item.data.id)
                                         }}
                                      >
+                                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                                             {item.type === 'file' && (
+                                                 <Checkbox 
+                                                    checked={selectedItems.has(item.data.id)}
+                                                    onCheckedChange={() => toggleSelection(item.data.id)}
+                                                 />
+                                             )}
+                                         </td>
                                          <td className="px-4 py-3 whitespace-nowrap">
                                              <div className="flex items-center gap-3">
                                                  {item.type === 'folder' ? (
@@ -509,13 +670,13 @@ export default function AlmacenamientoPage() {
                                          <td className="px-4 py-3 text-sm text-slate-500">
                                              {item.type === 'folder' ? '-' : format(new Date(item.data.created_at), "dd/MM/yyyy", { locale: es })}
                                          </td>
-                                         <td className="px-4 py-3 text-right">
+                                         <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                                              {item.type === 'file' && (
                                                   <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                      <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={(e) => { e.stopPropagation(); handleDownload(item.data.id, item.data.nombre) }}>
+                                                      <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={() => handleDownload(item.data.id, item.data.nombre)}>
                                                          <Download className="w-4 h-4" />
                                                       </Button>
-                                                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={(e) => { e.stopPropagation(); handleDelete(item.data.id) }}>
+                                                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.data.id)}>
                                                          <Trash2 className="w-4 h-4" />
                                                       </Button>
                                                   </div>
