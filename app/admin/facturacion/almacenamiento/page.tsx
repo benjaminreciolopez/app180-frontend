@@ -43,19 +43,21 @@ interface StorageStats {
   total_limit_bytes: number
 }
 
-const DEFAULT_FOLDERS = ["facturas", "logos", "general"]
+// Removed DEFAULT_FOLDERS constant
 
 export default function AlmacenamientoPage() {
   const [loading, setLoading] = useState(true)
   const [files, setFiles] = useState<FileInfo[]>([])
+  const [folders, setFolders] = useState<string[]>([])
   const [stats, setStats] = useState<StorageStats | null>(null)
-  const [currentFolder, setCurrentFolder] = useState("facturas")
+  const [currentFolder, setCurrentFolder] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState("")
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [uploading, setUploading] = useState(false)
 
   const fetchFiles = async () => {
     try {
+      if (!currentFolder) return
       setLoading(true)
       const res = await api.get(`/admin/storage/files?folder=${currentFolder}`)
       if (res.data.success) {
@@ -69,8 +71,37 @@ export default function AlmacenamientoPage() {
     }
   }
 
+  const fetchFolders = async () => {
+      try {
+          const res = await api.get('/admin/storage/folders')
+          if (res.data.success) {
+              const fetchedFolders = res.data.data
+              setFolders(fetchedFolders)
+              
+              // Set default folder if not set
+              if (!currentFolder && fetchedFolders.length > 0) {
+                  // Prefer 'facturas' or the first one available
+                  // Or better: the one that includes 'Factura'
+                  const defaultFolder = fetchedFolders.find((f: string) => f.toLowerCase().includes('facturas')) || fetchedFolders[0]
+                  setCurrentFolder(defaultFolder)
+              } else if (!currentFolder) {
+                   // Fallback if no folders at all
+                  setFolders([])
+              }
+          }
+      } catch (err) {
+          console.error("Error fetching folders", err)
+      }
+  }
+
   useEffect(() => {
-    fetchFiles()
+    fetchFolders()
+  }, [])
+
+  useEffect(() => {
+    if (currentFolder) {
+        fetchFiles()
+    }
   }, [currentFolder])
 
   const handleDelete = async (id: string) => {
@@ -177,7 +208,7 @@ export default function AlmacenamientoPage() {
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-slate-900 px-2">Carpetas</h3>
             <div className="space-y-1">
-              {DEFAULT_FOLDERS.map(folder => (
+              {folders.map(folder => (
                 <button
                   key={folder}
                   onClick={() => setCurrentFolder(folder)}
@@ -190,11 +221,14 @@ export default function AlmacenamientoPage() {
                 >
                   <div className="flex items-center gap-3">
                     <Folder className={cn("w-4 h-4", currentFolder === folder ? "text-blue-600" : "text-slate-400")} />
-                    <span className="capitalize">{folder}</span>
+                    <span className="truncate max-w-[150px] text-left" title={folder}>{folder}</span>
                   </div>
-                  {currentFolder === folder && <ChevronRight className="w-4 h-4" />}
+                  {currentFolder === folder && <ChevronRight className="w-4 h-4 flex-shrink-0" />}
                 </button>
               ))}
+              {folders.length === 0 && (
+                  <div className="text-xs text-slate-400 italic px-2">No hay carpetas</div>
+              )}
             </div>
           </div>
         </div>
