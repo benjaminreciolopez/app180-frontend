@@ -383,8 +383,8 @@ function FacturaRow({ factura, onValidar, onDescargar, onAnular, onDelete, onEdi
                 {/* VALIDADA: PDF / Email / Anular */}
                 {isValidada && (
                     <>
-                        <Button size="sm" variant="outline" className="h-8" onClick={onDescargar}>
-                            <Download className="w-4 h-4 mr-1" /> PDF
+                        <Button size="sm" variant="outline" className="h-8 hover:bg-blue-600 hover:text-white transition-colors" onClick={onDescargar}>
+                            <FileText className="w-4 h-4 mr-1" /> CREAR PDF
                         </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>

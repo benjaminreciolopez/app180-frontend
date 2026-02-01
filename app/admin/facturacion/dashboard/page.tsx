@@ -100,7 +100,7 @@ export default function FacturacionDashboard() {
           <CardContent className="h-[300px]">
              <div className="w-full h-full min-h-[300px]">
              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+                <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">

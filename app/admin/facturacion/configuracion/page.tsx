@@ -82,7 +82,11 @@ export default function ConfiguracionPage() {
     verifactu_activo: false,
     verifactu_modo: "TEST",
     numeracion_tipo: "STANDARD", // 'STANDARD', 'BY_YEAR', 'PREFIXED'
+    numeracion_formato: "FAC-{YEAR}-",
+    numeracion_locked: false,
     
+    storage_facturas_folder: "Facturas emitidas",
+
     logo_path: "",
     certificado_path: "",
     certificado_upload_date: "",
@@ -115,7 +119,8 @@ export default function ConfiguracionPage() {
         verifactu_modo: sistemaRes.data.data?.verifactu_modo || "TEST",
         numeracion_tipo: sistemaRes.data.data?.numeracion_tipo || "STANDARD",
         numeracion_formato: sistemaRes.data.data?.numeracion_formato || "FAC-{YEAR}-",
-        numeracion_locked: sistemaRes.data.data?.numeracion_locked || false
+        numeracion_locked: sistemaRes.data.data?.numeracion_locked || false,
+        storage_facturas_folder: sistemaRes.data.data?.storage_facturas_folder || "Facturas emitidas"
       }))
     } catch (err) {
       console.error(err)
@@ -140,7 +145,8 @@ export default function ConfiguracionPage() {
         verifactu_activo: formData.verifactu_activo,
         verifactu_modo: formData.verifactu_modo,
         numeracion_tipo: formData.numeracion_tipo,
-        numeracion_formato: formData.numeracion_formato
+        numeracion_formato: formData.numeracion_formato,
+        storage_facturas_folder: formData.storage_facturas_folder
       })
 
       toast.success("Configuración guardada correctamente")
@@ -571,6 +577,33 @@ export default function ConfiguracionPage() {
                         </div>
                     )}
                   </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Almacenamiento de Facturas</CardTitle>
+                        <CardDescription>Organización automática de tus archivos PDF.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-3">
+                             <Label>Nombre de Carpeta Raíz</Label>
+                             <Input 
+                                value={formData.storage_facturas_folder} 
+                                onChange={e => handleChange('storage_facturas_folder', e.target.value)} 
+                                placeholder="Ej: Facturas emitidas" 
+                             />
+                             <p className="text-xs text-slate-500">
+                                Las facturas se guardarán en: 
+                                <span className="font-mono bg-slate-100 px-1 rounded ml-1">
+                                    {(formData.storage_facturas_folder || 'Facturas emitidas').trim()}/{new Date().getFullYear()}/T{Math.floor(new Date().getMonth() / 3) + 1}
+                                </span>
+                             </p>
+                             <div className="p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-800 flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                <p>Revisa el espacio disponible en la sección de "Almacenamiento" para evitar interrupciones al generar PDFs.</p>
+                             </div>
+                        </div>
+                    </CardContent>
                 </Card>
 
                 <Card>
