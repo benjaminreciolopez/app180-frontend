@@ -278,6 +278,7 @@ export default function FacturasListadoPage() {
                             onEdit={() => router.push(`/admin/facturacion/editar/${factura.id}`)}
                             isProcessing={procesandoId === factura.id}
                             isDownloading={downloadingId === factura.id}
+                            isAnyDownloading={!!downloadingId}
                             onGenerar={() => handleGenerarPDF(factura.id)}
                             onOpen={() => handleOpenPDF(factura.id)}
                         />
@@ -309,7 +310,7 @@ export default function FacturasListadoPage() {
   )
 }
 
-function FacturaRow({ factura, onValidar, onGenerar, onOpen, onAnular, onDelete, onEdit, isProcessing, isDownloading }: any) {
+function FacturaRow({ factura, onValidar, onGenerar, onOpen, onAnular, onDelete, onEdit, isProcessing, isDownloading, isAnyDownloading }: any) {
     const isBorrador = factura.estado === "BORRADOR"
     const isValidada = factura.estado === "VALIDADA"
     const isAnulada = factura.estado === "ANULADA"
@@ -401,7 +402,7 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onAnular, onDelete,
                                 variant="outline" 
                                 className="h-8 hover:bg-blue-600 hover:text-white transition-colors" 
                                 onClick={onGenerar}
-                                disabled={isDownloading}
+                                disabled={isAnyDownloading}
                             >
                                 {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileText className="w-4 h-4 mr-1" />}
                                 {isDownloading ? "CREANDO..." : "CREAR PDF"}
