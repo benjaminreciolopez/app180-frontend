@@ -531,7 +531,6 @@ export async function validarFactura(req, res) {
         nombre: `Factura_${numero.replace(/\//g, '-')}.pdf`,
         buffer: pdfBuffer,
         folder: getStoragePath(fecha, baseFolder),
-        dbFolder: 'facturas', // Para que aparezca en la pestaña "facturas" del frontend
         mimeType: 'application/pdf',
         useTimestamp: false
       });
@@ -795,7 +794,6 @@ export async function generarPdf(req, res) {
         nombre: `Factura_${String(numToUse).replace(/\//g, '-')}.pdf`,
         buffer: pdfBuffer,
         folder: getStoragePath(fechaToUse, baseFolder),
-        dbFolder: baseFolder, // Usamos el nombre configurado como carpeta raíz
         mimeType: 'application/pdf',
         useTimestamp: false
       });
