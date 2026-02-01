@@ -137,30 +137,27 @@ export default function FacturasListadoPage() {
     }
   }
 
-  const handleDescargarPDF = async (id: number, numero: string) => {
+  const handleGenerarPDF = async (id: number) => {
     if (downloadingId) return
     setDownloadingId(id)
     
-    // Usamos toast.promise pero mantenemos el estado local para bloquear el botón
-    const promise = api.get(`/admin/facturacion/facturas/${id}/pdf`, { responseType: 'blob' })
-      .then((response: any) => {
-           const url = window.URL.createObjectURL(new Blob([response.data]));
-           const link = document.createElement('a');
-           link.href = url;
-           link.setAttribute('download', `Factura_${numero || 'borrador'}.pdf`);
-           document.body.appendChild(link);
-           link.click();
-           link.remove();
-      })
-      .finally(() => {
+    try {
+        await api.get(`/admin/facturacion/facturas/${id}/pdf?action=save`)
+        toast.success("PDF Generado y guardado correctamente")
+        loadFacturas() // Recargar para actualizar estado y mostrar botón de descargar
+    } catch (error) {
+        console.error(error)
+        toast.error("Error al generar PDF")
+    } finally {
         setDownloadingId(null)
-      })
+    }
+  }
 
-    toast.promise(promise, {
-      loading: 'Generando PDF...',
-      success: 'PDF descargado y archivado',
-      error: 'Error al descargar PDF'
-    })
+  const handleOpenPDF = (id: number) => {
+      // Abrir en nueva pestaña para ver/descargar
+      // Construimos la URL manualmente para window.open
+      const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/admin/facturacion/facturas/${id}/pdf`
+      window.open(url, '_blank')
   }
 
   const handleAnular = async (id: number) => {
@@ -276,12 +273,9 @@ export default function FacturasListadoPage() {
                             key={factura.id} 
                             factura={factura} 
                             onValidar={() => handleValidar(factura.id)}
-                            onDescargar={() => handleDescargarPDF(factura.id, factura.numero)}
-                            onAnular={() => handleAnular(factura.id)}
-                            onDelete={() => setFacturaToDelete(factura)}
-                            onEdit={() => router.push(`/admin/facturacion/editar/${factura.id}`)}
-                            isProcessing={procesandoId === factura.id}
                             isDownloading={downloadingId === factura.id}
+                            onGenerar={() => handleGenerarPDF(factura.id)}
+                            onOpen={() => handleOpenPDF(factura.id)}
                         />
                     ))}
                 </AnimatePresence>
@@ -311,7 +305,7 @@ export default function FacturasListadoPage() {
   )
 }
 
-function FacturaRow({ factura, onValidar, onDescargar, onAnular, onDelete, onEdit, isProcessing, isDownloading }: any) {
+function FacturaRow({ factura, onValidar, onGenerar, onOpen, onAnular, onDelete, onEdit, isProcessing, isDownloading }: any) {
     const isBorrador = factura.estado === "BORRADOR"
     const isValidada = factura.estado === "VALIDADA"
     const isAnulada = factura.estado === "ANULADA"
@@ -388,16 +382,27 @@ function FacturaRow({ factura, onValidar, onDescargar, onAnular, onDelete, onEdi
                 {/* VALIDADA: PDF / Email / Anular */}
                 {isValidada && (
                     <>
-                        <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-8 hover:bg-blue-600 hover:text-white transition-colors" 
-                            onClick={onDescargar}
-                            disabled={isDownloading}
-                        >
-                            {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileText className="w-4 h-4 mr-1" />}
-                            {isDownloading ? "CREANDO..." : "CREAR PDF"}
-                        </Button>
+                        {factura.pdf_path ? (
+                             <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-8 hover:bg-slate-100 text-slate-700 transition-colors" 
+                                onClick={onOpen}
+                            >
+                                <Download className="w-4 h-4 mr-1" /> VER PDF
+                            </Button>
+                        ) : (
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-8 hover:bg-blue-600 hover:text-white transition-colors" 
+                                onClick={onGenerar}
+                                disabled={isDownloading}
+                            >
+                                {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileText className="w-4 h-4 mr-1" />}
+                                {isDownloading ? "CREANDO..." : "CREAR PDF"}
+                            </Button>
+                        )}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
