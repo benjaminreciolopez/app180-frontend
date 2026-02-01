@@ -273,6 +273,10 @@ export default function FacturasListadoPage() {
                             key={factura.id} 
                             factura={factura} 
                             onValidar={() => handleValidar(factura.id)}
+                            onAnular={() => handleAnular(factura.id)}
+                            onDelete={() => setFacturaToDelete(factura)}
+                            onEdit={() => router.push(`/admin/facturacion/editar/${factura.id}`)}
+                            isProcessing={procesandoId === factura.id}
                             isDownloading={downloadingId === factura.id}
                             onGenerar={() => handleGenerarPDF(factura.id)}
                             onOpen={() => handleOpenPDF(factura.id)}
