@@ -408,6 +408,10 @@ export default function ConfiguracionFacturacionPage() {
                             <Label className="flex items-center gap-2"><Globe className="w-3 h-3" /> Web</Label>
                             <Input value={formData.web} onChange={e => handleChange('web', e.target.value)} placeholder="www.tuempresa.com" />
                         </div>
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-2">IBAN Principal</Label>
+                            <Input value={formData.iban} onChange={e => handleChange('iban', e.target.value)} placeholder="ES00 0000 ..." />
+                        </div>
                     </div>
                     
                     <Separator className="my-4" />

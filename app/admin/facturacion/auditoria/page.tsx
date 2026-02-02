@@ -35,13 +35,8 @@ export default function AuditoriaVerifactuPage() {
   const fetchLogs = async () => {
     try {
       setLoading(true)
-      const res = await api.get("/admin/auditoria/logs?limit=50")
-      // Filtramos en el cliente para mostrar solo facturación por ahora, 
-      // idealmente el backend debería darnos un endpoint filtrado
-      const allLogs = res.data.logs || []
-      const facturacionLogs = allLogs.filter((l: any) => 
-        l.accion.includes('factura') || l.entidad_tipo === 'factura'
-      )
+      const res = await api.get("/admin/auditoria/logs?limit=100&entidad_tipo=factura")
+      const facturacionLogs = res.data.logs || []
       setLogs(facturacionLogs)
     } catch (err) {
       console.error("Error fetching audit logs", err)
@@ -168,13 +163,13 @@ export default function AuditoriaVerifactuPage() {
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="text-slate-700">{log.user_email || 'Sistema'}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{log.ip_address}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{log.ip || log.ip_address || '—'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary" className="font-mono text-[10px] lowercase">
-                            {log.entidad_tipo}:{log.entidad_id}
+                            {log.entidad || log.entidad_tipo || 'factura'}:{log.entidad_id}
                           </Badge>
                         </div>
                       </td>

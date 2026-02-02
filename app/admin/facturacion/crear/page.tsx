@@ -13,7 +13,10 @@ import {
   Calculator,
   Search,
   Check,
-  Loader2
+  Loader2,
+  CreditCard,
+  MessageSquare,
+  FileText
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -44,7 +47,15 @@ import {
   CommandItem,
 } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 // --- TYPES ---
 interface Linea {
@@ -94,6 +105,11 @@ export default function CrearFacturaPage() {
     { id: Date.now(), descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }
   ])
   const [mensajeIva, setMensajeIva] = useState("")
+  const [metodoPago, setMetodoPago] = useState<"TRANSFERENCIA" | "CONTADO">("TRANSFERENCIA")
+  const [emisorIban, setEmisorIban] = useState("")
+  const [isIbanModalOpen, setIsIbanModalOpen] = useState(false)
+  const [newIban, setNewIban] = useState("")
+  const [ivaGlobal, setIvaGlobal] = useState(21)
   const [saving, setSaving] = useState(false)
   
   // UI State
@@ -182,6 +198,11 @@ export default function CrearFacturaPage() {
   const fetchConceptos = async (cId: number | null) => {
     setLoadingConceptos(true)
     try {
+      const configRes = await api.get('/admin/facturacion/configuracion/emisor')
+      if (configRes.data.success) {
+        setIvaGlobal(configRes.data.data.iva_global || 0)
+        setEmisorIban(configRes.data.data.iban || "")
+      }
       const res = await api.get(`/admin/facturacion/conceptos?cliente_id=${cId || ''}`)
       setConceptos(res.data.data || [])
     } catch (err) {
@@ -331,6 +352,9 @@ export default function CrearFacturaPage() {
       const payload = {
         cliente_id: clienteId,
         fecha: fecha,
+        iva_global: ivaGlobal,
+        mensaje_iva: mensajeIva,
+        metodo_pago: metodoPago,
         lineas: lineas.map(({ id, ...rest }) => rest) // Remove temp ID
       }
 
@@ -672,8 +696,35 @@ export default function CrearFacturaPage() {
                             <span className="font-black text-2xl">{formatCurrency(total)}</span>
                         </div>
 
-                        <div className="space-y-2 pt-2">
-                            <Label htmlFor="mensaje_iva" className="text-slate-600 font-semibold">Nota / Exención de IVA (opcional)</Label>
+                        <div className="space-y-3">
+                            <Label className="text-slate-700 font-semibold flex items-center gap-2">
+                                <CreditCard className="w-4 h-4 text-emerald-600" />
+                                Método de Pago
+                            </Label>
+                            <Select 
+                                value={metodoPago} 
+                                onValueChange={(val: any) => {
+                                    setMetodoPago(val)
+                                    if (val === 'TRANSFERENCIA' && !emisorIban) {
+                                        setIsIbanModalOpen(true)
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="w-full bg-white border-slate-200">
+                                    <SelectValue placeholder="Seleccionar método" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="TRANSFERENCIA" className="cursor-pointer">Transferencia Bancaria</SelectItem>
+                                    <SelectItem value="CONTADO" className="cursor-pointer">Al Contado / Efectivo</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label htmlFor="mensaje_iva" className="text-slate-700 font-semibold flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4 text-blue-600" />
+                                Observaciones de IVA / Textos Legales
+                            </Label>
                             <div className="flex flex-wrap gap-1 mb-2">
                                 {Object.entries(LEGAL_IVA_TEXTS).map(([pct, text]) => (
                                     text && (
