@@ -24,6 +24,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton"
 
 import { api } from "@/services/api"
 import { formatCurrency } from "@/lib/utils"
@@ -264,6 +265,15 @@ export default function FacturasListadoPage() {
               <SelectItem value="ANULADA" className="cursor-pointer">Anuladas</SelectItem>
             </SelectContent>
           </Select>
+
+          <UniversalExportButton 
+            module="facturas"
+            queryParams={{
+                year: yearFilter,
+                estado: estadoFilter
+            }}
+            label="Exportar Listado"
+          />
         </div>
       </div>
 

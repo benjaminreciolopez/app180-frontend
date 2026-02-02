@@ -86,6 +86,7 @@ export default function CrearFacturaPage() {
   const [lineas, setLineas] = useState<Linea[]>([
     { id: Date.now(), descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }
   ])
+  const [mensajeIva, setMensajeIva] = useState("")
   const [saving, setSaving] = useState(false)
   
   // UI State
@@ -204,9 +205,20 @@ export default function CrearFacturaPage() {
   }
 
   const updateLine = (id: number, field: keyof Linea, value: any) => {
-    setLineas(lineas.map(l => 
-      l.id === id ? { ...l, [field]: value } : l
-    ))
+    setLineas(lineas.map(l => {
+      if (l.id === id) {
+        // Si el campo es IVA y el nuevo valor tiene una descripción en la lista de IVAs,
+        // y el mensaje_iva actual está vacío, lo sugerimos/ponemos.
+        if (field === 'iva') {
+            const selectedIva = ivas.find(i => i.porcentaje === value);
+            if (selectedIva?.descripcion && (!mensajeIva || mensajeIva.trim() === "")) {
+                setMensajeIva(selectedIva.descripcion);
+            }
+        }
+        return { ...l, [field]: value };
+      }
+      return l;
+    }));
   }
 
   const handleSelectConcepto = (lineaId: number, concepto: Concepto) => {
@@ -640,6 +652,20 @@ export default function CrearFacturaPage() {
                         <div className="bg-blue-600 text-white rounded-xl p-4 flex justify-between items-center shadow-lg shadow-blue-200">
                             <span className="font-bold text-lg">TOTAL FACTURA</span>
                             <span className="font-black text-2xl">{formatCurrency(total)}</span>
+                        </div>
+
+                        <div className="space-y-2 pt-2">
+                            <Label htmlFor="mensaje_iva" className="text-slate-600 font-semibold">Nota / Exención de IVA (opcional)</Label>
+                            <Textarea 
+                                id="mensaje_iva"
+                                placeholder="Ej: Operación exenta de IVA según Art. 20..."
+                                value={mensajeIva}
+                                onChange={(e) => setMensajeIva(e.target.value)}
+                                className="resize-none h-24 border-slate-200 focus:ring-blue-500"
+                            />
+                            <p className="text-[10px] text-slate-400 italic">
+                                * Este texto aparecerá en el PDF de la factura.
+                            </p>
                         </div>
                     </div>
 
