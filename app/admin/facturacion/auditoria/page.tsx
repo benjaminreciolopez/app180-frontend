@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { UniversalExportButton } from "@/components/shared/UniversalExportButton"
 import { formatCurrency } from "@/lib/utils"
 
 export default function AuditoriaVerifactuPage() {
@@ -69,6 +70,11 @@ export default function AuditoriaVerifactuPage() {
           <p className="text-slate-500">Registro inalterable de operaciones de facturación (Ley Antifraude).</p>
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
+          <UniversalExportButton 
+            module="auditoria" 
+            queryParams={{ entidad_tipo: 'factura' }} 
+            label="Descargar Informe"
+          />
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input 

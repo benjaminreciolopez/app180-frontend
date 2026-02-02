@@ -40,7 +40,14 @@ import {
 } from "@/components/ui/dialog"
 
 
-export default function ConfiguracionPage() {
+const LEGAL_IVA_TEXTS: Record<number, string> = {
+  0: "FACTURA EXENTA DE IVA POR INVERSIÓN DEL SUJETO PASIVO (ART. 84 UNO 2º F LEY IVA 37/1992).",
+  10: "IVA reducido según normativa vigente",
+  4: "IVA superreducido según normativa vigente",
+  21: ""
+}
+
+export default function ConfiguracionFacturacionPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("empresa")
@@ -280,15 +287,22 @@ export default function ConfiguracionPage() {
 
   const handleAddIva = async () => {
     if (!newIvaPct) return
+    
+    let desc = newIvaDesc;
+    if (!desc) {
+       const pct = parseInt(newIvaPct);
+       desc = LEGAL_IVA_TEXTS[pct] || `IVA ${newIvaPct}%`;
+    }
+
     try {
       await api.post('/admin/facturacion/iva', { 
           porcentaje: newIvaPct, 
-          descripcion: newIvaDesc || `IVA ${newIvaPct}%` 
+          descripcion: desc 
       })
       setNewIvaPct("")
       setNewIvaDesc("")
       loadIvas()
-      toast.success("Tipo de IVA añadido")
+      toast.success("Tipo de IVA añadido con texto legal sugerido")
     } catch (err) {
       toast.error("Error al añadir IVA")
     }

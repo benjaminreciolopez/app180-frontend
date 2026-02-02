@@ -72,6 +72,13 @@ interface Concepto {
   categoria?: string
 }
 
+const LEGAL_IVA_TEXTS: Record<number, string> = {
+  0: "FACTURA EXENTA DE IVA POR INVERSIÓN DEL SUJETO PASIVO (ART. 84 UNO 2º F LEY IVA 37/1992).",
+  10: "IVA reducido según normativa vigente",
+  4: "IVA superreducido según normativa vigente",
+  21: ""
+}
+
 export default function CrearFacturaPage() {
   const router = useRouter()
   
@@ -209,8 +216,13 @@ export default function CrearFacturaPage() {
         // y el mensaje_iva actual está vacío, lo sugerimos/ponemos.
         if (field === 'iva') {
             const selectedIva = ivas.find(i => i.porcentaje === value);
+            // Si el IVA configurado tiene descripción, prevalece
             if (selectedIva?.descripcion && (!mensajeIva || mensajeIva.trim() === "")) {
                 setMensajeIva(selectedIva.descripcion);
+            } 
+            // Si no tiene descripción pero hay un texto legal estándar, lo sugerimos
+            else if (LEGAL_IVA_TEXTS[value as number] && (!mensajeIva || mensajeIva.trim() === "")) {
+                setMensajeIva(LEGAL_IVA_TEXTS[value as number]);
             }
         }
         return { ...l, [field]: value };
@@ -662,12 +674,35 @@ export default function CrearFacturaPage() {
 
                         <div className="space-y-2 pt-2">
                             <Label htmlFor="mensaje_iva" className="text-slate-600 font-semibold">Nota / Exención de IVA (opcional)</Label>
+                            <div className="flex flex-wrap gap-1 mb-2">
+                                {Object.entries(LEGAL_IVA_TEXTS).map(([pct, text]) => (
+                                    text && (
+                                        <button
+                                            key={pct}
+                                            type="button"
+                                            onClick={() => setMensajeIva(text)}
+                                            className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded transition-colors"
+                                            title={text}
+                                        >
+                                            Legal {pct}%
+                                        </button>
+                                    )
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => setMensajeIva("Operación exenta según Art. 20 de la Ley 37/1992.")}
+                                    className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded transition-colors"
+                                >
+                                    Exento Art. 20
+                                </button>
+                            </div>
+
                             <Textarea 
                                 id="mensaje_iva"
                                 placeholder="Ej: Operación exenta de IVA según Art. 20..."
                                 value={mensajeIva}
                                 onChange={(e) => setMensajeIva(e.target.value)}
-                                className="resize-none h-24 border-slate-200 focus:ring-blue-500"
+                                className="resize-none h-24 border-slate-200 focus:ring-blue-500 text-xs"
                             />
                             <p className="text-[10px] text-slate-400 italic">
                                 * Este texto aparecerá en el PDF de la factura.
