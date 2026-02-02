@@ -75,7 +75,7 @@ export default function ConfiguracionPage() {
     
     // Configuración Factura
     terminos_legales: "",
-    texto_pie: "", // pie_factura
+    texto_pie: "", 
     texto_exento: "",
     texto_rectificativa: "",
 

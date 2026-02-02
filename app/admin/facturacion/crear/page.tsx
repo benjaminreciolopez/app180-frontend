@@ -142,15 +142,13 @@ export default function CrearFacturaPage() {
     document.addEventListener('touchend', onEnd)
   }
 
-  // Cargar clientes al inicio
   useEffect(() => {
     const fetchClientes = async () => {
       setLoadingClientes(true)
       try {
-        // Asumiendo endpoint existente. Si no, ajustar a /admin/clientes o similar
-        const res = await api.get('/admin/clientes?') 
-        // Manejar tanto formato estándar {success, data} como array plano legacy
-        setClientes(res.data.data || (Array.isArray(res.data) ? res.data : []))
+        const res = await api.get('/admin/clientes') 
+        const data = res.data.data || (Array.isArray(res.data) ? res.data : [])
+        setClientes(data)
       } catch (err) {
         toast.error("Error cargando clientes")
       } finally {
@@ -391,16 +389,24 @@ export default function CrearFacturaPage() {
                     <Command>
                       <CommandInput placeholder="Buscar cliente..." />
                       <CommandEmpty>No encontrado.</CommandEmpty>
-                      <CommandGroup className="max-h-[300px] overflow-auto">
-                        {clientes.map((cliente) => (
-                          <CommandItem
-                            key={cliente.id}
-                            value={cliente.nombre}
-                            onSelect={() => {
-                              setClienteId(cliente.id)
-                              setClienteOpen(false)
-                            }}
-                          >
+                          <CommandGroup className="max-h-[300px] overflow-auto">
+                            {clientes.map((cliente: any) => (
+                              <CommandItem
+                                key={cliente.id}
+                                value={cliente.nombre}
+                                onSelect={() => {
+                                  setClienteId(cliente.id)
+                                  setClienteOpen(false)
+                                  // Si el cliente tiene IVA defecto o exención, sugerir mensaje
+                                  if (cliente.exento_iva && cliente.texto_exento) {
+                                    setMensajeIva(cliente.texto_exento)
+                                  } else if (cliente.iva_defecto) {
+                                      // Buscar si el IVA tiene descripción
+                                      const ivaObj = ivas.find(i => i.porcentaje === cliente.iva_defecto)
+                                      if (ivaObj?.descripcion) setMensajeIva(ivaObj.descripcion)
+                                  }
+                                }}
+                              >
                             <Check
                               className={cn(
                                 "mr-2 h-4 w-4",
