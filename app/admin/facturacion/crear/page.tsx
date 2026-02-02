@@ -93,6 +93,54 @@ export default function CrearFacturaPage() {
   const [conceptos, setConceptos] = useState<Concepto[]>([])
   const [loadingConceptos, setLoadingConceptos] = useState(false)
 
+  // Column Resizing State
+  const [colWidths, setColWidths] = useState<Record<string, number>>({
+    cant: 112,
+    precio: 176,
+    iva: 150, // Aumentado por defecto
+    subtotal: 144
+  })
+
+  // Cargar anchos de columna guardados
+  useEffect(() => {
+    const saved = localStorage.getItem('factura_col_widths')
+    if (saved) {
+      try {
+        setColWidths(JSON.parse(saved))
+      } catch (e) {
+        console.error("Error parsing col widths", e)
+      }
+    }
+  }, [])
+
+  const saveWidths = (newWidths: Record<string, number>) => {
+    setColWidths(newWidths)
+    localStorage.setItem('factura_col_widths', JSON.stringify(newWidths))
+  }
+
+  const handleResize = (id: string, startX: number, startWidth: number) => {
+    const onMove = (clientX: number) => {
+      const delta = clientX - startX
+      const newWidth = Math.max(80, startWidth + delta)
+      saveWidths({ ...colWidths, [id]: newWidth })
+    }
+
+    const onMouseMove = (e: MouseEvent) => onMove(e.clientX)
+    const onTouchMove = (e: TouchEvent) => onMove(e.touches[0].clientX)
+
+    const onEnd = () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onEnd)
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', onEnd)
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onEnd)
+    document.addEventListener('touchmove', onTouchMove)
+    document.addEventListener('touchend', onEnd)
+  }
+
   // Cargar clientes al inicio
   useEffect(() => {
     const fetchClientes = async () => {
@@ -393,10 +441,43 @@ export default function CrearFacturaPage() {
                     <thead className="bg-white text-slate-500 font-medium">
                         <tr className="border-b border-slate-100">
                             <th className="p-4 text-left">Descripción / Servicio</th>
-                            <th className="p-4 w-28 text-center">Cant.</th>
-                            <th className="p-4 w-44 text-center">Precio Unit.</th>
-                            <th className="p-4 w-32 text-center">IVA %</th>
-                            <th className="p-4 w-36 text-right">Subtotal</th>
+                            
+                            <th className="p-4 text-center relative" style={{ width: colWidths.cant }}>
+                                Cant.
+                                <div 
+                                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-300 transition-colors z-10"
+                                    onMouseDown={(e) => handleResize('cant', e.clientX, colWidths.cant)}
+                                    onTouchStart={(e) => handleResize('cant', e.touches[0].clientX, colWidths.cant)}
+                                />
+                            </th>
+                            
+                            <th className="p-4 text-center relative" style={{ width: colWidths.precio }}>
+                                Precio Unit.
+                                <div 
+                                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-300 transition-colors z-10"
+                                    onMouseDown={(e) => handleResize('precio', e.clientX, colWidths.precio)}
+                                    onTouchStart={(e) => handleResize('precio', e.touches[0].clientX, colWidths.precio)}
+                                />
+                            </th>
+                            
+                            <th className="p-4 text-center relative" style={{ width: colWidths.iva }}>
+                                IVA %
+                                <div 
+                                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-300 transition-colors z-10"
+                                    onMouseDown={(e) => handleResize('iva', e.clientX, colWidths.iva)}
+                                    onTouchStart={(e) => handleResize('iva', e.touches[0].clientX, colWidths.iva)}
+                                />
+                            </th>
+                            
+                            <th className="p-4 text-right relative" style={{ width: colWidths.subtotal }}>
+                                Subtotal
+                                <div 
+                                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-300 transition-colors z-10"
+                                    onMouseDown={(e) => handleResize('subtotal', e.clientX, colWidths.subtotal)}
+                                    onTouchStart={(e) => handleResize('subtotal', e.touches[0].clientX, colWidths.subtotal)}
+                                />
+                            </th>
+
                             <th className="p-4 w-12"></th>
                         </tr>
                     </thead>
