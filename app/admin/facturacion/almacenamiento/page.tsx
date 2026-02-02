@@ -613,12 +613,9 @@ export default function AlmacenamientoPage() {
                                     "active:scale-95 duration-100",
                                     item.type === 'file' && selectedItems.has(item.data.id) && "bg-blue-50 border-blue-200 ring-1 ring-blue-300"
                                 )}
-                                onDoubleClick={() => {
-                                    if (item.type === 'folder') handleNavigate(item.fullPath)
-                                    // else handleDownload(item.data.id, item.data.nombre) // Doble click en archivo = toggle selección o nada
-                                }}
                                 onClick={() => {
-                                    if (item.type === 'file') toggleSelection(item.data.id)
+                                    if (item.type === 'folder') handleNavigate(item.fullPath)
+                                    else if (item.type === 'file') toggleSelection(item.data.id)
                                 }}
                              >
                                  {/* Checkbox Overlay para selección */}
@@ -678,11 +675,9 @@ export default function AlmacenamientoPage() {
                                             "hover:bg-slate-50 transition-colors cursor-pointer group select-none",
                                             item.type === 'file' && selectedItems.has(item.data.id) && "bg-blue-50/60 hover:bg-blue-50"
                                         )}
-                                        onDoubleClick={() => {
-                                            if (item.type === 'folder') handleNavigate(item.fullPath)
-                                        }}
                                         onClick={() => {
-                                            if (item.type === 'file') toggleSelection(item.data.id)
+                                            if (item.type === 'folder') handleNavigate(item.fullPath)
+                                            else if (item.type === 'file') toggleSelection(item.data.id)
                                         }}
                                      >
                                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
