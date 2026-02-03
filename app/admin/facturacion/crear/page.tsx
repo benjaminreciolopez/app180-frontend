@@ -119,10 +119,10 @@ export default function CrearFacturaPage() {
 
   // Column Resizing State
   const [colWidths, setColWidths] = useState<Record<string, number>>({
-    cant: 112,
-    precio: 176,
-    iva: 150, // Aumentado por defecto
-    subtotal: 144
+    cant: 130,
+    precio: 200,
+    iva: 180,
+    subtotal: 160
   })
 
   // Cargar anchos de columna guardados
@@ -491,7 +491,7 @@ export default function CrearFacturaPage() {
             </div>
             
             <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left table-fixed">
+                <table className="w-full text-sm text-left">
                     <thead className="bg-white text-slate-500 font-medium">
                         <tr className="border-b border-slate-100">
                             <th className="p-4 text-left">Descripción / Servicio</th>
@@ -514,7 +514,7 @@ export default function CrearFacturaPage() {
                                 />
                             </th>
                             
-                            <th className="p-4 text-center relative" style={{ width: colWidths.iva }}>
+                            <th className="p-4 text-center relative" style={{ minWidth: colWidths.iva }}>
                                 IVA %
                                 <div 
                                     className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-300 transition-colors z-10"
@@ -625,8 +625,9 @@ export default function CrearFacturaPage() {
                                         value={linea.iva.toString()} 
                                         onValueChange={(val) => updateLine(linea.id, 'iva', parseInt(val))}
                                     >
-                                        <SelectTrigger className="h-10">
-                                            <SelectValue />
+                                        <SelectTrigger className="h-10 w-[140px] mx-auto bg-white border-slate-200 text-slate-900 shadow-sm flex justify-between">
+                                            <span className="font-medium">{linea.iva}%</span>
+                                            <div className="hidden"><SelectValue /></div>
                                         </SelectTrigger>
                                         <SelectContent>
                                             {ivas.map((iva) => (
