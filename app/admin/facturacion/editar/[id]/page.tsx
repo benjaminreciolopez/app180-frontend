@@ -413,13 +413,13 @@ export default function EditarFacturaPage() {
             </div>
             
             <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left table-fixed">
+                <table className="w-full text-sm text-left">
                     <thead className="bg-white text-slate-500 font-medium">
                         <tr className="border-b border-slate-100">
                             <th className="p-4 text-left">Descripción / Servicio</th>
                             <th className="p-4 w-36 text-center">Cant.</th>
                             <th className="p-4 w-56 text-center">Precio Unit.</th>
-                            <th className="p-4 w-48 text-center">IVA %</th>
+                            <th className="p-4 min-w-[120px] text-center">IVA %</th>
                             <th className="p-4 w-44 text-right">Subtotal</th>
                             <th className="p-4 w-12"></th>
                         </tr>

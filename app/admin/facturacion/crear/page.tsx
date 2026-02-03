@@ -491,7 +491,7 @@ export default function CrearFacturaPage() {
             </div>
             
             <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left table-fixed">
+                <table className="w-full text-sm text-left">
                     <thead className="bg-white text-slate-500 font-medium">
                         <tr className="border-b border-slate-100">
                             <th className="p-4 text-left">Descripción / Servicio</th>
@@ -514,7 +514,7 @@ export default function CrearFacturaPage() {
                                 />
                             </th>
                             
-                            <th className="p-4 text-center relative" style={{ width: colWidths.iva }}>
+                            <th className="p-4 text-center relative" style={{ minWidth: colWidths.iva }}>
                                 IVA %
                                 <div 
                                     className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-300 transition-colors z-10"
