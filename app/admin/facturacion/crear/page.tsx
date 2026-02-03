@@ -625,8 +625,9 @@ export default function CrearFacturaPage() {
                                         value={linea.iva.toString()} 
                                         onValueChange={(val) => updateLine(linea.id, 'iva', parseInt(val))}
                                     >
-                                        <SelectTrigger className="h-10 w-full bg-white">
-                                            <SelectValue />
+                                        <SelectTrigger className="h-10 w-[140px] mx-auto bg-white border-slate-200 text-slate-900 shadow-sm flex justify-between">
+                                            <span className="font-medium">{linea.iva}%</span>
+                                            <div className="hidden"><SelectValue /></div>
                                         </SelectTrigger>
                                         <SelectContent>
                                             {ivas.map((iva) => (
