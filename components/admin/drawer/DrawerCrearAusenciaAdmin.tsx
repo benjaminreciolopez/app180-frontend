@@ -4,6 +4,7 @@
 
 import { useMemo, useState } from "react";
 import { api } from "@/services/api";
+import { toast } from "sonner";
 
 type Empleado = { id: string; nombre: string };
 
@@ -38,10 +39,18 @@ export default function DrawerCrearAusenciaAdmin({
   const [saving, setSaving] = useState(false);
 
   async function crear() {
-    if (!empleadoId) return alert("Selecciona un empleado");
-    if (!fechaInicio || !fechaFin) return alert("Fechas obligatorias");
-    if (fechaInicio > fechaFin)
-      return alert("La fecha de inicio no puede ser mayor que la de fin");
+    if (!empleadoId) {
+      toast.error("Selecciona un empleado");
+      return;
+    }
+    if (!fechaInicio || !fechaFin) {
+      toast.error("Fechas obligatorias");
+      return;
+    }
+    if (fechaInicio > fechaFin) {
+      toast.error("La fecha de inicio no puede ser mayor que la de fin");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -53,14 +62,14 @@ export default function DrawerCrearAusenciaAdmin({
         comentario_admin: comentarioAdmin || null,
       });
       if (res.data?.warning_festivos) {
-        alert("Aviso: el rango incluye días no laborables/festivos.");
+        toast.warning("El rango incluye días no laborables/festivos");
       }
-      alert("Ausencia creada (aprobada)");
+      toast.success("Ausencia creada (aprobada)");
       onCreated();
       onClose();
-    } catch (e: any) {
-      console.error(e);
-      alert(e?.response?.data?.error || "Error creando ausencia");
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } } };
+      toast.error(err?.response?.data?.error || "Error creando ausencia");
     } finally {
       setSaving(false);
     }

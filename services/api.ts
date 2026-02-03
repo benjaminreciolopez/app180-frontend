@@ -1,11 +1,5 @@
 // services/api.ts
 import axios from "axios";
-// 🔁 Importación circular necesaria, pero la gestionamos con cuidado
-// Importamos solo lo necesario o usamos lazy require si fuera necesario
-// Pero como api.ts es base, mejor mover getToken a un archivo aparte o...
-// Para simplificar, copiamos la lógica de lectura aquí o importamos de auth
-// PERO auth importa api. 
-// SOLUCIÓN: Leer storage manualmente aquí para evitar ciclo, pero respetando la lógica.
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "https://app180-backend.onrender.com";
@@ -22,8 +16,15 @@ function getStoredToken() {
   return sessionStorage.getItem("token") || localStorage.getItem("token");
 }
 
+// Flag para evitar múltiples redirects concurrentes
+let isRedirecting = false;
+
 function clearSession() {
   if (typeof window === "undefined") return;
+  // Evitar race condition con múltiples 401s
+  if (isRedirecting) return;
+  isRedirecting = true;
+
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   sessionStorage.removeItem("token");
@@ -88,9 +89,6 @@ api.interceptors.response.use(
   },
 );
 
-// ======================================================
-// HELPER OPCIONAL (login / logout)
-// ======================================================
 // ======================================================
 // HELPER OPCIONAL (login / logout)
 // ======================================================

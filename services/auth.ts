@@ -12,6 +12,16 @@ export interface AppJwtPayload extends JwtPayload {
   password_forced?: boolean;
 }
 
+export interface UserData {
+  id: string;
+  email: string;
+  role: "admin" | "empleado";
+  nombre: string;
+  empleado_id?: string | null;
+  modulos?: Record<string, boolean>;
+  password_forced?: boolean;
+}
+
 export async function login(
   email: string,
   password: string,
@@ -19,16 +29,11 @@ export async function login(
   remember: boolean = false,
 ): Promise<{
   token: string;
-  user: any;
+  user: UserData;
   decoded: AppJwtPayload;
   mustChangePassword: boolean;
 }> {
-  console.log("[login] enviando credenciales", {
-    email,
-    hasDeviceHash: !!device_hash,
-  });
-
-  // ✅ valor por defecto SIEMPRE válido
+  // Valor por defecto SIEMPRE válido
   let hash: string =
     crypto.randomUUID?.() || Math.random().toString(36).substring(2);
 
@@ -61,77 +66,53 @@ export async function login(
     }
   }
 
-  console.log("[login] usando device_hash", hash);
-
   // =========================
   // LOGIN REQUEST
   // =========================
-  let res;
-
-  try {
-    res = await api.post("/auth/login", {
-      email,
-      password,
-      device_hash: hash,
-      user_agent:
-        typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
-    });
-  } catch (err: any) {
-    // 🔥 BOOTSTRAP
-    if (
-      err?.response?.status === 409 &&
-      err?.response?.data?.code === "BOOTSTRAP_REQUIRED"
-    ) {
-      console.warn("[login] bootstrap requerido");
-    }
-
-    // ⛔ Siempre propagar
-    throw err;
-  }
-
-  console.log("[login] respuesta backend", res.data);
+  const res = await api.post("/auth/login", {
+    email,
+    password,
+    device_hash: hash,
+    user_agent:
+      typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+  });
 
   const { token, user } = res.data;
 
   // =========================
   // STORAGE
   // =========================
-    // =========================
-    // STORAGE
-    // =========================
-    if (typeof window !== "undefined") {
-      if (remember) {
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-        // Limpiar session por si acaso
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("user");
-      } else {
-        sessionStorage.setItem("token", token);
-        sessionStorage.setItem("user", JSON.stringify(user));
-        // Limpiar local por si acaso
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-      }
+  if (typeof window !== "undefined") {
+    if (remember) {
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      // Limpiar session por si acaso
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+    } else {
+      sessionStorage.setItem("token", token);
+      sessionStorage.setItem("user", JSON.stringify(user));
+      // Limpiar local por si acaso
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
     }
-  
-    setAuthToken(token);
-  
-    // =========================
-    // DECODE
-    // =========================
-    const decoded = jwtDecode<AppJwtPayload>(token);
-  
-    console.log("[login] token decodificado", decoded);
-  
-    return {
-      token,
-      user,
-      decoded,
-      mustChangePassword:
-        decoded.role === "empleado" && decoded.password_forced === true,
-    };
   }
+
+  setAuthToken(token);
+
+  // =========================
+  // DECODE
+  // =========================
+  const decoded = jwtDecode<AppJwtPayload>(token);
+
+  return {
+    token,
+    user,
+    decoded,
+    mustChangePassword:
+      decoded.role === "empleado" && decoded.password_forced === true,
+  };
+}
   
   // =================================
   // HELPERS STORAGE (Local vs Session)
@@ -142,7 +123,7 @@ export async function login(
     return sessionStorage.getItem("token") || localStorage.getItem("token");
   }
   
-  export function getUser(): any | null {
+  export function getUser(): UserData | null {
     if (typeof window === "undefined") return null;
     const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
     try {
@@ -174,9 +155,9 @@ export async function login(
     };
   }
   
-  export function updateStoredUser(user: any) {
+  export function updateStoredUser(user: UserData) {
     if (typeof window === "undefined") return;
-    
+
     // Si hay token en local, actualizamos user en local. Si no, en session.
     if (localStorage.getItem("token")) {
       localStorage.setItem("user", JSON.stringify(user));

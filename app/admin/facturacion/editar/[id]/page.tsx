@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { 
@@ -46,6 +46,12 @@ import {
 import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+
+// --- HELPERS ---
+let editLineIdCounter = 0;
+function generateLineId(): number {
+  return ++editLineIdCounter;
+}
 
 // --- TYPES ---
 interface Linea {
@@ -130,25 +136,22 @@ export default function EditarFacturaPage() {
         // Mapear líneas
         let processedLines: Linea[] = []
         if (f.lineas && f.lineas.length > 0) {
-            processedLines = f.lineas.map((l: any) => ({
-                id: l.id || Date.now() + Math.random(),
+            processedLines = f.lineas.map((l: { id?: number; descripcion: string; cantidad: string | number; precio_unitario: string | number; iva_percent?: string | number; iva?: string | number; concepto_id?: number | null }) => ({
+                id: l.id || generateLineId(),
                 descripcion: l.descripcion,
-                cantidad: parseFloat(l.cantidad) || 0,
-                precio_unitario: parseFloat(l.precio_unitario) || 0,
-                iva: parseFloat(l.iva_percent || l.iva || 0),
+                cantidad: parseFloat(String(l.cantidad)) || 0,
+                precio_unitario: parseFloat(String(l.precio_unitario)) || 0,
+                iva: parseFloat(String(l.iva_percent || l.iva || 0)),
                 concepto_id: l.concepto_id,
                 original_desc: l.descripcion
             }))
         } else {
-            processedLines = [{ id: Date.now(), descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }]
+            processedLines = [{ id: generateLineId(), descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }]
         }
 
-        console.info("Factura loaded:", f)
-        console.info("Processed lines for state:", processedLines)
         setLineas(processedLines)
 
-      } catch (err) {
-        console.error("Error init edit page:", err)
+      } catch {
         toast.error("Error cargando factura")
       } finally {
         setLoading(false)
@@ -157,46 +160,48 @@ export default function EditarFacturaPage() {
     init()
   }, [id, router])
 
-  const fetchConceptos = async (cId: number | null) => {
+  const fetchConceptos = useCallback(async (cId: number | null) => {
     setLoadingConceptos(true)
     try {
       const res = await api.get(`/admin/facturacion/conceptos?cliente_id=${cId || ''}`)
       setConceptos(res.data.data || [])
-    } catch (err) {
-      console.error("Error cargando conceptos", err)
+    } catch {
+      // ignore errors
     } finally {
       setLoadingConceptos(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchConceptos(clienteId)
-  }, [clienteId])
+  }, [clienteId, fetchConceptos])
 
   // --- LOGIC ---
 
-  const handleAddLine = () => {
-    setLineas([
-      ...lineas, 
-      { id: Date.now(), descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }
+  const handleAddLine = useCallback(() => {
+    setLineas(prev => [
+      ...prev,
+      { id: generateLineId(), descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }
     ])
-  }
+  }, [])
 
-  const handleRemoveLine = (lineaId: number) => {
-    if (lineas.length === 1) return
-    setLineas(lineas.filter(l => l.id !== lineaId))
-  }
+  const handleRemoveLine = useCallback((lineaId: number) => {
+    setLineas(prev => {
+      if (prev.length === 1) return prev
+      return prev.filter(l => l.id !== lineaId)
+    })
+  }, [])
 
-  const updateLine = (lineaId: number, field: keyof Linea, value: any) => {
-    setLineas(lineas.map(l => 
+  const updateLine = useCallback((lineaId: number, field: keyof Linea, value: string | number | null) => {
+    setLineas(prev => prev.map(l =>
       l.id === lineaId ? { ...l, [field]: value } : l
     ))
-  }
+  }, [])
 
-  const handleSelectConcepto = (lineaId: number, concepto: Concepto) => {
-    setLineas(lineas.map(l => 
-      l.id === lineaId ? { 
-        ...l, 
+  const handleSelectConcepto = useCallback((lineaId: number, concepto: Concepto) => {
+    setLineas(prev => prev.map(l =>
+      l.id === lineaId ? {
+        ...l,
         descripcion: concepto.descripcion || concepto.nombre,
         precio_unitario: Number(concepto.precio_unitario || 0),
         iva: Number(concepto.iva_default || 21),
@@ -204,59 +209,59 @@ export default function EditarFacturaPage() {
         original_desc: concepto.descripcion || concepto.nombre
       } : l
     ))
-  }
+  }, [])
 
-  const handleBlurDescription = (linea: Linea) => {
-    if (linea.concepto_id && linea.descripcion !== linea.original_desc) {
-        toast("Concepto modificado", {
-            description: "¿Deseas actualizar el concepto original o guardarlo como uno nuevo?",
-            action: {
-                label: "Actualizar",
-                onClick: () => updateConceptRecord(linea)
-            },
-            cancel: {
-                label: "Guardar Nuevo",
-                onClick: () => handleSaveAsConcept(linea)
-            }
-        })
-    } 
-  }
-
-  const updateConceptRecord = async (linea: Linea) => {
+  const updateConceptRecord = useCallback(async (linea: Linea) => {
     try {
-        await api.put(`/admin/facturacion/conceptos/${linea.concepto_id}`, {
-            nombre: linea.descripcion.substring(0, 50),
-            descripcion: linea.descripcion,
-            precio_unitario: linea.precio_unitario,
-            iva_default: linea.iva,
-            cliente_id: clienteId
-        })
-        toast.success("Concepto original actualizado")
-        setLineas(lineas.map(l => l.id === linea.id ? {...l, original_desc: l.descripcion} : l))
-    } catch (err) {
-        toast.error("Error al actualizar concepto")
+      await api.put(`/admin/facturacion/conceptos/${linea.concepto_id}`, {
+        nombre: linea.descripcion.substring(0, 50),
+        descripcion: linea.descripcion,
+        precio_unitario: linea.precio_unitario,
+        iva_default: linea.iva,
+        cliente_id: clienteId
+      })
+      toast.success("Concepto original actualizado")
+      setLineas(prev => prev.map(l => l.id === linea.id ? {...l, original_desc: l.descripcion} : l))
+    } catch {
+      toast.error("Error al actualizar concepto")
     }
-  }
+  }, [clienteId])
 
-  const handleSaveAsConcept = async (linea: Linea) => {
+  const handleSaveAsConcept = useCallback(async (linea: Linea) => {
     if (!linea.descripcion) {
-        toast.error("Añade una descripción primero")
-        return
+      toast.error("Añade una descripción primero")
+      return
     }
     try {
-        await api.post('/admin/facturacion/conceptos', {
-            nombre: linea.descripcion.substring(0, 50),
-            descripcion: linea.descripcion,
-            precio_unitario: linea.precio_unitario,
-            iva_default: linea.iva,
-            cliente_id: clienteId
-        })
-        toast.success("Concepto guardado para futuros usos")
-        fetchConceptos(clienteId)
-    } catch (err) {
-        toast.error("Error al guardar concepto")
+      await api.post('/admin/facturacion/conceptos', {
+        nombre: linea.descripcion.substring(0, 50),
+        descripcion: linea.descripcion,
+        precio_unitario: linea.precio_unitario,
+        iva_default: linea.iva,
+        cliente_id: clienteId
+      })
+      toast.success("Concepto guardado para futuros usos")
+      fetchConceptos(clienteId)
+    } catch {
+      toast.error("Error al guardar concepto")
     }
-  }
+  }, [clienteId, fetchConceptos])
+
+  const handleBlurDescription = useCallback((linea: Linea) => {
+    if (linea.concepto_id && linea.descripcion !== linea.original_desc) {
+      toast("Concepto modificado", {
+        description: "¿Deseas actualizar el concepto original o guardarlo como uno nuevo?",
+        action: {
+          label: "Actualizar",
+          onClick: () => updateConceptRecord(linea)
+        },
+        cancel: {
+          label: "Guardar Nuevo",
+          onClick: () => handleSaveAsConcept(linea)
+        }
+      })
+    }
+  }, [updateConceptRecord, handleSaveAsConcept])
 
   const subtotal = lineas.reduce((acc, l) => acc + (l.cantidad * l.precio_unitario), 0)
   
@@ -296,9 +301,9 @@ export default function EditarFacturaPage() {
       await api.put(`/admin/facturacion/facturas/${id}`, payload)
       toast.success("Factura actualizada correctamente")
       router.push("/admin/facturacion/listado")
-    } catch (error: any) {
-      console.error(error)
-      toast.error(error.response?.data?.error || "Error al actualizar factura")
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } }
+      toast.error(err?.response?.data?.error || "Error al actualizar factura")
     } finally {
       setSaving(false)
     }

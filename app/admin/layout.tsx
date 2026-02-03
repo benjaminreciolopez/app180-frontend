@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { getUser } from "@/services/auth";
+import { getUser, logout as authLogout } from "@/services/auth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type Modulos = Record<string, boolean>;
@@ -19,6 +19,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
@@ -114,18 +115,16 @@ export default function AdminLayout({
       .find((g) => pathname.startsWith(g.path));
 
     if (current?.module && !hasModule(session.modulos, current.module)) {
-      location.href = "/admin/dashboard";
+      router.replace("/admin/dashboard");
     }
-  }, [pathname, session, guards]);
+  }, [pathname, session, guards, router]);
 
   // ============================
   // Logout
   // ============================
   function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.dispatchEvent(new Event("session-updated"));
-    location.href = "/login";
+    // Usar la función centralizada que limpia localStorage y sessionStorage
+    authLogout();
   }
 
   // ============================
@@ -137,9 +136,7 @@ export default function AdminLayout({
 
   if (!session) {
     // Redirigir inmediatamente sin mostrar mensaje
-    if (typeof window !== 'undefined') {
-      window.location.href = '/';
-    }
+    router.replace('/login');
     return null;
   }
 

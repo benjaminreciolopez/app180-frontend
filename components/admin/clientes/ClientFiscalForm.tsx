@@ -17,26 +17,24 @@ export default function ClientFiscalForm({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (data) {
-        setFormData({ 
-            razon_social: "",
-            nif_cif: "",
-            tipo_fiscal: "company",
-            pais: "España",
-            provincia: "",
-            municipio: "",
-            codigo_postal: "",
-            direccion_fiscal: "",
-            email_factura: "",
-            telefono_factura: "",
-            persona_contacto: "",
-            iva_defecto: "21",
-            exento_iva: false,
-            forma_pago: "",
-            iban: "",
-            ...data // Overwrite defaults
-        });
-    }
+    // Siempre inicializar el formulario, incluso si data es null/undefined
+    setFormData({
+      razon_social: data?.razon_social || "",
+      nif_cif: data?.nif_cif || "",
+      tipo_fiscal: data?.tipo_fiscal || "company",
+      pais: data?.pais || "España",
+      provincia: data?.provincia || "",
+      municipio: data?.municipio || "",
+      codigo_postal: data?.codigo_postal || "",
+      direccion_fiscal: data?.direccion_fiscal || "",
+      email_factura: data?.email_factura || "",
+      telefono_factura: data?.telefono_factura || "",
+      persona_contacto: data?.persona_contacto || "",
+      iva_defecto: data?.iva_defecto || "21",
+      exento_iva: data?.exento_iva === true,
+      forma_pago: data?.forma_pago || "",
+      iban: data?.iban || "",
+    });
   }, [data]);
 
   const handleChange = (field: string, value: any) => {

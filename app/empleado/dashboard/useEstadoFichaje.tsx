@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { api } from "@/services/api";
 import type { AccionFichaje } from "./FichajeAction";
 
@@ -15,7 +15,6 @@ export type BotonEstado = {
   margen_despues: number;
   motivo_oculto: string | null;
 
-  // ✅ AÑADIR
   ausencia?: {
     id: string;
     tipo: "vacaciones" | "baja_medica" | string;
@@ -39,10 +38,16 @@ export function useEstadoFichaje() {
   const [boton, setBoton] = useState<BotonEstado | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  // Ref para evitar updates en componente desmontado
+  const isMountedRef = useRef(true);
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get("/fichajes/estado");
+
+      // Verificar que el componente sigue montado
+      if (!isMountedRef.current) return;
 
       setEstado(res.data?.estado ?? null);
 
@@ -61,25 +66,30 @@ export function useEstadoFichaje() {
               margen_despues: Number(b.margen_despues ?? 15),
               motivo_oculto: b.motivo_oculto ?? null,
 
-              // ✅ AÑADIR
               ausencia: b.ausencia ?? null,
               calendario: b.calendario ?? null,
             }
           : null,
       );
-      console.log("BOTON ESTADO:", b);
-    } catch (e) {
-      console.error("Error cargando estado fichaje", e);
+    } catch {
+      if (!isMountedRef.current) return;
       setEstado(null);
       setBoton(null);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     load();
-  }, []);
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [load]);
 
   return { estado, boton, loading, reload: load };
 }

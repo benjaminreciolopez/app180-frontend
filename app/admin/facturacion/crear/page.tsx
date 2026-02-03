@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { 
@@ -57,6 +57,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+// --- HELPERS ---
+let lineIdCounter = 0;
+function generateLineId(): number {
+  return ++lineIdCounter;
+}
+
 // --- TYPES ---
 interface Linea {
   id: number // temporal ID for React keys
@@ -102,7 +108,7 @@ export default function CrearFacturaPage() {
   const [clienteId, setClienteId] = useState<number | null>(null)
   const [fecha, setFecha] = useState<string>(new Date().toISOString().split("T")[0])
   const [lineas, setLineas] = useState<Linea[]>([
-    { id: Date.now(), descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }
+    { id: generateLineId(), descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }
   ])
   const [mensajeIva, setMensajeIva] = useState("")
   const [metodoPago, setMetodoPago] = useState<"TRANSFERENCIA" | "CONTADO">("TRANSFERENCIA")
@@ -131,39 +137,63 @@ export default function CrearFacturaPage() {
     if (saved) {
       try {
         setColWidths(JSON.parse(saved))
-      } catch (e) {
-        console.error("Error parsing col widths", e)
+      } catch {
+        // ignore parsing errors
       }
     }
   }, [])
 
-  const saveWidths = (newWidths: Record<string, number>) => {
+  const saveWidths = useCallback((newWidths: Record<string, number>) => {
     setColWidths(newWidths)
     localStorage.setItem('factura_col_widths', JSON.stringify(newWidths))
-  }
+  }, [])
 
-  const handleResize = (id: string, startX: number, startWidth: number) => {
+  // Refs para cleanup de event listeners
+  const resizeCleanupRef = useRef<(() => void) | null>(null)
+
+  const handleResize = useCallback((id: string, startX: number, startWidth: number) => {
+    // Limpiar listeners anteriores si existen
+    if (resizeCleanupRef.current) {
+      resizeCleanupRef.current()
+    }
+
     const onMove = (clientX: number) => {
       const delta = clientX - startX
       const newWidth = Math.max(80, startWidth + delta)
-      saveWidths({ ...colWidths, [id]: newWidth })
+      setColWidths(prev => {
+        const newWidths = { ...prev, [id]: newWidth }
+        localStorage.setItem('factura_col_widths', JSON.stringify(newWidths))
+        return newWidths
+      })
     }
 
     const onMouseMove = (e: MouseEvent) => onMove(e.clientX)
     const onTouchMove = (e: TouchEvent) => onMove(e.touches[0].clientX)
 
-    const onEnd = () => {
+    const cleanup = () => {
       document.removeEventListener('mousemove', onMouseMove)
-      document.removeEventListener('mouseup', onEnd)
+      document.removeEventListener('mouseup', cleanup)
       document.removeEventListener('touchmove', onTouchMove)
-      document.removeEventListener('touchend', onEnd)
+      document.removeEventListener('touchend', cleanup)
+      resizeCleanupRef.current = null
     }
 
+    resizeCleanupRef.current = cleanup
+
     document.addEventListener('mousemove', onMouseMove)
-    document.addEventListener('mouseup', onEnd)
+    document.addEventListener('mouseup', cleanup)
     document.addEventListener('touchmove', onTouchMove)
-    document.addEventListener('touchend', onEnd)
-  }
+    document.addEventListener('touchend', cleanup)
+  }, [])
+
+  // Cleanup de resize listeners al desmontar
+  useEffect(() => {
+    return () => {
+      if (resizeCleanupRef.current) {
+        resizeCleanupRef.current()
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const fetchClientes = async () => {
@@ -182,12 +212,14 @@ export default function CrearFacturaPage() {
     loadIvas()
   }, [])
 
+  // Flag para cargar la configuración solo una vez
+  const configLoadedRef = useRef(false)
+
   const loadIvas = async () => {
     try {
       const res = await api.get('/admin/facturacion/iva')
       setIvas(res.data)
-    } catch (err) {
-      console.error("Error loading IVAs", err)
+    } catch {
       // Fallback
       setIvas([
         { porcentaje: 21 }, { porcentaje: 10 }, { porcentaje: 4 }, { porcentaje: 0 }
@@ -195,67 +227,90 @@ export default function CrearFacturaPage() {
     }
   }
 
-  const fetchConceptos = async (cId: number | null) => {
-    setLoadingConceptos(true)
+  // Cargar configuración del emisor solo una vez
+  const loadEmisorConfig = useCallback(async () => {
+    if (configLoadedRef.current) return
     try {
       const configRes = await api.get('/admin/facturacion/configuracion/emisor')
       if (configRes.data.success) {
         setIvaGlobal(configRes.data.data.iva_global || 0)
         setEmisorIban(configRes.data.data.iban || "")
+        configLoadedRef.current = true
       }
+    } catch {
+      // ignore config errors
+    }
+  }, [])
+
+  const fetchConceptos = useCallback(async (cId: number | null) => {
+    setLoadingConceptos(true)
+    try {
       const res = await api.get(`/admin/facturacion/conceptos?cliente_id=${cId || ''}`)
       setConceptos(res.data.data || [])
-    } catch (err) {
-      console.error("Error cargando conceptos", err)
+    } catch {
+      // ignore errors
     } finally {
       setLoadingConceptos(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadEmisorConfig()
+  }, [loadEmisorConfig])
 
   useEffect(() => {
     fetchConceptos(clienteId)
-  }, [clienteId])
+  }, [clienteId, fetchConceptos])
 
   // --- LOGIC ---
 
-  const handleAddLine = () => {
-    setLineas([
-      ...lineas, 
-      { id: Date.now(), descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }
+  const handleAddLine = useCallback(() => {
+    setLineas(prev => [
+      ...prev,
+      { id: generateLineId(), descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }
     ])
-  }
+  }, [])
 
-  const handleRemoveLine = (id: number) => {
-    if (lineas.length === 1) return // Keep at least one
-    setLineas(lineas.filter(l => l.id !== id))
-  }
+  const handleRemoveLine = useCallback((id: number) => {
+    setLineas(prev => {
+      if (prev.length === 1) return prev // Keep at least one
+      return prev.filter(l => l.id !== id)
+    })
+  }, [])
 
-  const updateLine = (id: number, field: keyof Linea, value: any) => {
-    setLineas(lineas.map(l => {
+  // Ref para el mensaje de IVA pendiente (evitar setState dentro de map)
+  const pendingIvaMessage = useRef<string | null>(null)
+
+  const updateLine = useCallback((id: number, field: keyof Linea, value: string | number | null) => {
+    setLineas(prev => prev.map(l => {
       if (l.id === id) {
-        // Si el campo es IVA y el nuevo valor tiene una descripción en la lista de IVAs,
-        // y el mensaje_iva actual está vacío, lo sugerimos/ponemos.
+        // Marcar si necesitamos actualizar el mensaje de IVA (fuera del map)
         if (field === 'iva') {
-            const selectedIva = ivas.find(i => i.porcentaje === value);
-            // Si el IVA configurado tiene descripción, prevalece
-            if (selectedIva?.descripcion && (!mensajeIva || mensajeIva.trim() === "")) {
-                setMensajeIva(selectedIva.descripcion);
-            } 
-            // Si no tiene descripción pero hay un texto legal estándar, lo sugerimos
-            else if (LEGAL_IVA_TEXTS[value as number] && (!mensajeIva || mensajeIva.trim() === "")) {
-                setMensajeIva(LEGAL_IVA_TEXTS[value as number]);
-            }
+          const selectedIva = ivas.find(i => i.porcentaje === value)
+          if (selectedIva?.descripcion) {
+            pendingIvaMessage.current = selectedIva.descripcion
+          } else if (LEGAL_IVA_TEXTS[value as number]) {
+            pendingIvaMessage.current = LEGAL_IVA_TEXTS[value as number]
+          }
         }
-        return { ...l, [field]: value };
+        return { ...l, [field]: value }
       }
-      return l;
-    }));
-  }
+      return l
+    }))
+  }, [ivas])
 
-  const handleSelectConcepto = (lineaId: number, concepto: Concepto) => {
-    setLineas(lineas.map(l => 
-      l.id === lineaId ? { 
-        ...l, 
+  // Efecto para aplicar el mensaje de IVA pendiente
+  useEffect(() => {
+    if (pendingIvaMessage.current && (!mensajeIva || mensajeIva.trim() === "")) {
+      setMensajeIva(pendingIvaMessage.current)
+      pendingIvaMessage.current = null
+    }
+  }, [lineas, mensajeIva])
+
+  const handleSelectConcepto = useCallback((lineaId: number, concepto: Concepto) => {
+    setLineas(prev => prev.map(l =>
+      l.id === lineaId ? {
+        ...l,
         descripcion: concepto.descripcion || concepto.nombre,
         precio_unitario: Number(concepto.precio_unitario || 0),
         iva: Number(concepto.iva_default || 21),
@@ -263,61 +318,61 @@ export default function CrearFacturaPage() {
         original_desc: concepto.descripcion || concepto.nombre
       } : l
     ))
-  }
+  }, [])
 
-  const handleBlurDescription = (linea: Linea) => {
+  const updateConceptRecord = useCallback(async (linea: Linea) => {
+    try {
+      await api.put(`/admin/facturacion/conceptos/${linea.concepto_id}`, {
+        nombre: linea.descripcion.substring(0, 50),
+        descripcion: linea.descripcion,
+        precio_unitario: linea.precio_unitario,
+        iva_default: linea.iva,
+        cliente_id: clienteId
+      })
+      toast.success("Concepto original actualizado")
+      // Actualizamos el original_desc localmente para no repetir el aviso
+      setLineas(prev => prev.map(l => l.id === linea.id ? {...l, original_desc: l.descripcion} : l))
+    } catch {
+      toast.error("Error al actualizar concepto")
+    }
+  }, [clienteId])
+
+  const handleSaveAsConcept = useCallback(async (linea: Linea) => {
+    if (!linea.descripcion) {
+      toast.error("Añade una descripción primero")
+      return
+    }
+    try {
+      await api.post('/admin/facturacion/conceptos', {
+        nombre: linea.descripcion.substring(0, 50),
+        descripcion: linea.descripcion,
+        precio_unitario: linea.precio_unitario,
+        iva_default: linea.iva,
+        cliente_id: clienteId
+      })
+      toast.success("Concepto guardado para futuros usos")
+      fetchConceptos(clienteId)
+    } catch {
+      toast.error("Error al guardar concepto")
+    }
+  }, [clienteId, fetchConceptos])
+
+  const handleBlurDescription = useCallback((linea: Linea) => {
     // Si es un concepto enlazado y ha cambiado
     if (linea.concepto_id && linea.descripcion !== linea.original_desc) {
-        toast("Concepto modificado", {
-            description: "¿Deseas actualizar el concepto original o guardarlo como uno nuevo?",
-            action: {
-                label: "Actualizar",
-                onClick: () => updateConceptRecord(linea)
-            },
-            cancel: {
-                label: "Guardar Nuevo",
-                onClick: () => handleSaveAsConcept(linea)
-            }
-        })
-    } 
-  }
-
-  const updateConceptRecord = async (linea: Linea) => {
-    try {
-        await api.put(`/admin/facturacion/conceptos/${linea.concepto_id}`, {
-            nombre: linea.descripcion.substring(0, 50),
-            descripcion: linea.descripcion,
-            precio_unitario: linea.precio_unitario,
-            iva_default: linea.iva,
-            cliente_id: clienteId
-        })
-        toast.success("Concepto original actualizado")
-        // Actualizamos el original_desc localmente para no repetir el aviso
-        setLineas(lineas.map(l => l.id === linea.id ? {...l, original_desc: l.descripcion} : l))
-    } catch (err) {
-        toast.error("Error al actualizar concepto")
+      toast("Concepto modificado", {
+        description: "¿Deseas actualizar el concepto original o guardarlo como uno nuevo?",
+        action: {
+          label: "Actualizar",
+          onClick: () => updateConceptRecord(linea)
+        },
+        cancel: {
+          label: "Guardar Nuevo",
+          onClick: () => handleSaveAsConcept(linea)
+        }
+      })
     }
-  }
-
-  const handleSaveAsConcept = async (linea: Linea) => {
-    if (!linea.descripcion) {
-        toast.error("Añade una descripción primero")
-        return
-    }
-    try {
-        await api.post('/admin/facturacion/conceptos', {
-            nombre: linea.descripcion.substring(0, 50),
-            descripcion: linea.descripcion,
-            precio_unitario: linea.precio_unitario,
-            iva_default: linea.iva,
-            cliente_id: clienteId
-        })
-        toast.success("Concepto guardado para futuros usos")
-        fetchConceptos(clienteId)
-    } catch (err) {
-        toast.error("Error al guardar concepto")
-    }
-  }
+  }, [updateConceptRecord, handleSaveAsConcept])
 
   // Cálculos totales
   const subtotal = lineas.reduce((acc, l) => acc + (l.cantidad * l.precio_unitario), 0)
@@ -365,9 +420,9 @@ export default function CrearFacturaPage() {
       // Opcional: Redirigir a listado o a vista detalle
       router.push(`/admin/facturacion/listado`)
       
-    } catch (error: any) {
-      console.error(error)
-      toast.error(error.response?.data?.error || "Error al guardar factura")
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } }
+      toast.error(err?.response?.data?.error || "Error al guardar factura")
     } finally {
       setSaving(false)
     }

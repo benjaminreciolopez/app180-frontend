@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { api, setAuthToken } from "@/services/api";
+import { getUser, updateStoredUser } from "@/services/auth";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function ForceChangePasswordModal() {
@@ -21,17 +22,12 @@ export default function ForceChangePasswordModal() {
   // Detectar password forzado
   // =========================
   useEffect(() => {
-    const raw = localStorage.getItem("user");
-    if (!raw) return;
+    // Usar getUser() que busca en sessionStorage y localStorage
+    const user = getUser();
+    if (!user) return;
 
-    try {
-      const user = JSON.parse(raw);
-
-      if (user?.password_forced === true) {
-        setVisible(true);
-      }
-    } catch {
-      /* ignore */
+    if (user.password_forced === true) {
+      setVisible(true);
     }
   }, []);
 
@@ -56,8 +52,16 @@ export default function ForceChangePasswordModal() {
 
       const { token, user } = res.data;
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      // Usar updateStoredUser que respeta si estamos usando localStorage o sessionStorage
+      updateStoredUser(user);
+
+      // También actualizar el token en el storage correcto
+      if (localStorage.getItem("token")) {
+        localStorage.setItem("token", token);
+      } else {
+        sessionStorage.setItem("token", token);
+      }
+
       setAuthToken(token);
 
       // cerrar modal
@@ -65,8 +69,9 @@ export default function ForceChangePasswordModal() {
 
       // refrescar contexto completo
       window.location.reload();
-    } catch (e: any) {
-      setError(e?.response?.data?.error || "Error al cambiar contraseña");
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { error?: string } } };
+      setError(error?.response?.data?.error || "Error al cambiar contraseña");
     } finally {
       setSaving(false);
     }

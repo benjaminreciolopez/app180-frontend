@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api, setAuthToken } from "@/services/api";
 import { getToken, getUser, logout, updateStoredUser } from "@/services/auth";
@@ -57,6 +57,11 @@ export default function AuthInit() {
 
   const initialized = useRef(false);
 
+  // Callback estable para el evento password-forced
+  const handlePasswordForced = useCallback(() => {
+    router.replace("/cambiar-password");
+  }, [router]);
+
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -65,77 +70,71 @@ export default function AuthInit() {
       try {
         setAuthToken(getToken());
         const token = getToken();
-        let user = getUser();
+        const user = getUser();
 
         // Si tenemos usuario local, permitimos renderizar ya (optimistic)
         // y refrescamos en background
         if (token) {
-          refreshMe().then((u) => {
-             // Si el usuario cambió drásticamente (ej: rol), podríamos forzar recarga
-             // Por ahora confiamos en que el estado local se actualiza
-          }).catch(() => {
-             console.log("Sesión background refresh falló (puede estar offline o token expirado)");
-          });
+          try {
+            await refreshMe();
+          } catch {
+            // Sesión background refresh falló (puede estar offline o token expirado)
+          }
         }
-        
-        // Listen for password-forced event
-        const handlePasswordForced = () => {
-          router.replace("/cambiar-password");
-        };
-        window.addEventListener("password-forced", handlePasswordForced);
 
         const forced = user?.password_forced === true;
         const hasSession = !!token && !!user?.role;
-  
+
         // 1. Password Forzado
         if (forced) {
           const allowed =
             pathname === "/cambiar-password" ||
             pathname.startsWith("/empleado/instalar");
-  
+
           if (!allowed) {
             router.replace("/cambiar-password");
             return;
           }
         }
-  
+
         // 2. Sin sesión
         if (!hasSession && !isPublicPath(pathname)) {
           router.replace("/login");
           return;
         }
-  
-        // 3. Login con sesión
+
+        // 3. Login con sesión - usar router.replace en vez de window.location.href
         if (hasSession && (pathname === "/login" || pathname === "/")) {
-          // Navegación hard para asegurar estado limpio
-          window.location.href = user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard";
+          router.replace(user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard");
           return;
         }
-  
+
         // 4. Role Guard
         if (hasSession) {
           if (pathname.startsWith("/admin") && user!.role !== "admin") {
             router.replace("/empleado/dashboard");
             return;
           }
-  
+
           if (pathname.startsWith("/empleado") && user!.role !== "empleado") {
             router.replace("/admin/dashboard");
             return;
           }
         }
-      } catch (e) {
+      } catch {
         logout();
       }
     }
 
+    // Listen for password-forced event
+    window.addEventListener("password-forced", handlePasswordForced);
+
     init();
 
     return () => {
-      window.removeEventListener("password-forced", () => {});
+      window.removeEventListener("password-forced", handlePasswordForced);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Solo al montar
+  }, [pathname, router, handlePasswordForced]);
 
   return null;
 }
