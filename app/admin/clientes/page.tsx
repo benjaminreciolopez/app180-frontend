@@ -561,11 +561,15 @@ export default function AdminClientesPage() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white p-2 rounded-lg border border-emerald-100/50">
                            <label className="text-[10px] font-bold text-slate-400 uppercase block">Coordenada Lat</label>
-                           <p className="text-sm font-mono text-slate-700">{editing.lat?.toFixed(6) || "—"}</p>
+                           <p className="text-sm font-mono text-slate-700">
+                             {editing.lat != null ? Number(editing.lat).toFixed(6) : "—"}
+                           </p>
                         </div>
                         <div className="bg-white p-2 rounded-lg border border-emerald-100/50">
                            <label className="text-[10px] font-bold text-slate-400 uppercase block">Coordenada Lng</label>
-                           <p className="text-sm font-mono text-slate-700">{editing.lng?.toFixed(6) || "—"}</p>
+                           <p className="text-sm font-mono text-slate-700">
+                             {editing.lng != null ? Number(editing.lng).toFixed(6) : "—"}
+                           </p>
                         </div>
                       </div>
                       
