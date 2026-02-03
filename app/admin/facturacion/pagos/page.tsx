@@ -76,7 +76,7 @@ type DeudaPendiente = {
     pagado: number;
     estado_pago: string;
     numero?: string;
-    work_item_id?: string;
+    original_id?: string;
     saldo?: number;
 };
 
@@ -230,7 +230,7 @@ export default function GlobalPagosPage() {
               newSelection[item.id] = { 
                 importe: Number(pay.toFixed(2)), 
                 tipo: item.tipo, 
-                originalId: item.work_item_id || item.id 
+                originalId: item.original_id || item.id 
               };
               remaining -= pay;
           }
@@ -246,8 +246,8 @@ export default function GlobalPagosPage() {
     
     // Prepare Allocations
     const asignaciones = Object.entries(selectedItems).map(([id, data]) => ({
-        invoice_id: id, // This might be the invoice ID or work_log ID depending on the item
-        work_item_id: data.originalId, // Use the originalId for the backend
+        invoice_id: id,
+        [data.tipo === 'factura' ? 'factura_id' : 'work_log_id']: data.originalId || id,
         importe: data.importe
     })).filter(x => x.importe > 0);
 
@@ -641,26 +641,29 @@ export default function GlobalPagosPage() {
                                             `}
                                             onClick={() => {
                                                 setSelectedItems(prev => {
-                                                    const copy = { ...prev };
-                                                    if (copy[item.id]) {
+                                                    if (prev[item.id]) {
+                                                        const copy = { ...prev };
                                                         delete copy[item.id];
+                                                        return copy;
                                                     } else {
-                                                        const totalPay = Number(newPay.importe);
-                                                        const alreadyAllocated = Object.values(selectedItems).reduce((acc, curr) => acc + curr.importe, 0);
+                                                        const totalPay = Number(newPay.importe) || 0;
+                                                        const alreadyAllocated = Object.values(prev).reduce((acc, curr) => acc + curr.importe, 0);
                                                         const remainingCapacity = Math.max(0, totalPay - alreadyAllocated);
                                                         const debt = Number(item.saldo || (Number(item.valor) - Number(item.pagado)));
+                                                        
+                                                        // Si no hay importe definido en el pago, permitimos seleccionar pero con importe 0 o deuda total?
+                                                        // Mejor: si hay capacidad, asignamos el máximo posible. Si no hay capacidad (pago = 0), asignamos 0.
                                                         const amountToAssign = Math.min(debt, remainingCapacity);
 
-                                                        setSelectedItems(prev => ({ 
+                                                        return { 
                                                             ...prev, 
                                                             [item.id]: { 
                                                                 importe: Number(amountToAssign.toFixed(2)), 
                                                                 tipo: item.tipo,
-                                                                originalId: item.work_item_id || item.id
+                                                                originalId: item.original_id || item.id
                                                             } 
-                                                        }));
+                                                        };
                                                     }
-                                                    return copy;
                                                 });
                                             }}
                                         >
