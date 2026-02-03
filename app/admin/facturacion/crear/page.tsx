@@ -119,10 +119,10 @@ export default function CrearFacturaPage() {
 
   // Column Resizing State
   const [colWidths, setColWidths] = useState<Record<string, number>>({
-    cant: 112,
-    precio: 176,
-    iva: 150, // Aumentado por defecto
-    subtotal: 144
+    cant: 130,
+    precio: 200,
+    iva: 180,
+    subtotal: 160
   })
 
   // Cargar anchos de columna guardados
@@ -625,7 +625,7 @@ export default function CrearFacturaPage() {
                                         value={linea.iva.toString()} 
                                         onValueChange={(val) => updateLine(linea.id, 'iva', parseInt(val))}
                                     >
-                                        <SelectTrigger className="h-10">
+                                        <SelectTrigger className="h-10 w-full bg-white">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>

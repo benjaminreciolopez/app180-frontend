@@ -417,10 +417,10 @@ export default function EditarFacturaPage() {
                     <thead className="bg-white text-slate-500 font-medium">
                         <tr className="border-b border-slate-100">
                             <th className="p-4 text-left">Descripción / Servicio</th>
-                            <th className="p-4 w-28 text-center">Cant.</th>
-                            <th className="p-4 w-44 text-center">Precio Unit.</th>
-                            <th className="p-4 w-32 text-center">IVA %</th>
-                            <th className="p-4 w-36 text-right">Subtotal</th>
+                            <th className="p-4 w-36 text-center">Cant.</th>
+                            <th className="p-4 w-56 text-center">Precio Unit.</th>
+                            <th className="p-4 w-48 text-center">IVA %</th>
+                            <th className="p-4 w-44 text-right">Subtotal</th>
                             <th className="p-4 w-12"></th>
                         </tr>
                     </thead>
@@ -515,7 +515,7 @@ export default function EditarFacturaPage() {
                                         value={linea.iva.toString()} 
                                         onValueChange={(val) => updateLine(linea.id, 'iva', parseInt(val))}
                                     >
-                                        <SelectTrigger className="h-10">
+                                        <SelectTrigger className="h-10 w-full bg-white">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
