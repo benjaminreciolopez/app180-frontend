@@ -240,6 +240,7 @@ export default function GlobalPagosPage() {
     
     // Prepare Allocations
     const asignaciones = Object.entries(selectedItems).map(([id, data]) => ({
+        invoice_id: id,
         [data.tipo === 'factura' ? 'factura_id' : 'work_log_id']: id,
         importe: data.importe
     })).filter(x => x.importe > 0);
