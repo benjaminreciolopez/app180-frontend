@@ -732,7 +732,7 @@ export default function CrearFacturaPage() {
                                             <span className="font-medium">{linea.iva}%</span>
                                             <div className="hidden"><SelectValue /></div>
                                         </SelectTrigger>
-                                        <SelectContent className="w-[140px] min-w-[140px]" align="center">
+                                        <SelectContent position="popper" className="w-[140px] min-w-[140px]" align="center" sideOffset={5}>
                                             {ivas.map((iva) => (
                                                 <SelectItem key={iva.id || iva.porcentaje} value={iva.porcentaje.toString()} className="cursor-pointer justify-center text-center">
                                                     {iva.porcentaje}%
