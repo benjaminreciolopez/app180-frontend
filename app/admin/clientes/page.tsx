@@ -53,6 +53,9 @@ type Cliente = {
   email?: string | null;
   contacto_nombre?: string | null;
   contacto_email?: string | null;
+  iva_defecto?: string | null;
+  exento_iva?: boolean | null;
+  forma_pago?: string | null;
 };
 
 /* =====================================================
@@ -143,7 +146,10 @@ export default function AdminClientesPage() {
         iban: "",
         notas: "",
         contacto_nombre: "",
-        contacto_email: ""
+        contacto_email: "",
+        iva_defecto: "21",
+        exento_iva: false,
+        forma_pago: "TRANSFERENCIA"
       });
 
       setDrawerOpen(true);
@@ -454,7 +460,45 @@ export default function AdminClientesPage() {
                     </div>
 
                     <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
-                      <h4 className="text-sm font-semibold text-slate-700">Datos Bancarios y Pago</h4>
+                      <h4 className="text-sm font-semibold text-slate-700">Pagos y Facturación</h4>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">IVA por Defecto</label>
+                          <Select
+                            value={String(editing.iva_defecto || "21")}
+                            onValueChange={(v) => setEditing({ ...editing, iva_defecto: v })}
+                          >
+                            <SelectTrigger className="bg-white border-slate-200 w-full">
+                              <SelectValue placeholder="Seleccionar IVA" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="21">21% (General)</SelectItem>
+                              <SelectItem value="10">10% (Reducido)</SelectItem>
+                              <SelectItem value="4">4% (Superreducido)</SelectItem>
+                              <SelectItem value="0">0% (Exento)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Forma de Pago</label>
+                          <Select
+                            value={editing.forma_pago || "TRANSFERENCIA"}
+                            onValueChange={(v) => setEditing({ ...editing, forma_pago: v })}
+                          >
+                            <SelectTrigger className="bg-white border-slate-200 w-full">
+                              <SelectValue placeholder="Forma de pago" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="TRANSFERENCIA">Transferencia</SelectItem>
+                              <SelectItem value="DOMICILIACION">Domiciliación</SelectItem>
+                              <SelectItem value="EFECTIVO">Efectivo</SelectItem>
+                              <SelectItem value="TARJETA">Tarjeta</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
                       <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">IBAN Cuenta Bancaria</label>
                         <Input
