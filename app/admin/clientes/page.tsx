@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, X } from "lucide-react";
+import { Plus, Pencil, X, Building2, MapPin, Receipt, Info, Map as MapIcon } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showSuccess, showError } from "@/lib/toast";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -125,7 +126,7 @@ export default function AdminClientesPage() {
       setEditing({
         id: "",
         nombre: "",
-        codigo: r.codigo, // 👈 aquí
+        codigo: r.codigo,
         activo: true,
         modo_defecto: "mixto",
         requiere_geo: true,
@@ -136,7 +137,13 @@ export default function AdminClientesPage() {
         provincia: "",
         cp: "",
         email: "",
-        nif: ""
+        nif: "",
+        nif_cif: "",
+        razon_social: "",
+        iban: "",
+        notas: "",
+        contacto_nombre: "",
+        contacto_email: ""
       });
 
       setDrawerOpen(true);
@@ -300,231 +307,305 @@ export default function AdminClientesPage() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white w-full max-w-md h-full p-6 overflow-y-auto"
-              initial={{ x: 400 }}
+              className="bg-white w-full max-w-lg h-full p-0 flex flex-col shadow-2xl"
+              initial={{ x: 500 }}
               animate={{ x: 0 }}
-              exit={{ x: 400 }}
-              transition={{ type: "spring", damping: 25 }}
+              exit={{ x: 500 }}
+              transition={{ type: "spring", damping: 30, stiffness: 200 }}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold">
-                  {editing.id ? "Editar cliente" : "Nuevo cliente"}
-                </h2>
+              {/* Header Drawer */}
+              <div className="flex items-center justify-between p-6 border-b bg-slate-50/50">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 leading-none">
+                    {editing.id ? "Editar Cliente" : "Nuevo Cliente"}
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {editing.id ? `ID: ${editing.id}` : "Complete los datos del nuevo cliente"}
+                  </p>
+                </div>
 
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="rounded-full hover:bg-white hover:shadow-sm"
                   onClick={() => setDrawerOpen(false)}
                 >
-                  <X size={18} />
+                  <X size={20} />
                 </Button>
               </div>
 
-              <div className="space-y-5">
-                {/* Nombre */}
-                <div>
-                  <label className="text-sm">Nombre</label>
-                  <Input
-                    value={editing.nombre}
-                    onChange={(e) =>
-                      setEditing({ ...editing, nombre: e.target.value })
-                    }
-                  />
-                </div>
+              {/* Form Content with Tabs */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <Tabs defaultValue="general" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-100 p-1 rounded-xl">
+                    <TabsTrigger value="general" className="rounded-lg gap-2">
+                       <Building2 size={14} /> General
+                    </TabsTrigger>
+                    <TabsTrigger value="fiscal" className="rounded-lg gap-2">
+                       <Receipt size={14} /> Fiscal
+                    </TabsTrigger>
+                    <TabsTrigger value="geo" className="rounded-lg gap-2">
+                       <MapPin size={14} /> Ubicación
+                    </TabsTrigger>
+                  </TabsList>
 
-                {/* Código */}
-                <div>
-                  <label className="text-sm">Código</label>
-                  <Input
-                    value={editing.codigo || ""}
-                    disabled
-                    className="bg-slate-100 cursor-not-allowed"
-                  />
-                </div>
+                  {/* TAB GENERAL */}
+                  <TabsContent value="general" className="space-y-6 mt-0 border-0 p-0">
+                    <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nombre Comercial</label>
+                        <Input
+                          placeholder="Ej: Restaurante El Faro"
+                          className="bg-white border-slate-200"
+                          value={editing.nombre}
+                          onChange={(e) =>
+                            setEditing({ ...editing, nombre: e.target.value })
+                          }
+                        />
+                      </div>
 
-                {/* Modo */}
-                <div>
-                  <label className="text-sm">Modo defecto</label>
-                  <Select
-                    value={editing.modo_defecto}
-                    onValueChange={(v: string) =>
-                      setEditing({ ...editing, modo_defecto: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hora">Hora</SelectItem>
-                      <SelectItem value="dia">Día</SelectItem>
-                      <SelectItem value="mes">Mes</SelectItem>
-                      <SelectItem value="trabajo">Trabajo</SelectItem>
-                      <SelectItem value="mixto">Mixto</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button variant="outline" onClick={() => setGeoOpen(true)}>
-                  Seleccionar en mapa
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Código</label>
+                          <Input
+                            value={editing.codigo || ""}
+                            disabled
+                            className="bg-slate-100 border-slate-200 font-mono text-xs cursor-not-allowed"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Modo Defecto</label>
+                          <Select
+                            value={editing.modo_defecto}
+                            onValueChange={(v: string) =>
+                              setEditing({ ...editing, modo_defecto: v })
+                            }
+                          >
+                            <SelectTrigger className="bg-white border-slate-200">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="hora">Por Hora</SelectItem>
+                              <SelectItem value="dia">Por Día</SelectItem>
+                              <SelectItem value="mes">Por Mes</SelectItem>
+                              <SelectItem value="trabajo">Por Trabajo</SelectItem>
+                              <SelectItem value="mixto">Mixto</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+                       <h4 className="text-sm font-semibold flex items-center gap-2 text-slate-700">
+                          <Info size={16} className="text-blue-500" /> Notas Internas
+                       </h4>
+                       <textarea
+                        className="w-full border border-slate-200 rounded-lg p-3 text-sm min-h-[120px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white transition-all"
+                        placeholder="Observaciones importantes sobre el cliente..."
+                        value={editing.notas || ""}
+                        onChange={(e) =>
+                          setEditing({ ...editing, notas: e.target.value })
+                        }
+                      />
+                    </div>
+                  </TabsContent>
+
+                  {/* TAB FISCAL */}
+                  <TabsContent value="fiscal" className="space-y-6 mt-0 border-0 p-0">
+                    <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100/50 space-y-4">
+                      <h4 className="text-sm font-semibold text-blue-800">Identificación Fiscal</h4>
+                      
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Razón Social</label>
+                        <Input
+                          placeholder="Nombre legal completo"
+                          className="bg-white border-slate-200"
+                          value={editing.razon_social || ""}
+                          onChange={(e) =>
+                            setEditing({ ...editing, razon_social: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">NIF / CIF</label>
+                          <Input
+                            placeholder="B12345678"
+                            className="bg-white border-slate-200"
+                            value={editing.nif || editing.nif_cif || ""}
+                            onChange={(e) =>
+                              setEditing({ ...editing, nif: e.target.value, nif_cif: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Email Facturación</label>
+                          <Input
+                            type="email"
+                            placeholder="facturas@empresa.com"
+                            className="bg-white border-slate-200"
+                            value={editing.email || ""}
+                            onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+                      <h4 className="text-sm font-semibold text-slate-700">Datos Bancarios y Pago</h4>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">IBAN Cuenta Bancaria</label>
+                        <Input
+                          placeholder="ES00 0000 0000 0000 0000 0000"
+                          className="bg-white border-slate-200 font-mono text-sm"
+                          value={editing.iban || ""}
+                          onChange={(e) => setEditing({ ...editing, iban: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* TAB GEOLOCALIZACIÓN Y DIRECCIÓN */}
+                  <TabsContent value="geo" className="space-y-6 mt-0 border-0 p-0">
+                    <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+                      <h4 className="text-sm font-semibold text-slate-700">Dirección Postal</h4>
+                      
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Dirección</label>
+                        <Input
+                          placeholder="Calle, número, piso..."
+                          className="bg-white border-slate-200"
+                          value={editing.direccion || ""}
+                          onChange={(e) => setEditing({ ...editing, direccion: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">CP</label>
+                          <Input
+                            placeholder="28001"
+                            className="bg-white border-slate-200"
+                            value={editing.cp || ""}
+                            onChange={(e) => setEditing({ ...editing, cp: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Población</label>
+                          <Input
+                            placeholder="Madrid"
+                            className="bg-white border-slate-200"
+                            value={editing.poblacion || ""}
+                            onChange={(e) => setEditing({ ...editing, poblacion: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Provincia</label>
+                          <Input
+                            placeholder="Madrid"
+                            className="bg-white border-slate-200"
+                            value={editing.provincia || ""}
+                            onChange={(e) => setEditing({ ...editing, provincia: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">País</label>
+                          <Input
+                            placeholder="España"
+                            className="bg-white border-slate-200"
+                            value={editing.pais || "España"}
+                            onChange={(e) => setEditing({ ...editing, pais: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-emerald-50/30 p-4 rounded-xl border border-emerald-100/50 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-emerald-800">Geovalla (Fichaje)</h4>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-2 h-8"
+                          onClick={() => setGeoOpen(true)}
+                        >
+                          <MapIcon size={14} /> Abrir Mapa
+                        </Button>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Política de Restricción</label>
+                        <Select
+                          value={editing.geo_policy || "strict"}
+                          onValueChange={(v: string) =>
+                            setEditing({ ...editing, geo_policy: v })
+                          }
+                        >
+                          <SelectTrigger className="bg-white border-emerald-200">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="strict">Estricto (Bloquea fuera)</SelectItem>
+                            <SelectItem value="soft">Flexible (Avisa fuera)</SelectItem>
+                            <SelectItem value="info">Solo Informativo</SelectItem>
+                            <SelectItem value="none">Desactivado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white p-2 rounded-lg border border-emerald-100/50">
+                           <label className="text-[10px] font-bold text-slate-400 uppercase block">Coordenada Lat</label>
+                           <p className="text-sm font-mono text-slate-700">{editing.lat?.toFixed(6) || "—"}</p>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-emerald-100/50">
+                           <label className="text-[10px] font-bold text-slate-400 uppercase block">Coordenada Lng</label>
+                           <p className="text-sm font-mono text-slate-700">{editing.lng?.toFixed(6) || "—"}</p>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Radio de margen (Metros)</label>
+                        <Input
+                          type="number"
+                          placeholder="100"
+                          className="bg-white border-emerald-200"
+                          value={editing.radio_m || ""}
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              radio_m: Number(e.target.value) || null,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              {/* Footer Drawer */}
+              <div className="p-6 border-t bg-slate-50/80 flex gap-3">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 rounded-xl h-12"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  Cancelar
                 </Button>
-
-                {/* Geo */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Geolocalización</label>
-
-                  <Select
-                    value={editing.geo_policy || "strict"}
-                    onValueChange={(v: string) =>
-                      setEditing({ ...editing, geo_policy: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="strict">Estricto</SelectItem>
-                      <SelectItem value="soft">Flexible</SelectItem>
-                      <SelectItem value="info">Informativo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {editing.lat != null && editing.lng != null ? (
-                    <p className="text-sm text-slate-600">
-                      Ubicación guardada ✔
-                    </p>
-                  ) : (
-                    <p className="text-sm text-slate-400">No hay ubicación</p>
-                  )}
-
-                  <div className="grid grid-cols-3 gap-2">
-                    <Input
-                      placeholder="Lat"
-                      value={editing.lat || ""}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          lat: Number(e.target.value) || null,
-                        })
-                      }
-                    />
-                    <Input
-                      placeholder="Lng"
-                      value={editing.lng || ""}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          lng: Number(e.target.value) || null,
-                        })
-                      }
-                    />
-                    <Input
-                      placeholder="Radio (m)"
-                      value={editing.radio_m || ""}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          radio_m: Number(e.target.value) || null,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                </div>
-
-                {/* Fiscal Completo */}
-                <div className="space-y-3 pt-4 border-t">
-                  <h3 className="font-medium text-slate-800">Datos Fiscales y Contacto</h3>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-500">NIF / CIF</label>
-                      <Input
-                        placeholder="B12345678"
-                        value={editing.nif || editing.nif_cif || ""}
-                        onChange={(e) =>
-                          setEditing({ ...editing, nif: e.target.value, nif_cif: e.target.value })
-                        }
-                      />
-                    </div>
-                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-500">Razón Social</label>
-                      <Input
-                        placeholder="Empresa S.L."
-                        value={editing.razon_social || ""}
-                        onChange={(e) =>
-                          setEditing({ ...editing, razon_social: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-500">Dirección</label>
-                    <Input
-                      placeholder="Calle Principal, 123"
-                      value={editing.direccion || ""}
-                      onChange={(e) => setEditing({ ...editing, direccion: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                     <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-500">CP</label>
-                        <Input value={editing.cp || ""} onChange={(e) => setEditing({ ...editing, cp: e.target.value })} />
-                     </div>
-                     <div className="space-y-1 col-span-2">
-                        <label className="text-xs font-medium text-slate-500">Población</label>
-                        <Input value={editing.poblacion || ""} onChange={(e) => setEditing({ ...editing, poblacion: e.target.value })} />
-                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-500">Provincia</label>
-                         <Input value={editing.provincia || ""} onChange={(e) => setEditing({ ...editing, provincia: e.target.value })} />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-500">País</label>
-                         <Input value={editing.pais || "España"} onChange={(e) => setEditing({ ...editing, pais: e.target.value })} />
-                      </div>
-                  </div>
-
-                  <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-500">Email Facturación</label>
-                      <Input 
-                        type="email" 
-                        value={editing.email || ""} 
-                        onChange={(e) => setEditing({ ...editing, email: e.target.value })} 
-                      />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-500">IBAN</label>
-                    <Input
-                        value={editing.iban || ""}
-                        onChange={(e) => setEditing({ ...editing, iban: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* Notas */}
-                <div>
-                  <label className="text-sm">Notas</label>
-                  <textarea
-                    className="w-full border rounded-md p-2 text-sm min-h-[80px]"
-                    value={editing.notas || ""}
-                    onChange={(e) =>
-                      setEditing({ ...editing, notas: e.target.value })
-                    }
-                  />
-                </div>
-
-                {/* Save */}
-                <div className="pt-4">
-                  <Button className="w-full" disabled={loading} onClick={save}>
-                    Guardar
-                  </Button>
-                </div>
-
+                <Button 
+                  className="flex-[2] rounded-xl h-12 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200" 
+                  disabled={loading} 
+                  onClick={save}
+                >
+                  {loading ? "Guardando..." : "Guardar Cliente"}
+                </Button>
+              </div>
             </motion.div>
           </motion.div>
         )}
