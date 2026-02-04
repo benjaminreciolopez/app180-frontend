@@ -83,6 +83,10 @@ export default function AdminLayout({
       { path: "/admin/empleados", module: "empleados" },
       { path: "/admin/clientes", module: null },
 
+      // ✅ Facturación y Pagos como módulos independientes
+      { path: "/admin/facturacion/pagos", module: "pagos" },
+      { path: "/admin/facturacion", module: "facturacion" },
+
       // Jornadas y fichajes sí dependen de fichajes
       { path: "/admin/jornadas", module: "fichajes" },
       { path: "/admin/fichajes", module: "fichajes" },
@@ -157,8 +161,8 @@ export default function AdminLayout({
     { path: "/admin/reportes/rentabilidad", label: "Reporte Rentabilidad", module: "fichajes" },
 
     { path: "/admin/clientes", label: "Clientes", module: null },
-    { path: "/admin/facturacion", label: "Facturación", module: null },
-    { path: "/admin/facturacion/pagos", label: "Cobros y Pagos", module: null },
+    { path: "/admin/facturacion", label: "Facturación", module: "facturacion" },
+    { path: "/admin/facturacion/pagos", label: "Cobros y Pagos", module: "pagos" },
 
     { path: "/admin/jornadas", label: "Jornadas", module: "fichajes" },
     { path: "/admin/fichajes", label: "Fichajes", module: "fichajes" },

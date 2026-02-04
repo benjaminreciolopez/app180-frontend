@@ -8,18 +8,18 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 type Modulos = {
   fichajes?: boolean;
-  ausencias?: boolean;
   worklogs?: boolean;
   empleados?: boolean;
   facturacion?: boolean;
+  pagos?: boolean;
 };
 
 const DEFAULTS: Modulos = {
   fichajes: true,
-  ausencias: true,
   worklogs: true,
   empleados: true,
   facturacion: false,
+  pagos: false,
 };
 
 export default function AdminConfiguracionPage() {
@@ -85,19 +85,13 @@ export default function AdminConfiguracionPage() {
         />
 
         <Toggle
-          label="Ausencias"
-          value={modulos.ausencias}
-          onChange={() => toggle("ausencias")}
-        />
-
-        <Toggle
           label="Trabajos / Partes"
           value={modulos.worklogs}
           onChange={() => toggle("worklogs")}
         />
 
         <Toggle
-          label="Empleados"
+          label="Empleados (incluye Ausencias)"
           value={modulos.empleados}
           onChange={() => toggle("empleados")}
         />
@@ -106,6 +100,12 @@ export default function AdminConfiguracionPage() {
           label="Facturación"
           value={modulos.facturacion}
           onChange={() => toggle("facturacion")}
+        />
+
+        <Toggle
+          label="Cobros y Pagos"
+          value={modulos.pagos}
+          onChange={() => toggle("pagos")}
         />
       </div>
 
