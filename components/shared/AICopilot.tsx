@@ -40,7 +40,7 @@ export function AICopilot() {
       setMensajes([
         {
           role: "assistant",
-          content: "👋 ¡Hola! Soy **APP180 Copilot**, tu asistente de gestión empresarial.\n\nPuedo ayudarte con:\n- 📊 Consultar facturas y estadísticas\n- 👥 Información de empleados y clientes\n- 💰 Trabajos pendientes de facturar\n- 📈 Análisis de facturación\n\n¿En qué puedo ayudarte hoy?",
+          content: "👋 ¡Hola! Soy **CONTENDO**, tu asistente de gestión empresarial.\n\nPuedo ayudarte con:\n- 📊 Consultar facturas y estadísticas\n- 👥 Información de empleados y clientes\n- 💰 Trabajos pendientes de facturar\n- 📈 Análisis de facturación\n\n¿En qué puedo ayudarte hoy?",
           timestamp: new Date().toISOString()
         }
       ])
@@ -146,7 +146,7 @@ export function AICopilot() {
                   <Bot className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">APP180 Copilot</h3>
+                  <h3 className="font-semibold text-white">CONTENDO</h3>
                   <p className="text-xs text-blue-100 flex items-center gap-1">
                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                     En línea
