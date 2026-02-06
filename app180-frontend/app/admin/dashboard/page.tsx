@@ -75,7 +75,8 @@ export default function DashboardPage() {
         api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } })),
       ]);
       setData(dashRes.data);
-      setWidgets(widgetRes.data.widgets || []);
+      const w = widgetRes.data.widgets;
+      setWidgets(Array.isArray(w) ? w : []);
       setError(null);
     } catch (err: any) {
       setError(err?.response?.data?.error || "No se pudieron cargar los datos");
@@ -133,7 +134,8 @@ export default function DashboardPage() {
   }
 
   function getWidgetOrder(): string[] {
-    const configured = widgets.map((w) => w.id);
+    const safeWidgets = Array.isArray(widgets) ? widgets : [];
+    const configured = safeWidgets.map((w) => w.id);
     const unconfigured = ALL_WIDGETS.map((w) => w.id).filter((id) => !configured.includes(id));
     return [...configured, ...unconfigured];
   }
