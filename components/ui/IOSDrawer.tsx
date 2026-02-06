@@ -77,10 +77,10 @@ export default function IOSDrawer({
             {header.canGoBack ? (
               <button
                 onClick={header.onBack}
-                className="w-10 h-10 rounded-full hover:bg-black/5 active:bg-black/10 grid place-items-center"
+                className="w-10 h-10 rounded-full hover:bg-black/5 active:bg-black/10 grid place-items-center text-gray-600"
                 aria-label="Volver"
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={24} />
               </button>
             ) : (
               <div className="w-10 h-10" />
@@ -93,10 +93,10 @@ export default function IOSDrawer({
 
           <button
             onClick={header.onClose}
-            className="w-10 h-10 rounded-full hover:bg-black/5 active:bg-black/10 grid place-items-center"
+            className="w-10 h-10 rounded-full hover:bg-black/5 active:bg-black/10 grid place-items-center text-gray-500"
             aria-label="Cerrar"
           >
-            <X size={18} />
+            <X size={24} />
           </button>
         </div>
 
