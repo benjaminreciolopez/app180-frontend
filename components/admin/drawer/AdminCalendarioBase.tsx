@@ -26,6 +26,7 @@ import DrawerCrearPlaningAdmin from "@/components/admin/drawer/DrawerCrearPlanin
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { EventoAdmin } from "@/types/ausencias";
 import type { CalendarioIntegradoEvento } from "@/types/calendario";
+import { useRouter } from "next/navigation";
 
 type Session = {
   modulos: Record<string, boolean>;
@@ -235,6 +236,7 @@ function DrawerInfoEventoAdmin({ evento, onClose }: { evento: CalendarioIntegrad
 
 export default function AdminCalendarioBase() {
   const isMobile = useIsMobile();
+  const router = useRouter();
   const calendarRef = useRef<FullCalendar | null>(null);
 
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
@@ -538,25 +540,28 @@ export default function AdminCalendarioBase() {
         {/* Header Mobile Google Style */}
         <div className="px-4 py-3 border-b flex items-center justify-between shrink-0 bg-white z-20 shadow-sm">
            <div className="flex items-center gap-3">
-             <button onClick={() => setShowMobileFilters(true)} className="p-2 -ml-2 text-gray-600 rounded-full hover:bg-gray-100">
-               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-               </svg>
+             <button onClick={() => router.push("/admin/dashboard")} className="p-2 -ml-2 text-gray-600 rounded-full hover:bg-gray-100">
+               <ChevronLeft size={24} />
              </button>
              <h1 className="text-lg font-bold text-gray-900 truncate max-w-[150px]">{title}</h1>
            </div>
            
            <div className="flex items-center gap-1">
+              <div className="flex items-center mr-2">
+                 <button onClick={goPrev} className="p-2 text-gray-600 rounded-full hover:bg-gray-100"><ChevronLeft size={20}/></button>
+                 <button onClick={goNext} className="p-2 text-gray-600 rounded-full hover:bg-gray-100"><ChevronRight size={20}/></button>
+              </div>
               <button 
                 onClick={() => { apiCalendar()?.today(); syncTitle(); loadEventsForCurrentView(); }}
                 className="w-8 h-8 flex items-center justify-center border rounded-full text-xs font-bold text-gray-700 active:bg-gray-100"
               >
                 12
               </button>
-              <div className="flex bg-gray-100 rounded-lg p-0.5 ml-2">
-                 <button onClick={() => changeView('dayGridMonth')} className={`p-1.5 rounded ${view === 'dayGridMonth' ? 'bg-white shadow text-black' : 'text-gray-500'}`}><Calendar size={16}/></button>
-                 <button onClick={() => changeView('listWeek')} className={`p-1.5 rounded ${view === 'listWeek' ? 'bg-white shadow text-black' : 'text-gray-500'}`}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></button>
-              </div>
+              <button onClick={() => setShowMobileFilters(true)} className="p-2 text-gray-600 rounded-full hover:bg-gray-100 ml-1">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                 </svg>
+              </button>
            </div>
         </div>
 

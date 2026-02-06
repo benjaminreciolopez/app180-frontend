@@ -145,7 +145,8 @@ export function AICopilot() {
         }
       },
       cancel: {
-        label: "Cancelar"
+        label: "Cancelar",
+        onClick: () => {}
       }
     })
   }
@@ -182,10 +183,10 @@ export function AICopilot() {
             initial={{ opacity: 0, y: 100, scale: 0.3 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.3 }}
-            className="fixed bottom-6 right-6 z-50 w-[420px] h-[600px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
+            className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 z-50 w-full h-full sm:w-[420px] sm:h-[600px] bg-white sm:rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="bg-white/20 p-2 rounded-lg">
                   <Bot className="h-6 w-6 text-white" />
@@ -236,7 +237,7 @@ export function AICopilot() {
                   )}
 
                   <div
-                    className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+                    className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2 ${
                       mensaje.role === "user"
                         ? "bg-blue-600 text-white"
                         : "bg-white border border-slate-200 text-slate-900"
@@ -279,7 +280,7 @@ export function AICopilot() {
 
             {/* Quick Actions */}
             {mensajes.length <= 1 && !isLoading && (
-              <div className="px-4 py-2 border-t border-slate-200 bg-slate-50">
+              <div className="px-4 py-2 border-t border-slate-200 bg-slate-50 shrink-0">
                 <p className="text-xs text-slate-500 mb-2">Prueba estas consultas:</p>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -323,7 +324,7 @@ export function AICopilot() {
             )}
 
             {/* Input */}
-            <div className="p-4 border-t border-slate-200 bg-white">
+            <div className="p-4 border-t border-slate-200 bg-white shrink-0 safe-area-bottom">
               <div className="flex gap-2">
                 <Input
                   value={inputValue}
