@@ -603,7 +603,7 @@ export default function AdminCalendarioBase() {
         </button>
 
         {/* Drawer de Filtros Mobile */}
-        <IOSDrawer open={showMobileFilters} onClose={() => setShowMobileFilters(false)} header={{ title: "Filtros y Leyenda", onClose: () => setShowMobileFilters(false), canGoBack: false, onBack: () => {} }}>
+        <IOSDrawer open={showMobileFilters} onClose={() => setShowMobileFilters(false)} header={{ title: "Filtros y Leyenda", onClose: () => setShowMobileFilters(false), canGoBack: true, onBack: () => setShowMobileFilters(false) }}>
            <div className="p-4 space-y-6 pb-20">
               <CalendarioLegend />
               {FiltersSidebar}

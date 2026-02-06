@@ -66,12 +66,13 @@ export default function IOSDrawer({
           "flex flex-col",
           width,
           "animate-ios-slide-in",
+          "pb-safe" // Safe area bottom for scrolling
         ].join(" ")}
         role="dialog"
         aria-modal="true"
       >
-        {/* Header */}
-        <div className="h-14 px-3 border-b flex items-center justify-between">
+        {/* Header - Safe Area Top aware */}
+        <div className="h-14 px-3 border-b flex items-center justify-between shrink-0 pt-[env(safe-area-inset-top)] box-content">
           <div className="flex items-center gap-1">
             {header.canGoBack ? (
               <button
