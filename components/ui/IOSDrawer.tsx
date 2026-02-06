@@ -50,7 +50,7 @@ export default function IOSDrawer({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-[9999]">
       {/* Overlay */}
       <div
         className="absolute inset-0 bg-black/35"
@@ -72,7 +72,7 @@ export default function IOSDrawer({
         aria-modal="true"
       >
         {/* Header - Safe Area Top aware */}
-        <div className="h-14 px-3 border-b flex items-center justify-between shrink-0 pt-[env(safe-area-inset-top)] box-content">
+        <div className="h-14 px-3 border-b flex items-center justify-between shrink-0 pt-[env(safe-area-inset-top)] box-content bg-gray-50">
           <div className="flex items-center gap-1">
             {header.canGoBack ? (
               <button
