@@ -554,8 +554,9 @@ export default function AdminCalendarioBase() {
               <button 
                 onClick={() => { apiCalendar()?.today(); syncTitle(); loadEventsForCurrentView(); }}
                 className="w-8 h-8 flex items-center justify-center border rounded-full text-xs font-bold text-gray-700 active:bg-gray-100"
+                title="Ir a hoy"
               >
-                12
+                {new Date().getDate()}
               </button>
               <button onClick={() => setShowMobileFilters(true)} className="p-2 text-gray-600 rounded-full hover:bg-gray-100 ml-1">
                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
