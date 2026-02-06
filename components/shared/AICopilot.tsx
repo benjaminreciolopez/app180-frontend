@@ -339,7 +339,7 @@ export function AICopilot() {
                 </Button>
               </div>
               <p className="text-xs text-slate-400 mt-2 text-center">
-                Powered by Groq · Llama 3.3 70B
+                Powered by Google Gemini
               </p>
             </div>
           </motion.div>
