@@ -15,6 +15,8 @@ export default function RootLayout({
       <head>
         {/* Forzar credenciales para el manifest PWA (evita 401 en Vercel Preview) */}
         <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
+        {/* Google Identity Services */}
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
       </head>
       <body className="app-shell">
         <ThemeProvider>
