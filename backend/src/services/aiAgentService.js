@@ -144,7 +144,21 @@ const TOOLS = [
         required: ["fecha_inicio", "fecha_fin"]
       }
     }
-  }
+  },
+  {
+    type: "function",
+    function: {
+      name: "consultar_conocimiento",
+      description: "Busca en la base de conocimientos manuales, procedimientos o información específica de la empresa. Úsala si no encuentras respuesta con las otras herramientas o para preguntas generales.",
+      parameters: {
+        type: "object",
+        properties: {
+          busqueda: { type: "string", description: "Término de búsqueda, palabra clave o pregunta breve" }
+        },
+        required: ["busqueda"]
+      }
+    }
+  },
 ];
 
 // ============================
@@ -164,6 +178,7 @@ async function ejecutarHerramienta(nombreHerramienta, argumentos, empresaId) {
       case "crear_evento_calendario": return await crearEventoCalendario(argumentos, empresaId);
       case "sincronizar_google_calendar": return await sincronizarGoogleCalendar(argumentos, empresaId);
       case "consultar_ausencias": return await consultarAusencias(argumentos, empresaId);
+      case "consultar_conocimiento": return await consultarConocimiento(argumentos, empresaId);
       default: return { error: "Herramienta no encontrada" };
     }
   } catch (err) {
@@ -314,6 +329,40 @@ async function consultarAusencias({ fecha_inicio, fecha_fin, empleado_id, tipo =
   return { total: ausencias.length, rango: { desde: fecha_inicio, hasta: fecha_fin }, ausencias: ausencias.map(a => ({ empleado: a.empleado_nombre, tipo: a.tipo, desde: a.fecha_inicio, hasta: a.fecha_fin, estado: a.estado, motivo: a.motivo || a.comentario_empleado })) };
 }
 
+async function consultarConocimiento({ busqueda }, empresaId) {
+  const term = busqueda.trim();
+
+  // Búsqueda con prioridad: match exacto del token > token contenido en búsqueda > búsqueda contenida en token
+  const hits = await sql`
+    SELECT token, respuesta, prioridad,
+      CASE
+        WHEN LOWER(token) = LOWER(${term}) THEN 3
+        WHEN ${term} ILIKE ('%' || token || '%') THEN 2
+        WHEN token ILIKE ${'%' + term + '%'} THEN 1
+        ELSE 0
+      END as relevancia
+    FROM conocimiento_180
+    WHERE empresa_id = ${empresaId}
+      AND activo = true
+      AND (
+        LOWER(token) = LOWER(${term})
+        OR ${term} ILIKE ('%' || token || '%')
+        OR token ILIKE ${'%' + term + '%'}
+      )
+    ORDER BY relevancia DESC, prioridad DESC
+    LIMIT 1
+  `;
+
+  if (hits.length === 0) {
+    return { mensaje: null };
+  }
+
+  return {
+    respuesta_directa: hits[0].respuesta,
+    tema: hits[0].token
+  };
+}
+
 // ============================
 // MEMORIA
 // ============================
@@ -364,7 +413,7 @@ REGLAS OBLIGATORIAS:
 1. SIEMPRE usa las herramientas para consultar datos ANTES de responder. NUNCA respondas con datos sin consultar primero.
 2. Si una herramienta devuelve total: 0 o lista vacía, responde EXACTAMENTE: "No hay [tipo de dato] registrados actualmente."
 3. NUNCA inventes datos, cifras, nombres o importes. Solo usa datos que provengan de las herramientas.
-4. Si no puedes obtener datos, di que no hay información disponible.
+4. Si no puedes obtener datos, intenta usar la herramienta "consultar_conocimiento". Si aún así no hay datos, di que no hay información disponible.
 
 ESTADOS:
 - Factura (emisión): VALIDADA, BORRADOR, ANULADA
@@ -387,26 +436,44 @@ El usuario es ${userRole === 'admin' ? 'administrador' : 'empleado'}.`
         messages: mensajes,
         tools: TOOLS,
         tool_choice: "auto",
-        temperature: 0.1,
+        temperature: 0.1, // Mantener baja para evitar alucinaciones
         max_tokens: 1024
       });
     } catch (apiErr) {
-      console.error("[AI] Error API Groq:", apiErr);
-      return { mensaje: "El servicio de IA no está disponible en este momento. Inténtalo de nuevo en unos segundos." };
+      console.error("[AI] Error API Groq:", apiErr.message);
+
+      // FALLBACK: Si falla la API (Quota, Error 500, etc), intentamos usar el conocimiento local
+      console.log("[AI] Activando modo fallback local...");
+      const fallback = await consultarConocimiento({ busqueda: mensaje }, empresaId);
+
+      if (fallback.respuesta_directa) {
+        const respuestaFallback = fallback.respuesta_directa + "\n\n*(Respuesta generada desde base de conocimiento local por indisponibilidad del servicio IA)*";
+        await guardarConversacion(empresaId, userId, userRole, mensaje, respuestaFallback);
+        return { mensaje: respuestaFallback };
+      }
+
+      return { mensaje: "⚠️ El servicio de inteligencia artificial no está disponible momentáneamente y no encontré respuesta en mi base local. Inténtalo de nuevo en unos minutos." };
     }
 
     let msg = response.choices?.[0]?.message;
     if (!msg) {
-      return { mensaje: "No pude procesar tu mensaje. Inténtalo de nuevo." };
+      // Si la respuesta es vacía pero no dio error (caso raro), también intentamos fallback
+      const fallback = await consultarConocimiento({ busqueda: mensaje }, empresaId);
+      if (fallback.respuesta_directa) {
+        return { mensaje: fallback.respuesta_directa };
+      }
+      return { mensaje: "No pude procesar tu mensaje." };
     }
 
     // Procesar tool calls (máximo 3 iteraciones)
+    // Acumulamos todos los mensajes de herramientas para no perder contexto entre iteraciones
     let iterations = 0;
+    const toolHistory = [];
     while (msg.tool_calls && msg.tool_calls.length > 0 && iterations < 3) {
       iterations++;
       console.log(`[AI] Iteración ${iterations}: ${msg.tool_calls.length} herramientas`);
 
-      const toolMessages = [];
+      toolHistory.push(msg);
       for (const tc of msg.tool_calls) {
         let args = {};
         try {
@@ -415,18 +482,18 @@ El usuario es ${userRole === 'admin' ? 'administrador' : 'empleado'}.`
           args = {};
         }
         const resultado = await ejecutarHerramienta(tc.function.name, args, empresaId);
-        toolMessages.push({
+        toolHistory.push({
           role: "tool",
           tool_call_id: tc.id,
           content: JSON.stringify(resultado)
         });
       }
 
-      // Llamada con resultados de herramientas
+      // Llamada con historial completo de herramientas
       try {
         response = await groq.chat.completions.create({
           model: "llama-3.3-70b-versatile",
-          messages: [...mensajes, msg, ...toolMessages],
+          messages: [...mensajes, ...toolHistory],
           tools: TOOLS,
           tool_choice: "auto",
           temperature: 0.1,
