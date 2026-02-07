@@ -64,6 +64,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [modulos, setModulos] = useState<Record<string, boolean>>({});
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
+  const [widgetsLoaded, setWidgetsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openMenu, setOpenMenu] = useState(false);
@@ -75,7 +76,13 @@ export default function DashboardPage() {
   }
 
   function isWidgetVisible(id: string) {
+    // Si aún no se cargó configuración, mostrar todos por defecto
+    if (!widgetsLoaded) return true;
+
+    // Si se cargó configuración, buscar el widget
     const w = widgets.find((w) => w.id === id);
+
+    // Si está en la config, usar su valor; si no está, mostrar por defecto (nuevo widget)
     return w ? w.visible : true;
   }
 
@@ -93,10 +100,13 @@ export default function DashboardPage() {
       ]);
       setData(dashRes.data);
       const w = widgetRes.data.widgets;
+      console.log('📊 [Dashboard] Widgets cargados:', w);
       setWidgets(Array.isArray(w) ? w : []);
+      setWidgetsLoaded(true);
       setError(null);
     } catch (err: any) {
       setError(err?.response?.data?.error || "No se pudieron cargar los datos");
+      setWidgetsLoaded(true); // Marcar como cargado incluso si falla
     } finally {
       setLoading(false);
     }
