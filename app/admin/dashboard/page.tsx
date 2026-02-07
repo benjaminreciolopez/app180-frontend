@@ -307,7 +307,7 @@ export default function DashboardPage() {
               <h3 className="text-base md:text-lg font-semibold">Actividad Semanal</h3>
               <p className="text-xs md:text-sm text-gray-500 mb-4">Fichajes últimos 7 días</p>
               <div className="h-52 md:h-64 w-full min-h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="99%" height="100%">
                   <BarChart data={data.stats.fichajesUltimosDias}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="dia" tickFormatter={fechaGrafico} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -326,7 +326,7 @@ export default function DashboardPage() {
               </h3>
               <div className="h-52 md:h-64 w-full min-h-[200px]">
                 {hasModule("clientes") && data.stats.topClientesSemana.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="99%" height="100%">
                     <BarChart data={data.stats.topClientesSemana} layout="vertical" margin={{ left: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
                       <XAxis type="number" hide />
@@ -336,7 +336,7 @@ export default function DashboardPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="99%" height="100%">
                     <PieChart>
                       <Pie data={data.stats.fichajesPorTipoHoy} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="cantidad">
                         {data.stats.fichajesPorTipoHoy.map((_, i) => (
