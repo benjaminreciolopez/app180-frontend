@@ -306,7 +306,7 @@ export default function DashboardPage() {
             <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border">
               <h3 className="text-base md:text-lg font-semibold">Actividad Semanal</h3>
               <p className="text-xs md:text-sm text-gray-500 mb-4">Fichajes últimos 7 días</p>
-              <div className="h-52 md:h-64">
+              <div className="h-52 md:h-64 w-full min-h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.stats.fichajesUltimosDias}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -324,7 +324,7 @@ export default function DashboardPage() {
               <h3 className="text-base md:text-lg font-semibold mb-4">
                 {hasModule("clientes") ? "Top Clientes (Semana)" : "Distribución Tipos Hoy"}
               </h3>
-              <div className="h-52 md:h-64">
+              <div className="h-52 md:h-64 w-full min-h-[200px]">
                 {hasModule("clientes") && data.stats.topClientesSemana.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.stats.topClientesSemana} layout="vertical" margin={{ left: 20 }}>
