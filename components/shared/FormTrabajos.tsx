@@ -69,7 +69,7 @@ export default function FormTrabajos({
 
   // Load Templates
   useEffect(() => {
-    api.get("/worklogs/templates").then(res => {
+    api.get("/worklogs/templates").then((res: { data: Template[] }) => {
       if(Array.isArray(res.data)) setTemplates(res.data);
     }).catch(console.error);
   }, []);
@@ -179,7 +179,7 @@ export default function FormTrabajos({
       onCreated();
       // Reload templates if one was saved
       if (saveAsTemplate) {
-        api.get("/worklogs/templates").then(res => {
+        api.get("/worklogs/templates").then((res: { data: Template[] }) => {
           if(Array.isArray(res.data)) setTemplates(res.data);
         });
       }
