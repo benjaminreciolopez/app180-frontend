@@ -5,7 +5,7 @@ import { api } from "@/services/api"
 import { showSuccess, showError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Pencil, X, Check, Brain } from "lucide-react"
+import { Plus, Trash2, Pencil, X, Check, Brain, ChevronDown, ChevronUp } from "lucide-react"
 
 interface Knowledge {
   id: string
@@ -22,6 +22,7 @@ export default function KnowledgePanel() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ token: "", respuesta: "", categoria: "", prioridad: 0 })
+  const [isListExpanded, setIsListExpanded] = useState(false)
 
   async function load() {
     try {
@@ -175,42 +176,60 @@ export default function KnowledgePanel() {
           No hay conocimiento definido. Crea tokens para que CONTENDO pueda responder preguntas personalizadas.
         </div>
       ) : (
-        <div className="space-y-2">
-          {items.map(item => (
-            <div
-              key={item.id}
-              className={`border rounded-lg p-3 flex items-start justify-between gap-3 ${!item.activo ? "opacity-50 bg-slate-100" : "bg-white"}`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-sm font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                    {item.token}
-                  </span>
-                  {item.categoria && (
-                    <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded">
-                      {item.categoria}
-                    </span>
-                  )}
-                  {item.prioridad > 0 && (
-                    <span className="text-xs text-muted-foreground">P:{item.prioridad}</span>
-                  )}
-                </div>
-                <p className="text-sm text-slate-600 mt-1 line-clamp-2">{item.respuesta}</p>
-              </div>
+        <div className="space-y-3">
+          {/* Toggle button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsListExpanded(!isListExpanded)}
+            className="w-full flex items-center justify-between"
+          >
+            <span className="text-sm">
+              {isListExpanded ? "Ocultar" : "Ver"} lista de entrenamiento ({items.length} items)
+            </span>
+            {isListExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
 
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <Button variant="ghost" size="sm" onClick={() => handleToggleActive(item)} title={item.activo ? "Desactivar" : "Activar"}>
-                  <span className={`w-2 h-2 rounded-full ${item.activo ? "bg-green-500" : "bg-red-500"}`} />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => startEdit(item)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)}>
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
-              </div>
+          {/* Collapsible list */}
+          {isListExpanded && (
+            <div className="space-y-2">
+              {items.map(item => (
+                <div
+                  key={item.id}
+                  className={`border rounded-lg p-3 flex items-start justify-between gap-3 ${!item.activo ? "opacity-50 bg-slate-100" : "bg-white"}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-sm font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                        {item.token}
+                      </span>
+                      {item.categoria && (
+                        <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded">
+                          {item.categoria}
+                        </span>
+                      )}
+                      {item.prioridad > 0 && (
+                        <span className="text-xs text-muted-foreground">P:{item.prioridad}</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-600 mt-1 line-clamp-2">{item.respuesta}</p>
+                  </div>
+
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Button variant="ghost" size="sm" onClick={() => handleToggleActive(item)} title={item.activo ? "Desactivar" : "Activar"}>
+                      <span className={`w-2 h-2 rounded-full ${item.activo ? "bg-green-500" : "bg-red-500"}`} />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => startEdit(item)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)}>
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
