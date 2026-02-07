@@ -94,9 +94,23 @@ export default function FormTrabajos({
   };
 
   // Load Data
+  // Click outside to close suggestions
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.suggestion-container')) {
+        setActiveSuggestion({ field: null, index: -1 });
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   useEffect(() => {
     loadDataResources();
-  }, []);
+  }, [billingType, mode]);
 
   async function handleDeleteTemplate(id: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -248,28 +262,40 @@ export default function FormTrabajos({
             Usar de Plantilla <ChevronDown size={14}/>
           </button>
           {showTemplates && (
-            <div className="absolute top-8 left-0 z-50 w-64 bg-white border border-gray-200 rounded-lg shadow-xl py-1 animate-in fade-in zoom-in duration-100">
-              <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b">Tus descripciones favoritas</div>
+            <div className="absolute top-full left-0 mt-1 z-50 w-72 bg-white border border-gray-200 rounded-lg shadow-xl py-1 animate-in fade-in zoom-in duration-100 max-h-60 overflow-y-auto">
+              <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b bg-gray-50/50 sticky top-0">Tus plantillas guardadas</div>
               {templates.map(t => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => {
-                    setDescripcion(t.descripcion);
-                    if(t.detalles) setDetalles(t.detalles);
-                    setShowTemplates(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 group flex items-center justify-between"
-                >
-                  <span className="truncate pr-2">{t.descripcion}</span>
+                <div key={t.id} className="relative group hover:bg-indigo-50 transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Parse [Type] Description
+                      const match = t.descripcion.match(/^\[(.*?)\]\s*(.*)$/);
+                      if (match) {
+                        setWorkItemNombre(match[1]);
+                        setDescripcion(match[2]);
+                      } else {
+                        setWorkItemNombre("");
+                        setDescripcion(t.descripcion);
+                      }
+                      
+                      if(t.detalles) setDetalles(t.detalles);
+                      setShowTemplates(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm flex flex-col gap-0.5"
+                  >
+                    <span className="font-medium text-gray-800 truncate block w-full pr-6">{t.descripcion}</span>
+                    {t.detalles && <span className="text-xs text-gray-500 truncate block w-full pr-6">{t.detalles}</span>}
+                  </button>
                   <button 
                     type="button"
                     onClick={(e) => handleDeleteTemplate(t.id, e)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-all bg-white/80 rounded"
+                    title="Borrar plantilla"
                   >
-                    <Trash2 size={12}/>
+                    <Trash2 size={14}/>
                   </button>
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -446,14 +472,14 @@ export default function FormTrabajos({
             Original form had "Type" and "Description". Keeping it simple.
         */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-3">
-             <div className="relative">
+             <div className="relative suggestion-container">
                  <input
                     type="text"
                     className={`w-full border rounded-lg px-3 py-2 text-sm transition-all ${triedToSubmit && !workItemNombre.trim() ? 'border-red-500 bg-red-50' : 'focus:border-indigo-500'}`}
                     value={workItemNombre}
                     onChange={(e) => setWorkItemNombre(e.target.value)}
                     onFocus={() => setActiveSuggestion({ field: 'type', index: 0 })}
-                    onBlur={() => setTimeout(() => setActiveSuggestion({ field: null, index: -1 }), 200)}
+                    onClick={() => setActiveSuggestion({ field: 'type', index: 0 })}
                     placeholder="Tipo (Ej: Revisión)"
                  />
                  {activeSuggestion.field === 'type' && (
@@ -464,8 +490,8 @@ export default function FormTrabajos({
                                 filtered.map((t, i) => (
                                     <button
                                         key={i} type="button"
-                                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 border-b last:border-0"
-                                        onMouseDown={(e) => { e.preventDefault(); setWorkItemNombre(t); }}
+                                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 border-b last:border-0 text-gray-700"
+                                        onMouseDown={(e) => { e.preventDefault(); setWorkItemNombre(t); setActiveSuggestion({ field: null, index: -1 }); }}
                                     >
                                         {t}
                                     </button>
@@ -478,7 +504,7 @@ export default function FormTrabajos({
                  )}
              </div>
 
-             <div className="relative">
+             <div className="relative suggestion-container">
                  <input
                     className={`w-full border rounded-lg px-3 py-2 text-sm transition-all ${triedToSubmit && !descripcion.trim() ? 'border-red-500 bg-red-50' : 'focus:border-indigo-500'}`}
                     placeholder="Descripción corta (aparece en factura)..."
@@ -486,27 +512,42 @@ export default function FormTrabajos({
                     value={descripcion}
                     onChange={(e) => setDescripcion(e.target.value)}
                     onFocus={() => setActiveSuggestion({ field: 'desc', index: 0 })}
-                    onBlur={() => setTimeout(() => setActiveSuggestion({ field: null, index: -1 }), 200)}
+                    onClick={() => setActiveSuggestion({ field: 'desc', index: 0 })}
                  />
                  {activeSuggestion.field === 'desc' && (
                     <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-60 overflow-y-auto">
                         {(() => {
                              const allOptions = [...new Set([
                                 ...suggestions.templates.map(t => t.descripcion),
-                                ...suggestions.recent.filter(r => !workItemNombre || r.work_item_nombre === workItemNombre).map(r => r.descripcion)
-                             ])];
+                                ...suggestions.recent.map(r => r.descripcion)
+                             ])].filter(Boolean);
+                             
                              const filtered = allOptions.filter(d => d.toLowerCase().includes(descripcion.toLowerCase()));
                              
                              return filtered.length > 0 ? (
                                 filtered.map((d, i) => (
                                     <button
                                         key={i} type="button"
-                                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 border-b last:border-0"
+                                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 border-b last:border-0 text-gray-700"
                                         onMouseDown={(e) => {
                                             e.preventDefault();
-                                            setDescripcion(d);
-                                            const tpl = suggestions.templates.find(t => t.descripcion === d);
+                                            // Parse [Type] Description logic here too if needed, but usually templates handle it.
+                                            // If coming from suggestions, it might already be parsed or raw.
+                                            // Let's apply sticky logic: if it starts with [Type], split it.
+                                            const match = d.match(/^\[(.*?)\]\s*(.*)$/);
+                                            if (match) {
+                                                setWorkItemNombre(match[1]);
+                                                setDescripcion(match[2]);
+                                            } else {
+                                                setDescripcion(d);
+                                            }
+
+                                            // Try auto-fill details
+                                            const tpl = suggestions.templates.find(t => t.descripcion === d) 
+                                                     || suggestions.recent.find(r => r.descripcion === d);
                                             if(tpl?.detalles) setDetalles(tpl.detalles);
+                                            
+                                            setActiveSuggestion({ field: null, index: -1 });
                                         }}
                                     >
                                         {d}
@@ -524,21 +565,21 @@ export default function FormTrabajos({
 
       <div className="space-y-1">
         <label className="text-xs font-medium text-gray-500">Detalles adicionales (Opcional)</label>
-        <div className="relative">
+        <div className="relative suggestion-container">
             <textarea
               className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px] focus:border-indigo-500 transition-all"
               placeholder="Explicación detallada del trabajo realizado..."
               value={detalles}
               onChange={(e) => setDetalles(e.target.value)}
               onFocus={() => setActiveSuggestion({ field: 'det', index: 0 })}
-              onBlur={() => setTimeout(() => setActiveSuggestion({ field: null, index: -1 }), 200)}
+              onClick={() => setActiveSuggestion({ field: 'det', index: 0 })}
             />
             {activeSuggestion.field === 'det' && (
                 <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-60 overflow-y-auto">
                     {(() => {
                         const allOptions = [...new Set([
-                            ...suggestions.templates.filter(t => !descripcion || t.descripcion === descripcion).map(t => t.detalles),
-                            ...suggestions.recent.filter(r => !descripcion || r.descripcion === descripcion).map(r => r.detalles)
+                            ...suggestions.templates.map(t => t.detalles),
+                            ...suggestions.recent.map(r => r.detalles)
                         ])].filter(Boolean);
                         
                         const filtered = allOptions.filter(d => d!.toLowerCase().includes(detalles.toLowerCase()));
@@ -547,14 +588,14 @@ export default function FormTrabajos({
                             filtered.map((d, i) => (
                                 <button
                                     key={i} type="button"
-                                    className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 border-b last:border-0"
-                                    onMouseDown={(e) => { e.preventDefault(); setDetalles(d!); }}
+                                    className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 border-b last:border-0 text-gray-700 block"
+                                    onMouseDown={(e) => { e.preventDefault(); setDetalles(d!); setActiveSuggestion({ field: null, index: -1 }); }}
                                 >
-                                    {d}
+                                    {d && d.length > 100 ? d.substring(0, 100) + '...' : d}
                                 </button>
                             ))
                         ) : (
-                           null
+                           <div className="px-3 py-2 text-xs text-gray-400 italic">No hay sugerencias...</div>
                         );
                     })()}
                 </div>
