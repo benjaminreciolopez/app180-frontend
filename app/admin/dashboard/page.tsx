@@ -107,16 +107,23 @@ export default function DashboardPage() {
         api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } })),
       ]);
       setData(dashRes.data);
-      console.log('🚀 [v2.1-FIX] widgetRes completo:', widgetRes);
-      console.log('🚀 [v2.1-FIX] widgetRes.data:', widgetRes.data);
-      const w = widgetRes.data.widgets;
-      console.log('🚀 [v2.1-FIX] Widgets cargados desde backend:', w);
-      console.log('🚀 [v2.1-FIX] Array.isArray(w):', Array.isArray(w));
+      let w = widgetRes.data.widgets;
+
+      // FIX: El backend devuelve widgets como string JSON, necesitamos parsearlo
+      if (typeof w === 'string') {
+        try {
+          w = JSON.parse(w);
+          console.log('✅ [v2.1-FIX] Widgets parseados desde string JSON:', w);
+        } catch (e) {
+          console.error('❌ [v2.1-FIX] Error parseando widgets:', e);
+          w = [];
+        }
+      }
+
       const finalWidgets = Array.isArray(w) ? w : [];
-      console.log('🚀 [v2.1-FIX] finalWidgets que se van a guardar:', finalWidgets);
+      console.log('✅ [v2.1-FIX] Estableciendo', finalWidgets.length, 'widgets en el estado');
       setWidgets(finalWidgets);
       setWidgetsLoaded(true);
-      console.log('🚀 [v2.1-FIX] Estado actualizado, llamando setWidgets con', finalWidgets.length, 'widgets');
       setError(null);
     } catch (err: any) {
       setError(err?.response?.data?.error || "No se pudieron cargar los datos");
