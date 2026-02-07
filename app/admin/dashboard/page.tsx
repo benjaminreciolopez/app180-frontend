@@ -365,13 +365,13 @@ export default function DashboardPage() {
                   <>
                     <p className="text-sm font-semibold text-green-600 mt-1">Conectado</p>
                     <div className="flex gap-2 mt-2">
-                      <Link href="/admin/calendario/sync" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                        <RefreshCw className="w-3 h-3" /> Sincronizar
+                      <Link href="/admin/configuracion/calendario" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                        <RefreshCw className="w-3 h-3" /> Config
                       </Link>
-                      <Link href="/admin/calendario/sync/history" className="text-xs text-gray-600 hover:underline flex items-center gap-1">
+                      <Link href="/admin/configuracion/calendario/importaciones" className="text-xs text-gray-600 hover:underline flex items-center gap-1">
                         <History className="w-3 h-3" /> Historial
                       </Link>
-                      <Link href="/admin/calendario/sync/import" className="text-xs text-gray-600 hover:underline flex items-center gap-1">
+                      <Link href="/admin/configuracion/calendario/importar" className="text-xs text-gray-600 hover:underline flex items-center gap-1">
                         <Upload className="w-3 h-3" /> Importar
                       </Link>
                     </div>
