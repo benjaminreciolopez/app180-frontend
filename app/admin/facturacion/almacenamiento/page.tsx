@@ -81,6 +81,7 @@ export default function AlmacenamientoPage() {
   const [isDownloading, setIsDownloading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isDeletingBulk, setIsDeletingBulk] = useState(false)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   // Selección
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
@@ -139,17 +140,22 @@ export default function AlmacenamientoPage() {
     const subs = new Set<string>()
     const prefix = currentPath ? `${currentPath}/` : ""
     
-    allDefinedPaths.forEach(path => {
+    // Sort folders based on user direction
+    const folderList = Array.from(allDefinedPaths.reduce((acc, path) => {
       if (path.startsWith(prefix)) {
         const remainder = path.slice(prefix.length)
         if (remainder) {
           const firstSegment = remainder.split('/')[0]
-          if (firstSegment) subs.add(firstSegment)
+          if (firstSegment) acc.add(firstSegment)
         }
       }
+      return acc
+    }, new Set<string>()))
+
+    return folderList.sort((a, b) => {
+        return sortDirection === 'asc' ? a.localeCompare(b) : b.localeCompare(a)
     })
-    return Array.from(subs).sort()
-  }, [allDefinedPaths, currentPath, loadingFolders])
+  }, [allDefinedPaths, currentPath, loadingFolders, sortDirection])
 
   // 4. Items combinados para el Grid
   const gridItems: GridItem[] = useMemo(() => {
@@ -176,9 +182,23 @@ export default function AlmacenamientoPage() {
         return item.data.nombre.toLowerCase().includes(lower)
       })
     }
+
+    // Sort files based on user direction
+    const fileItems = items.filter(i => i.type === 'file')
+    const folderItems = items.filter(i => i.type === 'folder')
+
+    // Note: Folders use the memoized 'subFolders' which is already sorted.
+    // Files need sorting here.
+    fileItems.sort((a, b) => {
+        const nameA = a.type === 'file' ? a.data.nombre : a.name
+        const nameB = b.type === 'file' ? b.data.nombre : b.name
+        return sortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
+    })
+
+    // Reconstruct: Folders first (already sorted), then Files (sorted)
+    return [...folderItems, ...fileItems]
     
-    return items
-  }, [subFolders, currentFiles, searchTerm, currentPath])
+  }, [subFolders, currentFiles, searchTerm, currentPath, sortDirection])
 
   // Acciones
   const handleNavigate = (path: string) => {
@@ -367,23 +387,6 @@ export default function AlmacenamientoPage() {
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto h-[calc(100vh-80px)] flex flex-col relative">
       
-      {/* Overlay de Bloqueo / Descarga / Borrado */}
-      <AnimatePresence>
-          {(isDownloading || uploading || isDeletingBulk) && (
-              <motion.div 
-                 initial={{ opacity: 0 }}
-                 animate={{ opacity: 1 }}
-                 exit={{ opacity: 0 }}
-                 className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-50 flex flex-col items-center justify-center rounded-xl"
-              >
-                  <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-                  <h3 className="text-xl font-semibold text-slate-800">
-                      {isDownloading ? "Descargando archivos..." : uploading ? "Subiendo archivo..." : "Eliminando archivos..."}
-                  </h3>
-                  <p className="text-slate-500">Por favor espere, no cierre la ventana.</p>
-              </motion.div>
-          )}
-      </AnimatePresence>
 
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
@@ -589,6 +592,23 @@ export default function AlmacenamientoPage() {
 
       {/* Main Content Area */}
       <div className="flex-1 bg-white border rounded-xl overflow-hidden shadow-sm relative min-h-[400px]">
+          {/* Action Overlay */}
+          <AnimatePresence>
+            {(isDownloading || uploading || isDeletingBulk) && (
+                <motion.div 
+                   initial={{ opacity: 0 }}
+                   animate={{ opacity: 1 }}
+                   exit={{ opacity: 0 }}
+                   className="absolute inset-0 bg-white/80 backdrop-blur-[2px] z-50 flex flex-col items-center justify-center"
+                >
+                    <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-3" />
+                    <h3 className="font-semibold text-slate-800">
+                        {isDownloading ? "Procesando descarga..." : uploading ? "Subiendo archivo..." : "Eliminando..."}
+                    </h3>
+                    <p className="text-sm text-slate-500">Puedes navegar, pero la lista se actualizará al terminar.</p>
+                </motion.div>
+            )}
+          </AnimatePresence>
           {loadingFiles || loadingFolders ? (
               <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
                   <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
@@ -666,7 +686,19 @@ export default function AlmacenamientoPage() {
                                      <th className="px-4 py-3 w-10">
                                          {/* Header Checkbox */}
                                      </th>
-                                     <th className="px-4 py-3">Nombre</th>
+                                     <th 
+                                        className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors select-none group/header"
+                                        onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                     >
+                                        <div className="flex items-center gap-1">
+                                            Nombre
+                                            {sortDirection === 'asc' ? (
+                                                <ChevronRight className="w-3 h-3 rotate-90 text-blue-600 transition-transform" />
+                                            ) : (
+                                                <ChevronRight className="w-3 h-3 -rotate-90 text-blue-600 transition-transform" />
+                                            )}
+                                        </div>
+                                     </th>
                                      <th className="px-4 py-3">Tipo</th>
                                      <th className="px-4 py-3">Tamaño</th>
                                      <th className="px-4 py-3">Fecha</th>
