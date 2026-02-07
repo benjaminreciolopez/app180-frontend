@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { ArrowDown, ArrowUp, Search, Edit, Trash2, Copy, Info } from "lucide-react";
+import { ArrowDown, ArrowUp, Search, Edit, Trash2, Copy, Info, CreditCard } from "lucide-react";
+import Link from "next/link";
 
 export type WorkLogItem = {
   id: string;
@@ -295,8 +296,9 @@ export default function TableTrabajos({
                         </button>
                         <button 
                           onClick={() => onEdit?.(it)}
-                          title="Editar"
-                          className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          disabled={it.pagado != null && it.pagado > 0}
+                          title={it.pagado! > 0 ? "No se puede editar un trabajo pagado. Elimina el pago primero." : "Editar"}
+                          className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           <Edit size={16} />
                         </button>
@@ -307,11 +309,20 @@ export default function TableTrabajos({
                             }
                           }}
                           disabled={it.pagado != null && it.pagado > 0}
-                          title={it.pagado != null && it.pagado > 0 ? "No se puede eliminar un trabajo pagado" : "Eliminar"}
-                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                          title={it.pagado! > 0 ? "No se puede eliminar un trabajo pagado. Elimina el pago primero." : "Eliminar"}
+                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           <Trash2 size={16} />
                         </button>
+                        {isAdmin && it.pagado! > 0 && (
+                          <Link
+                            href="/admin/cobros-pagos"
+                            title="Ver pagos para gestionar este registro"
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          >
+                            <CreditCard size={16} />
+                          </Link>
+                        )}
                       </div>
                     </td>
                   </tr>
