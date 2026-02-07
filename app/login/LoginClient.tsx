@@ -35,7 +35,7 @@ export default function LoginClient() {
   const handleGoogleResponse = useCallback(async (response: any) => {
     setLoading(true);
     try {
-      const device_hash = localStorage.getItem("device_hash") || "";
+      const device_hash = getOrGenerateDeviceHash();
       const res = await api.post("/auth/google", {
         credential: response.credential,
         device_hash,

@@ -180,7 +180,25 @@ export async function login(
     // Si hay token en local, actualizamos user en local. Si no, en session.
     if (localStorage.getItem("token")) {
       localStorage.setItem("user", JSON.stringify(user));
-    } else {
+    }
+    if (sessionStorage.getItem("token")) {
       sessionStorage.setItem("user", JSON.stringify(user));
     }
   }
+
+  // =================================
+  // DEVICE HASH HELPER
+  // =================================
+  export const getOrGenerateDeviceHash = (): string => {
+    if (typeof window === "undefined") return "";
+
+    let hash = localStorage.getItem("device_hash");
+
+    if (!hash) {
+      // Intentar obtener de crypto o fallback random
+      hash = crypto.randomUUID?.() || Math.random().toString(36).substring(2);
+      localStorage.setItem("device_hash", hash);
+    }
+
+    return hash;
+  };
