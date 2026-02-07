@@ -14,7 +14,6 @@ const nextConfig: NextConfig = {
   },
 
   output: "standalone",
-  transpilePackages: ["recharts"],
 
   experimental: {
     serverActions: {},
