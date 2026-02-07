@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import withPWA from "next-pwa";
+// import withPWA from "next-pwa"; // ❌ Deshabilitado temporalmente por conflictos
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -36,9 +36,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA({
-  dest: "public",
-  register: true,
-  skipWaiting: true, // ✅ Fuerza actualización automática del service worker
-  disable: process.env.NODE_ENV === "development",
-})(nextConfig);
+// ❌ PWA deshabilitado temporalmente por conflictos de versión
+export default nextConfig;
+
+// Configuración anterior con PWA (se puede reactivar más adelante):
+// export default withPWA({
+//   dest: "public",
+//   register: true,
+//   skipWaiting: true,
+//   disable: process.env.NODE_ENV === "development",
+// })(nextConfig);
