@@ -457,22 +457,23 @@ export default function FormTrabajos({
                     placeholder="Tipo (Ej: Revisión)"
                  />
                  {activeSuggestion.field === 'type' && (
-                    <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-48 overflow-y-auto">
-                        {suggestions.types.filter(t => t.toLowerCase().includes(workItemNombre.toLowerCase())).length > 0 ? (
-                            suggestions.types
-                                .filter(t => t.toLowerCase().includes(workItemNombre.toLowerCase()))
-                                .map((t, i) => (
+                    <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-60 overflow-y-auto">
+                        {(() => {
+                            const filtered = suggestions.types.filter(t => t.toLowerCase().includes(workItemNombre.toLowerCase()));
+                            return filtered.length > 0 ? (
+                                filtered.map((t, i) => (
                                     <button
                                         key={i} type="button"
-                                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
-                                        onClick={() => setWorkItemNombre(t)}
+                                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 border-b last:border-0"
+                                        onMouseDown={(e) => { e.preventDefault(); setWorkItemNombre(t); }}
                                     >
                                         {t}
                                     </button>
                                 ))
-                        ) : (
-                            <div className="px-3 py-1.5 text-[10px] text-gray-400 italic">Nuevo tipo...</div>
-                        )}
+                            ) : (
+                                <div className="px-3 py-2 text-xs text-gray-400 italic">No hay sugerencias...</div>
+                            );
+                        })()}
                     </div>
                  )}
              </div>
@@ -488,26 +489,33 @@ export default function FormTrabajos({
                     onBlur={() => setTimeout(() => setActiveSuggestion({ field: null, index: -1 }), 200)}
                  />
                  {activeSuggestion.field === 'desc' && (
-                    <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-48 overflow-y-auto">
-                        {[...new Set([
-                            ...suggestions.templates.map(t => t.descripcion),
-                            ...suggestions.recent.filter(r => !workItemNombre || r.work_item_nombre === workItemNombre).map(r => r.descripcion)
-                        ])]
-                        .filter(d => d.toLowerCase().includes(descripcion.toLowerCase()))
-                        .map((d, i) => (
-                            <button
-                                key={i} type="button"
-                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
-                                onClick={() => {
-                                    setDescripcion(d);
-                                    // Auto-fill details if it's a template
-                                    const tpl = suggestions.templates.find(t => t.descripcion === d);
-                                    if(tpl?.detalles) setDetalles(tpl.detalles);
-                                }}
-                            >
-                                {d}
-                            </button>
-                        ))}
+                    <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-60 overflow-y-auto">
+                        {(() => {
+                             const allOptions = [...new Set([
+                                ...suggestions.templates.map(t => t.descripcion),
+                                ...suggestions.recent.filter(r => !workItemNombre || r.work_item_nombre === workItemNombre).map(r => r.descripcion)
+                             ])];
+                             const filtered = allOptions.filter(d => d.toLowerCase().includes(descripcion.toLowerCase()));
+                             
+                             return filtered.length > 0 ? (
+                                filtered.map((d, i) => (
+                                    <button
+                                        key={i} type="button"
+                                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 border-b last:border-0"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            setDescripcion(d);
+                                            const tpl = suggestions.templates.find(t => t.descripcion === d);
+                                            if(tpl?.detalles) setDetalles(tpl.detalles);
+                                        }}
+                                    >
+                                        {d}
+                                    </button>
+                                ))
+                             ) : (
+                                <div className="px-3 py-2 text-xs text-gray-400 italic">Escribe para nueva descripción...</div>
+                             );
+                        })()}
                     </div>
                  )}
              </div>
@@ -526,34 +534,41 @@ export default function FormTrabajos({
               onBlur={() => setTimeout(() => setActiveSuggestion({ field: null, index: -1 }), 200)}
             />
             {activeSuggestion.field === 'det' && (
-                <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-48 overflow-y-auto">
-                    {[...new Set([
-                        ...suggestions.templates.filter(t => !descripcion || t.descripcion === descripcion).map(t => t.detalles),
-                        ...suggestions.recent.filter(r => !descripcion || r.descripcion === descripcion).map(r => r.detalles)
-                    ])]
-                    .filter(Boolean)
-                    .filter(d => d!.toLowerCase().includes(detalles.toLowerCase()))
-                    .map((d, i) => (
-                        <button
-                            key={i} type="button"
-                            className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 border-b last:border-0"
-                            onClick={() => setDetalles(d!)}
-                        >
-                            {d}
-                        </button>
-                    ))}
+                <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-60 overflow-y-auto">
+                    {(() => {
+                        const allOptions = [...new Set([
+                            ...suggestions.templates.filter(t => !descripcion || t.descripcion === descripcion).map(t => t.detalles),
+                            ...suggestions.recent.filter(r => !descripcion || r.descripcion === descripcion).map(r => r.detalles)
+                        ])].filter(Boolean);
+                        
+                        const filtered = allOptions.filter(d => d!.toLowerCase().includes(detalles.toLowerCase()));
+
+                        return filtered.length > 0 ? (
+                            filtered.map((d, i) => (
+                                <button
+                                    key={i} type="button"
+                                    className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 border-b last:border-0"
+                                    onMouseDown={(e) => { e.preventDefault(); setDetalles(d!); }}
+                                >
+                                    {d}
+                                </button>
+                            ))
+                        ) : (
+                           null
+                        );
+                    })()}
                 </div>
             )}
         </div>
         {mode !== 'clone' && (
-          <label className={`flex items-center gap-2 cursor-pointer pt-1 p-2 rounded-lg transition-colors ${triedToSubmit && !saveAsTemplate ? 'bg-red-50 text-red-600 animate-pulse border border-red-100' : ''}`}>
+          <label className="flex items-center gap-2 cursor-pointer pt-1 p-2 rounded-lg transition-colors hover:bg-gray-50">
             <input 
               type="checkbox" 
               className="rounded text-indigo-600 h-4 w-4"
               checked={saveAsTemplate}
               onChange={(e) => setSaveAsTemplate(e.target.checked)}
             />
-            <span className="text-xs font-semibold">Guardar descripción y detalles como plantilla favorita</span>
+            <span className="text-xs font-semibold text-gray-600">Guardar como plantilla favorita</span>
           </label>
         )}
       </div>
