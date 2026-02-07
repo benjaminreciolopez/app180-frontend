@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getUser } from "@/services/auth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { AICopilot } from "@/components/shared/AICopilot";
+import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 
 type Modulos = Record<string, boolean>;
 
@@ -45,10 +46,16 @@ export default function AdminLayout({
         return;
       }
       // getUser ya devuelve el objeto parseado, no strings
-      
+
+      // Detectar si estamos en móvil PWA para usar módulos móviles
+      const useMobile = isMobileDevice() && isStandalone();
+      const activeModulos = (useMobile && user.modulos_mobile)
+        ? user.modulos_mobile
+        : (user.modulos || {});
+
       setSession({
         nombre: user.nombre || "Administrador",
-        modulos: user.modulos || {},
+        modulos: activeModulos,
       });
     } catch {
       setSession(null);
@@ -84,7 +91,7 @@ export default function AdminLayout({
       { path: "/admin/clientes", module: null },
 
       // ✅ Facturación y Pagos como módulos independientes
-      { path: "/admin/facturacion/pagos", module: "pagos" },
+      { path: "/admin/cobros-pagos", module: "pagos" },
       { path: "/admin/facturacion", module: "facturacion" },
 
       // Jornadas y fichajes sí dependen de fichajes
@@ -162,7 +169,7 @@ export default function AdminLayout({
 
     { path: "/admin/clientes", label: "Clientes", module: null },
     { path: "/admin/facturacion", label: "Facturación", module: "facturacion" },
-    { path: "/admin/facturacion/pagos", label: "Cobros y Pagos", module: "pagos" },
+    { path: "/admin/cobros-pagos", label: "Cobros y Pagos", module: "pagos" },
 
     { path: "/admin/jornadas", label: "Jornadas", module: "fichajes" },
     { path: "/admin/fichajes", label: "Fichajes", module: "fichajes" },

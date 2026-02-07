@@ -39,12 +39,6 @@ export default function FacturacionLayout({
       active: pathname.includes("/listado") || pathname === "/admin/facturacion",
     },
     {
-      label: "Cobros y Pagos",
-      icon: CreditCard,
-      href: "/admin/facturacion/pagos",
-      active: pathname.includes("/pagos"),
-    },
-    {
       label: "Conceptos",
       icon: BookOpen,
       href: "/admin/facturacion/conceptos",

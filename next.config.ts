@@ -3,6 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  async redirects() {
+    return [
+      {
+        source: "/admin/facturacion/pagos",
+        destination: "/admin/cobros-pagos",
+        permanent: true,
+      },
+    ];
+  },
+
   output: "standalone",
   transpilePackages: ["recharts"],
 

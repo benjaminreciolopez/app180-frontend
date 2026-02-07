@@ -27,16 +27,29 @@ const DEFAULTS: Modulos = {
 
 export default function AdminConfiguracionPage() {
   const [modulos, setModulos] = useState<Modulos | null>(null);
+  const [modulosMobile, setModulosMobile] = useState<Modulos | null>(null);
+  const [mobileEnabled, setMobileEnabled] = useState(false);
+  const [activeTab, setActiveTab] = useState<"desktop" | "mobile">("desktop");
   const [saving, setSaving] = useState(false);
 
   async function load() {
     try {
       const r = await api.get("/admin/configuracion");
 
+      const { modulos_mobile, ...rest } = r.data;
+
       setModulos({
         ...DEFAULTS,
-        ...r.data,
+        ...rest,
       });
+
+      if (modulos_mobile) {
+        setMobileEnabled(true);
+        setModulosMobile({ ...DEFAULTS, ...modulos_mobile });
+      } else {
+        setMobileEnabled(false);
+        setModulosMobile({ ...DEFAULTS, ...rest });
+      }
     } catch (e) {
       console.error("Error cargando config", e);
       showError("No se pudo cargar la configuración");
@@ -53,12 +66,15 @@ export default function AdminConfiguracionPage() {
     setSaving(true);
 
     try {
-      await api.put("/admin/configuracion", { modulos });
+      await api.put("/admin/configuracion", {
+        modulos,
+        modulos_mobile: mobileEnabled ? modulosMobile : null,
+      });
 
       const me = await api.get("/auth/me");
       localStorage.setItem("user", JSON.stringify(me.data));
 
-      // 🔔 Notificar layout
+      // Notificar layout
       window.dispatchEvent(new Event("session-updated"));
 
       showSuccess("Configuración guardada");
@@ -68,13 +84,22 @@ export default function AdminConfiguracionPage() {
   }
 
   function toggle(k: keyof Modulos) {
-    setModulos((prev) => ({
-      ...prev!,
-      [k]: prev?.[k] === false ? true : false,
-    }));
+    if (activeTab === "mobile") {
+      setModulosMobile((prev) => ({
+        ...prev!,
+        [k]: prev?.[k] === false ? true : false,
+      }));
+    } else {
+      setModulos((prev) => ({
+        ...prev!,
+        [k]: prev?.[k] === false ? true : false,
+      }));
+    }
   }
 
   if (!modulos) return <LoadingSpinner fullPage />;
+
+  const currentModulos = activeTab === "mobile" ? modulosMobile : modulos;
 
   return (
     <div className="app-main max-w-2xl space-y-6">
@@ -83,36 +108,80 @@ export default function AdminConfiguracionPage() {
       {/* Módulos */}
       <div>
         <h2 className="text-xl font-semibold mb-3">Módulos</h2>
-        <div className="card space-y-3">
-        <Toggle
-          label="Fichajes"
-          value={modulos.fichajes}
-          onChange={() => toggle("fichajes")}
-        />
 
-        <Toggle
-          label="Trabajos / Partes"
-          value={modulos.worklogs}
-          onChange={() => toggle("worklogs")}
-        />
+        {/* Tabs Desktop / Móvil */}
+        <div className="flex border-b mb-4">
+          <button
+            onClick={() => setActiveTab("desktop")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "desktop"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Escritorio
+          </button>
+          <button
+            onClick={() => setActiveTab("mobile")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "mobile"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Móvil (PWA)
+          </button>
+        </div>
 
-        <Toggle
-          label="Empleados (incluye Ausencias)"
-          value={modulos.empleados}
-          onChange={() => toggle("empleados")}
-        />
+        {activeTab === "mobile" && (
+          <div className="card mb-4 bg-blue-50 border-blue-200">
+            <label className="flex items-center justify-between">
+              <div>
+                <span className="font-medium">Activar configuración móvil independiente</span>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Si está desactivado, el móvil usa los mismos módulos que el escritorio.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={mobileEnabled}
+                onChange={() => setMobileEnabled(!mobileEnabled)}
+                className="w-5 h-5"
+              />
+            </label>
+          </div>
+        )}
 
-        <Toggle
-          label="Facturación"
-          value={modulos.facturacion}
-          onChange={() => toggle("facturacion")}
-        />
+        <div className={`card space-y-3 ${activeTab === "mobile" && !mobileEnabled ? "opacity-50 pointer-events-none" : ""}`}>
+          <Toggle
+            label="Fichajes"
+            value={currentModulos?.fichajes}
+            onChange={() => toggle("fichajes")}
+          />
 
-        <Toggle
-          label="Cobros y Pagos"
-          value={modulos.pagos}
-          onChange={() => toggle("pagos")}
-        />
+          <Toggle
+            label="Trabajos / Partes"
+            value={currentModulos?.worklogs}
+            onChange={() => toggle("worklogs")}
+          />
+
+          <Toggle
+            label="Empleados (incluye Ausencias)"
+            value={currentModulos?.empleados}
+            onChange={() => toggle("empleados")}
+          />
+
+          <Toggle
+            label="Facturación"
+            value={currentModulos?.facturacion}
+            onChange={() => toggle("facturacion")}
+          />
+
+          <Toggle
+            label="Cobros y Pagos"
+            value={currentModulos?.pagos}
+            onChange={() => toggle("pagos")}
+          />
         </div>
 
         <Button onClick={save} disabled={saving} className="mt-4 py-6 font-bold shadow-md">
