@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CreditCard, FileText, Settings } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import ClientFiscalForm from "@/components/admin/clientes/ClientFiscalForm";
 
 /* =====================================================
@@ -143,22 +143,6 @@ export default function ClienteDetailPage() {
             className="gap-2"
           >
             <FileText size={16} /> Tarifas
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/admin/clientes/${id}/pagos`)}
-            className="gap-2"
-          >
-            <CreditCard size={16} /> Pagos
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/admin/clientes/${id}/edit`)}
-            className="gap-2"
-          >
-            <Settings size={16} /> Editar
           </Button>
         </div>
       </div>

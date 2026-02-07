@@ -6,6 +6,7 @@ import { getUser, logout } from "@/services/auth";
 import {
   Settings, Users, Clock, AlertTriangle, Briefcase, Calendar,
   Eye, EyeOff, ChevronUp, ChevronDown, LayoutGrid, X,
+  UserCheck, Euro, FileText, ClipboardList, RefreshCw, History, Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
@@ -21,6 +22,18 @@ interface DashboardData {
   sospechososHoy: number;
   trabajandoAhora: { id: string; empleado_nombre: string; cliente_nombre: string | null; estado: string; desde: string }[];
   ultimosFichajes: { id: string; empleado_nombre: string; cliente_nombre: string | null; tipo: string; fecha: string }[];
+  clientesActivos: number;
+  clientesNuevos: number;
+  facturasPendientes: number;
+  cobrosPendientes: number;
+  saldoTotal: number;
+  trabajosPendientes: number;
+  partesHoy: number;
+  calendarioSyncStatus: {
+    connected: boolean;
+    lastSync: string | null;
+    enabled: boolean;
+  } | null;
   stats?: {
     fichajesUltimosDias: { dia: string; cantidad: number }[];
     fichajesPorTipoHoy: { tipo: string; cantidad: number }[];
@@ -35,6 +48,10 @@ const ALL_WIDGETS = [
   { id: "kpi_fichajes", label: "KPI: Fichajes hoy", module: "fichajes", icon: Clock },
   { id: "kpi_sospechosos", label: "KPI: Sospechosos", module: "fichajes", icon: AlertTriangle },
   { id: "kpi_calendario", label: "KPI: Calendario", module: "calendario", icon: Calendar },
+  { id: "kpi_clientes", label: "KPI: Clientes", module: "clientes", icon: UserCheck },
+  { id: "kpi_facturacion", label: "KPI: Facturación", module: "facturacion", icon: Euro },
+  { id: "kpi_trabajos", label: "KPI: Trabajos", module: "partes_dia", icon: ClipboardList },
+  { id: "kpi_gcal_sync", label: "Google Calendar", module: "calendario", icon: RefreshCw },
   { id: "chart_actividad", label: "Actividad semanal", module: "fichajes", icon: LayoutGrid },
   { id: "chart_clientes", label: "Top clientes / Distribución", module: null, icon: LayoutGrid },
   { id: "list_trabajando", label: "Trabajando ahora", module: "fichajes", icon: Briefcase },
@@ -294,6 +311,81 @@ export default function DashboardPage() {
                 <Link href="/admin/calendario" className="text-sm font-semibold text-primary hover:underline mt-1 inline-block">Ver planificación</Link>
               </div>
               <div className="p-2 md:p-3 bg-purple-50 rounded-lg"><Calendar className="w-5 h-5 md:w-6 md:h-6 text-purple-600" /></div>
+            </div>
+          </div>
+        )}
+        {shouldShowWidget("kpi_clientes", "clientes") && (
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-gray-500">Clientes</p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">{data.clientesActivos}</p>
+                <p className="text-xs text-gray-400 mt-1">+{data.clientesNuevos} este mes</p>
+              </div>
+              <Link href="/admin/clientes" className="p-2 md:p-3 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
+                <UserCheck className="w-5 h-5 md:w-6 md:h-6 text-indigo-600" />
+              </Link>
+            </div>
+          </div>
+        )}
+        {shouldShowWidget("kpi_facturacion", "facturacion") && (
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-gray-500">Por Cobrar</p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">{data.saldoTotal.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} €</p>
+                <p className="text-xs text-gray-400 mt-1">{data.facturasPendientes} facturas</p>
+              </div>
+              <Link href="/admin/facturacion/pagos" className="p-2 md:p-3 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors">
+                <Euro className="w-5 h-5 md:w-6 md:h-6 text-emerald-600" />
+              </Link>
+            </div>
+          </div>
+        )}
+        {shouldShowWidget("kpi_trabajos", "partes_dia") && (
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-gray-500">Trabajos</p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">{data.trabajosPendientes}</p>
+                <p className="text-xs text-gray-400 mt-1">Sin facturar</p>
+              </div>
+              <Link href="/admin/partes-dia" className="p-2 md:p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+                <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-orange-600" />
+              </Link>
+            </div>
+          </div>
+        )}
+        {shouldShowWidget("kpi_gcal_sync", "calendario") && data.calendarioSyncStatus && (
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-gray-500">Google Calendar</p>
+                {data.calendarioSyncStatus.connected ? (
+                  <>
+                    <p className="text-sm font-semibold text-green-600 mt-1">Conectado</p>
+                    <div className="flex gap-2 mt-2">
+                      <Link href="/admin/calendario/sync" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                        <RefreshCw className="w-3 h-3" /> Sincronizar
+                      </Link>
+                      <Link href="/admin/calendario/sync/history" className="text-xs text-gray-600 hover:underline flex items-center gap-1">
+                        <History className="w-3 h-3" /> Historial
+                      </Link>
+                      <Link href="/admin/calendario/sync/import" className="text-xs text-gray-600 hover:underline flex items-center gap-1">
+                        <Upload className="w-3 h-3" /> Importar
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-gray-400 mt-1">No conectado</p>
+                    <Link href="/admin/configuracion/calendario" className="text-xs text-blue-600 hover:underline mt-2 inline-block">Configurar</Link>
+                  </>
+                )}
+              </div>
+              <div className={`p-2 md:p-3 rounded-lg ${data.calendarioSyncStatus.connected ? 'bg-green-50' : 'bg-gray-50'}`}>
+                <Calendar className={`w-5 h-5 md:w-6 md:h-6 ${data.calendarioSyncStatus.connected ? 'text-green-600' : 'text-gray-400'}`} />
+              </div>
             </div>
           </div>
         )}
