@@ -67,12 +67,27 @@ export default function FormTrabajos({
       }
   }, [clienteId, clientes, mode]);
 
-  // Load Templates
-  useEffect(() => {
+  const loadTemplates = () => {
     api.get("/worklogs/templates").then((res: { data: Template[] }) => {
       if(Array.isArray(res.data)) setTemplates(res.data);
     }).catch(console.error);
+  };
+
+  // Load Templates
+  useEffect(() => {
+    loadTemplates();
   }, []);
+
+  async function handleDeleteTemplate(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if(!confirm("¿Borrar esta plantilla?")) return;
+    try {
+      await api.delete(`/worklogs/templates/${id}`);
+      loadTemplates();
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   // Sync with initialData (Edit / Clone)
   useEffect(() => {
@@ -179,9 +194,7 @@ export default function FormTrabajos({
       onCreated();
       // Reload templates if one was saved
       if (saveAsTemplate) {
-        api.get("/worklogs/templates").then((res: { data: Template[] }) => {
-          if(Array.isArray(res.data)) setTemplates(res.data);
-        });
+        loadTemplates();
       }
     } catch (err) {
       console.error(err);
@@ -207,7 +220,7 @@ export default function FormTrabajos({
       </div>
 
       {/* Selector Plantillas */}
-      {templates.length > 0 && mode === 'create' && (
+      {templates.length > 0 && mode !== 'clone' && (
         <div className="relative">
           <button 
             type="button"
@@ -231,6 +244,13 @@ export default function FormTrabajos({
                   className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 group flex items-center justify-between"
                 >
                   <span className="truncate pr-2">{t.descripcion}</span>
+                  <button 
+                    type="button"
+                    onClick={(e) => handleDeleteTemplate(t.id, e)}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity"
+                  >
+                    <Trash2 size={12}/>
+                  </button>
                 </button>
               ))}
             </div>
@@ -433,7 +453,7 @@ export default function FormTrabajos({
           value={detalles}
           onChange={(e) => setDetalles(e.target.value)}
         />
-        {mode === 'create' && (
+        {mode !== 'clone' && (
           <label className="flex items-center gap-2 cursor-pointer pt-1">
             <input 
               type="checkbox" 
