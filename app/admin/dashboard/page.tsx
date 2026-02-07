@@ -77,21 +77,13 @@ export default function DashboardPage() {
 
   function isWidgetVisible(id: string) {
     // Si aún no se cargó configuración, mostrar todos por defecto
-    if (!widgetsLoaded) {
-      console.log(`🚀 [v2.1-FIX] Widget ${id}: widgetsLoaded=false, mostrando por defecto`);
-      return true;
-    }
-
-    // DIAGNÓSTICO: Ver el array completo
-    console.log(`🚀 [v2.1-FIX] Array widgets actual (length=${widgets.length}):`, JSON.stringify(widgets));
+    if (!widgetsLoaded) return true;
 
     // Si se cargó configuración, buscar el widget
     const w = widgets.find((w) => w.id === id);
 
     // Si está en la config, usar su valor; si no está, mostrar por defecto (nuevo widget)
-    const visible = w ? w.visible : true;
-    console.log(`🚀 [v2.1-FIX] Widget ${id}: encontrado=${!!w}, visible=${visible}`);
-    return visible;
+    return w ? w.visible : true;
   }
 
   function shouldShowWidget(id: string, module: string | null) {
@@ -113,15 +105,13 @@ export default function DashboardPage() {
       if (typeof w === 'string') {
         try {
           w = JSON.parse(w);
-          console.log('✅ [v2.1-FIX] Widgets parseados desde string JSON:', w);
         } catch (e) {
-          console.error('❌ [v2.1-FIX] Error parseando widgets:', e);
+          console.error('Error parseando widgets:', e);
           w = [];
         }
       }
 
       const finalWidgets = Array.isArray(w) ? w : [];
-      console.log('✅ [v2.1-FIX] Estableciendo', finalWidgets.length, 'widgets en el estado');
       setWidgets(finalWidgets);
       setWidgetsLoaded(true);
       setError(null);
@@ -235,10 +225,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
-            <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded">v2.1-FIX</span>
-          </div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-gray-500 text-sm mt-1">Resumen general de actividad</p>
         </div>
         <div className="flex items-center gap-2">
