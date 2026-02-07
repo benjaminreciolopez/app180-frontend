@@ -82,6 +82,9 @@ export default function DashboardPage() {
       return true;
     }
 
+    // DIAGNÓSTICO: Ver el array completo
+    console.log(`🚀 [v2.1-FIX] Array widgets actual (length=${widgets.length}):`, JSON.stringify(widgets));
+
     // Si se cargó configuración, buscar el widget
     const w = widgets.find((w) => w.id === id);
 
