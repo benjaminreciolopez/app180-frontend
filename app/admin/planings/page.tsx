@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
+import { getUser } from "@/services/auth";
 import { showSuccess, showError } from "@/lib/toast";
 import DrawerCrearPlaningAdmin from "@/components/admin/drawer/DrawerCrearPlaningAdmin";
 import DrawerEditarPlaning from "@/components/admin/drawer/DrawerEditarPlaning";
@@ -49,19 +50,35 @@ export default function PlaningsPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [resAsig, resEmp, resCli] = await Promise.all([
-         api.get("/admin/plantillas/asignaciones", { 
-             params: { 
-                 estado: filtros.estado,
-                 empleado_id: filtros.empleado_id
-             } 
-         }),
-         api.get("/employees"),
-         api.get("/admin/clientes")
-      ]);
-      setAsignaciones(resAsig.data || []);
-      setEmpleados(Array.isArray(resEmp.data) ? resEmp.data : []);
-      setClientes(Array.isArray(resCli.data) ? resCli.data : []);
+      const user = getUser();
+      const hasEmpleadosModule = user?.modulos?.empleados !== false;
+
+      // Cargar solo los datos que el usuario tiene permiso de ver
+      const promises = [
+        api.get("/admin/plantillas/asignaciones", {
+          params: {
+            estado: filtros.estado,
+            empleado_id: filtros.empleado_id
+          }
+        }),
+        api.get("/admin/clientes")
+      ];
+
+      // Solo cargar empleados si el módulo está habilitado
+      if (hasEmpleadosModule) {
+        promises.splice(1, 0, api.get("/employees"));
+      }
+
+      const results = await Promise.all(promises);
+
+      setAsignaciones(results[0].data || []);
+      if (hasEmpleadosModule) {
+        setEmpleados(Array.isArray(results[1].data) ? results[1].data : []);
+        setClientes(Array.isArray(results[2].data) ? results[2].data : []);
+      } else {
+        setEmpleados([]);
+        setClientes(Array.isArray(results[1].data) ? results[1].data : []);
+      }
     } catch (err) {
       console.error("Error cargando datos", err);
       showError("Error al cargar datos");
