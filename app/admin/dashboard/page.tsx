@@ -107,12 +107,16 @@ export default function DashboardPage() {
         api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } })),
       ]);
       setData(dashRes.data);
+      console.log('🚀 [v2.1-FIX] widgetRes completo:', widgetRes);
+      console.log('🚀 [v2.1-FIX] widgetRes.data:', widgetRes.data);
       const w = widgetRes.data.widgets;
       console.log('🚀 [v2.1-FIX] Widgets cargados desde backend:', w);
-      console.log('🚀 [v2.1-FIX] widgetsLoaded será true');
-      setWidgets(Array.isArray(w) ? w : []);
+      console.log('🚀 [v2.1-FIX] Array.isArray(w):', Array.isArray(w));
+      const finalWidgets = Array.isArray(w) ? w : [];
+      console.log('🚀 [v2.1-FIX] finalWidgets que se van a guardar:', finalWidgets);
+      setWidgets(finalWidgets);
       setWidgetsLoaded(true);
-      console.log('🚀 [v2.1-FIX] Estado actualizado');
+      console.log('🚀 [v2.1-FIX] Estado actualizado, llamando setWidgets con', finalWidgets.length, 'widgets');
       setError(null);
     } catch (err: any) {
       setError(err?.response?.data?.error || "No se pudieron cargar los datos");
