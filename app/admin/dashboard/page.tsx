@@ -365,7 +365,7 @@ export default function DashboardPage() {
                   <>
                     <p className="text-sm font-semibold text-green-600 mt-1">Conectado</p>
                     <div className="flex gap-2 mt-2">
-                      <Link href="/admin/configuracion/calendario" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                      <Link href="/admin/configuracion" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
                         <RefreshCw className="w-3 h-3" /> Config
                       </Link>
                       <Link href="/admin/configuracion/calendario/importaciones" className="text-xs text-gray-600 hover:underline flex items-center gap-1">
@@ -379,7 +379,7 @@ export default function DashboardPage() {
                 ) : (
                   <>
                     <p className="text-sm font-semibold text-gray-400 mt-1">No conectado</p>
-                    <Link href="/admin/configuracion/calendario" className="text-xs text-blue-600 hover:underline mt-2 inline-block">Configurar</Link>
+                    <Link href="/admin/configuracion" className="text-xs text-blue-600 hover:underline mt-2 inline-block">Configurar</Link>
                   </>
                 )}
               </div>
