@@ -104,14 +104,14 @@ export default function AdminLayout({
       { path: "/admin/partes-dia", module: "worklogs" },
       { path: "/admin/trabajos", module: "worklogs" },
 
-      // ✅ Importación OCR / historial dependen de calendario_import
+      // ✅ Importación OCR / historial dependen de calendario
       {
         path: "/admin/configuracion/calendario/importar",
-        module: "calendario_import",
+        module: "calendario",
       },
       {
         path: "/admin/configuracion/calendario/importaciones",
-        module: "calendario_import",
+        module: "calendario",
       },
     ],
     [],
@@ -185,16 +185,16 @@ export default function AdminLayout({
     { path: "/admin/partes-dia", label: "Partes del día", module: "worklogs" },
     { path: "/admin/trabajos", label: "Trabajos", module: "worklogs" },
 
-    // ✅ Importación separada
+    // ✅ Importación calendario
     {
       path: "/admin/configuracion/calendario/importar",
       label: "Importar calendario",
-      module: "calendario_import",
+      module: "calendario",
     },
     {
       path: "/admin/configuracion/calendario/importaciones",
       label: "Historial importaciones",
-      module: "calendario_import",
+      module: "calendario",
     },
   ];
 
