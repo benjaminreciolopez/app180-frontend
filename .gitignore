@@ -63,3 +63,4 @@ AI_COPILOT_SETUP.md
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.cache/
