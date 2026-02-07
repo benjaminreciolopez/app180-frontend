@@ -353,7 +353,6 @@ export default function DashboardPage() {
           )}
         </div>
       )}
-
       {/* Lists */}
       <div className="grid lg:grid-cols-2 gap-6">
         {shouldShowWidget("list_trabajando", "fichajes") && (
