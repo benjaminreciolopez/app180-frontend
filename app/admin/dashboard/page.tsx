@@ -77,13 +77,18 @@ export default function DashboardPage() {
 
   function isWidgetVisible(id: string) {
     // Si aún no se cargó configuración, mostrar todos por defecto
-    if (!widgetsLoaded) return true;
+    if (!widgetsLoaded) {
+      console.log(`🚀 [v2.1-FIX] Widget ${id}: widgetsLoaded=false, mostrando por defecto`);
+      return true;
+    }
 
     // Si se cargó configuración, buscar el widget
     const w = widgets.find((w) => w.id === id);
 
     // Si está en la config, usar su valor; si no está, mostrar por defecto (nuevo widget)
-    return w ? w.visible : true;
+    const visible = w ? w.visible : true;
+    console.log(`🚀 [v2.1-FIX] Widget ${id}: encontrado=${!!w}, visible=${visible}`);
+    return visible;
   }
 
   function shouldShowWidget(id: string, module: string | null) {
@@ -100,9 +105,11 @@ export default function DashboardPage() {
       ]);
       setData(dashRes.data);
       const w = widgetRes.data.widgets;
-      console.log('📊 [Dashboard] Widgets cargados:', w);
+      console.log('🚀 [v2.1-FIX] Widgets cargados desde backend:', w);
+      console.log('🚀 [v2.1-FIX] widgetsLoaded será true');
       setWidgets(Array.isArray(w) ? w : []);
       setWidgetsLoaded(true);
+      console.log('🚀 [v2.1-FIX] Estado actualizado');
       setError(null);
     } catch (err: any) {
       setError(err?.response?.data?.error || "No se pudieron cargar los datos");
@@ -214,7 +221,10 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
+            <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded">v2.1-FIX</span>
+          </div>
           <p className="text-gray-500 text-sm mt-1">Resumen general de actividad</p>
         </div>
         <div className="flex items-center gap-2">
