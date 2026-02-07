@@ -49,13 +49,27 @@ export default function FormTrabajos({
   const [duracionTexto, setDuracionTexto] = useState(""); 
   const [precioFijo, setPrecioFijo] = useState(""); 
 
-  // Templates
+  // Templates & Suggestions
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  
+  const [suggestions, setSuggestions] = useState<{
+    types: string[];
+    templates: { descripcion: string; detalles: string }[];
+    recent: { descripcion: string; detalles: string; work_item_nombre: string }[];
+  }>({ types: [], templates: [], recent: [] });
+
+  const [activeSuggestion, setActiveSuggestion] = useState<{
+    field: 'type' | 'desc' | 'det' | null;
+    index: number;
+  }>({ field: null, index: -1 });
 
   // Multiple dates (for cloning)
   const [extraDates, setExtraDates] = useState<string[]>([]);
+
+  // Validation
+  const [triedToSubmit, setTriedToSubmit] = useState(false);
 
   // Detect client default mode (only on creation)
   useEffect(() => {
@@ -67,15 +81,21 @@ export default function FormTrabajos({
       }
   }, [clienteId, clientes, mode]);
 
-  const loadTemplates = () => {
+  const loadDataResources = () => {
+    // Templates
     api.get("/worklogs/templates").then((res: { data: Template[] }) => {
       if(Array.isArray(res.data)) setTemplates(res.data);
     }).catch(console.error);
+
+    // Suggestions
+    api.get("/worklogs/suggestions").then((res: { data: any }) => {
+      setSuggestions(res.data);
+    }).catch(console.error);
   };
 
-  // Load Templates
+  // Load Data
   useEffect(() => {
-    loadTemplates();
+    loadDataResources();
   }, []);
 
   async function handleDeleteTemplate(id: string, e: React.MouseEvent) {
@@ -83,7 +103,7 @@ export default function FormTrabajos({
     if(!confirm("¿Borrar esta plantilla?")) return;
     try {
       await api.delete(`/worklogs/templates/${id}`);
-      loadTemplates();
+      loadDataResources();
     } catch (err) {
       console.error(err);
     }
@@ -118,9 +138,9 @@ export default function FormTrabajos({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setTriedToSubmit(true);
 
-    if (!descripcion.trim()) {
-      alert("La descripción es obligatoria");
+    if (!descripcion.trim() || !workItemNombre.trim()) {
       return;
     }
 
@@ -129,20 +149,17 @@ export default function FormTrabajos({
 
     if (billingType === 'hora') {
         const h = parseFloat(horas.replace(",", "."));
-        if (isNaN(h) || h <= 0) return alert("Horas inválidas");
+        if (isNaN(h) || h <= 0) return;
         calculatedMinutes = Math.round(h * 60);
     } else if (billingType === 'dia') {
         const d = parseFloat(dias.replace(",", "."));
-        if (isNaN(d) || d <= 0) return alert("Días inválidos");
-        calculatedMinutes = Math.round(d * 8 * 60); // 8h/day standard
+        if (isNaN(d) || d <= 0) return;
+        calculatedMinutes = Math.round(d * 8 * 60); 
     } else if (billingType === 'mes') {
         const m = parseFloat(meses.replace(",", "."));
-        // 22 days * 8 hours? or just placeholder minutes. 
-        // Let's say 1 month = 160h = 9600 min
+        if (isNaN(m) || m <= 0) return;
         calculatedMinutes = Math.round(m * 160 * 60); 
     } else if (billingType === 'valorado') {
-        // En valorado, la duración es texto libre para mostrar, pero para stats guardamos 0 si no se pide.
-        // Pero guardemos 0 minutos.
         calculatedMinutes = 0; 
         if(precioFijo) finalPrecio = parseFloat(precioFijo.replace(",", "."));
     }
@@ -192,9 +209,10 @@ export default function FormTrabajos({
       }
       
       onCreated();
-      // Reload templates if one was saved
+      setTriedToSubmit(false);
+      // Reload resources if one was saved
       if (saveAsTemplate) {
-        loadTemplates();
+        loadDataResources();
       }
     } catch (err) {
       console.error(err);
@@ -428,40 +446,114 @@ export default function FormTrabajos({
             Original form had "Type" and "Description". Keeping it simple.
         */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-3">
-             <input
-                type="text"
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                value={workItemNombre}
-                onChange={(e) => setWorkItemNombre(e.target.value)}
-                placeholder="Tipo (Ej: Revisión)"
-             />
-             <input
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                placeholder="Descripción corta (aparece en factura)..."
-                required
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-             />
+             <div className="relative">
+                 <input
+                    type="text"
+                    className={`w-full border rounded-lg px-3 py-2 text-sm transition-all ${triedToSubmit && !workItemNombre.trim() ? 'border-red-500 bg-red-50' : 'focus:border-indigo-500'}`}
+                    value={workItemNombre}
+                    onChange={(e) => setWorkItemNombre(e.target.value)}
+                    onFocus={() => setActiveSuggestion({ field: 'type', index: 0 })}
+                    onBlur={() => setTimeout(() => setActiveSuggestion({ field: null, index: -1 }), 200)}
+                    placeholder="Tipo (Ej: Revisión)"
+                 />
+                 {activeSuggestion.field === 'type' && (
+                    <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-48 overflow-y-auto">
+                        {suggestions.types.filter(t => t.toLowerCase().includes(workItemNombre.toLowerCase())).length > 0 ? (
+                            suggestions.types
+                                .filter(t => t.toLowerCase().includes(workItemNombre.toLowerCase()))
+                                .map((t, i) => (
+                                    <button
+                                        key={i} type="button"
+                                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
+                                        onClick={() => setWorkItemNombre(t)}
+                                    >
+                                        {t}
+                                    </button>
+                                ))
+                        ) : (
+                            <div className="px-3 py-1.5 text-[10px] text-gray-400 italic">Nuevo tipo...</div>
+                        )}
+                    </div>
+                 )}
+             </div>
+
+             <div className="relative">
+                 <input
+                    className={`w-full border rounded-lg px-3 py-2 text-sm transition-all ${triedToSubmit && !descripcion.trim() ? 'border-red-500 bg-red-50' : 'focus:border-indigo-500'}`}
+                    placeholder="Descripción corta (aparece en factura)..."
+                    required
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    onFocus={() => setActiveSuggestion({ field: 'desc', index: 0 })}
+                    onBlur={() => setTimeout(() => setActiveSuggestion({ field: null, index: -1 }), 200)}
+                 />
+                 {activeSuggestion.field === 'desc' && (
+                    <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-48 overflow-y-auto">
+                        {[...new Set([
+                            ...suggestions.templates.map(t => t.descripcion),
+                            ...suggestions.recent.filter(r => !workItemNombre || r.work_item_nombre === workItemNombre).map(r => r.descripcion)
+                        ])]
+                        .filter(d => d.toLowerCase().includes(descripcion.toLowerCase()))
+                        .map((d, i) => (
+                            <button
+                                key={i} type="button"
+                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100"
+                                onClick={() => {
+                                    setDescripcion(d);
+                                    // Auto-fill details if it's a template
+                                    const tpl = suggestions.templates.find(t => t.descripcion === d);
+                                    if(tpl?.detalles) setDetalles(tpl.detalles);
+                                }}
+                            >
+                                {d}
+                            </button>
+                        ))}
+                    </div>
+                 )}
+             </div>
         </div>
       </div>
 
       <div className="space-y-1">
         <label className="text-xs font-medium text-gray-500">Detalles adicionales (Opcional)</label>
-        <textarea
-          className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px]"
-          placeholder="Explicación detallada del trabajo realizado..."
-          value={detalles}
-          onChange={(e) => setDetalles(e.target.value)}
-        />
+        <div className="relative">
+            <textarea
+              className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px] focus:border-indigo-500 transition-all"
+              placeholder="Explicación detallada del trabajo realizado..."
+              value={detalles}
+              onChange={(e) => setDetalles(e.target.value)}
+              onFocus={() => setActiveSuggestion({ field: 'det', index: 0 })}
+              onBlur={() => setTimeout(() => setActiveSuggestion({ field: null, index: -1 }), 200)}
+            />
+            {activeSuggestion.field === 'det' && (
+                <div className="absolute top-full left-0 z-50 w-full bg-white border rounded-lg shadow-xl mt-1 py-1 max-h-48 overflow-y-auto">
+                    {[...new Set([
+                        ...suggestions.templates.filter(t => !descripcion || t.descripcion === descripcion).map(t => t.detalles),
+                        ...suggestions.recent.filter(r => !descripcion || r.descripcion === descripcion).map(r => r.detalles)
+                    ])]
+                    .filter(Boolean)
+                    .filter(d => d!.toLowerCase().includes(detalles.toLowerCase()))
+                    .map((d, i) => (
+                        <button
+                            key={i} type="button"
+                            className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 border-b last:border-0"
+                            onClick={() => setDetalles(d!)}
+                        >
+                            {d}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
         {mode !== 'clone' && (
-          <label className="flex items-center gap-2 cursor-pointer pt-1">
+          <label className={`flex items-center gap-2 cursor-pointer pt-1 p-2 rounded-lg transition-colors ${triedToSubmit && !saveAsTemplate ? 'bg-red-50 text-red-600 animate-pulse border border-red-100' : ''}`}>
             <input 
               type="checkbox" 
-              className="rounded text-indigo-600"
+              className="rounded text-indigo-600 h-4 w-4"
               checked={saveAsTemplate}
               onChange={(e) => setSaveAsTemplate(e.target.checked)}
             />
-            <span className="text-xs text-gray-500">Guardar descripción y detalles como plantilla favorita</span>
+            <span className="text-xs font-semibold">Guardar descripción y detalles como plantilla favorita</span>
           </label>
         )}
       </div>
