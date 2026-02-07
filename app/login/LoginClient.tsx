@@ -2,7 +2,7 @@
 
 import { FormEvent, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/services/auth";
+import { login, getOrGenerateDeviceHash } from "@/services/auth";
 import { api, setAuthToken } from "@/services/api";
 import { Eye, EyeOff } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
