@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User } from "lucide-react";
 import { getUser } from "@/services/auth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { AICopilot } from "@/components/shared/AICopilot";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
+import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
 
 type Modulos = Record<string, boolean>;
 
@@ -25,6 +27,8 @@ export default function AdminLayout({
   const [menuOpen, setMenuOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
+  const [selfConfigOpen, setSelfConfigOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // ============================
   // Helpers
@@ -57,6 +61,7 @@ export default function AdminLayout({
         nombre: user.nombre || "Administrador",
         modulos: activeModulos,
       });
+      setUserId(user.id);
     } catch {
       setSession(null);
     }
@@ -126,6 +131,10 @@ export default function AdminLayout({
       .find((g) => pathname.startsWith(g.path));
 
     if (current?.module && !hasModule(session.modulos, current.module)) {
+      // Excepción especial para /admin/jornadas: permitir si tiene calendario
+      if (current.path === "/admin/jornadas" && hasModule(session.modulos, "calendario")) {
+        return;
+      }
       location.href = "/admin/dashboard";
     }
   }, [pathname, session, guards]);
@@ -171,7 +180,7 @@ export default function AdminLayout({
     { path: "/admin/facturacion", label: "Facturación", module: "facturacion" },
     { path: "/admin/cobros-pagos", label: "Cobros y Pagos", module: "pagos" },
 
-    { path: "/admin/jornadas", label: "Jornadas", module: "fichajes" },
+    { path: "/admin/jornadas", label: "Configurar Jornadas", module: "fichajes" },
     { path: "/admin/fichajes", label: "Fichajes", module: "fichajes" },
     {
       path: "/admin/fichajes/sospechosos",
@@ -198,9 +207,12 @@ export default function AdminLayout({
     },
   ];
 
-  const visibleMenu = menu.filter((item) =>
-    hasModule(session.modulos, item.module),
-  );
+  const visibleMenu = menu.filter((item) => {
+    if (item.path === "/admin/jornadas") {
+      return hasModule(session.modulos, "fichajes") || hasModule(session.modulos, "calendario");
+    }
+    return hasModule(session.modulos, item.module);
+  });
 
   // ============================
   // Render
@@ -254,6 +266,27 @@ export default function AdminLayout({
               </Link>
             </li>
           ))}
+
+          {/* Sección Administrador si el módulo de empleados está desactivado */}
+          {!hasModule(session.modulos, "empleados") && (
+            <li className="mt-4 pt-4 border-t border-border">
+              <button
+                onClick={() => {
+                  setSelfConfigOpen(true);
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition flex items-center gap-3 group"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-sm group-hover:scale-110 transition-transform text-xs">
+                  A
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Administrador</p>
+                  <p className="text-sm font-semibold truncate">{session.nombre}</p>
+                </div>
+              </button>
+            </li>
+          )}
         </ul>
 
         {/* Footer */}
@@ -282,6 +315,15 @@ export default function AdminLayout({
 
       {/* AI Copilot - Bot flotante */}
       <AICopilot />
+
+      {/* Modal Autoconfiguración Admin */}
+      {userId && (
+        <AdminSelfConfigModal 
+          isOpen={selfConfigOpen}
+          onClose={() => setSelfConfigOpen(false)}
+          adminId={userId}
+        />
+      )}
     </div>
   );
 }
