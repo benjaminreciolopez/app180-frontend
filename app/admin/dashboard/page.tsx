@@ -432,13 +432,13 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-          {shouldShowWidget("chart_clientes", null) && (
+          {shouldShowWidget("chart_clientes", null) && (hasModule("clientes") || hasModule("fichajes")) && (
             <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border">
               <h3 className="text-base md:text-lg font-semibold mb-4">
                 {hasModule("clientes") ? "Top Clientes (Semana)" : "Distribución Tipos Hoy"}
               </h3>
               <div className="h-52 md:h-64 w-full min-h-[200px]">
-                {hasModule("clientes") && data.stats.topClientesSemana.length > 0 ? (
+                {hasModule("clientes") && data.stats && data.stats.topClientesSemana.length > 0 ? (
                   <ResponsiveContainer width="99%" height="100%">
                     <BarChart data={data.stats.topClientesSemana} layout="vertical" margin={{ left: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
@@ -448,7 +448,7 @@ export default function DashboardPage() {
                       <Bar dataKey="total" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} />
                     </BarChart>
                   </ResponsiveContainer>
-                ) : (
+                ) : hasModule("fichajes") && data.stats && data.stats.fichajesPorTipoHoy.length > 0 ? (
                   <ResponsiveContainer width="99%" height="100%">
                     <PieChart>
                       <Pie data={data.stats.fichajesPorTipoHoy} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="cantidad">
@@ -460,6 +460,11 @@ export default function DashboardPage() {
                       <Legend iconType="circle" />
                     </PieChart>
                   </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                    <LayoutGrid className="w-8 h-8 opacity-20" />
+                    <p className="text-xs">No hay datos suficientes para mostrar el gráfico</p>
+                  </div>
                 )}
               </div>
             </div>
