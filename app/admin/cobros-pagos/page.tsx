@@ -22,8 +22,12 @@ import {
   ArrowUpDown,
   Calendar as CalendarIcon,
   User,
-  Loader2
+  Loader2,
+  Calendar,
+  History,
+  TrendingDown
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
@@ -93,6 +97,16 @@ type Payment = {
     created_at: string;
 };
 
+type DeudaConsolidada = {
+    cliente_id: string;
+    cliente_nombre: string;
+    cliente_codigo: string;
+    deuda_facturas: number;
+    deuda_trabajos: number;
+    deuda_total: number;
+    ultima_actividad: string;
+};
+
 export default function CobrosPagosPage() {
   const router = useRouter();
 
@@ -124,6 +138,19 @@ export default function CobrosPagosPage() {
   // Estados para detalle y borrado
   const [pagoDetalleId, setPagoDetalleId] = useState<string | null>(null);
   const [pagoToDelete, setPagoToDelete] = useState<Payment | null>(null);
+
+  // Estados para Deudas Consolidadas (Nuevo Tab)
+  const [activeTab, setActiveTab] = useState("transacciones");
+  const [deudas, setDeudas] = useState<DeudaConsolidada[]>([]);
+  const [loadingDeudas, setLoadingDeudas] = useState(false);
+  const [dateRange, setDateRange] = useState({
+      desde: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd"),
+      hasta: format(new Date(), "yyyy-MM-dd")
+  });
+  const [sortConfig, setSortConfig] = useState<{ key: keyof DeudaConsolidada, direction: 'asc' | 'desc' }>({
+      key: 'deuda_total',
+      direction: 'desc'
+  });
   const [detalleData, setDetalleData] = useState<any>(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
 
@@ -162,6 +189,30 @@ export default function CobrosPagosPage() {
         setDetalleData(null);
     }
   }, [pagoDetalleId]);
+
+  const loadDeudas = useCallback(async () => {
+    setLoadingDeudas(true);
+    try {
+        const res = await apiService.get("/admin/billing/deudas-pendientes", {
+            params: {
+                desde: dateRange.desde,
+                hasta: dateRange.hasta,
+                cliente_id: selectedClientFilter === 'all' ? undefined : selectedClientFilter
+            }
+        });
+        setDeudas(res.data || []);
+    } catch(e) {
+        toast.error("Error al cargar deudas consolidadas");
+    } finally {
+        setLoadingDeudas(false);
+    }
+  }, [dateRange, selectedClientFilter]);
+
+  useEffect(() => {
+    if(activeTab === 'deudas') {
+        loadDeudas();
+    }
+  }, [activeTab, loadDeudas]);
 
   const handleAnularPago = async () => {
     if(!pagoToDelete) return;
@@ -305,19 +356,85 @@ export default function CobrosPagosPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6">
+          <TabsList className="bg-slate-100 p-1">
+            <TabsTrigger value="transacciones" className="data-[state=active]:bg-white shadow-none border-none">
+              <History className="w-4 h-4 mr-2" />
+              Transacciones
+            </TabsTrigger>
+            <TabsTrigger value="deudas" className="data-[state=active]:bg-white shadow-none border-none">
+              <TrendingDown className="w-4 h-4 mr-2" />
+              Deudas Pendientes
+            </TabsTrigger>
+          </TabsList>
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
+              <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={activeTab === 'transacciones' ? loadPagos : loadDeudas}
+                  disabled={isGlobalBusy}
+                  className="bg-white border-slate-200"
+              >
+                  <RefreshCcw className={`w-4 h-4 ${(loading || loadingDeudas) ? 'animate-spin' : ''}`} />
+              </Button>
+              <UniversalExportButton
+                  module={activeTab === 'transacciones' ? "cobros" : "deudas_pendientes"}
+                  queryParams={{
+                      desde: dateRange.desde,
+                      hasta: dateRange.hasta,
+                      cliente_id: selectedClientFilter !== 'all' ? selectedClientFilter : undefined
+                  }}
+                  disabled={isGlobalBusy}
+              />
+              <Button
+                  onClick={() => setDrawerOpen(true)}
+                  disabled={isGlobalBusy}
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 px-6"
+              >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Registrar Cobro
+              </Button>
+          </div>
+        </div>
 
-      {/* --- HEADER & FILTERS --- */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="flex items-center gap-4 w-full md:w-auto">
+        {/* --- COMMON FILTERS --- */}
+        <div className="flex flex-col md:flex-row gap-4 items-center mb-6">
             <div className="relative flex-1 md:w-80">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
-                    placeholder="Buscar por cliente o referencia..."
+                    placeholder="Buscar cliente..."
                     className="pl-10 bg-white border-slate-200"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
+
+            {activeTab === 'deudas' && (
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Input
+                            type="date"
+                            className="pl-9 h-9 text-xs w-36 bg-white border-slate-200"
+                            value={dateRange.desde}
+                            onChange={e => setDateRange({...dateRange, desde: e.target.value})}
+                        />
+                    </div>
+                    <span className="text-slate-400">to</span>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Input
+                            type="date"
+                            className="pl-9 h-9 text-xs w-36 bg-white border-slate-200"
+                            value={dateRange.hasta}
+                            onChange={e => setDateRange({...dateRange, hasta: e.target.value})}
+                        />
+                    </div>
+                </div>
+            )}
+
             <Select value={selectedClientFilter} onValueChange={setSelectedClientFilter}>
                 <SelectTrigger className="w-[180px] bg-white border-slate-200">
                     <SelectValue placeholder="Filtrar por cliente" />
@@ -331,202 +448,308 @@ export default function CobrosPagosPage() {
             </Select>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-            <Button
-                variant="outline"
-                size="icon"
-                onClick={loadPagos}
-                disabled={isGlobalBusy}
-                className="bg-white border-slate-200"
-            >
-                <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-            <UniversalExportButton
-                module="cobros"
-                queryParams={{}}
-                disabled={isGlobalBusy}
-            />
-            <Button
-                onClick={() => setDrawerOpen(true)}
-                disabled={isGlobalBusy}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 px-6"
-            >
-                <Plus className="w-4 h-4 mr-2" />
-                Registrar Cobro
-            </Button>
-        </div>
-      </div>
+        <TabsContent value="transacciones" className="space-y-6 mt-0">
+            {/* --- STATS SUMMARY (Visual Flair) --- */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-white border-none shadow-sm overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
+                        <CreditCard className="w-12 h-12 text-blue-600" />
+                    </div>
+                    <CardContent className="p-6">
+                        <p className="text-sm font-medium text-slate-500 mb-1">Total Cobrado (Mes)</p>
+                        <h3 className="text-2xl font-bold text-slate-900">
+                            {formatCurrency(pagos.reduce((acc, p) => {
+                                const date = new Date(p.fecha_pago);
+                                const now = new Date();
+                                if(date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                                    return acc + Number(p.importe);
+                                }
+                                return acc;
+                            }, 0))}
+                        </h3>
+                    </CardContent>
+                </Card>
 
-      {/* --- STATS SUMMARY (Visual Flair) --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-white border-none shadow-sm overflow-hidden group">
-              <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
-                  <CreditCard className="w-12 h-12 text-blue-600" />
-              </div>
-              <CardContent className="p-6">
-                  <p className="text-sm font-medium text-slate-500 mb-1">Total Cobrado (Mes)</p>
-                  <h3 className="text-2xl font-bold text-slate-900">
-                      {formatCurrency(pagos.reduce((acc, p) => {
-                          const date = new Date(p.fecha_pago);
-                          const now = new Date();
-                          if(date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-                              return acc + Number(p.importe);
-                          }
-                          return acc;
-                      }, 0))}
-                  </h3>
-              </CardContent>
-          </Card>
+                <Card className="bg-white border-none shadow-sm overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
+                        <Clock className="w-12 h-12 text-amber-500" />
+                    </div>
+                    <CardContent className="p-6">
+                        <p className="text-sm font-medium text-slate-500 mb-1">Cobros Recientes</p>
+                        <h3 className="text-2xl font-bold text-slate-900">
+                            {pagos.slice(0, 5).length} <span className="text-sm font-normal text-slate-400">esta semana</span>
+                        </h3>
+                    </CardContent>
+                </Card>
 
-          <Card className="bg-white border-none shadow-sm overflow-hidden group">
-              <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
-                  <Clock className="w-12 h-12 text-amber-500" />
-              </div>
-              <CardContent className="p-6">
-                  <p className="text-sm font-medium text-slate-500 mb-1">Cobros Recientes</p>
-                  <h3 className="text-2xl font-bold text-slate-900">
-                      {pagos.slice(0, 5).length} <span className="text-sm font-normal text-slate-400">esta semana</span>
-                  </h3>
-              </CardContent>
-          </Card>
-
-          <Card className="bg-white border-none shadow-sm overflow-hidden group">
-              <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
-                  <User className="w-12 h-12 text-indigo-500" />
-              </div>
-              <CardContent className="p-6">
-                  <p className="text-sm font-medium text-slate-500 mb-1">Clientes Activos</p>
-                  <h3 className="text-2xl font-bold text-slate-900">
-                      {new Set(pagos.map(p => p.cliente_id)).size} <span className="text-sm font-normal text-slate-400">con pagos</span>
-                  </h3>
-              </CardContent>
-          </Card>
-      </div>
-
-      {/* --- LISTADO DE PAGOS --- */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            <div className="col-span-3">Cliente</div>
-            <div className="col-span-2">Fecha</div>
-            <div className="col-span-2">Método</div>
-            <div className="col-span-2 text-right">Importe</div>
-            <div className="col-span-2 text-right">Referencia</div>
-            <div className="col-span-1 text-right">Acciones</div>
-        </div>
-
-        {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                <p className="text-sm text-slate-500 animate-pulse">Cargando transacciones...</p>
+                <Card className="bg-white border-none shadow-sm overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
+                        <User className="w-12 h-12 text-indigo-500" />
+                    </div>
+                    <CardContent className="p-6">
+                        <p className="text-sm font-medium text-slate-500 mb-1">Clientes Activos</p>
+                        <h3 className="text-2xl font-bold text-slate-900">
+                            {new Set(pagos.map(p => p.cliente_id)).size} <span className="text-sm font-normal text-slate-400">con pagos</span>
+                        </h3>
+                    </CardContent>
+                </Card>
             </div>
-        ) : filteredPagos.length === 0 ? (
-            <div className="p-20 text-center flex flex-col items-center justify-center gap-4">
-                <div className="p-4 bg-slate-100 rounded-full">
-                    <AlertCircle className="w-8 h-8 text-slate-400" />
+
+            {/* --- LISTADO DE PAGOS --- */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <div className="col-span-3">Cliente</div>
+                    <div className="col-span-2">Fecha</div>
+                    <div className="col-span-2">Método</div>
+                    <div className="col-span-2 text-right">Importe</div>
+                    <div className="col-span-2 text-right">Referencia</div>
+                    <div className="col-span-1 text-right">Acciones</div>
                 </div>
-                <div>
-                    <p className="text-lg font-semibold text-slate-900">No se encontraron cobros</p>
-                    <p className="text-sm text-slate-500">Prueba a cambiar los filtros o registra un nuevo cobro.</p>
+
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-3">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        <p className="text-sm text-slate-500 animate-pulse">Cargando transacciones...</p>
+                    </div>
+                ) : filteredPagos.length === 0 ? (
+                    <div className="p-20 text-center flex flex-col items-center justify-center gap-4">
+                        <div className="p-4 bg-slate-100 rounded-full">
+                            <AlertCircle className="w-8 h-8 text-slate-400" />
+                        </div>
+                        <div>
+                            <p className="text-lg font-semibold text-slate-900">No se encontraron cobros</p>
+                            <p className="text-sm text-slate-500">Prueba a cambiar los filtros o registra un nuevo cobro.</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-slate-100">
+                        <AnimatePresence>
+                            {filteredPagos.map((pago, index) => (
+                                <motion.div
+                                    key={pago.id}
+                                    initial={{ opacity: 0, y: 5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50/80 transition-all group"
+                                >
+                                    <div className="col-span-12 md:col-span-3 flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                                            {pago.cliente_nombre?.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className="flex flex-col overflow-hidden">
+                                            <span className="font-semibold text-slate-900 text-sm truncate">{pago.cliente_nombre}</span>
+                                            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">ID: {pago.cliente_id}</span>
+                                        </div>
+                                        <span className="md:hidden ml-auto font-bold text-slate-900">{formatCurrency(pago.importe)}</span>
+                                    </div>
+
+                                    <div className="hidden md:block col-span-2 text-sm text-slate-600">
+                                        {format(new Date(pago.fecha_pago), "d MMM yyyy", { locale: es })}
+                                    </div>
+
+                                    <div className="hidden md:block col-span-2">
+                                        <Badge variant="outline" className="capitalize text-[10px] font-medium py-0 px-2 flex items-center gap-1.5 w-fit border-slate-200">
+                                            {getMethodIcon(pago.metodo)}
+                                            {pago.metodo}
+                                        </Badge>
+                                    </div>
+
+                                    <div className="hidden md:block col-span-2 text-right">
+                                        <span className="font-bold text-slate-900 text-base">{formatCurrency(pago.importe)}</span>
+                                    </div>
+
+                                    <div className="hidden md:block col-span-2 text-right text-xs text-slate-400 font-mono truncate">
+                                        {pago.referencia || "—"}
+                                    </div>
+
+                                    <div className="hidden md:flex col-span-1 justify-end">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isGlobalBusy}>
+                                                    <MoreVertical className="w-4 h-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                <DropdownMenuItem onClick={() => setPagoDetalleId(pago.id)}>
+                                                    <Eye className="w-4 h-4 mr-2" /> Ver Detalle
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                                                    onClick={() => setPagoToDelete(pago)}
+                                                >
+                                                    <X className="w-4 h-4 mr-2" /> Anular Cobro
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+
+                                    <div className="col-span-12 md:hidden flex items-center justify-between text-xs text-slate-500">
+                                        <span>{format(new Date(pago.fecha_pago), "d MMM yyyy", { locale: es })}</span>
+                                        <Badge variant="outline" className="capitalize text-[10px] font-medium py-0 px-2 flex items-center gap-1.5 w-fit border-slate-200">
+                                            {getMethodIcon(pago.metodo)}
+                                            {pago.metodo}
+                                        </Badge>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isGlobalBusy}>
+                                                    <MoreVertical className="w-4 h-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => setPagoDetalleId(pago.id)}>
+                                                    <Eye className="w-4 h-4 mr-2" /> Ver Detalle
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                                                    onClick={() => setPagoToDelete(pago)}
+                                                >
+                                                    <X className="w-4 h-4 mr-2" /> Anular Cobro
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+                )}
+            </div>
+        </TabsContent>
+
+        <TabsContent value="deudas" className="space-y-6 mt-0">
+            {/* Sumatorios de Deuda */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-white border-none shadow-sm overflow-hidden group">
+                    <CardContent className="p-6">
+                        <p className="text-sm font-medium text-slate-500 mb-1">Facturas Pendientes</p>
+                        <h3 className="text-2xl font-bold text-amber-600">
+                            {formatCurrency(deudas.reduce((acc, d) => acc + Number(d.deuda_facturas), 0))}
+                        </h3>
+                    </CardContent>
+                </Card>
+                <Card className="bg-white border-none shadow-sm overflow-hidden group">
+                    <CardContent className="p-6">
+                        <p className="text-sm font-medium text-slate-500 mb-1">Trabajos sin Facturar</p>
+                        <h3 className="text-2xl font-bold text-blue-600">
+                            {formatCurrency(deudas.reduce((acc, d) => acc + Number(d.deuda_trabajos), 0))}
+                        </h3>
+                    </CardContent>
+                </Card>
+                <Card className="bg-blue-600 border-none shadow-sm overflow-hidden group text-white">
+                    <CardContent className="p-6">
+                        <p className="text-sm font-medium text-blue-100 mb-1">Deuda Total Consolidada</p>
+                        <h3 className="text-2xl font-bold">
+                            {formatCurrency(deudas.reduce((acc, d) => acc + Number(d.deuda_total), 0))}
+                        </h3>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <div className="col-span-3 flex items-center cursor-pointer hover:text-slate-700" onClick={() => {
+                        const dir = sortConfig.key === 'cliente_nombre' && sortConfig.direction === 'asc' ? 'desc' : 'asc';
+                        setSortConfig({ key: 'cliente_nombre', direction: dir });
+                    }}>
+                        Cliente <ArrowUpDown className="w-3 h-3 ml-1" />
+                    </div>
+                    <div className="col-span-2 text-right cursor-pointer hover:text-slate-700" onClick={() => {
+                        const dir = sortConfig.key === 'deuda_facturas' && sortConfig.direction === 'asc' ? 'desc' : 'asc';
+                        setSortConfig({ key: 'deuda_facturas', direction: dir });
+                    }}>
+                        Facturas <ArrowUpDown className="w-3 h-3 ml-1 inline" />
+                    </div>
+                    <div className="col-span-2 text-right cursor-pointer hover:text-slate-700" onClick={() => {
+                        const dir = sortConfig.key === 'deuda_trabajos' && sortConfig.direction === 'asc' ? 'desc' : 'asc';
+                        setSortConfig({ key: 'deuda_trabajos', direction: dir });
+                    }}>
+                        Trabajos <ArrowUpDown className="w-3 h-3 ml-1 inline" />
+                    </div>
+                    <div className="col-span-2 text-right cursor-pointer hover:text-slate-700 font-bold" onClick={() => {
+                        const dir = sortConfig.key === 'deuda_total' && sortConfig.direction === 'asc' ? 'desc' : 'asc';
+                        setSortConfig({ key: 'deuda_total', direction: dir });
+                    }}>
+                        Total Pendiente <ArrowUpDown className="w-3 h-3 ml-1 inline" />
+                    </div>
+                    <div className="col-span-2 text-right">Última Actividad</div>
+                    <div className="col-span-1 text-right">Acción</div>
                 </div>
-            </div>
-        ) : (
-            <div className="divide-y divide-slate-100">
-                <AnimatePresence>
-                    {filteredPagos.map((pago, index) => (
-                        <motion.div
-                            key={pago.id}
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50/80 transition-all group"
-                        >
-                            <div className="col-span-12 md:col-span-3 flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                                    {pago.cliente_nombre?.charAt(0).toUpperCase()}
+
+                {loadingDeudas ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-3">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        <p className="text-sm text-slate-500">Consolidando deudas por cliente...</p>
+                    </div>
+                ) : deudas.length === 0 ? (
+                    <div className="p-20 text-center flex flex-col items-center justify-center gap-4">
+                        <div className="p-4 bg-green-50 rounded-full">
+                            <CheckCircle2 className="w-8 h-8 text-green-500" />
+                        </div>
+                        <div>
+                            <p className="text-lg font-semibold text-slate-900">¡Al día!</p>
+                            <p className="text-sm text-slate-500">No hay deudas pendientes para los filtros seleccionados.</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-slate-100">
+                        {[...deudas].sort((a,b) => {
+                            const valA = a[sortConfig.key];
+                            const valB = b[sortConfig.key];
+                            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                            return 0;
+                        }).filter(d => d.cliente_nombre.toLowerCase().includes(searchTerm.toLowerCase())).map((deuda, idx) => (
+                            <motion.div
+                                key={deuda.cliente_id}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.03 }}
+                                className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50/80 transition-all group text-sm"
+                            >
+                                <div className="col-span-12 md:col-span-3 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
+                                        {deuda.cliente_nombre?.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex flex-col truncate">
+                                        <span className="font-semibold text-slate-900">{deuda.cliente_nombre}</span>
+                                        <span className="text-[10px] text-slate-400 font-mono">#{deuda.cliente_codigo}</span>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col overflow-hidden">
-                                    <span className="font-semibold text-slate-900 text-sm truncate">{pago.cliente_nombre}</span>
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">ID: {pago.cliente_id}</span>
+                                <div className="hidden md:block col-span-2 text-right text-amber-600 font-medium">
+                                    {formatCurrency(deuda.deuda_facturas)}
                                 </div>
-                                {/* Mobile: show importe inline */}
-                                <span className="md:hidden ml-auto font-bold text-slate-900">{formatCurrency(pago.importe)}</span>
-                            </div>
-
-                            <div className="hidden md:block col-span-2 text-sm text-slate-600">
-                                {format(new Date(pago.fecha_pago), "d MMM yyyy", { locale: es })}
-                            </div>
-
-                            <div className="hidden md:block col-span-2">
-                                <Badge variant="outline" className="capitalize text-[10px] font-medium py-0 px-2 flex items-center gap-1.5 w-fit border-slate-200">
-                                    {getMethodIcon(pago.metodo)}
-                                    {pago.metodo}
-                                </Badge>
-                            </div>
-
-                            <div className="hidden md:block col-span-2 text-right">
-                                <span className="font-bold text-slate-900 text-base">{formatCurrency(pago.importe)}</span>
-                            </div>
-
-                            <div className="hidden md:block col-span-2 text-right text-xs text-slate-400 font-mono truncate">
-                                {pago.referencia || "—"}
-                            </div>
-
-                            <div className="hidden md:flex col-span-1 justify-end">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isGlobalBusy}>
-                                            <MoreVertical className="w-4 h-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => setPagoDetalleId(pago.id)}>
-                                            <Eye className="w-4 h-4 mr-2" /> Ver Detalle
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            className="text-red-600 focus:text-red-700 focus:bg-red-50"
-                                            onClick={() => setPagoToDelete(pago)}
-                                        >
-                                            <X className="w-4 h-4 mr-2" /> Anular Cobro
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-
-                            {/* Mobile row: date + method + actions */}
-                            <div className="col-span-12 md:hidden flex items-center justify-between text-xs text-slate-500">
-                                <span>{format(new Date(pago.fecha_pago), "d MMM yyyy", { locale: es })}</span>
-                                <Badge variant="outline" className="capitalize text-[10px] font-medium py-0 px-2 flex items-center gap-1.5 w-fit border-slate-200">
-                                    {getMethodIcon(pago.metodo)}
-                                    {pago.metodo}
-                                </Badge>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isGlobalBusy}>
-                                            <MoreVertical className="w-4 h-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => setPagoDetalleId(pago.id)}>
-                                            <Eye className="w-4 h-4 mr-2" /> Ver Detalle
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            className="text-red-600 focus:text-red-700 focus:bg-red-50"
-                                            onClick={() => setPagoToDelete(pago)}
-                                        >
-                                            <X className="w-4 h-4 mr-2" /> Anular Cobro
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
+                                <div className="hidden md:block col-span-2 text-right text-blue-600 font-medium">
+                                    {formatCurrency(deuda.deuda_trabajos)}
+                                </div>
+                                <div className="col-span-6 md:col-span-2 text-right font-black text-slate-900">
+                                    {formatCurrency(deuda.deuda_total)}
+                                </div>
+                                <div className="hidden md:block col-span-2 text-right text-xs text-slate-500">
+                                    {deuda.ultima_actividad ? format(new Date(deuda.ultima_actividad), "d MMM yyyy", { locale: es }) : '—'}
+                                </div>
+                                <div className="col-span-6 md:col-span-1 flex justify-end">
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 px-2"
+                                        onClick={() => {
+                                            setNewPay(prev => ({ ...prev, cliente_id: deuda.cliente_id.toString() }));
+                                            setDrawerOpen(true);
+                                        }}
+                                    >
+                                        COBRAR
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
             </div>
-        )}
-      </div>
+        </TabsContent>
+      </Tabs>
 
       {/* --- REGISTRAR PAGO DRAWER --- */}
       <AnimatePresence>
