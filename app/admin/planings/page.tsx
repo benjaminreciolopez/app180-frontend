@@ -73,7 +73,9 @@ export default function PlaningsPage() {
       // Si está desactivado, solo el empleado que sea el admin actual.
       let listaEmpleados = Array.isArray(employeesRes.data) ? employeesRes.data : [];
       if (!hasEmpleadosModule && user?.id) {
-        listaEmpleados = listaEmpleados.filter((emp: any) => emp.user_id === user.id);
+        listaEmpleados = listaEmpleados.filter((emp: any) => 
+          emp.user_id && String(emp.user_id) === String(user.id)
+        );
       }
       setEmpleados(listaEmpleados);
     } catch (err) {
