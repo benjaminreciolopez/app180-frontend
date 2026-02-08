@@ -280,6 +280,11 @@ export default function AdminCalendarioBase() {
         );
       }
       setEmpleados(lista);
+
+      // Si no hay módulo de empleados, forzar que el empleado activo sea el admin
+      if (!hasEmpleadosModule && lista.length > 0) {
+        setEmpleadoActivo(lista[0].id);
+      }
     } catch (e) {
       console.error("[DEBUG] Error fetching employees:", e);
       setEmpleados([]);
@@ -298,8 +303,8 @@ export default function AdminCalendarioBase() {
         params: {
           desde, hasta,
           empleado_id: empleadoActivo || undefined,
-          include_real: hasModule("fichajes") ? 1 : 0,
-          include_plan: hasModule("empleados") ? 1 : 0,
+          include_real: hasModule("fichajes") || !hasModule("empleados") ? 1 : 0,
+          include_plan: hasModule("empleados") || !hasModule("empleados") ? 1 : 0,
           include_ausencias: hasModule("ausencias") ? 1 : 0,
         },
       });
@@ -349,8 +354,13 @@ export default function AdminCalendarioBase() {
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
       if (e.tipo === "ausencia" && !hasModule("ausencias")) return false;
-      if (e.tipo === "jornada_real" && !hasModule("fichajes")) return false;
-      if (e.tipo === "jornada_plan" && !hasModule("empleados")) return false;
+      if (e.tipo === "jornada_real" && !hasModule("fichajes") && hasModule("empleados")) return false;
+      if (e.tipo === "jornada_plan" && !hasModule("empleados") && !e.empleado_id) return false;
+      
+      // Permitir explícitamente si es el propio admin (cuando el módulo de empleados está off)
+      if (!hasModule("empleados") && (e.tipo === "jornada_plan" || e.tipo === "jornada_real")) {
+        return true; 
+      }
       if (estadoFiltro !== "todos" && e.tipo === "ausencia") return e.estado === estadoFiltro;
       return true;
     });
