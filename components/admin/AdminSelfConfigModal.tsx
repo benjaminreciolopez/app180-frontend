@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import ShareInviteLinkModal from "./ShareInviteLinkModal";
-import AdminTemplateEditorModal from "./AdminTemplateEditorModal";
-import { User, Clock, Smartphone, Save, X, Send, Settings, Plus } from "lucide-react";
+import { User, Clock, Smartphone, Save, X, Send } from "lucide-react";
 
 interface AdminSelfConfigModalProps {
   isOpen: boolean;
@@ -26,8 +25,6 @@ export default function AdminSelfConfigModal({
   const [showShareModal, setShowShareModal] = useState(false);
   const [inviteData, setInviteData] = useState<any>(null);
   const [loadingInvite, setLoadingInvite] = useState(false);
-  
-  const [showEditorModal, setShowEditorModal] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -138,26 +135,16 @@ export default function AdminSelfConfigModal({
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Plantilla de Horario asignada</label>
-                    <div className="flex gap-2">
-                        <select
-                        className="flex-1 border rounded-lg px-4 py-3 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 outline-none transition"
-                        value={selectedPlantilla}
-                        onChange={(e) => setSelectedPlantilla(e.target.value)}
-                        >
-                        <option value="">Sin plantilla (No laborable)</option>
-                        {plantillas.map((p: any) => (
-                            <option key={p.id} value={p.id}>{p.nombre}</option>
-                        ))}
-                        </select>
-                        <button
-                            onClick={() => setShowEditorModal(true)}
-                            className="px-4 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition flex items-center gap-2 font-bold"
-                            title="Configurar horario detallado"
-                        >
-                            {selectedPlantilla ? <Settings size={18} /> : <Plus size={18} />}
-                            <span className="hidden sm:inline">{selectedPlantilla ? 'Editar' : 'Nuevo'}</span>
-                        </button>
-                    </div>
+                    <select
+                      className="w-full border rounded-lg px-4 py-3 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                      value={selectedPlantilla}
+                      onChange={(e) => setSelectedPlantilla(e.target.value)}
+                    >
+                      <option value="">Sin plantilla (No laborable)</option>
+                      {plantillas.map((p: any) => (
+                        <option key={p.id} value={p.id}>{p.nombre}</option>
+                      ))}
+                    </select>
                     <p className="text-xs text-muted-foreground italic">
                       Esta plantilla define cuándo "estás trabajando" en el calendario y reportes.
                     </p>
@@ -228,18 +215,6 @@ export default function AdminSelfConfigModal({
           inviteData={inviteData}
           empleadoId={adminData.id}
           tipo="nuevo"
-        />
-      )}
-
-      {showEditorModal && (
-        <AdminTemplateEditorModal 
-          isOpen={showEditorModal}
-          onClose={() => setShowEditorModal(false)}
-          plantillaId={selectedPlantilla}
-          onSaved={(newId) => {
-            loadData(); // Recargar lista de plantillas
-            if (newId) setSelectedPlantilla(newId);
-          }}
         />
       )}
     </>
