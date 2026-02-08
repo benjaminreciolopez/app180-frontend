@@ -166,8 +166,13 @@ export default function PlantillasPanel() {
     if (diaSel?.hora_fin) setDiaHoraFin(fromHHMMSS(diaSel.hora_fin));
     else setDiaHoraFin("18:00");
 
-    setDiaActivo(diaSel?.activo ?? true);
-  }, [diaSel?.id]);
+    if (diaSel) {
+      setDiaActivo(diaSel.activo ?? true);
+    } else {
+      // De lunes a viernes activo por defecto; S-D inactivo
+      setDiaActivo(diaSemanaSel <= 5);
+    }
+  }, [diaSel, diaSemanaSel]);
 
   // cuando cambias de día semanal -> cargar bloques del día
   useEffect(() => {
@@ -584,20 +589,36 @@ export default function PlantillasPanel() {
                 </div>
               </div>
 
-              <div className="flex gap-2 flex-wrap">
-                {DIAS.map((d) => (
-                  <button
-                    key={d.n}
-                    className={`px-3 py-2 rounded ${
-                      diaSemanaSel === d.n
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200"
-                    }`}
-                    onClick={() => setDiaSemanaSel(d.n)}
-                  >
-                    {d.label}
-                  </button>
-                ))}
+              <div className="flex gap-2 flex-wrap pb-2">
+                {DIAS.map((d) => {
+                  const configDia = detalle.dias.find((pd) => pd.dia_semana === d.n);
+                  const isActivo = configDia ? configDia.activo : d.n <= 5;
+                  
+                  return (
+                    <button
+                      key={d.n}
+                      className={`px-3 py-2 rounded flex flex-col items-center min-w-[65px] transition-all relative border-2 ${
+                        diaSemanaSel === d.n
+                          ? "bg-blue-600 border-blue-700 text-white shadow-md scale-105 z-10"
+                          : isActivo
+                          ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                          : "bg-gray-100 border-gray-200 text-gray-400 hover:bg-gray-200"
+                      }`}
+                      onClick={() => setDiaSemanaSel(d.n)}
+                    >
+                      {/* Indicador de activo */}
+                      {isActivo && (
+                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm group-hover:scale-110" title="Día Activo"></span>
+                      )}
+                      <span className="text-[10px] uppercase font-bold opacity-70">
+                        {d.label.slice(0, 3)}
+                      </span>
+                      <span className="font-bold text-sm">
+                        {d.label.charAt(0)}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
               {detalle && (
                 <>
