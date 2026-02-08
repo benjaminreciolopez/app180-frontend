@@ -45,24 +45,22 @@ export default function AdminTrabajosPage() {
 
   async function loadCatalogos() {
     try {
-      // Verificar si módulo empleados está activo
-      let fetchEmpleados = Promise.resolve({ data: [] } as any);
-      try {
-        const user = getUser() || {};
-        if (user.modulos?.empleados !== false) {
-          fetchEmpleados = api.get("/employees");
-        }
-      } catch {}
+      const user = getUser();
+      const hasEmpleadosModule = user?.modulos?.empleados !== false;
 
-      const results = await Promise.allSettled([
-        fetchEmpleados,
+      const [eRes, cRes] = await Promise.allSettled([
+        api.get("/employees"),
         api.get("/admin/clientes"), 
       ]);
 
-      const [eRes, cRes] = results;
-
       if (eRes.status === 'fulfilled' && Array.isArray(eRes.value.data)) {
-        setEmpleados(eRes.value.data);
+        let lista = eRes.value.data;
+        if (!hasEmpleadosModule && user?.id) {
+          lista = lista.filter((emp: any) => 
+            emp.user_id && String(emp.user_id) === String(user.id)
+          );
+        }
+        setEmpleados(lista);
       } else {
         setEmpleados([]);
       }

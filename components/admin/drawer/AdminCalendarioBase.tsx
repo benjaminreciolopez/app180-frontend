@@ -12,6 +12,7 @@ import esLocale from "@fullcalendar/core/locales/es";
 import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus } from "lucide-react";
 
 import { api } from "@/services/api";
+import { getUser } from "@/services/auth";
 import { colorFor } from "@/components/empleado/calendarioColors";
 import CalendarioLegend from "@/components/empleado/CalendarioLegend";
 
@@ -267,10 +268,18 @@ export default function AdminCalendarioBase() {
 
   async function loadEmpleados() {
     try {
-      console.log("[DEBUG] Fetching employees...");
+      const user = getUser();
+      const hasEmpleadosModule = user?.modulos?.empleados !== false;
+
       const res = await api.get("/employees");
-      console.log("[DEBUG] Employees res:", res.data);
-      setEmpleados(Array.isArray(res.data) ? res.data : []);
+      let lista = Array.isArray(res.data) ? res.data : [];
+
+      if (!hasEmpleadosModule && user?.id) {
+        lista = lista.filter((emp: any) => 
+          emp.user_id && String(emp.user_id) === String(user.id)
+        );
+      }
+      setEmpleados(lista);
     } catch (e) {
       console.error("[DEBUG] Error fetching employees:", e);
       setEmpleados([]);
@@ -321,8 +330,9 @@ export default function AdminCalendarioBase() {
   }
 
   useEffect(() => {
-    if (hasModule("empleados")) loadEmpleados();
-    else { setEmpleados([]); setEmpleadoActivo(""); }
+    // Siempre cargar empleados, la lógica de filtrado interna se encarga 
+    // de mostrar solo al admin si el módulo está desactivado.
+    loadEmpleados();
   }, [session]);
 
   useEffect(() => {
@@ -391,7 +401,7 @@ export default function AdminCalendarioBase() {
           Crear Planing
         </button>
 
-        {hasModule("ausencias") && (
+        {hasModule("ausencias") && hasModule("empleados") && (
           <button
             onClick={() => setOpenCrear(true)}
             className="w-full flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-full shadow-sm hover:shadow-md transition-shadow text-sm font-medium text-gray-700 font-medium"
@@ -442,7 +452,7 @@ export default function AdminCalendarioBase() {
     
       {/* ... rest of sidebar ... */}
       
-      {hasModule("ausencias") && (
+      {hasModule("ausencias") && hasModule("empleados") && (
         <div className="space-y-2 mt-4 pt-4 border-t border-gray-100">
           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2">Filtrar Ausencias</label>
           <div className="grid grid-cols-1 gap-1">
