@@ -51,6 +51,10 @@ export default function AdminTemplateEditorModal({
   const [diaActivo, setDiaActivo] = useState<boolean>(true);
   const [bloquesDia, setBloquesDia] = useState<Bloque[]>([]);
 
+  // Clonación
+  const [targetDays, setTargetDays] = useState<number[]>([]);
+  const [cloning, setCloning] = useState(false);
+
   const diaSel = useMemo(() => {
     return dias.find((d) => d.dia_semana === diaSemanaSel) ?? null;
   }, [dias, diaSemanaSel]);
@@ -182,6 +186,43 @@ export default function AdminTemplateEditorModal({
     }
   };
 
+  const handleClone = async () => {
+    if (!plantilla || targetDays.length === 0) return;
+    
+    setCloning(true);
+    try {
+      // Proceder a guardar el día actual primero para asegurar consistencia
+      await handleSaveDay();
+
+      // Clonar a cada día seleccionado
+      for (const dayN of targetDays) {
+        const resDia = await api.put(`/admin/plantillas/${plantilla.id}/dias/${dayN}`, {
+          hora_inicio: toHHMMSS(diaHoraInicio),
+          hora_fin: toHHMMSS(diaHoraFin),
+          activo: diaActivo
+        });
+        
+        await api.put(`/admin/plantillas/dias/${resDia.data.id}/bloques`, {
+          bloques: bloquesDia
+        });
+      }
+
+      showSuccess(`Horario copiado a ${targetDays.length} días`);
+      setTargetDays([]);
+      loadData(plantilla.id);
+    } catch (err: any) {
+      showError("Error al clonar el horario");
+    } finally {
+      setCloning(false);
+    }
+  };
+
+  const toggleTargetDay = (n: number) => {
+    setTargetDays(prev => 
+      prev.includes(n) ? prev.filter(d => d !== n) : [...prev, n]
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -292,6 +333,36 @@ export default function AdminTemplateEditorModal({
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Clonación Masiva */}
+                <div className="bg-indigo-50 dark:bg-indigo-950/20 rounded-2xl p-5 border border-indigo-100 dark:border-indigo-900/50">
+                  <div className="flex items-center gap-2 font-bold text-indigo-600 mb-3">
+                    <Plus size={18} />
+                    <span>Copiar este horario a otros días:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {DIAS.filter(d => d.n !== diaSemanaSel).map(d => (
+                      <button
+                        key={d.n}
+                        onClick={() => toggleTargetDay(d.n)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          targetDays.includes(d.n)
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white dark:bg-neutral-800 border-border text-muted-foreground hover:border-indigo-300"
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handleClone}
+                    disabled={targetDays.length === 0 || cloning}
+                    className="w-full py-2 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-30 transition hover:bg-indigo-700"
+                  >
+                    {cloning ? 'Copiando...' : `Aplicar a ${targetDays.length} días seleccionados`}
+                  </button>
                 </div>
 
                 {/* Bloques Editor */}
