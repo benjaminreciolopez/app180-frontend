@@ -41,7 +41,7 @@ export default function AdminSelfConfigModal({
       ]);
 
       const employees = empRes.data || [];
-      const me = employees.find((e: any) => String(e.id) === String(adminId));
+      const me = employees.find((e: any) => String(e.user_id) === String(adminId));
       
       setAdminData(me);
       setSelectedPlantilla(me?.plantilla_id || "");
@@ -61,7 +61,7 @@ export default function AdminSelfConfigModal({
       // Actualizar plantilla usando el endpoint de asignación
       if (selectedPlantilla !== adminData?.plantilla_id) {
         await api.post("/admin/plantillas/asignar", {
-          empleado_id: adminId,
+          empleado_id: adminData.id,
           plantilla_id: selectedPlantilla,
           fecha_inicio: new Date().toISOString().split('T')[0]
         });
@@ -80,7 +80,7 @@ export default function AdminSelfConfigModal({
   const handleGenerateInvite = async () => {
     setLoadingInvite(true);
     try {
-      const res = await api.post(`/admin/employees/${adminId}/invite`);
+      const res = await api.post(`/admin/employees/${adminData.id}/invite`);
       setInviteData({
         installUrl: res.data.installUrl,
         expires_at: res.data.expires_at,
@@ -123,6 +123,8 @@ export default function AdminSelfConfigModal({
           <div className="p-6 space-y-8 overflow-y-auto">
             {loading ? (
               <div className="py-20 text-center text-muted-foreground">Cargando tus datos...</div>
+            ) : !adminData ? (
+              <div className="py-20 text-center text-muted-foreground">No se encontró tu registro de empleado asociado a este usuario.</div>
             ) : (
               <>
                 {/* Jornada */}
@@ -206,12 +208,12 @@ export default function AdminSelfConfigModal({
         </div>
       </div>
 
-      {showShareModal && inviteData && (
+      {showShareModal && inviteData && adminData && (
         <ShareInviteLinkModal
           isOpen={showShareModal}
           onClose={() => setShowShareModal(false)}
           inviteData={inviteData}
-          empleadoId={adminId}
+          empleadoId={adminData.id}
           tipo="nuevo"
         />
       )}
