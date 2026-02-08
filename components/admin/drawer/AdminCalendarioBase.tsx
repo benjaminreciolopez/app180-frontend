@@ -174,14 +174,14 @@ function stringToColor(str: string): string {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
 
-  // Generar HSL
-  // H: Usar el hash para rotar por todo el espectro (0-360)
-  // S: Mantener saturación alta (65-85%) para que se vean vivos
-  // L: Mantener luminosidad media-alta (45-65%) para buen contraste con texto blanco o negro
+  // Generar HSL restringiendo el Hue (H)
+  // Rango total: 0-360
+  // Queremos evitar el ROJO (0-30 y 330-360) y NARANJA (30-50).
+  // Usaremos un rango desplazado: 100 - 320 (Verdes, Azules, Púrpuras)
   
-  const h = Math.abs(hash) % 360;
-  const s = 65 + (Math.abs(hash) % 20); // 65% - 85%
-  const l = 45 + (Math.abs(hash) % 20); // 45% - 65%
+  const h = 100 + (Math.abs(hash) % 220); 
+  const s = 60 + (Math.abs(hash) % 15); // 60% - 75% para no ser chillones
+  const l = 45 + (Math.abs(hash) % 15); // 45% - 60% para legibilidad
   
   return `hsl(${h}, ${s}%, ${l}%)`;
 }
