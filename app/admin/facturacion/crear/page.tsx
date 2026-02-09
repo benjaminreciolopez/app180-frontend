@@ -231,7 +231,7 @@ export default function CrearFacturaPage() {
     setLoadingTrabajos(true)
     try {
         // Usamos el listado que unifica deudas pero filtrando solo trabajos
-        const res = await api.get(`/admin/clientes/${cId}/trabajos-pendientes?include_paid=true`)
+        const res = await api.get(`/admin/clientes/${cId}/trabajos-pendientes`)
         const data = Array.isArray(res.data) ? res.data : []
         setTrabajosPendientes(data.filter((d: any) => d.tipo === 'trabajo'))
     } catch (err) {
