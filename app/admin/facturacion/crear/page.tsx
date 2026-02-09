@@ -16,7 +16,8 @@ import {
   Loader2,
   CreditCard,
   MessageSquare,
-  FileText
+  FileText,
+  Merge
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -428,6 +429,65 @@ export default function CrearFacturaPage() {
     )
   }
 
+  // --- UNIFICATION LOGIC ---
+  const handleUnifyTrabajos = () => {
+    const selectedData = trabajosPendientes.filter(t => selectedTrabajos.includes(t.id))
+    if (selectedData.length < 2) return
+
+    // 1. Check consistency
+    const allSameType = selectedData.every(t => t.tipo_facturacion === selectedData[0].tipo_facturacion)
+    const type = allSameType ? selectedData[0].tipo_facturacion : 'mixed'
+
+    let newLine: Linea = {
+        id: Date.now(),
+        descripcion: "",
+        cantidad: 1,
+        precio_unitario: 0,
+        iva: ivaGlobal || 21,
+        // No asignamos work_log_id individual aquí, sino que manejamos la asociación al guardar
+        // usando selectedTrabajos que YA contiene los IDs.
+    }
+
+    if (allSameType && (type === 'hora' || type === 'dia' || type === 'mes')) {
+        // Sumar cantidades
+        const totalMinutos = selectedData.reduce((acc, t) => acc + (t.minutos || 0), 0)
+        const totalValor = selectedData.reduce((acc, t) => acc + Number(t.valor), 0)
+        
+        // Calcular cantidad según tipo
+        let cantidad = 0
+        if (type === 'hora') cantidad = totalMinutos / 60
+        else if (type === 'dia') cantidad = totalMinutos / (60 * 8) // Asumiendo 8h jornada
+        else if (type === 'mes') cantidad = 1 // Mes suele ser 1, pero si son varios meses... mejor 1 y precio total?
+        
+        // Si es mes, o si la cantidad es 0 (ej: valorados sin tiempo), fallback a cantidad 1
+        if (cantidad === 0 || type === 'mes') cantidad = 1
+
+        newLine.cantidad = Number(cantidad.toFixed(2))
+        newLine.precio_unitario = cantidad > 0 ? Number((totalValor / cantidad).toFixed(2)) : totalValor
+        
+        // Descripción
+        const fechas = selectedData.map(t => format(new Date(t.fecha), 'dd/MM')).join(', ')
+        newLine.descripcion = `Agrupación de partes (${selectedData.length}) [${type}]: ${fechas}. ${selectedData[0].descripcion}...`
+    } else {
+        // Heterogéneo o Valorado -> Sumar importes
+        const totalValor = selectedData.reduce((acc, t) => acc + Number(t.valor), 0)
+        newLine.cantidad = 1
+        newLine.precio_unitario = Number(totalValor.toFixed(2))
+        
+        const descripciones = selectedData.map(t => t.descripcion).join(' + ')
+        newLine.descripcion = `Agrupación de trabajos: ${descripciones.substring(0, 100)}${descripciones.length > 100 ? '...' : ''}`
+    }
+
+    // Añadir línea
+    if (lineas.length === 1 && !lineas[0].descripcion && lineas[0].precio_unitario === 0) {
+        setLineas([newLine])
+    } else {
+        setLineas([...lineas, newLine])
+    }
+
+    toast.success("Trabajos unificados en una línea editable")
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
       
@@ -563,6 +623,9 @@ export default function CrearFacturaPage() {
                                         <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
                                             <span>{format(new Date(t.fecha), 'd MMM')}</span>
                                             <span className="text-blue-700 font-bold">{formatCurrency(t.valor)}</span>
+                                            {t.tipo_facturacion && (
+                                              <span className="text-xs text-slate-400 ml-1">({t.tipo_facturacion})</span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -570,10 +633,16 @@ export default function CrearFacturaPage() {
                         })}
                     </div>
                     {selectedTrabajos.length > 0 && (
-                        <div className="mt-4 flex justify-end">
+                        <div className="mt-4 flex justify-end gap-2">
+                            {selectedTrabajos.length > 1 && (
+                                <Button size="sm" onClick={handleUnifyTrabajos} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6">
+                                    <Merge className="w-4 h-4 mr-2" />
+                                    UNIFICAR SELECCIONADOS
+                                </Button>
+                            )}
                             <Button size="sm" onClick={handleImportTrabajos} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6">
                                 <Plus className="w-4 h-4 mr-2" /> 
-                                IMPORTAR {selectedTrabajos.length} SELECCIONADOS
+                                IMPORTAR INDIVIDUALMENTE
                             </Button>
                         </div>
                     )}
