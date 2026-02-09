@@ -52,7 +52,11 @@ export default function AdminLayout({
       // getUser ya devuelve el objeto parseado, no strings
 
       // Detectar si estamos en móvil PWA para usar módulos móviles
-      const useMobile = isMobileDevice() && isStandalone();
+      // FIX: Añadimos chequeo de ancho de pantalla. Si es ancho escritorio (> 1024), forzamos NO usar config móvil
+      // aunque el UA diga que es móvil (falsos positivos o tablets en landscape).
+      const isSmallScreen = window.innerWidth < 1024;
+      const useMobile = isMobileDevice() && isStandalone() && isSmallScreen;
+      
       const activeModulos = (useMobile && user.modulos_mobile)
         ? user.modulos_mobile
         : (user.modulos || {});
