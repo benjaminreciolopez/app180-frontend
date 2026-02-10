@@ -68,6 +68,15 @@ export default function LoginClient() {
   }, [router]);
 
   useEffect(() => {
+    // Check for session expired flag
+    if (localStorage.getItem("session_expired") === "true") {
+      localStorage.removeItem("session_expired");
+      // Use setTimeout to ensure toast library is ready/mounted
+      setTimeout(() => {
+        showError("Tu sesión ha caducado. Por favor inicia sesión nuevamente.");
+      }, 500);
+    }
+    
     // Initialize Google Identity Services
     const initGoogle = () => {
       if (window.google?.accounts?.id) {

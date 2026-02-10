@@ -28,6 +28,10 @@ function clearSession() {
   localStorage.removeItem("user");
   sessionStorage.removeItem("token");
   sessionStorage.removeItem("user");
+  
+  // Flag para mostrar mensaje en Login
+  localStorage.setItem("session_expired", "true");
+  
   window.location.href = "/login";
 }
 
