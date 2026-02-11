@@ -338,11 +338,11 @@ export default function TableTrabajos({
   // Totales de la selección actual
   // OJO: Totalizar minutos mixtos (hora/dia/mes) puede ser confuso. 
   // Mostramos horas totales como conversión base para tener una referencia.
-  const totalMin = processedItems.reduce((acc, curr) => acc + (curr.minutos || 0), 0);
+  const totalMin = processedItems.reduce((acc, curr) => acc + Number(curr.minutos || 0), 0);
   const totalHoras = (totalMin / 60).toFixed(2);
   
   // Totales valor (sumar si hay precios)
-  const totalValor = processedItems.reduce((acc, curr) => acc + (curr.valor || 0), 0);
+  const totalValor = processedItems.reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
 
   return (
     <div className="space-y-3">
@@ -392,14 +392,14 @@ export default function TableTrabajos({
                        const isPaidExpanded = expandedPaidGroups[clienteName] || false;
                        
                        // Group Totals
-                       const groupTotalMin = group.all.reduce((acc, curr) => acc + (curr.minutos || 0), 0);
+                       const groupTotalMin = group.all.reduce((acc, curr) => acc + Number(curr.minutos || 0), 0);
                        const groupTotalHoras = (groupTotalMin / 60).toFixed(2);
-                       const groupTotalValor = group.all.reduce((acc, curr) => acc + (curr.valor || 0), 0);
+                       const groupTotalValor = group.all.reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
 
                        // Pending Totals
-                       const pendingTotalMin = group.pending.reduce((acc, curr) => acc + (curr.minutos || 0), 0);
+                       const pendingTotalMin = group.pending.reduce((acc, curr) => acc + Number(curr.minutos || 0), 0);
                        const pendingTotalHoras = (pendingTotalMin / 60).toFixed(2);
-                       const pendingTotalValor = group.pending.reduce((acc, curr) => acc + (curr.valor || 0), 0);
+                       const pendingTotalValor = group.pending.reduce((acc, curr) => acc + Number(curr.valor || 0), 0);
 
 
                        return (
