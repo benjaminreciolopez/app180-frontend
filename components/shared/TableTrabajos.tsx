@@ -87,6 +87,8 @@ export default function TableTrabajos({
   const [sortAsc, setSortAsc] = useState(false); // default desc (mas reciente primero)
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
+  const [expandedPaidGroups, setExpandedPaidGroups] = useState<Record<string, boolean>>({});
+
   // Cargar preferencia orden de localStorage
   useEffect(() => {
     try {
@@ -133,14 +135,16 @@ export default function TableTrabajos({
     }));
   };
 
+  const togglePaidGroup = (groupKey: string) => {
+    setExpandedPaidGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
+    }));
+  };
+
   // Filtrado, ordenado y agrupación
   const { processedItems, groupedItems } = useMemo(() => {
     let filtered = [...items];
-
-    // 0. Pre-filter by status if grouping is enabled (PENDING ONLY)
-    if (enableGrouping) {
-        filtered = filtered.filter(item => item.estado_pago !== 'pagado');
-    }
 
     // 1. Filtrar global search
     if (search.trim()) {
@@ -185,14 +189,25 @@ export default function TableTrabajos({
     });
 
     // 3. Agrupar si es necesario
-    let groups: Record<string, WorkLogItem[]> = {};
+    let groups: Record<string, { pending: WorkLogItem[], paid: WorkLogItem[], all: WorkLogItem[] }> = {};
+    
     if (enableGrouping) {
       groups = filtered.reduce((acc, item) => {
         const key = item.cliente_nombre || "Sin Cliente";
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(item);
+        if (!acc[key]) {
+            acc[key] = { pending: [], paid: [], all: [] };
+        }
+        
+        acc[key].all.push(item);
+        
+        if (item.estado_pago === 'pagado') {
+            acc[key].paid.push(item);
+        } else {
+            acc[key].pending.push(item);
+        }
+        
         return acc;
-      }, {} as Record<string, WorkLogItem[]>);
+      }, {} as Record<string, { pending: WorkLogItem[], paid: WorkLogItem[], all: WorkLogItem[] }>);
     }
 
     return { processedItems: filtered, groupedItems: groups };
@@ -217,7 +232,7 @@ export default function TableTrabajos({
 
   // Row render helper
   const renderRow = (it: WorkLogItem) => (
-      <tr key={it.id} className="hover:bg-gray-50 border-b last:border-0">
+      <tr key={it.id} className="hover:bg-gray-50 border-b last:border-0 transition-colors">
         <td className="p-3 whitespace-nowrap">
           {new Date(it.fecha).toLocaleDateString("es-ES")}
         </td>
@@ -305,6 +320,21 @@ export default function TableTrabajos({
       </tr>
   );
 
+  const renderTableHeader = () => (
+        <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-medium">
+            <tr>
+                <Th label="Fecha" col="fecha" />
+                {isAdmin && <Th label="Empleado" col="empleado_nombre" />}
+                {!enableGrouping && <Th label="Cliente" col="cliente_nombre" />}
+                <Th label="Duración" col="minutos" />
+                <Th label="Valor" col="valor" />
+                <Th label="Estado" col="estado_pago" />
+                <Th label="Descripción" col="descripcion" />
+                <th className="p-3 text-right">Acciones</th>
+            </tr>
+        </thead>
+  );
+
   // Totales de la selección actual
   // OJO: Totalizar minutos mixtos (hora/dia/mes) puede ser confuso. 
   // Mostramos horas totales como conversión base para tener una referencia.
@@ -333,11 +363,6 @@ export default function TableTrabajos({
         </div>
 
         <div className="text-sm text-gray-600 font-medium flex gap-4">
-             {enableGrouping && (
-                 <span className="text-xs text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded">
-                     Solo pendientes
-                 </span>
-             )}
             <span>
                 {processedItems.length} registros
             </span>
@@ -358,57 +383,106 @@ export default function TableTrabajos({
            <div className="space-y-2">
                {Object.keys(groupedItems).length === 0 ? (
                     <div className="p-8 text-center text-gray-500 bg-white rounded-lg border">
-                        No hay trabajos pendientes {search && "que coincidan con la búsqueda"}
+                        No hay trabajos {search && "que coincidan con la búsqueda"}
                     </div>
                ) : (
                    Object.keys(groupedItems).map(clienteName => {
-                       const groupItems = groupedItems[clienteName];
+                       const group = groupedItems[clienteName];
                        const isExpanded = expandedGroups[clienteName] || false;
-                       const groupTotalMin = groupItems.reduce((acc, curr) => acc + (curr.minutos || 0), 0);
+                       const isPaidExpanded = expandedPaidGroups[clienteName] || false;
+                       
+                       // Group Totals
+                       const groupTotalMin = group.all.reduce((acc, curr) => acc + (curr.minutos || 0), 0);
                        const groupTotalHoras = (groupTotalMin / 60).toFixed(2);
-                       const groupTotalValor = groupItems.reduce((acc, curr) => acc + (curr.valor || 0), 0);
+                       const groupTotalValor = group.all.reduce((acc, curr) => acc + (curr.valor || 0), 0);
+
+                       // Pending Totals
+                       const pendingTotalMin = group.pending.reduce((acc, curr) => acc + (curr.minutos || 0), 0);
+                       const pendingTotalHoras = (pendingTotalMin / 60).toFixed(2);
+                       const pendingTotalValor = group.pending.reduce((acc, curr) => acc + (curr.valor || 0), 0);
+
 
                        return (
-                           <div key={clienteName} className="bg-white border rounded-lg overflow-hidden">
+                           <div key={clienteName} className="bg-white border rounded-lg overflow-hidden shadow-sm">
                                <div 
-                                   className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 cursor-pointer select-none transition-colors"
+                                   className="flex items-center justify-between p-3 bg-white hover:bg-gray-50 cursor-pointer select-none transition-colors border-l-4 border-l-transparent hover:border-l-blue-500"
                                    onClick={() => toggleGroup(clienteName)}
                                >
                                    <div className="flex items-center gap-3">
-                                       {isExpanded ? <ChevronDown size={18} className="text-gray-500"/> : <ChevronRight size={18} className="text-gray-500"/>}
+                                       {isExpanded ? <ChevronDown size={18} className="text-gray-400"/> : <ChevronRight size={18} className="text-gray-400"/>}
                                        <span className="font-semibold text-gray-800">{clienteName}</span>
-                                       <span className="text-xs bg-white border px-2 py-0.5 rounded-full text-gray-600 font-medium">
-                                           {groupItems.length}
+                                       <span className="text-xs bg-gray-100 border px-2 py-0.5 rounded-full text-gray-600 font-medium">
+                                           {group.all.length}
                                        </span>
                                    </div>
-                                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                                         <span>{groupTotalHoras} h</span>
-                                         {groupTotalValor > 0 && (
-                                             <span className="font-medium text-gray-900">{groupTotalValor.toFixed(2)}€</span>
+                                    <div className="flex items-center gap-6 text-sm text-gray-500">
+                                         {/* Show Pending Highlight */}
+                                         {group.pending.length > 0 && (
+                                            <div className="flex items-center gap-2 text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded">
+                                                <span>{group.pending.length} Pendientes</span>
+                                                <span className="opacity-75">({pendingTotalValor.toFixed(2)}€)</span>
+                                            </div>
                                          )}
+                                         
+                                         <div className="flex items-center gap-2">
+                                            <span>{groupTotalHoras} h</span>
+                                            {groupTotalValor > 0 && (
+                                                <span className="font-semibold text-gray-900">{groupTotalValor.toFixed(2)}€</span>
+                                            )}
+                                         </div>
                                     </div>
                                </div>
                                
                                {isExpanded && (
-                                   <div className="border-t">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-sm">
-                                                <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-medium">
-                                                    <tr>
-                                                        <Th label="Fecha" col="fecha" />
-                                                        {isAdmin && <Th label="Empleado" col="empleado_nombre" />}
-                                                        <Th label="Duración" col="minutos" />
-                                                        <Th label="Valor" col="valor" />
-                                                        <Th label="Estado" col="estado_pago" />
-                                                        <Th label="Descripción" col="descripcion" />
-                                                        <th className="p-3 text-right">Acciones</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y">
-                                                    {groupItems.map(renderRow)}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                   <div className="border-t animate-in fade-in zoom-in-95 duration-200">
+                                        {/* Pending Jobs Table */}
+                                        {group.pending.length > 0 && (
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm">
+                                                    {renderTableHeader()}
+                                                    <tbody className="divide-y">
+                                                        {group.pending.map(renderRow)}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+
+                                        {/* Paid Jobs Toggle */}
+                                        {group.paid.length > 0 && (
+                                            <div className="border-t bg-gray-50">
+                                                <div 
+                                                    className="flex items-center justify-between p-2 px-4 cursor-pointer hover:bg-gray-100 text-xs font-medium text-gray-500 uppercase tracking-wider select-none"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        togglePaidGroup(clienteName);
+                                                    }}
+                                                >
+                                                   <div className="flex items-center gap-2">
+                                                        {isPaidExpanded ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
+                                                        <span>Ver {group.paid.length} trabajos pagados / cerrados</span>
+                                                   </div>
+                                                </div>
+                                                
+                                                {isPaidExpanded && (
+                                                    <div className="border-t border-gray-100 bg-gray-50/50">
+                                                         <div className="overflow-x-auto opacity-75">
+                                                            <table className="w-full text-sm">
+                                                                {renderTableHeader()}
+                                                                <tbody className="divide-y divide-gray-200">
+                                                                    {group.paid.map(renderRow)}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        
+                                        {group.all.length === 0 && (
+                                             <div className="p-4 text-center text-gray-500 text-sm">
+                                                 No hay trabajos visibles en este grupo.
+                                             </div>
+                                        )}
                                    </div>
                                )}
                            </div>
@@ -421,18 +495,7 @@ export default function TableTrabajos({
             <div className="bg-white border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                    <thead className="bg-gray-100 border-b">
-                    <tr>
-                        <Th label="Fecha" col="fecha" />
-                        {isAdmin && <Th label="Empleado" col="empleado_nombre" />}
-                        <Th label="Cliente" col="cliente_nombre" />
-                        <Th label="Duración" col="minutos" />
-                        <Th label="Valor" col="valor" />
-                        <Th label="Estado" col="estado_pago" />
-                        <Th label="Descripción" col="descripcion" />
-                        <th className="p-3 text-right">Acciones</th>
-                    </tr>
-                    </thead>
+                    {renderTableHeader()}
                     <tbody className="divide-y">
                     {processedItems.length === 0 ? (
                         <tr>

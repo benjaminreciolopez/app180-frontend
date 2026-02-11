@@ -26,6 +26,7 @@ export default function AdminTrabajosPage() {
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'clone'>('create');
   const [selectedItem, setSelectedItem] = useState<WorkLogItem | null>(null);
+  const [isGrouped, setIsGrouped] = useState(true); // Default grouped view
 
   async function loadData() {
     setLoading(true);
@@ -144,6 +145,14 @@ export default function AdminTrabajosPage() {
             />
           </div>
           
+           <button 
+             onClick={() => setIsGrouped(!isGrouped)}
+             className={`px-3 py-2 border rounded-lg text-xs font-medium transition-colors ${isGrouped ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+             title={isGrouped ? "Cambiar a vista de lista" : "Cambiar a vista agrupada"}
+           >
+             {isGrouped ? "Agrupado" : "Lista"}
+           </button>
+
           {(desde || hasta) && (
             <button 
               onClick={() => { setDesde(""); setHasta(""); }}
@@ -201,7 +210,7 @@ export default function AdminTrabajosPage() {
         <TableTrabajos 
           items={items} 
           isAdmin={true} 
-          enableGrouping={true} // Enable grouping by client
+          enableGrouping={isGrouped} 
           onDelete={handleDelete}
           onEdit={handleEdit}
           onClone={handleClone}
