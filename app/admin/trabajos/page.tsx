@@ -201,6 +201,7 @@ export default function AdminTrabajosPage() {
         <TableTrabajos 
           items={items} 
           isAdmin={true} 
+          enableGrouping={true} // Enable grouping by client
           onDelete={handleDelete}
           onEdit={handleEdit}
           onClone={handleClone}

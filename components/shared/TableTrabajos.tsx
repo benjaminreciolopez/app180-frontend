@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { ArrowDown, ArrowUp, Search, Edit, Trash2, Copy, Info, CreditCard } from "lucide-react";
+import { ArrowDown, ArrowUp, Search, Edit, Trash2, Copy, Info, CreditCard, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 export type WorkLogItem = {
@@ -40,6 +40,7 @@ type ColKey =
 type Props = {
   items: WorkLogItem[];
   isAdmin?: boolean;
+  enableGrouping?: boolean; // New prop for grouping
   onEdit?: (item: WorkLogItem) => void;
   onDelete?: (id: string) => void;
   onClone?: (item: WorkLogItem) => void;
@@ -76,6 +77,7 @@ function formatDuracion(item: WorkLogItem) {
 export default function TableTrabajos({ 
   items, 
   isAdmin = false,
+  enableGrouping = false,
   onEdit,
   onDelete,
   onClone
@@ -83,6 +85,7 @@ export default function TableTrabajos({
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<ColKey>("fecha");
   const [sortAsc, setSortAsc] = useState(false); // default desc (mas reciente primero)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   // Cargar preferencia orden de localStorage
   useEffect(() => {
@@ -123,14 +126,26 @@ export default function TableTrabajos({
     );
   }
 
-  // Filtrado y ordenado
-  const processed = useMemo(() => {
-    let res = [...items];
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
+    }));
+  };
+
+  // Filtrado, ordenado y agrupación
+  const { processedItems, groupedItems } = useMemo(() => {
+    let filtered = [...items];
+
+    // 0. Pre-filter by status if grouping is enabled (PENDING ONLY)
+    if (enableGrouping) {
+        filtered = filtered.filter(item => item.estado_pago !== 'pagado');
+    }
 
     // 1. Filtrar global search
     if (search.trim()) {
       const q = search.toLowerCase();
-      res = res.filter((it) => {
+      filtered = filtered.filter((it) => {
         const match = [
           it.descripcion,
           it.empleado_nombre,
@@ -146,7 +161,7 @@ export default function TableTrabajos({
     }
 
     // 2. Ordenar
-    res.sort((a, b) => {
+    filtered.sort((a, b) => {
       let valA = a[sortCol];
       let valB = b[sortCol];
 
@@ -169,8 +184,19 @@ export default function TableTrabajos({
       return 0;
     });
 
-    return res;
-  }, [items, search, sortCol, sortAsc]);
+    // 3. Agrupar si es necesario
+    let groups: Record<string, WorkLogItem[]> = {};
+    if (enableGrouping) {
+      groups = filtered.reduce((acc, item) => {
+        const key = item.cliente_nombre || "Sin Cliente";
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(item);
+        return acc;
+      }, {} as Record<string, WorkLogItem[]>);
+    }
+
+    return { processedItems: filtered, groupedItems: groups };
+  }, [items, search, sortCol, sortAsc, enableGrouping]);
 
   // Render header helper
   function Th({ label, col }: { label: string; col: ColKey }) {
@@ -189,17 +215,111 @@ export default function TableTrabajos({
     );
   }
 
+  // Row render helper
+  const renderRow = (it: WorkLogItem) => (
+      <tr key={it.id} className="hover:bg-gray-50 border-b last:border-0">
+        <td className="p-3 whitespace-nowrap">
+          {new Date(it.fecha).toLocaleDateString("es-ES")}
+        </td>
+        {isAdmin && (
+          <td className="p-3 font-medium">
+            {it.empleado_nombre}
+          </td>
+        )}
+        {!enableGrouping && (
+             <td className="p-3">
+             {it.cliente_nombre ? (
+               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                 {it.cliente_nombre}
+               </span>
+             ) : (
+               "—"
+             )}
+           </td>
+        )}
+        <td className="p-3 font-mono font-medium whitespace-nowrap">
+          {formatDuracion(it)}
+        </td>
+        <td className="p-3 font-mono text-xs">
+            {it.valor ? `${Number(it.valor).toFixed(2)}€` : '—'}
+        </td>
+        <td className="p-3">
+            {it.valor ? (
+                  <span className={`px-2 py-1 rounded text-xs capitalize 
+                    ${it.estado_pago === 'pagado' ? 'bg-green-100 text-green-800' : 
+                      it.estado_pago === 'parcial' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                    {it.estado_pago || 'pendiente'}
+                  </span>
+            ) : (
+                <span className="text-gray-300 text-xs">—</span>
+            )}
+        </td>
+          <td className="p-3 max-w-md truncate text-gray-600" title={it.descripcion + (it.detalles ? "\n\nDetalles:\n" + it.detalles : "")}>
+            <div className="flex items-center gap-1">
+              {it.descripcion}
+              {it.detalles && (
+                <Info size={14} className="text-blue-400 shrink-0" />
+              )}
+            </div>
+        </td>
+        <td className="p-3 text-right whitespace-nowrap">
+          <div className="flex items-center justify-end gap-1">
+            <button 
+              onClick={() => onClone?.(it)}
+              title="Clonar Trabajo"
+              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              <Copy size={16} />
+            </button>
+            <button 
+              onClick={() => onEdit?.(it)}
+              disabled={it.pagado != null && it.pagado > 0}
+              title={it.pagado! > 0 ? "No se puede editar un trabajo pagado. Elimina el pago primero." : "Editar"}
+              className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <Edit size={16} />
+            </button>
+            <button 
+              onClick={() => {
+                if (confirm("¿Seguro que deseas eliminar este trabajo?")) {
+                  onDelete?.(it.id);
+                }
+              }}
+              disabled={it.pagado != null && it.pagado > 0}
+              title={it.pagado! > 0 ? "No se puede eliminar un trabajo pagado. Elimina el pago primero." : "Eliminar"}
+              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <Trash2 size={16} />
+            </button>
+            {isAdmin && it.pagado! > 0 && (
+              <Link
+                href="/admin/cobros-pagos"
+                title="Ver pagos para gestionar este registro"
+                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+              >
+                <CreditCard size={16} />
+              </Link>
+            )}
+          </div>
+        </td>
+      </tr>
+  );
+
   // Totales de la selección actual
   // OJO: Totalizar minutos mixtos (hora/dia/mes) puede ser confuso. 
   // Mostramos horas totales como conversión base para tener una referencia.
-  const totalMin = processed.reduce((acc, curr) => acc + (curr.minutos || 0), 0);
+  const totalMin = processedItems.reduce((acc, curr) => acc + (curr.minutos || 0), 0);
   const totalHoras = (totalMin / 60).toFixed(2);
+  
+  // Totales valor (sumar si hay precios)
+  const totalValor = processedItems.reduce((acc, curr) => acc + (curr.valor || 0), 0);
 
   return (
     <div className="space-y-3">
       {/* Buscador y Resumen */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-end sm:items-center">
         <div className="relative w-full sm:w-64">
+           {/* Search Input */}
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
             <Search size={16} />
           </div>
@@ -212,125 +332,122 @@ export default function TableTrabajos({
           />
         </div>
 
-        <div className="text-sm text-gray-600 font-medium">
-          {processed.length} registros | Total eq:{" "}
-          <span className="text-black font-bold">{totalHoras} h</span>
+        <div className="text-sm text-gray-600 font-medium flex gap-4">
+             {enableGrouping && (
+                 <span className="text-xs text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded">
+                     Solo pendientes
+                 </span>
+             )}
+            <span>
+                {processedItems.length} registros
+            </span>
+            <span>
+                Total eq: <span className="text-black font-bold">{totalHoras} h</span>
+            </span>
+            {totalValor > 0 && (
+                 <span>
+                    Total: <span className="text-black font-bold">{totalValor.toFixed(2)}€</span>
+                </span>
+            )}
         </div>
       </div>
 
-      <div className="card overflow-hidden !p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100 border-b">
-              <tr>
-                <Th label="Fecha" col="fecha" />
-                {isAdmin && <Th label="Empleado" col="empleado_nombre" />}
-                <Th label="Cliente" col="cliente_nombre" />
-                <Th label="Duración" col="minutos" />
-                <Th label="Valor" col="valor" />
-                <Th label="Estado" col="estado_pago" />
-                <Th label="Descripción" col="descripcion" />
-                <th className="p-3 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {processed.length === 0 ? (
-                <tr>
-                  <td className="p-8 text-center text-gray-500" colSpan={isAdmin ? 8 : 7}> {/* Updated colspan */}
-                    No hay resultados
-                  </td>
-                </tr>
-              ) : (
-                processed.map((it) => (
-                  <tr key={it.id} className="hover:bg-gray-50">
-                    <td className="p-3 whitespace-nowrap">
-                      {new Date(it.fecha).toLocaleDateString("es-ES")}
-                    </td>
-                    {isAdmin && (
-                      <td className="p-3 font-medium">
-                        {it.empleado_nombre}
-                      </td>
+      <div className="card overflow-hidden !p-0 border-0 bg-transparent shadow-none">
+        {enableGrouping ? (
+           // GROUPED VIEW
+           <div className="space-y-2">
+               {Object.keys(groupedItems).length === 0 ? (
+                    <div className="p-8 text-center text-gray-500 bg-white rounded-lg border">
+                        No hay trabajos pendientes {search && "que coincidan con la búsqueda"}
+                    </div>
+               ) : (
+                   Object.keys(groupedItems).map(clienteName => {
+                       const groupItems = groupedItems[clienteName];
+                       const isExpanded = expandedGroups[clienteName] || false;
+                       const groupTotalMin = groupItems.reduce((acc, curr) => acc + (curr.minutos || 0), 0);
+                       const groupTotalHoras = (groupTotalMin / 60).toFixed(2);
+                       const groupTotalValor = groupItems.reduce((acc, curr) => acc + (curr.valor || 0), 0);
+
+                       return (
+                           <div key={clienteName} className="bg-white border rounded-lg overflow-hidden">
+                               <div 
+                                   className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 cursor-pointer select-none transition-colors"
+                                   onClick={() => toggleGroup(clienteName)}
+                               >
+                                   <div className="flex items-center gap-3">
+                                       {isExpanded ? <ChevronDown size={18} className="text-gray-500"/> : <ChevronRight size={18} className="text-gray-500"/>}
+                                       <span className="font-semibold text-gray-800">{clienteName}</span>
+                                       <span className="text-xs bg-white border px-2 py-0.5 rounded-full text-gray-600 font-medium">
+                                           {groupItems.length}
+                                       </span>
+                                   </div>
+                                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                                         <span>{groupTotalHoras} h</span>
+                                         {groupTotalValor > 0 && (
+                                             <span className="font-medium text-gray-900">{groupTotalValor.toFixed(2)}€</span>
+                                         )}
+                                    </div>
+                               </div>
+                               
+                               {isExpanded && (
+                                   <div className="border-t">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-medium">
+                                                    <tr>
+                                                        <Th label="Fecha" col="fecha" />
+                                                        {isAdmin && <Th label="Empleado" col="empleado_nombre" />}
+                                                        <Th label="Duración" col="minutos" />
+                                                        <Th label="Valor" col="valor" />
+                                                        <Th label="Estado" col="estado_pago" />
+                                                        <Th label="Descripción" col="descripcion" />
+                                                        <th className="p-3 text-right">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y">
+                                                    {groupItems.map(renderRow)}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                   </div>
+                               )}
+                           </div>
+                       );
+                   })
+               )}
+           </div>
+        ) : (
+           // FLAT VIEW (Original)
+            <div className="bg-white border rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                    <thead className="bg-gray-100 border-b">
+                    <tr>
+                        <Th label="Fecha" col="fecha" />
+                        {isAdmin && <Th label="Empleado" col="empleado_nombre" />}
+                        <Th label="Cliente" col="cliente_nombre" />
+                        <Th label="Duración" col="minutos" />
+                        <Th label="Valor" col="valor" />
+                        <Th label="Estado" col="estado_pago" />
+                        <Th label="Descripción" col="descripcion" />
+                        <th className="p-3 text-right">Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                    {processedItems.length === 0 ? (
+                        <tr>
+                        <td className="p-8 text-center text-gray-500" colSpan={isAdmin ? 8 : 7}>
+                            No hay resultados
+                        </td>
+                        </tr>
+                    ) : (
+                        processedItems.map(renderRow)
                     )}
-                      <td className="p-3">
-                        {it.cliente_nombre ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            {it.cliente_nombre}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="p-3 font-mono font-medium whitespace-nowrap">
-                      {formatDuracion(it)}
-                    </td>
-                    <td className="p-3 font-mono text-xs">
-                        {it.valor ? `${Number(it.valor).toFixed(2)}€` : '—'}
-                    </td>
-                    <td className="p-3">
-                        {it.valor ? (
-                             <span className={`px-2 py-1 rounded text-xs capitalize 
-                                ${it.estado_pago === 'pagado' ? 'bg-green-100 text-green-800' : 
-                                  it.estado_pago === 'parcial' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                                {it.estado_pago || 'pendiente'}
-                             </span>
-                        ) : (
-                            <span className="text-gray-300 text-xs">—</span>
-                        )}
-                    </td>
-                     <td className="p-3 max-w-md truncate text-gray-600" title={it.descripcion + (it.detalles ? "\n\nDetalles:\n" + it.detalles : "")}>
-                        <div className="flex items-center gap-1">
-                          {it.descripcion}
-                          {it.detalles && (
-                            <Info size={14} className="text-blue-400 shrink-0" />
-                          )}
-                        </div>
-                    </td>
-                    <td className="p-3 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1">
-                        <button 
-                          onClick={() => onClone?.(it)}
-                          title="Clonar Trabajo"
-                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                          <Copy size={16} />
-                        </button>
-                        <button 
-                          onClick={() => onEdit?.(it)}
-                          disabled={it.pagado != null && it.pagado > 0}
-                          title={it.pagado! > 0 ? "No se puede editar un trabajo pagado. Elimina el pago primero." : "Editar"}
-                          className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button 
-                          onClick={() => {
-                            if (confirm("¿Seguro que deseas eliminar este trabajo?")) {
-                              onDelete?.(it.id);
-                            }
-                          }}
-                          disabled={it.pagado != null && it.pagado > 0}
-                          title={it.pagado! > 0 ? "No se puede eliminar un trabajo pagado. Elimina el pago primero." : "Eliminar"}
-                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                        {isAdmin && it.pagado! > 0 && (
-                          <Link
-                            href="/admin/cobros-pagos"
-                            title="Ver pagos para gestionar este registro"
-                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          >
-                            <CreditCard size={16} />
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        )}
       </div>
     </div>
   );
