@@ -388,7 +388,11 @@ export default function TableTrabajos({
                ) : (
                    Object.keys(groupedItems).map(clienteName => {
                        const group = groupedItems[clienteName];
-                       const isExpanded = expandedGroups[clienteName] || false;
+                       // Auto-expand if has pending items, unless explicitly toggled off (expandedGroups[name] === false)
+                       // If expandedGroups[name] is undefined -> use default (hasPending)
+                       const hasPending = group.pending.length > 0;
+                       const isExpanded = expandedGroups[clienteName] ?? hasPending;
+                       
                        const isPaidExpanded = expandedPaidGroups[clienteName] || false;
                        
                        // Group Totals
@@ -459,7 +463,7 @@ export default function TableTrabajos({
                                                 >
                                                    <div className="flex items-center gap-2">
                                                         {isPaidExpanded ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
-                                                        <span>Ver {group.paid.length} trabajos pagados / cerrados</span>
+                                                        <span>Ver {group.paid.length} trabajos pagados</span>
                                                    </div>
                                                 </div>
                                                 
