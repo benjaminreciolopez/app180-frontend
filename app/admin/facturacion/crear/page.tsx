@@ -406,22 +406,30 @@ export default function CrearFacturaPage() {
   }
 
   // Cálculos totales
-  const subtotal = lineas.reduce((acc, l) => acc + (l.cantidad * l.precio_unitario), 0)
+  console.log("DEBUG CALC 1:", lineas);
+  const subtotal = lineas.reduce((acc, l) => {
+      const lineTotal = (Number(l.cantidad) || 0) * (Number(l.precio_unitario) || 0);
+      console.log(`Line ${l.id}: ${l.cantidad} * ${l.precio_unitario} = ${lineTotal}`);
+      return acc + lineTotal;
+  }, 0)
   
   // Agrupar por tipo de IVA
   const ivaBreakdown = lineas.reduce((acc, l) => {
-    const base = l.cantidad * l.precio_unitario;
-    const cuota = base * (l.iva / 100);
-    if (!acc[l.iva]) {
-      acc[l.iva] = { base: 0, cuota: 0 };
+    const base = (Number(l.cantidad) || 0) * (Number(l.precio_unitario) || 0);
+    const cuota = base * ((Number(l.iva) || 0) / 100);
+    const ivaKey = Number(l.iva) || 0;
+    
+    if (!acc[ivaKey]) {
+      acc[ivaKey] = { base: 0, cuota: 0 };
     }
-    acc[l.iva].base += base;
-    acc[l.iva].cuota += cuota;
+    acc[ivaKey].base += base;
+    acc[ivaKey].cuota += cuota;
     return acc;
   }, {} as Record<number, { base: number, cuota: number }>);
 
   const ivaTotal = Object.values(ivaBreakdown).reduce((acc, b) => acc + b.cuota, 0);
   const total = subtotal + ivaTotal;
+  console.log("DEBUG CALC 2:", { subtotal, ivaTotal, total, ivaBreakdown });
 
   const handleSubmit = async () => {
     if (!clienteId) {
