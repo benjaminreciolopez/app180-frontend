@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/services/api";
-import { X, Save, Copy, ChevronDown, Trash2, Edit } from "lucide-react";
+import { X, Save, Copy, ChevronDown, Trash2, Edit, Calendar } from "lucide-react";
+import SimpleMultiselectCalendar from "@/components/shared/SimpleMultiselectCalendar";
 
 type Option = { id: string; nombre: string; modo_defecto?: string };
 type Template = { id: string; descripcion: string; detalles?: string };
@@ -65,8 +66,10 @@ export default function FormTrabajos({
     index: number;
   }>({ field: null, index: -1 });
 
-  // Multiple dates (for cloning)
+  // Multiple dates (for cloning or bulk creation)
   const [extraDates, setExtraDates] = useState<string[]>([]);
+  const [isMultiDate, setIsMultiDate] = useState(false);
+  const [selectedBulkDates, setSelectedBulkDates] = useState<string[]>([]);
 
   // Validation
   const [triedToSubmit, setTriedToSubmit] = useState(false);
@@ -205,7 +208,19 @@ export default function FormTrabajos({
           cliente_id: clienteId || null
         });
       } else {
-        await api.post("/worklogs", payload);
+        // CREATE MODE
+        if (isMultiDate && selectedBulkDates.length > 0) {
+            // Bulk creation
+            // We iterate and create one by one. 
+            // Ideally backend should handle bulk, but frontend loop is safer fallback for now.
+            const promises = selectedBulkDates.map(date => 
+                api.post("/worklogs", { ...payload, fecha: date })
+            );
+            await Promise.all(promises);
+        } else {
+            // Single creation
+            await api.post("/worklogs", payload);
+        }
       }
 
       // Reset
@@ -220,6 +235,9 @@ export default function FormTrabajos({
         setPrecioFijo("");
         setClienteId("");
         if (isAdmin) setEmpleadoId(""); 
+        // Reset bulk
+        setIsMultiDate(false);
+        setSelectedBulkDates([]);
       }
       
       onCreated();
@@ -324,14 +342,45 @@ export default function FormTrabajos({
         )}
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-gray-500">Fecha</label>
-          <input
-            type="date"
-            required
-            className="w-full border rounded-lg px-3 py-2 text-sm"
-            value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
-          />
+          <label className="text-xs font-medium text-gray-500 block mb-1">Fecha(s)</label>
+          
+          {mode === 'create' && (
+             <div className="flex items-center gap-2 mb-2">
+                <button
+                    type="button"
+                    onClick={() => setIsMultiDate(!isMultiDate)}
+                    className={`text-xs flex items-center gap-1 px-2 py-1 rounded border transition-colors ${isMultiDate ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600'}`}
+                >
+                    <Calendar size={12} />
+                    {isMultiDate ? "Múltiples Fechas" : "Fecha Única"}
+                </button>
+             </div>
+          )}
+
+          {!isMultiDate ? (
+            <input
+                type="date"
+                required
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+            />
+          ) : (
+             <div className="border rounded-lg p-2 bg-slate-50">
+                 <div className="text-xs text-center text-gray-500 mb-2">
+                    {selectedBulkDates.length === 0 ? "Selecciona días en el calendario" : `${selectedBulkDates.length} días seleccionados`}
+                 </div>
+                 <div className="max-h-60 overflow-y-auto">
+                    <SimpleMultiselectCalendar 
+                        selected={selectedBulkDates}
+                        onSelect={setSelectedBulkDates}
+                        className="border-0 shadow-none bg-transparent"
+                    />
+                 </div>
+                 {/* Input oculto para validación html5 si fuera necesario, aunque validamos manualmente */}
+                 {selectedBulkDates.length === 0 && <input className="opacity-0 h-0 w-0" required autoComplete="off" />}
+             </div>
+          )}
         </div>
 
         <div className="space-y-1">
