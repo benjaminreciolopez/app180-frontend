@@ -50,6 +50,7 @@ type Cliente = {
   provincia?: string | null;
   cp?: string | null;
   pais?: string | null;
+  telefono?: string | null; // Added
   email?: string | null;
   contacto_nombre?: string | null;
   contacto_email?: string | null;
@@ -139,6 +140,7 @@ export default function AdminClientesPage() {
         poblacion: "",
         provincia: "",
         cp: "",
+        telefono: "", // Added
         email: "",
         nif: "",
         nif_cif: "",
@@ -398,8 +400,50 @@ export default function AdminClientesPage() {
                               <SelectItem value="mixto">Mixto</SelectItem>
                             </SelectContent>
                           </Select>
+                  </div>
+                    </div> {/* Closes Grid */}
+                  </div> {/* Closes Container 1 */}
+
+                    <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+                      <h4 className="text-sm font-semibold flex items-center gap-2 text-slate-700">
+                          Datos de Contacto
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Teléfono</label>
+                          <Input
+                            placeholder="+34 600 000 000"
+                            className="bg-white border-slate-200"
+                            value={editing.telefono || ""}
+                            onChange={(e) =>
+                              setEditing({ ...editing, telefono: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Persona de Contacto</label>
+                          <Input
+                            placeholder="Nombre y Apellidos"
+                            className="bg-white border-slate-200"
+                            value={editing.contacto_nombre || ""}
+                            onChange={(e) =>
+                              setEditing({ ...editing, contacto_nombre: e.target.value })
+                            }
+                          />
                         </div>
                       </div>
+                       <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Email Contacto (Diferente a facturación)</label>
+                          <Input
+                            type="email"
+                            placeholder="contacto@empresa.com"
+                            className="bg-white border-slate-200"
+                            value={editing.contacto_email || ""}
+                            onChange={(e) =>
+                              setEditing({ ...editing, contacto_email: e.target.value })
+                            }
+                          />
+                        </div>
                     </div>
 
                     <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
@@ -587,7 +631,11 @@ export default function AdminClientesPage() {
                         <Select
                           value={editing.geo_policy || "strict"}
                           onValueChange={(v: string) =>
-                            setEditing({ ...editing, geo_policy: v })
+                            setEditing({ 
+                              ...editing, 
+                              geo_policy: v,
+                              requiere_geo: v !== "none" 
+                            })
                           }
                         >
                           <SelectTrigger className="bg-white border-emerald-200">
