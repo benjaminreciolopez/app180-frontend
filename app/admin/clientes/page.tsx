@@ -629,14 +629,22 @@ export default function AdminClientesPage() {
                       <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Política de Restricción</label>
                         <Select
-                          value={editing.geo_policy || "strict"}
-                          onValueChange={(v: string) =>
-                            setEditing({ 
-                              ...editing, 
-                              geo_policy: v,
-                              requiere_geo: v !== "none" 
-                            })
-                          }
+                          value={!editing.requiere_geo ? "none" : (editing.geo_policy || "strict")}
+                          onValueChange={(v: string) => {
+                            if (v === "none") {
+                              setEditing({ 
+                                ...editing, 
+                                requiere_geo: false, 
+                                geo_policy: null 
+                              })
+                            } else {
+                              setEditing({ 
+                                ...editing, 
+                                requiere_geo: true, 
+                                geo_policy: v 
+                              })
+                            }
+                          }}
                         >
                           <SelectTrigger className="bg-white border-emerald-200">
                             <SelectValue />

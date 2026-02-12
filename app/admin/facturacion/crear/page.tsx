@@ -17,7 +17,8 @@ import {
   CreditCard,
   MessageSquare,
   FileText,
-  Merge
+  Merge,
+  Edit
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -55,9 +56,9 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import ClientFiscalForm from "@/components/admin/clientes/ClientFiscalForm"
 
 // --- TYPES ---
 interface Linea {
@@ -68,12 +69,26 @@ interface Linea {
   iva: number
   concepto_id?: number | null
   original_desc?: string
+  work_log_id?: number
 }
 
 interface Cliente {
   id: number
   nombre: string
   nif: string
+  telefono?: string
+  email?: string
+  direccion?: string
+  poblacion?: string
+  provincia?: string
+  cp?: string
+  nif_cif?: string
+  razon_social?: string
+  iva_defecto?: number | null
+  exento_iva?: boolean
+  texto_exento?: string
+  forma_pago?: string
+  iban?: string
 }
 
 interface Concepto {
@@ -121,6 +136,9 @@ export default function CrearFacturaPage() {
   const [trabajosPendientes, setTrabajosPendientes] = useState<any[]>([])
   const [loadingTrabajos, setLoadingTrabajos] = useState(false)
   const [selectedTrabajos, setSelectedTrabajos] = useState<string[]>([])
+  
+  // Client Edit Modal State
+  const [isClientEditOpen, setIsClientEditOpen] = useState(false)
 
   // Column Resizing State
   const [colWidths, setColWidths] = useState<Record<string, number>>({
@@ -366,6 +384,27 @@ export default function CrearFacturaPage() {
     }
   }
 
+  const handleUpdateClient = async (newData: any) => {
+    if (!clienteId) return;
+    try {
+        await api.put(`/admin/clientes/${clienteId}`, newData);
+        
+        // Update local state
+        setClientes(prev => prev.map(c => c.id === clienteId ? { ...c, ...newData } : c));
+        
+        // If critical fields changed, toast might be needed, but ClientFiscalForm handles success toast.
+        // We just ensure the UI reflects changes immediately.
+    } catch (error) {
+        console.error("Error updating client", error);
+        throw error; // Let ClientFiscalForm handle the error toast if it wants, or we handle it.
+        // ClientFiscalForm catches error but we re-throw? 
+        // Actually ClientFiscalForm swallows error and shows toast.
+        // But we need to know if it succeeded? 
+        // ClientFiscalForm calls onSave and awaits. If we throw, it catches.
+        // So throwing here is correct to trigger error state in child.
+    }
+  }
+
   // Cálculos totales
   const subtotal = lineas.reduce((acc, l) => acc + (l.cantidad * l.precio_unitario), 0)
   
@@ -512,60 +551,95 @@ export default function CrearFacturaPage() {
             <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Selector Cliente */}
-              <div className="space-y-2">
-                <Label>Cliente</Label>
-                <Popover open={clienteOpen} onOpenChange={setClienteOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={clienteOpen}
-                      className="w-full justify-between bg-white h-12 cursor-pointer"
-                    >
-                      {clienteId
-                        ? clientes.find((c) => c.id === clienteId)?.nombre
-                        : <span className="text-slate-400">Seleccionar cliente...</span>}
-                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0">
-                    <Command>
-                      <CommandInput placeholder="Buscar cliente..." />
-                      <CommandEmpty>No encontrado.</CommandEmpty>
-                          <CommandGroup className="max-h-[300px] overflow-auto">
-                            {clientes.map((cliente: any) => (
-                              <CommandItem
-                                key={cliente.id}
-                                value={cliente.nombre}
-                                onSelect={() => {
-                                  setClienteId(cliente.id)
-                                  setClienteOpen(false)
-                                  // Si el cliente tiene IVA defecto o exención, sugerir mensaje
-                                  if (cliente.exento_iva && cliente.texto_exento) {
-                                    setMensajeIva(cliente.texto_exento)
-                                  } else if (cliente.iva_defecto) {
-                                      // Buscar si el IVA tiene descripción
-                                      const ivaObj = ivas.find(i => i.porcentaje === cliente.iva_defecto)
-                                      if (ivaObj?.descripcion) setMensajeIva(ivaObj.descripcion)
-                                  }
-                                }}
-                              >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                clienteId === cliente.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <div className="flex flex-col">
-                                <span className="font-medium text-slate-900">{cliente.nombre}</span>
-                                <span className="text-xs text-slate-500">{cliente.nif}</span>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                    <Label>Cliente</Label>
+                    <Popover open={clienteOpen} onOpenChange={setClienteOpen}>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={clienteOpen}
+                        className="w-full justify-between bg-white h-12 cursor-pointer"
+                        >
+                        {clienteId
+                            ? clientes.find((c) => c.id === clienteId)?.nombre
+                            : <span className="text-slate-400">Seleccionar cliente...</span>}
+                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                        <CommandInput placeholder="Buscar cliente..." />
+                        <CommandEmpty>No encontrado.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-auto">
+                                {clientes.map((cliente: any) => (
+                                <CommandItem
+                                    key={cliente.id}
+                                    value={cliente.nombre}
+                                    onSelect={() => {
+                                    setClienteId(cliente.id)
+                                    setClienteOpen(false)
+                                    // Si el cliente tiene IVA defecto o exención, sugerir mensaje
+                                    if (cliente.exento_iva && cliente.texto_exento) {
+                                        setMensajeIva(cliente.texto_exento)
+                                    } else if (cliente.iva_defecto) {
+                                        // Buscar si el IVA tiene descripción
+                                        const ivaObj = ivas.find(i => i.porcentaje === cliente.iva_defecto)
+                                        if (ivaObj?.descripcion) setMensajeIva(ivaObj.descripcion)
+                                    }
+                                    }}
+                                >
+                                <Check
+                                className={cn(
+                                    "mr-2 h-4 w-4",
+                                    clienteId === cliente.id ? "opacity-100" : "opacity-0"
+                                )}
+                                />
+                                <div className="flex flex-col">
+                                    <span className="font-medium text-slate-900">{cliente.nombre}</span>
+                                    <span className="text-xs text-slate-500">
+                                        {cliente.nif} {cliente.telefono ? `• ${cliente.telefono}` : ''}
+                                    </span>
+                                </div>
+                            </CommandItem>
+                            ))}
+                        </CommandGroup>
+                        </Command>
+                    </PopoverContent>
+                    </Popover>
+                </div>
+                
+                {/* Detalles del Cliente Seleccionado */}
+                {clienteId && (() => {
+                    const c = clientes.find(cl => cl.id === clienteId);
+                    if (!c) return null;
+                    return (
+                        <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded border border-slate-100 space-y-1 relative group">
+                            <div className="flex justify-between items-start">
+                                <div className="font-semibold text-slate-700">Datos de Facturación:</div>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6 -mt-1 -mr-1 text-slate-400 hover:text-blue-600"
+                                    onClick={() => setIsClientEditOpen(true)}
+                                    title="Editar datos del cliente"
+                                >
+                                    <Edit className="w-3 h-3" />
+                                </Button>
                             </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                            <div><span className="font-medium">NIF:</span> {c.nif || c.nif_cif || '—'}</div>
+                            <div><span className="font-medium">Dirección:</span> {[c.direccion, c.cp, c.poblacion, c.provincia].filter(Boolean).join(', ') || '—'}</div>
+                            {(c.telefono || c.email) && (
+                                <div className="pt-1 mt-1 border-t border-slate-200">
+                                    {c.telefono && <div><span className="font-medium">Tel:</span> {c.telefono}</div>}
+                                    {c.email && <div><span className="font-medium">Email:</span> {c.email}</div>}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
+
               </div>
 
               {/* Selector Fecha */}
@@ -965,6 +1039,24 @@ export default function CrearFacturaPage() {
           </Card>
         </div>
       </div>
+
+      {/* Modal Edición Cliente */}
+      <Dialog open={isClientEditOpen} onOpenChange={setIsClientEditOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 md:p-0 bg-transparent border-0 shadow-none">
+            {clienteId && (() => {
+                const c = clientes.find(x => x.id === clienteId)
+                if (!c) return null;
+                return (
+                    <div className="bg-white rounded-lg shadow-xl overflow-hidden">
+                        <ClientFiscalForm 
+                            data={c} 
+                            onSave={handleUpdateClient} 
+                        />
+                    </div>
+                )
+            })()}
+        </DialogContent>
+      </Dialog>
 
     </div>
   )

@@ -21,20 +21,20 @@ export default function ClientFiscalForm({
         setFormData({ 
             razon_social: "",
             nif_cif: "",
-            tipo_fiscal: "company",
             pais: "España",
             provincia: "",
-            municipio: "",
-            codigo_postal: "",
-            direccion_fiscal: "",
-            email_factura: "",
-            telefono_factura: "",
-            persona_contacto: "",
+            poblacion: "",
+            cp: "",
+            direccion: "",
+            email: "",
+            telefono: "",
+            contacto_nombre: "",
+            contacto_email: "",
             iva_defecto: "21",
             exento_iva: false,
             forma_pago: "",
             iban: "",
-            ...data // Overwrite defaults
+            ...data // Overwrite defaults (assuming data has these keys)
         });
     }
   }, [data]);
@@ -62,12 +62,12 @@ export default function ClientFiscalForm({
     setIsEditing(false);
   };
 
-  return (
+    return (
     <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
       <div className="flex justify-between items-center bg-gray-50 border-b px-4 py-3">
         <h3 className="font-semibold text-gray-700 flex items-center gap-2">
             {!isEditing && <Lock size={14} className="text-gray-400"/>}
-            Datos Fiscales
+            Datos Fiscales y de Contacto
         </h3>
         <div>
             {!isEditing ? (
@@ -119,30 +119,18 @@ export default function ClientFiscalForm({
         />
       </div>
 
-      <div>
-        <label className="block text-xs font-medium text-gray-500">Tipo</label>
-        <select 
-            disabled={!isEditing}
-            className="w-full border p-2 rounded"
-            value={formData.tipo_fiscal || 'company'}
-            onChange={e => handleChange('tipo_fiscal', e.target.value)}
-        >
-            <option value="company">Empresa</option>
-            <option value="personal">Autónomo / Particular</option>
-        </select>
-      </div>
-
       <div className="md:col-span-2 mt-2 pt-2 border-t">
         <h4 className="text-xs font-bold text-gray-400 uppercase">Dirección Fiscal</h4>
       </div>
 
-      <div>
+      <div className="md:col-span-2">
         <label className="block text-xs font-medium text-gray-500">Dirección</label>
         <input 
             disabled={!isEditing}
           className="w-full border p-2 rounded" 
-          value={formData.direccion_fiscal || ''} 
-          onChange={e => handleChange('direccion_fiscal', e.target.value)} 
+          value={formData.direccion || ''} 
+          onChange={e => handleChange('direccion', e.target.value)} 
+          placeholder="Calle, número..."
         />
       </div>
       
@@ -151,18 +139,18 @@ export default function ClientFiscalForm({
         <input 
             disabled={!isEditing}
           className="w-full border p-2 rounded" 
-          value={formData.codigo_postal || ''} 
-          onChange={e => handleChange('codigo_postal', e.target.value)} 
+          value={formData.cp || ''} 
+          onChange={e => handleChange('cp', e.target.value)} 
         />
       </div>
 
        <div>
-        <label className="block text-xs font-medium text-gray-500">Municipio</label>
+        <label className="block text-xs font-medium text-gray-500">Población</label>
         <input 
             disabled={!isEditing}
           className="w-full border p-2 rounded" 
-          value={formData.municipio || ''} 
-          onChange={e => handleChange('municipio', e.target.value)} 
+          value={formData.poblacion || ''} 
+          onChange={e => handleChange('poblacion', e.target.value)} 
         />
       </div>
 
@@ -176,6 +164,51 @@ export default function ClientFiscalForm({
         />
       </div>
 
+      <div>
+        <label className="block text-xs font-medium text-gray-500">País</label>
+        <input 
+            disabled={!isEditing}
+          className="w-full border p-2 rounded" 
+          value={formData.pais || 'España'} 
+          onChange={e => handleChange('pais', e.target.value)} 
+        />
+      </div>
+
+      <div className="md:col-span-2 mt-2 pt-2 border-t">
+        <h4 className="text-xs font-bold text-gray-400 uppercase">Contacto</h4>
+      </div>
+
+      <div>
+         <label className="block text-xs font-medium text-gray-500">Teléfono</label>
+         <input 
+            disabled={!isEditing}
+            className="w-full border p-2 rounded" 
+            value={formData.telefono || ''} 
+            onChange={e => handleChange('telefono', e.target.value)} 
+         />
+      </div>
+
+       <div>
+         <label className="block text-xs font-medium text-gray-500">Persona de Contacto</label>
+         <input 
+            disabled={!isEditing}
+            className="w-full border p-2 rounded" 
+            value={formData.contacto_nombre || ''} 
+            onChange={e => handleChange('contacto_nombre', e.target.value)} 
+         />
+      </div>
+
+      <div>
+         <label className="block text-xs font-medium text-gray-500">Email Contacto</label>
+         <input 
+            type="email"
+            disabled={!isEditing}
+            className="w-full border p-2 rounded" 
+            value={formData.contacto_email || ''} 
+            onChange={e => handleChange('contacto_email', e.target.value)} 
+         />
+      </div>
+
       <div className="md:col-span-2 mt-2 pt-2 border-t">
         <h4 className="text-xs font-bold text-gray-400 uppercase">Facturación y Pagos</h4>
       </div>
@@ -183,10 +216,11 @@ export default function ClientFiscalForm({
       <div>
         <label className="block text-xs font-medium text-gray-500">Email Facturación</label>
         <input 
+            type="email"
             disabled={!isEditing}
           className="w-full border p-2 rounded" 
-          value={formData.email_factura || ''} 
-          onChange={e => handleChange('email_factura', e.target.value)} 
+          value={formData.email || ''} 
+          onChange={e => handleChange('email', e.target.value)} 
         />
       </div>
 
@@ -211,6 +245,21 @@ export default function ClientFiscalForm({
           onChange={e => handleChange('iva_defecto', e.target.value)} 
         />
       </div>
+
+      <div>
+         <label className="block text-xs font-medium text-gray-500">Forma de Pago</label>
+         <select 
+             disabled={!isEditing}
+             className="w-full border p-2 rounded"
+             value={formData.forma_pago || 'TRANSFERENCIA'}
+             onChange={e => handleChange('forma_pago', e.target.value)}
+         >
+             <option value="TRANSFERENCIA">Transferencia</option>
+             <option value="DOMICILIACION">Domiciliación</option>
+             <option value="EFECTIVO">Efectivo</option>
+             <option value="TARJETA">Tarjeta</option>
+         </select>
+       </div>
 
        <div className="flex items-center gap-2 mt-6">
         <input 
