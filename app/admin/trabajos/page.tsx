@@ -87,87 +87,23 @@ export default function AdminTrabajosPage() {
   }
 
   async function handleRecalculate() {
-    if (!confirm(`¿Quieres buscar TODOS los trabajos antiguos con valor 0€ y recalcular su importe según la tarifa actual de cada cliente?`)) {
+    if (!confirm(`¿Quieres buscar en el servidor TODOS los trabajos antiguos con valor 0€ y recalcular su importe según la tarifa actual de cada cliente?`)) {
         return;
     }
 
     setLoading(true);
     try {
-        // 1. Fetch EVERYTHING (wide range)
-        // We use a very wide range to catch "all" history.
-        const allRes = await api.get("/worklogs/admin", { 
-            params: { 
-                desde: '2020-01-01', 
-                hasta: '2030-12-31',
-                limit: 10000 // Ensure backend sends enough
-            } 
-        });
-
-        const allItems = Array.isArray(allRes.data?.items) ? allRes.data.items : [];
+        const res = await api.put("/worklogs/fix-values");
         
-        // 2. Filter locally
-        const zeroValueItems = allItems.filter((i: WorkLogItem) => (!i.valor || i.valor === 0) && i.tipo_facturacion !== 'valorado');
-
-        if (zeroValueItems.length === 0) {
-            alert("No se encontraron trabajos con valor 0€ en el histórico.");
-            setLoading(false);
-            return;
-        }
-
-        if (!confirm(`Se encontraron ${zeroValueItems.length} trabajos a 0€. ¿Proceder a actualizarlos?`)) {
-            setLoading(false);
-            return;
-        }
-
-        let updatedCount = 0;
-        let errorCount = 0;
-
-        for (const item of zeroValueItems) {
-             // Find client to get rate
-             const client = clientes.find((c: any) => c.id === item.cliente_id);
-             
-             let calculatedPrice = null;
- 
-             if (client) {
-                 // Logic based on billing type
-                 if (item.tipo_facturacion === 'hora' && client.precio_hora) {
-                     const horas = (item.minutos || 0) / 60;
-                     calculatedPrice = horas * parseFloat(client.precio_hora);
-                 }
-             }
- 
-             if (calculatedPrice !== null && !isNaN(calculatedPrice)) {
-                  const payload: any = {
-                     fecha: item.fecha,
-                     minutos: item.minutos,
-                     descripcion: item.descripcion,
-                     detalles: item.detalles,
-                     cliente_id: item.cliente_id,
-                     work_item_nombre: item.work_item_nombre,
-                     empleado_id: item.empleado_id,
-                     tipo_facturacion: item.tipo_facturacion,
-                     precio: Number(calculatedPrice.toFixed(2))
-                 };
- 
-                 await api.put(`/worklogs/${item.id}`, payload);
-                 updatedCount++;
-             } else {
-                 errorCount++;
-             }
-        }
-
-        let msg = `Proceso finalizado. ${updatedCount} trabajos actualizados.`;
-        if (errorCount > 0) {
-            msg += `\n${errorCount} trabajos no se pudieron actualizar (cliente sin tarifa).`;
-        }
-        alert(msg);
+        // Backend returns { fixed: number, total_checked: number }
+        const { fixed, total_checked } = res.data || {};
         
-        // Reload current view
+        alert(`Proceso finalizado.\n\nTrabajos revisados: ${total_checked}\nTrabajos actualizados: ${fixed}`);
+        
         loadData();
-
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
-        alert("Ocurrió un error al obtener/actualizar los trabajos.");
+        alert("Ocurrió un error al solicitar el recálculo en el servidor: " + (e.response?.data?.error || e.message));
     } finally {
         setLoading(false);
     }
