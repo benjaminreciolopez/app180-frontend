@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Lock, Save, Edit2, X } from "lucide-react";
-import { toast } from "sonner"; // Assuming sonner or simple alert
+import { toast } from "sonner";
+import ClientFiscalFields from "./ClientFiscalFields";
 
 export default function ClientFiscalForm({ 
     data, 
@@ -18,6 +19,7 @@ export default function ClientFiscalForm({
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Sync state with data prop
   useEffect(() => {
     if (data) {
         setFormData({ 
@@ -64,11 +66,16 @@ export default function ClientFiscalForm({
     setIsEditing(false);
   };
 
+    // Determine the effective readOnly state for the UI
+    // If global readOnly is true, then it's always readOnly.
+    // If global is false, we depend on local isEditing state.
+    const isUIReadOnly = readOnly ? true : !isEditing;
+
     return (
     <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
       <div className="flex justify-between items-center bg-gray-50 border-b px-4 py-3">
         <h3 className="font-semibold text-gray-700 flex items-center gap-2">
-            <Lock size={14} className="text-gray-400"/>
+            {isUIReadOnly && <Lock size={14} className="text-gray-400"/>}
             Datos Fiscales y de Contacto
         </h3>
         <div>
@@ -89,192 +96,13 @@ export default function ClientFiscalForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-        { /* Common styling for inputs to handle disabled state nicely */ }
-        <style jsx>{`
-            input:disabled, select:disabled {
-                background-color: #f9fafb;
-                border-color: #e5e7eb;
-                color: #374151;
-            }
-        `}</style>
-
-      <div>
-        <label className="block text-xs font-medium text-gray-500">Razón Social</label>
-        <input 
-          disabled={!isEditing}
-          className="w-full border p-2 rounded" 
-          value={formData.razon_social || ''} 
-          onChange={e => handleChange('razon_social', e.target.value)} 
-          placeholder={isEditing ? "Nombre legal completo" : "—"}
+      <div className="p-6">
+        <ClientFiscalFields 
+            data={formData}
+            onChange={handleChange}
+            readOnly={isUIReadOnly}
         />
       </div>
-
-      <div>
-        <label className="block text-xs font-medium text-gray-500">NIF / CIF</label>
-        <input 
-          disabled={!isEditing}
-          className="w-full border p-2 rounded" 
-          value={formData.nif_cif || ''} 
-          onChange={e => handleChange('nif_cif', e.target.value)} 
-          placeholder={isEditing ? "B12345678" : "—"}
-        />
-      </div>
-
-      <div className="md:col-span-2 mt-2 pt-2 border-t">
-        <h4 className="text-xs font-bold text-gray-400 uppercase">Dirección Fiscal</h4>
-      </div>
-
-      <div className="md:col-span-2">
-        <label className="block text-xs font-medium text-gray-500">Dirección</label>
-        <input 
-            disabled={!isEditing}
-          className="w-full border p-2 rounded" 
-          value={formData.direccion || ''} 
-          onChange={e => handleChange('direccion', e.target.value)} 
-          placeholder="Calle, número..."
-        />
-      </div>
-      
-      <div>
-        <label className="block text-xs font-medium text-gray-500">Código Postal</label>
-        <input 
-            disabled={!isEditing}
-          className="w-full border p-2 rounded" 
-          value={formData.cp || ''} 
-          onChange={e => handleChange('cp', e.target.value)} 
-        />
-      </div>
-
-       <div>
-        <label className="block text-xs font-medium text-gray-500">Población</label>
-        <input 
-            disabled={!isEditing}
-          className="w-full border p-2 rounded" 
-          value={formData.poblacion || ''} 
-          onChange={e => handleChange('poblacion', e.target.value)} 
-        />
-      </div>
-
-       <div>
-        <label className="block text-xs font-medium text-gray-500">Provincia</label>
-        <input 
-            disabled={!isEditing}
-          className="w-full border p-2 rounded" 
-          value={formData.provincia || ''} 
-          onChange={e => handleChange('provincia', e.target.value)} 
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-gray-500">País</label>
-        <input 
-            disabled={!isEditing}
-          className="w-full border p-2 rounded" 
-          value={formData.pais || 'España'} 
-          onChange={e => handleChange('pais', e.target.value)} 
-        />
-      </div>
-
-      <div className="md:col-span-2 mt-2 pt-2 border-t">
-        <h4 className="text-xs font-bold text-gray-400 uppercase">Contacto</h4>
-      </div>
-
-      <div>
-         <label className="block text-xs font-medium text-gray-500">Teléfono</label>
-         <input 
-            disabled={!isEditing}
-            className="w-full border p-2 rounded" 
-            value={formData.telefono || ''} 
-            onChange={e => handleChange('telefono', e.target.value)} 
-         />
-      </div>
-
-       <div>
-         <label className="block text-xs font-medium text-gray-500">Persona de Contacto</label>
-         <input 
-            disabled={!isEditing}
-            className="w-full border p-2 rounded" 
-            value={formData.contacto_nombre || ''} 
-            onChange={e => handleChange('contacto_nombre', e.target.value)} 
-         />
-      </div>
-
-      <div>
-         <label className="block text-xs font-medium text-gray-500">Email Contacto</label>
-         <input 
-            type="email"
-            disabled={!isEditing}
-            className="w-full border p-2 rounded" 
-            value={formData.contacto_email || ''} 
-            onChange={e => handleChange('contacto_email', e.target.value)} 
-         />
-      </div>
-
-      <div className="md:col-span-2 mt-2 pt-2 border-t">
-        <h4 className="text-xs font-bold text-gray-400 uppercase">Facturación y Pagos</h4>
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-gray-500">Email Facturación</label>
-        <input 
-            type="email"
-            disabled={!isEditing}
-          className="w-full border p-2 rounded" 
-          value={formData.email || ''} 
-          onChange={e => handleChange('email', e.target.value)} 
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-gray-500">IBAN</label>
-        <input 
-            disabled={!isEditing}
-          className="w-full border p-2 rounded" 
-          value={formData.iban || ''} 
-          onChange={e => handleChange('iban', e.target.value)} 
-          placeholder={isEditing ? "ES00..." : "—"}
-        />
-      </div>
-    
-      <div>
-        <label className="block text-xs font-medium text-gray-500">IVA por defecto (%)</label>
-        <input 
-            disabled={!isEditing}
-          type="number"
-          className="w-full border p-2 rounded" 
-          value={formData.iva_defecto || ''} 
-          onChange={e => handleChange('iva_defecto', e.target.value)} 
-        />
-      </div>
-
-      <div>
-         <label className="block text-xs font-medium text-gray-500">Forma de Pago</label>
-         <select 
-             disabled={!isEditing}
-             className="w-full border p-2 rounded"
-             value={formData.forma_pago || 'TRANSFERENCIA'}
-             onChange={e => handleChange('forma_pago', e.target.value)}
-         >
-             <option value="TRANSFERENCIA">Transferencia</option>
-             <option value="DOMICILIACION">Domiciliación</option>
-             <option value="EFECTIVO">Efectivo</option>
-             <option value="TARJETA">Tarjeta</option>
-         </select>
-       </div>
-
-       <div className="flex items-center gap-2 mt-6">
-        <input 
-            disabled={!isEditing}
-          type="checkbox"
-          id="exento"
-          checked={formData.exento_iva === true} 
-          onChange={e => handleChange('exento_iva', e.target.checked)} 
-        />
-        <label htmlFor="exento" className="text-sm">Exento de IVA</label>
-      </div>
-
-    </div>
     </div>
   );
 }

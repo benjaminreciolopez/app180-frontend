@@ -623,9 +623,9 @@ export default function CrearFacturaPage() {
                                     size="icon" 
                                     className="h-6 w-6 -mt-1 -mr-1 text-slate-400 hover:text-blue-600"
                                     onClick={() => setIsClientEditOpen(true)}
-                                    title="Ver datos fiscales"
+                                    title="Editar datos del cliente"
                                 >
-                                    <FileText className="w-3 h-3" />
+                                    <Edit className="w-3 h-3" />
                                 </Button>
                             </div>
                             <div><span className="font-medium">NIF:</span> {c.nif || c.nif_cif || '—'}</div>
@@ -1050,7 +1050,7 @@ export default function CrearFacturaPage() {
                     <div className="bg-white rounded-lg shadow-xl overflow-hidden">
                         <ClientFiscalForm 
                             data={c} 
-                            readOnly={true}
+                            onSave={handleUpdateClient} 
                         />
                     </div>
                 )

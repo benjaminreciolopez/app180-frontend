@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
+import ClientFiscalFields from "@/components/admin/clientes/ClientFiscalFields";
 
 const GeoPicker = dynamic(() => import("@/components/GeoPicker"), {
   ssr: false,
@@ -462,97 +463,12 @@ export default function AdminClientesPage() {
                   </TabsContent>
 
                   {/* TAB FISCAL */}
-                  <TabsContent value="fiscal" className="space-y-6 mt-0 border-0 p-0">
-                    <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100/50 space-y-4">
-                      <h4 className="text-sm font-semibold text-blue-800">Identificación Fiscal</h4>
-                      
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Razón Social</label>
-                        <Input
-                          placeholder="Nombre legal completo"
-                          className="bg-white border-slate-200"
-                          value={editing.razon_social || ""}
-                          onChange={(e) =>
-                            setEditing({ ...editing, razon_social: e.target.value })
-                          }
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">NIF / CIF</label>
-                          <Input
-                            placeholder="B12345678"
-                            className="bg-white border-slate-200"
-                            value={editing.nif || editing.nif_cif || ""}
-                            onChange={(e) =>
-                              setEditing({ ...editing, nif: e.target.value, nif_cif: e.target.value })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Email Facturación</label>
-                          <Input
-                            type="email"
-                            placeholder="facturas@empresa.com"
-                            className="bg-white border-slate-200"
-                            value={editing.email || ""}
-                            onChange={(e) => setEditing({ ...editing, email: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
-                      <h4 className="text-sm font-semibold text-slate-700">Pagos y Facturación</h4>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">IVA por Defecto</label>
-                          <Select
-                            value={String(editing.iva_defecto || "21")}
-                            onValueChange={(v) => setEditing({ ...editing, iva_defecto: v })}
-                          >
-                            <SelectTrigger className="bg-white border-slate-200 w-full">
-                              <SelectValue placeholder="Seleccionar IVA" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="21">21% (General)</SelectItem>
-                              <SelectItem value="10">10% (Reducido)</SelectItem>
-                              <SelectItem value="4">4% (Superreducido)</SelectItem>
-                              <SelectItem value="0">0% (Exento)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Forma de Pago</label>
-                          <Select
-                            value={editing.forma_pago || "TRANSFERENCIA"}
-                            onValueChange={(v) => setEditing({ ...editing, forma_pago: v })}
-                          >
-                            <SelectTrigger className="bg-white border-slate-200 w-full">
-                              <SelectValue placeholder="Forma de pago" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="TRANSFERENCIA">Transferencia</SelectItem>
-                              <SelectItem value="DOMICILIACION">Domiciliación</SelectItem>
-                              <SelectItem value="EFECTIVO">Efectivo</SelectItem>
-                              <SelectItem value="TARJETA">Tarjeta</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">IBAN Cuenta Bancaria</label>
-                        <Input
-                          placeholder="ES00 0000 0000 0000 0000 0000"
-                          className="bg-white border-slate-200 font-mono text-sm"
-                          value={editing.iban || ""}
-                          onChange={(e) => setEditing({ ...editing, iban: e.target.value })}
-                        />
-                      </div>
-                    </div>
+                  <TabsContent value="fiscal" className="space-y-6 mt-0 border-0 p-0 pt-4">
+                    <ClientFiscalFields 
+                        data={editing}
+                        onChange={(field, value) => setEditing({ ...editing, [field]: value })}
+                        readOnly={false}
+                    />
                   </TabsContent>
 
                   {/* TAB GEOLOCALIZACIÓN Y DIRECCIÓN */}
