@@ -7,10 +7,12 @@ import { toast } from "sonner"; // Assuming sonner or simple alert
 
 export default function ClientFiscalForm({ 
     data, 
-    onSave 
+    onSave,
+    readOnly = false
 }: { 
     data: any, 
-    onSave: (newData: any) => Promise<void> 
+    onSave?: (newData: any) => Promise<void>,
+    readOnly?: boolean
 }) {
   const [formData, setFormData] = useState<any>({});
   const [isEditing, setIsEditing] = useState(false);
@@ -34,7 +36,7 @@ export default function ClientFiscalForm({
             exento_iva: false,
             forma_pago: "",
             iban: "",
-            ...data // Overwrite defaults (assuming data has these keys)
+            ...data 
         });
     }
   }, [data]);
@@ -44,6 +46,7 @@ export default function ClientFiscalForm({
   };
 
   const handleSave = async () => {
+    if (!onSave) return;
     try {
         setSaving(true);
         await onSave(formData);
@@ -57,7 +60,6 @@ export default function ClientFiscalForm({
   };
 
   const handleCancel = () => {
-    // Reset to original data
     setFormData({ ...data });
     setIsEditing(false);
   };
@@ -66,11 +68,11 @@ export default function ClientFiscalForm({
     <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
       <div className="flex justify-between items-center bg-gray-50 border-b px-4 py-3">
         <h3 className="font-semibold text-gray-700 flex items-center gap-2">
-            {!isEditing && <Lock size={14} className="text-gray-400"/>}
+            <Lock size={14} className="text-gray-400"/>
             Datos Fiscales y de Contacto
         </h3>
         <div>
-            {!isEditing ? (
+            {!readOnly && (!isEditing ? (
                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                     <Edit2 size={14} className="mr-2"/> Modificar
                  </Button>
@@ -83,7 +85,7 @@ export default function ClientFiscalForm({
                         {saving ? "Guardando..." : <><Save size={14} className="mr-2"/> Guardar</>}
                     </Button>
                 </div>
-            )}
+            ))}
         </div>
       </div>
 

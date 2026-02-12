@@ -202,14 +202,8 @@ export default function ClienteDetailPage() {
         {activeTab === 'fiscal' && (
              <div className="fade-in">
                 <ClientFiscalForm 
-                    data={cliente} 
-                    onSave={async (newData) => {
-                        await api(`/admin/clientes/${id}`, {
-                            method: "PATCH",
-                            body: JSON.stringify(newData)
-                        });
-                        load(); // Reload to confirm
-                    }} 
+                    data={cliente}
+                    readOnly={true} 
                 />
              </div>
         )}
