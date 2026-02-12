@@ -635,7 +635,7 @@ export default function AdminClientesPage() {
                               setEditing({ 
                                 ...editing, 
                                 requiere_geo: false, 
-                                geo_policy: null 
+                                geo_policy: 'none' 
                               })
                             } else {
                               setEditing({ 
