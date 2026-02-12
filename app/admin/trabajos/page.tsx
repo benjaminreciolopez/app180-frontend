@@ -9,6 +9,7 @@ import FormTrabajos from "@/components/shared/FormTrabajos";
 import { Plus, X, RefreshCw } from "lucide-react";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { toast } from "sonner";
 
 
 export default function AdminTrabajosPage() {
@@ -86,11 +87,7 @@ export default function AdminTrabajosPage() {
     }
   }
 
-  import { toast } from "sonner";
-
-  // ... (existing imports)
-
-  async function rxecuteRecalculation() {
+  async function executeRecalculation() {
       setLoading(true);
       const toastId = toast.loading("Recalculando trabajos...");
       
@@ -123,7 +120,7 @@ export default function AdminTrabajosPage() {
         description: "Esto buscará en todo el historial y aplicará la tarifa actual del cliente.",
         action: {
           label: "Confirmar",
-          onClick: () => rxecuteRecalculation(),
+          onClick: () => executeRecalculation(),
         },
         cancel: {
             label: "Cancelar",
