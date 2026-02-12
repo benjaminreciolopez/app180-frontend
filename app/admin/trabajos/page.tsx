@@ -6,7 +6,7 @@ import { api } from "@/services/api";
 import { getUser } from "@/services/auth";
 import TableTrabajos, { WorkLogItem } from "@/components/shared/TableTrabajos";
 import FormTrabajos from "@/components/shared/FormTrabajos";
-import { Plus, X } from "lucide-react";
+import { Plus, X, RefreshCw } from "lucide-react";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
@@ -86,6 +86,55 @@ export default function AdminTrabajosPage() {
     }
   }
 
+  async function handleRecalculate() {
+    // Filter items with valor === 0 AND billingType === 'hora' (optional check)
+    // We will just try to update those with valor 0
+    const zeroValueItems = items.filter(i => i.valor === 0 && i.tipo_facturacion !== 'valorado');
+    
+    if (zeroValueItems.length === 0) {
+        alert("No hay trabajos con valor 0€ para recalcular.");
+        return;
+    }
+
+    if (!confirm(`Se han encontrado ${zeroValueItems.length} trabajos con valor 0€. ¿Intentar recalcular sus importes basándose en la tarifa actual del cliente?`)) {
+        return;
+    }
+
+    setLoading(true);
+    let updatedCount = 0;
+    try {
+        for (const item of zeroValueItems) {
+            // We do a PUT with the same data. 
+            // The backend should recalculate 'valor' if 'precio' is not provided or if logic triggers it.
+            // CAUTION: If backend expects 'precio' property to be explicitly passed for it to NOT start calculation, we should omit it.
+            // But usually we pass what we have. If we pass 'precio: 0', backend might respect it.
+            // Strategy: Pass 'precio: null' to force recalc.
+            
+            const payload: any = {
+                fecha: item.fecha,
+                minutos: item.minutos,
+                descripcion: item.descripcion,
+                detalles: item.detalles,
+                cliente_id: item.cliente_id,
+                work_item_nombre: item.work_item_nombre,
+                empleado_id: item.empleado_id,
+                tipo_facturacion: item.tipo_facturacion,
+                precio: null // FORCE RECALC
+            };
+
+            await api.put(`/worklogs/${item.id}`, payload);
+            updatedCount++;
+        }
+        alert(`Proceso finalizado. ${updatedCount} trabajos procesados.`);
+        loadData();
+    } catch (e) {
+        console.error(e);
+        alert("Ocurrió un error al recalcular algunos trabajos.");
+    } finally {
+        setLoading(false);
+    }
+  }
+
   function handleEdit(item: WorkLogItem) {
     setSelectedItem(item);
     setFormMode('edit');
@@ -162,6 +211,14 @@ export default function AdminTrabajosPage() {
             </button>
           )}
           
+          <button 
+             onClick={handleRecalculate}
+             className="px-3 py-2 border rounded-lg text-xs font-medium bg-white text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+             title="Recalcular importes de trabajos a 0€"
+          >
+             <RefreshCw size={14}/> Recalcular 0€
+          </button>
+
           <button 
             onClick={() => {
               if (showForm) {

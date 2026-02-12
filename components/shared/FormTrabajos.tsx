@@ -479,6 +479,23 @@ export default function FormTrabajos({
 
       </div>
 
+      {/* Warning if client has no rate */}
+      {(() => {
+          if (billingType === 'hora' && clienteId) {
+             // We cast to any because Option type might not have precio_hora defined in the interface but data has it
+             const c = clientes.find(x => x.id === clienteId) as any;
+             if (c && !c.precio_hora && !c.tarifa_personalizada) {
+                 return (
+                     <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded-md text-xs flex items-center gap-2">
+                        <span className="font-bold">⚠️ Atención:</span>
+                        Este cliente no tiene tarifa por hora configurada. El trabajo se guardará con valor 0€.
+                     </div>
+                 )
+             }
+          }
+          return null;
+      })()}
+
       {/* Clonación Multiple Fechas */}
       {mode === 'clone' && (
         <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 space-y-2">

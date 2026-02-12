@@ -13,6 +13,7 @@ export type WorkLogItem = {
   empleado_nombre?: string;
   empleado_id?: string;
   cliente_nombre?: string | null;
+  cliente_id?: string | null;
   work_item_nombre?: string | null;
   
   // Payment fields
