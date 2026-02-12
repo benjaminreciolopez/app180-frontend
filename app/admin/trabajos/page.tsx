@@ -86,27 +86,50 @@ export default function AdminTrabajosPage() {
     }
   }
 
-  async function handleRecalculate() {
-    if (!confirm(`¿Quieres buscar en el servidor TODOS los trabajos antiguos con valor 0€ y recalcular su importe según la tarifa actual de cada cliente?`)) {
-        return;
-    }
+  import { toast } from "sonner";
 
-    setLoading(true);
-    try {
-        const res = await api.put("/worklogs/fix-values");
-        
-        // Backend returns { fixed: number, total_checked: number }
-        const { fixed, total_checked } = res.data || {};
-        
-        alert(`Proceso finalizado.\n\nTrabajos revisados: ${total_checked}\nTrabajos actualizados: ${fixed}`);
-        
-        loadData();
-    } catch (e: any) {
-        console.error(e);
-        alert("Ocurrió un error al solicitar el recálculo en el servidor: " + (e.response?.data?.error || e.message));
-    } finally {
-        setLoading(false);
-    }
+  // ... (existing imports)
+
+  async function rxecuteRecalculation() {
+      setLoading(true);
+      const toastId = toast.loading("Recalculando trabajos...");
+      
+      try {
+          const res = await api.put("/worklogs/fix-values");
+          
+          // Backend returns { fixed: number, total_checked: number }
+          const { fixed, total_checked } = res.data || {};
+          
+          toast.success(`Proceso finalizado`, {
+              id: toastId,
+              description: `Revisados: ${total_checked}. Actualizados: ${fixed}`,
+              duration: 5000,
+          });
+          
+          loadData();
+      } catch (e: any) {
+          console.error(e);
+          toast.error("Error al recalcular", {
+              id: toastId,
+              description: e.response?.data?.error || e.message
+          });
+      } finally {
+          setLoading(false);
+      }
+  }
+
+  function handleRecalculate() {
+     toast("¿Recalcular importes a 0€?", {
+        description: "Esto buscará en todo el historial y aplicará la tarifa actual del cliente.",
+        action: {
+          label: "Confirmar",
+          onClick: () => rxecuteRecalculation(),
+        },
+        cancel: {
+            label: "Cancelar",
+            onClick: () => console.log("Cancelado"),
+        }
+     });
   }
 
   function handleEdit(item: WorkLogItem) {
