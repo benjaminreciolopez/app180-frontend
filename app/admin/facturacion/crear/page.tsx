@@ -318,11 +318,24 @@ export default function CrearFacturaPage() {
   }
 
   const handleSelectConcepto = (lineaId: number, concepto: Concepto) => {
+    // Asegurar que el precio es un número válido
+    let price = 0;
+    if (typeof concepto.precio_unitario === 'number') {
+        price = concepto.precio_unitario;
+    } else if (typeof concepto.precio_unitario === 'string') {
+        // Intentar parsear "10,50" o "10.50"
+        price = parseFloat(String(concepto.precio_unitario).replace(',', '.'));
+    }
+    
+    if (isNaN(price)) price = 0;
+
     setLineas(lineas.map(l => 
       l.id === lineaId ? { 
         ...l, 
         descripcion: concepto.descripcion || concepto.nombre,
-        precio_unitario: Number(concepto.precio_unitario || 0),
+        // Si el precio del concepto es > 0, lo aplicamos.
+        // Si es 0 (o inválido), mantenemos el precio que ya tenía la línea.
+        precio_unitario: price > 0 ? price : (l.precio_unitario || 0),
         iva: Number(concepto.iva_default || 21),
         concepto_id: concepto.id,
         original_desc: concepto.descripcion || concepto.nombre
@@ -346,6 +359,8 @@ export default function CrearFacturaPage() {
         })
     } 
   }
+
+
 
   const updateConceptRecord = async (linea: Linea) => {
     try {
@@ -391,45 +406,29 @@ export default function CrearFacturaPage() {
         
         // Update local state
         setClientes(prev => prev.map(c => c.id === clienteId ? { ...c, ...newData } : c));
-        
-        // If critical fields changed, toast might be needed, but ClientFiscalForm handles success toast.
-        // We just ensure the UI reflects changes immediately.
     } catch (error) {
         console.error("Error updating client", error);
-        throw error; // Let ClientFiscalForm handle the error toast if it wants, or we handle it.
-        // ClientFiscalForm catches error but we re-throw? 
-        // Actually ClientFiscalForm swallows error and shows toast.
-        // But we need to know if it succeeded? 
-        // ClientFiscalForm calls onSave and awaits. If we throw, it catches.
-        // So throwing here is correct to trigger error state in child.
+        throw error; 
     }
   }
 
   // Cálculos totales
-  console.log("DEBUG CALC 1:", lineas);
-  const subtotal = lineas.reduce((acc, l) => {
-      const lineTotal = (Number(l.cantidad) || 0) * (Number(l.precio_unitario) || 0);
-      console.log(`Line ${l.id}: ${l.cantidad} * ${l.precio_unitario} = ${lineTotal}`);
-      return acc + lineTotal;
-  }, 0)
+  const subtotal = lineas.reduce((acc, l) => acc + (l.cantidad * l.precio_unitario), 0)
   
   // Agrupar por tipo de IVA
   const ivaBreakdown = lineas.reduce((acc, l) => {
-    const base = (Number(l.cantidad) || 0) * (Number(l.precio_unitario) || 0);
-    const cuota = base * ((Number(l.iva) || 0) / 100);
-    const ivaKey = Number(l.iva) || 0;
-    
-    if (!acc[ivaKey]) {
-      acc[ivaKey] = { base: 0, cuota: 0 };
+    const base = l.cantidad * l.precio_unitario;
+    const cuota = base * (l.iva / 100);
+    if (!acc[l.iva]) {
+      acc[l.iva] = { base: 0, cuota: 0 };
     }
-    acc[ivaKey].base += base;
-    acc[ivaKey].cuota += cuota;
+    acc[l.iva].base += base;
+    acc[l.iva].cuota += cuota;
     return acc;
   }, {} as Record<number, { base: number, cuota: number }>);
 
   const ivaTotal = Object.values(ivaBreakdown).reduce((acc, b) => acc + b.cuota, 0);
   const total = subtotal + ivaTotal;
-  console.log("DEBUG CALC 2:", { subtotal, ivaTotal, total, ivaBreakdown });
 
   const handleSubmit = async () => {
     if (!clienteId) {
