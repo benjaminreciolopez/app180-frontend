@@ -477,7 +477,7 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
                     {formatCurrency(factura.total)}
                 </div>
                 <div className="text-xs text-slate-500">
-                    + {formatCurrency(factura.iva_total)} IVA
+                    (incl. {formatCurrency(factura.iva_total)} IVA)
                 </div>
             </div>
 
