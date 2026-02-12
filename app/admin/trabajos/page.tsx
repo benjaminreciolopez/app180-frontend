@@ -87,9 +87,8 @@ export default function AdminTrabajosPage() {
   }
 
   async function handleRecalculate() {
-    // Filter items with valor === 0 AND billingType === 'hora' (optional check)
-    // We will just try to update those with valor 0
-    const zeroValueItems = items.filter(i => i.valor === 0 && i.tipo_facturacion !== 'valorado');
+    // Filter items with valor === 0 or null/undefined
+    const zeroValueItems = items.filter(i => (!i.valor || i.valor === 0) && i.tipo_facturacion !== 'valorado');
     
     if (zeroValueItems.length === 0) {
         alert("No hay trabajos con valor 0€ para recalcular.");
@@ -102,30 +101,55 @@ export default function AdminTrabajosPage() {
 
     setLoading(true);
     let updatedCount = 0;
+    let errorCount = 0;
+    
     try {
         for (const item of zeroValueItems) {
-            // We do a PUT with the same data. 
-            // The backend should recalculate 'valor' if 'precio' is not provided or if logic triggers it.
-            // CAUTION: If backend expects 'precio' property to be explicitly passed for it to NOT start calculation, we should omit it.
-            // But usually we pass what we have. If we pass 'precio: 0', backend might respect it.
-            // Strategy: Pass 'precio: null' to force recalc.
+            // Find client to get rate
+            const client = clientes.find((c: any) => c.id === item.cliente_id);
             
-            const payload: any = {
-                fecha: item.fecha,
-                minutos: item.minutos,
-                descripcion: item.descripcion,
-                detalles: item.detalles,
-                cliente_id: item.cliente_id,
-                work_item_nombre: item.work_item_nombre,
-                empleado_id: item.empleado_id,
-                tipo_facturacion: item.tipo_facturacion,
-                precio: null // FORCE RECALC
-            };
+            let calculatedPrice = null;
 
-            await api.put(`/worklogs/${item.id}`, payload);
-            updatedCount++;
+            if (client) {
+                // Logic based on billing type
+                if (item.tipo_facturacion === 'hora' && client.precio_hora) {
+                    const horas = (item.minutos || 0) / 60;
+                    calculatedPrice = horas * parseFloat(client.precio_hora);
+                }
+                // Add logic for 'dia' / 'mes' if needed, assuming 'precio_hora' is the main one for now
+                // If client has custom rate for days? Usually we only have precio_hora in simple mode.
+            }
+
+            // If we couldn't calculate a price, we might skip or try sending null again (but null failed before)
+            // If calculatedPrice is still null, it means client has no rate or type mismatch.
+            // We only update if we have a valid calculated price.
+            
+            if (calculatedPrice !== null && !isNaN(calculatedPrice)) {
+                 const payload: any = {
+                    fecha: item.fecha,
+                    minutos: item.minutos,
+                    descripcion: item.descripcion,
+                    detalles: item.detalles,
+                    cliente_id: item.cliente_id,
+                    work_item_nombre: item.work_item_nombre,
+                    empleado_id: item.empleado_id,
+                    tipo_facturacion: item.tipo_facturacion,
+                    precio: Number(calculatedPrice.toFixed(2)) // EXPLICIT PRICE
+                };
+
+                await api.put(`/worklogs/${item.id}`, payload);
+                updatedCount++;
+            } else {
+                console.warn(`Skipping item ${item.id}: No rate found for client or invalid type.`);
+                errorCount++;
+            }
         }
-        alert(`Proceso finalizado. ${updatedCount} trabajos procesados.`);
+        
+        let msg = `Proceso finalizado. ${updatedCount} trabajos actualizados.`;
+        if (errorCount > 0) {
+            msg += `\n${errorCount} trabajos no se pudieron actualizar porque el cliente no tiene tarifa configurada.`;
+        }
+        alert(msg);
         loadData();
     } catch (e) {
         console.error(e);
