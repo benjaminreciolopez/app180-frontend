@@ -22,6 +22,7 @@ type SyncLog = {
 export default function CalendarSyncHistory({ refreshTrigger }: { refreshTrigger?: number }) {
   const [history, setHistory] = useState<SyncLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   async function loadHistory() {
     try {
@@ -109,80 +110,95 @@ export default function CalendarSyncHistory({ refreshTrigger }: { refreshTrigger
       <h3 className="font-semibold text-lg mb-4">Historial de Sincronizaciones</h3>
 
       <div className="space-y-3">
-        {history.map((log) => (
-          <div key={log.id} className="p-3 border rounded-lg hover:bg-gray-50 transition">
-            <div className="flex items-start justify-between">
-              {/* Left: Status + Info */}
-              <div className="flex items-start gap-3 flex-1">
-                {/* Status Icon */}
-                <div className="mt-0.5">{getStatusIcon(log.status)}</div>
+        {history.map((log) => {
+          const isExpanded = expandedId === log.id;
+          
+          return (
+            <div 
+              key={log.id} 
+              className={`p-3 border rounded-lg transition-all cursor-pointer ${isExpanded ? 'bg-gray-50 ring-1 ring-blue-200' : 'hover:bg-gray-50'}`}
+              onClick={() => setExpandedId(isExpanded ? null : log.id)}
+            >
+              <div className="flex items-start justify-between">
+                {/* Left: Status + Info */}
+                <div className="flex items-start gap-3 flex-1">
+                  {/* Status Icon */}
+                  <div className="mt-0.5">{getStatusIcon(log.status)}</div>
 
-                {/* Info */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {/* Direction */}
-                    <span className="flex items-center gap-1 text-sm font-medium">
-                      {getDirectionIcon(log.sync_direction)}
-                      {getDirectionLabel(log.sync_direction)}
-                    </span>
+                  {/* Info */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Direction */}
+                      <span className="flex items-center gap-1 text-sm font-medium">
+                        {getDirectionIcon(log.sync_direction)}
+                        {getDirectionLabel(log.sync_direction)}
+                      </span>
 
-                    {/* Type */}
-                    <span className="text-xs px-2 py-0.5 bg-gray-100 rounded">
-                      {getTypeLabel(log.sync_type)}
-                    </span>
+                      {/* Type */}
+                      <span className="text-xs px-2 py-0.5 bg-gray-100 rounded">
+                        {getTypeLabel(log.sync_type)}
+                      </span>
 
-                    {/* Timestamp */}
-                    <span className="text-xs text-gray-500">
-                      {new Date(log.created_at).toLocaleString("es-ES", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })}
-                    </span>
+                      {/* Timestamp */}
+                      <span className="text-xs text-gray-500">
+                        {new Date(log.created_at).toLocaleString("es-ES", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Results (Always visible summary) */}
+                    {!isExpanded && (
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 italic">
+                        Click para ver {log.errors_count > 0 ? `${log.errors_count} errores` : 'detalles'}
+                      </div>
+                    )}
+                    
+                    {/* Expanded Content (Accordion) */}
+                    {isExpanded && (
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                          <div className="bg-green-50 p-2 rounded text-green-700">
+                            <p className="text-xs opacity-70">Creados</p>
+                            <p className="font-bold">{log.events_created}</p>
+                          </div>
+                          <div className="bg-blue-50 p-2 rounded text-blue-700">
+                            <p className="text-xs opacity-70">Actualizados</p>
+                            <p className="font-bold">{log.events_updated}</p>
+                          </div>
+                          <div className="bg-orange-50 p-2 rounded text-orange-700">
+                            <p className="text-xs opacity-70">Eliminados</p>
+                            <p className="font-bold">{log.events_deleted}</p>
+                          </div>
+                          <div className={`p-2 rounded font-bold ${log.errors_count > 0 ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-700'}`}>
+                            <p className="text-xs opacity-70">Errores</p>
+                            <p>{log.errors_count}</p>
+                          </div>
+                        </div>
+
+                        {/* Error Details */}
+                        {log.error_details && log.errors_count > 0 && (
+                          <div className="mt-3">
+                            <p className="text-xs font-semibold text-red-600 mb-1 caps">Detalle de errores:</p>
+                            <div className="max-h-60 overflow-y-auto bg-red-50 p-2 rounded border border-red-100">
+                              <pre className="text-xs text-red-800 whitespace-pre-wrap">
+                                {JSON.stringify(log.error_details, null, 2)}
+                              </pre>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-
-                  {/* Results */}
-                  <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
-                    {log.events_created > 0 && (
-                      <span className="text-green-600">
-                        +{log.events_created} creados
-                      </span>
-                    )}
-                    {log.events_updated > 0 && (
-                      <span className="text-blue-600">
-                        ~{log.events_updated} actualizados
-                      </span>
-                    )}
-                    {log.events_deleted > 0 && (
-                      <span className="text-red-600">
-                        -{log.events_deleted} eliminados
-                      </span>
-                    )}
-                    {log.errors_count > 0 && (
-                      <span className="text-red-600 font-medium">
-                        ⚠️ {log.errors_count} errores
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Error Details */}
-                  {log.error_details && log.errors_count > 0 && (
-                    <details className="mt-2">
-                      <summary className="text-xs text-red-600 cursor-pointer hover:underline">
-                        Ver errores
-                      </summary>
-                      <pre className="mt-1 text-xs bg-red-50 p-2 rounded overflow-x-auto">
-                        {JSON.stringify(log.error_details, null, 2)}
-                      </pre>
-                    </details>
-                  )}
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
