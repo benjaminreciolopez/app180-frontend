@@ -139,6 +139,7 @@ export default function CrearFacturaPage() {
   
   // Client Edit Modal State
   const [isClientEditOpen, setIsClientEditOpen] = useState(false)
+  const [minFecha, setMinFecha] = useState<string>("")
 
   // Column Resizing State
   const [colWidths, setColWidths] = useState<Record<string, number>>({
@@ -195,13 +196,25 @@ export default function CrearFacturaPage() {
         const res = await api.get('/admin/clientes') 
         const data = res.data.data || (Array.isArray(res.data) ? res.data : [])
         setClientes(data)
-      } catch (err) {
-        toast.error("Error cargando clientes")
       } finally {
         setLoadingClientes(false)
       }
     }
+
+    const fetchMinFecha = async () => {
+        try {
+            const res = await api.get('/admin/facturacion/facturas/ultima-fecha')
+            if (res.data.success && res.data.lastDate) {
+                // Formato YYYY-MM-DD
+                setMinFecha(res.data.lastDate.split('T')[0])
+            }
+        } catch (e) {
+            console.error("Error fetching last valid date", e)
+        }
+    }
+
     fetchClientes()
+    fetchMinFecha()
     loadIvas()
   }, [])
 
@@ -656,6 +669,7 @@ export default function CrearFacturaPage() {
                   <Input 
                     type="date" 
                     value={fecha} 
+                    min={minFecha}
                     onChange={(e) => setFecha(e.target.value)}
                     className="bg-white h-12"
                   />
