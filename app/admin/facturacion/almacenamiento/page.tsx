@@ -184,14 +184,14 @@ export default function AlmacenamientoPage() {
     }
 
     // Sort files based on user direction
-    const fileItems = items.filter(i => i.type === 'file')
+    const fileItems = items.filter((i): i is { type: 'file', data: FileInfo } => i.type === 'file')
     const folderItems = items.filter(i => i.type === 'folder')
 
     // Note: Folders use the memoized 'subFolders' which is already sorted.
     // Files need sorting here.
     fileItems.sort((a, b) => {
-        const nameA = a.type === 'file' ? a.data.nombre : a.name
-        const nameB = b.type === 'file' ? b.data.nombre : b.name
+        const nameA = a.data.nombre
+        const nameB = b.data.nombre
         return sortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
     })
 
@@ -215,8 +215,24 @@ export default function AlmacenamientoPage() {
     handleNavigate(parts.join('/'))
   }
 
+  /* =========================
+     Protección de Backup
+     ========================= */
+  const isProtectedItem = (id: string) => {
+      const file = currentFiles.find(f => f.id === id)
+      if (!file) return false
+      // Protegemos el backup automático
+      return file.nombre === 'backup_auto.json' || file.folder.includes('system_backups')
+  }
+
   const handleDelete = async (id: string) => {
     if (isDownloading || deletingId) return
+    
+    if (isProtectedItem(id)) {
+        toast.error("Este archivo de sistema está protegido y no se puede eliminar.")
+        return
+    }
+
     if (!confirm("¿Seguro que quieres eliminar este archivo?")) return
     setDeletingId(id)
     try {
@@ -233,6 +249,14 @@ export default function AlmacenamientoPage() {
 
   const handleDeleteBulk = async () => {
     if (isDownloading || isDeletingBulk) return
+    
+    // Verificar protegidos
+    const protectedIds = Array.from(selectedItems).filter(id => isProtectedItem(id))
+    if (protectedIds.length > 0) {
+        toast.error(`Hay ${protectedIds.length} archivo(s) protegidos seleccionados que no se pueden eliminar.`)
+        return
+    }
+
     if (!confirm(`¿Seguro que quieres eliminar ${selectedItems.size} archivos?`)) return
     
     setIsDeletingBulk(true)
@@ -543,9 +567,9 @@ export default function AlmacenamientoPage() {
                         <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                            className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                             onClick={handleDeleteBulk}
-                            disabled={isDownloading || isDeletingBulk}
+                            disabled={isDownloading || isDeletingBulk || Array.from(selectedItems).some(isProtectedItem)}
                         >
                             <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                             Eliminar ({selectedItems.size})
@@ -753,7 +777,19 @@ export default function AlmacenamientoPage() {
                                                       <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={() => handleDownload(item.data.id, item.data.nombre)}>
                                                          <Download className="w-4 h-4" />
                                                       </Button>
-                                                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.data.id)}>
+                                                      <Button 
+                                                          size="icon" 
+                                                          variant="ghost" 
+                                                          className={cn("h-8 w-8 text-red-500", isProtectedItem(item.data.id) && "opacity-30 cursor-not-allowed text-stone-400")} 
+                                                          onClick={(e) => {
+                                                              if (isProtectedItem(item.data.id)) {
+                                                                  e.stopPropagation()
+                                                                  toast.error("Archivo protegido del sistema")
+                                                                  return
+                                                              }
+                                                              handleDelete(item.data.id)
+                                                          }}
+                                                      >
                                                          <Trash2 className="w-4 h-4" />
                                                       </Button>
                                                   </div>
