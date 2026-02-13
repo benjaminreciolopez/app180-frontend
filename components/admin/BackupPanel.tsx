@@ -21,6 +21,8 @@ import {
 export default function BackupPanel() {
   const [loading, setLoading] = useState(false);
   const [directoryHandle, setDirectoryHandle] = useState<any>(null); // FS Handle
+  const [serverBackupPath, setServerBackupPath] = useState<string>("");
+  const [savingPath, setSavingPath] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -31,7 +33,35 @@ export default function BackupPanel() {
             console.log("Directorio de backup recuperado de IndexedDB");
         }
     });
+
+    // Cargar configuración del servidor para la ruta persistente
+    loadServerConfig();
   }, []);
+
+  async function loadServerConfig() {
+    try {
+      const res = await api.get("/admin/facturacion/configuracion/sistema");
+      if (res.data?.success) {
+        setServerBackupPath(res.data.data.backup_local_path || "");
+      }
+    } catch (err) {
+      console.error("Error cargando configuración de backup del servidor", err);
+    }
+  }
+
+  async function handleSaveServerPath() {
+    setSavingPath(true);
+    try {
+      await api.put("/admin/facturacion/configuracion/sistema", {
+        backup_local_path: serverBackupPath
+      });
+      showSuccess("Ruta de backup en servidor actualizada");
+    } catch (err) {
+      showError("Error al guardar la ruta en el servidor");
+    } finally {
+      setSavingPath(false);
+    }
+  }
 
   async function handleForceBackup() {
     if (loading) return;
@@ -246,6 +276,33 @@ export default function BackupPanel() {
             Gestiona las copias de seguridad del sistema. Se genera una copia automática cada vez que un administrador inicia sesión.
             Estas copias se guardan en el Storage de la empresa bajo el nombre <code>backup_auto.json</code>.
           </p>
+        </div>
+      </div>
+
+      {/* Ruta Persistente en Servidor */}
+      <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100 space-y-3">
+        <div className="flex items-center gap-2 text-amber-700">
+          <FolderCog className="w-5 h-5" />
+          <h4 className="font-bold text-sm uppercase tracking-wider">Ruta local persistente (Servidor)</h4>
+        </div>
+        <p className="text-xs text-amber-600/80">
+          Indica una ruta absoluta en el servidor (ej: <code>C:\Backups</code> o <code>/app/backups</code>) para guardar una copia física persistente en cada generación de backup.
+        </p>
+        <div className="flex gap-2">
+            <input 
+                type="text" 
+                placeholder="Ruta absoluta en el servidor..."
+                className="flex-1 px-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                value={serverBackupPath}
+                onChange={(e) => setServerBackupPath(e.target.value)}
+            />
+            <Button 
+                onClick={handleSaveServerPath} 
+                disabled={savingPath}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+                {savingPath ? <Loader2 className="w-4 h-4 animate-spin" /> : "Vincular"}
+            </Button>
         </div>
       </div>
 
