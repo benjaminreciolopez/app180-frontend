@@ -54,12 +54,28 @@ export default function AdminLayout({
       // Detectar si estamos en móvil PWA para usar módulos móviles
       // FIX: Añadimos chequeo de ancho de pantalla. Si es ancho escritorio (> 1024), forzamos NO usar config móvil
       // aunque el UA diga que es móvil (falsos positivos o tablets en landscape).
-      const isSmallScreen = window.innerWidth < 1024;
-      const useMobile = isMobileDevice() && isStandalone() && isSmallScreen;
-      
-      const activeModulos = (useMobile && user.modulos_mobile)
-        ? user.modulos_mobile
-        : (user.modulos || {});
+      const isLargeScreen =
+        typeof window !== "undefined" && window.innerWidth >= 1024;
+      const isPwaMobile = isMobileDevice() && isStandalone();
+
+      // Solo usar módulos móviles si es PWA móvil Y pantalla pequeña
+      const useMobileModules = isPwaMobile && !isLargeScreen;
+
+      console.log("[AdminLayout] Session Check:", {
+        isPwaMobile,
+        isLargeScreen,
+        useMobileModules,
+        modulesDesktop: !!user.modulos,
+        modulesMobile: !!user.modulos_mobile,
+      });
+
+      // Si tenemos módulos móviles y debemos usarlos, bien.
+      // Si NO, usamos los módulos normales (desktop/web).
+      // Fallback: Si no hay modulos_mobile, usamos modulos normales incluso en móvil.
+      const activeModulos =
+        useMobileModules && user.modulos_mobile
+          ? user.modulos_mobile
+          : user.modulos || {};
 
       setSession({
         nombre: user.nombre || "Administrador",
