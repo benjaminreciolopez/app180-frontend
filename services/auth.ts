@@ -184,6 +184,9 @@ export function updateStoredUser(user: any) {
   if (sessionStorage.getItem("token")) {
     sessionStorage.setItem("user", JSON.stringify(user));
   }
+
+  // Notificar a la app que la sesión ha cambiado (Dashboard, Sidebar, etc.)
+  window.dispatchEvent(new Event("session-updated"));
 }
 
 // =================================
