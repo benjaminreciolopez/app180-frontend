@@ -21,3 +21,14 @@ export const showInfo = (message: string) => {
     icon: 'ℹ️',
   });
 };
+
+export const showPromise = (
+  promise: Promise<any>,
+  messages: {
+    loading: string;
+    success: string;
+    error: string;
+  }
+) => {
+  return toast.promise(promise, messages);
+};

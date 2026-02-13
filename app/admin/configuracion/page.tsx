@@ -8,6 +8,7 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import CalendarConfigPanel from "@/components/admin/CalendarConfigPanel";
 import CalendarSyncHistory from "@/components/admin/CalendarSyncHistory";
 import KnowledgePanel from "@/components/admin/KnowledgePanel";
+import BackupPanel from "@/components/admin/BackupPanel";
 
 type Modulos = {
   fichajes?: boolean;
@@ -204,6 +205,11 @@ export default function AdminConfiguracionPage() {
       {/* Historial */}
       <div>
         <CalendarSyncHistory />
+      </div>
+
+      {/* Backup Silencioso */}
+      <div>
+        <BackupPanel />
       </div>
     </div>
   );
