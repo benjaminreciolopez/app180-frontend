@@ -78,12 +78,12 @@ export default function AdminLayout({
           ? user.modulos_mobile
           : user.modulos || {};
 
-      // Lógica de "Curación" de sesión:
-      // Si estamos en Desktop (LargeScreen) y NO tenemos módulos de escritorio completos 
-      // (quizás venimos de una sesión móvil expirada/refrescada parcialmente),
-      // forzamos un refreshMe() explícito para traer todo.
-      if (isLargeScreen && (!user.modulos || Object.keys(user.modulos).length === 0)) {
-         console.warn("[AdminLayout] Detectado Desktop con módulos vacíos. Forzando refreshMe...");
+      // Lógica de "Curación": Si detectamos pantalla grande pero faltan módulos clave
+      // (señal de que tenemos una sesión móvil cacheada), forzamos refresh.
+      const hasMissingDesktopModules = !user.modulos?.clientes && !user.modulos?.empleados;
+      
+      if (isLargeScreen && hasMissingDesktopModules) {
+         console.warn("[AdminLayout] Detectado Desktop con módulos restringidos. Forzando refreshMe...");
          refreshMe().then(() => {
             // Recargar con los datos frescos
             const updatedUser = getUser(); 
