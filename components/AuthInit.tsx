@@ -70,12 +70,22 @@ export default function AuthInit() {
         // Si tenemos usuario local, permitimos renderizar ya (optimistic)
         // y refrescamos en background
         if (token) {
-          refreshMe().then((u) => {
-             // Si el usuario cambió drásticamente (ej: rol), podríamos forzar recarga
-             // Por ahora confiamos en que el estado local se actualiza
-          }).catch(() => {
-             console.log("Sesión background refresh falló (puede estar offline o token expirado)");
-          });
+          if (pathname === "/login" || pathname === "/") {
+            try {
+              await refreshMe();
+              user = getUser();
+            } catch (e) {
+              console.log("Token inválido en login, forzando logout");
+              logout();
+              return;
+            }
+          } else {
+            refreshMe().catch(() => {
+              console.log(
+                "Sesión background refresh falló (puede estar offline o token expirado)",
+              );
+            });
+          }
         }
         
         // Listen for password-forced event

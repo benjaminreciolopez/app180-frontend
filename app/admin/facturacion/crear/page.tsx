@@ -415,7 +415,7 @@ export default function CrearFacturaPage() {
   const handleUpdateClient = async (newData: any) => {
     if (!clienteId) return;
     try {
-        await api.put(`/admin/clientes/${clienteId}`, newData);
+        await api.patch(`/admin/clientes/${clienteId}`, newData);
         
         // Update local state
         setClientes(prev => prev.map(c => c.id === clienteId ? { ...c, ...newData } : c));
@@ -1064,6 +1064,8 @@ export default function CrearFacturaPage() {
       {/* Modal Edición Cliente */}
       <Dialog open={isClientEditOpen} onOpenChange={setIsClientEditOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 md:p-0 bg-transparent border-0 shadow-none">
+            <DialogTitle className="sr-only">Editar datos del cliente</DialogTitle>
+            <DialogDescription className="sr-only">Formulario para modificar los datos fiscales y de contacto del cliente seleccionado para la factura.</DialogDescription>
             {clienteId && (() => {
                 const c = clientes.find(x => x.id === clienteId)
                 if (!c) return null;
