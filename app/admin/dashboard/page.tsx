@@ -22,6 +22,7 @@ interface DashboardData {
   sospechososHoy: number;
   trabajandoAhora: { id: string; empleado_nombre: string; cliente_nombre: string | null; estado: string; desde: string }[];
   ultimosFichajes: { id: string; empleado_nombre: string; cliente_nombre: string | null; tipo: string; fecha: string }[];
+  facturasPendientesList?: { id: string; numero: string; total: string; fecha_emision: string; cliente_nombre: string | null; estado_pago: string }[];
   clientesActivos: number;
   clientesNuevos: number;
   facturasPendientes: number;
@@ -50,12 +51,13 @@ const ALL_WIDGETS = [
   { id: "kpi_calendario", label: "KPI: Calendario", module: "calendario", icon: Calendar },
   { id: "kpi_clientes", label: "KPI: Clientes", module: "clientes", icon: UserCheck },
   { id: "kpi_facturacion", label: "KPI: Facturación", module: "facturacion", icon: Euro },
-  { id: "kpi_trabajos", label: "KPI: Trabajos", module: "partes_dia", icon: ClipboardList },
+  { id: "kpi_trabajos", label: "KPI: Trabajos Pendientes", module: "partes_dia", icon: ClipboardList },
   { id: "kpi_gcal_sync", label: "Google Calendar", module: "calendario", icon: RefreshCw },
   { id: "chart_actividad", label: "Actividad semanal", module: "fichajes", icon: LayoutGrid },
   { id: "chart_clientes", label: "Top clientes / Distribución", module: null, icon: LayoutGrid },
   { id: "list_trabajando", label: "Trabajando ahora", module: "fichajes", icon: Briefcase },
   { id: "list_fichajes", label: "Últimos fichajes", module: "fichajes", icon: Clock },
+  { id: "list_facturas", label: "Facturas pendientes", module: "facturacion", icon: Euro },
 ];
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
@@ -369,7 +371,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-xs md:text-sm font-medium text-gray-500">Trabajos</p>
                 <p className="text-2xl md:text-3xl font-bold mt-1">{data.trabajosPendientes}</p>
-                <p className="text-xs text-gray-400 mt-1">Sin facturar</p>
+                <p className="text-xs text-gray-400 mt-1">Sin cobrar</p>
               </div>
               <Link href="/admin/partes-dia" className="p-2 md:p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
                 <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-orange-600" />
@@ -523,6 +525,47 @@ export default function DashboardPage() {
                         <td className="px-4 md:px-6 py-3 text-gray-500 text-right">
                           <div className="flex flex-col items-end"><span>{hora(f.fecha)}</span><span className="text-xs text-gray-400">{fecha(f.fecha)}</span></div>
                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+        {shouldShowWidget("list_facturas", "facturacion") && data.facturasPendientesList && (
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden lg:col-span-2">
+            <div className="p-4 md:p-6 border-b flex items-center justify-between">
+              <h2 className="text-base md:text-lg font-semibold flex items-center gap-2"><Euro className="w-5 h-5 text-gray-400" /> Facturas Pendientes de Cobro</h2>
+            </div>
+            {!data.facturasPendientesList.length ? (
+              <div className="p-8 text-center text-gray-500 text-sm">No hay facturas pendientes</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50/50 text-gray-500">
+                    <tr>
+                      <th className="px-4 md:px-6 py-3 font-medium">Número</th>
+                      <th className="px-4 md:px-6 py-3 font-medium">Cliente</th>
+                      <th className="px-4 md:px-6 py-3 font-medium">Fecha</th>
+                      <th className="px-4 md:px-6 py-3 font-medium">Estado Pago</th>
+                      <th className="px-4 md:px-6 py-3 font-medium text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {data.facturasPendientesList.map((f) => (
+                      <tr key={f.id} className="hover:bg-gray-50">
+                        <td className="px-4 md:px-6 py-3 font-medium text-blue-600">
+                          <Link href={`/admin/facturacion/ver/${f.id}`} className="hover:underline">{f.numero}</Link>
+                        </td>
+                        <td className="px-4 md:px-6 py-3">{f.cliente_nombre || "—"}</td>
+                        <td className="px-4 md:px-6 py-3 text-gray-500">{fecha(f.fecha_emision)}</td>
+                        <td className="px-4 md:px-6 py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${f.estado_pago === 'parcial' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                            {f.estado_pago === 'parcial' ? 'PARCIAL' : 'PENDIENTE'}
+                          </span>
+                        </td>
+                        <td className="px-4 md:px-6 py-3 font-bold text-right">{Number(f.total).toLocaleString('es-ES', {minimumFractionDigits: 2})} €</td>
                       </tr>
                     ))}
                   </tbody>

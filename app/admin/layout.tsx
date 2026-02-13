@@ -49,11 +49,8 @@ export default function AdminLayout({
         setSession(null);
         return;
       }
-      // getUser ya devuelve el objeto parseado, no strings
-
+      
       // Detectar si estamos en móvil PWA para usar módulos móviles
-      // FIX: Añadimos chequeo de ancho de pantalla. Si es ancho escritorio (> 1024), forzamos NO usar config móvil
-      // aunque el UA diga que es móvil (falsos positivos o tablets en landscape).
       const isLargeScreen =
         typeof window !== "undefined" && window.innerWidth >= 1024;
       const isPwaMobile = isMobileDevice() && isStandalone();
@@ -67,12 +64,11 @@ export default function AdminLayout({
         useMobileModules,
         modulesDesktop: !!user.modulos,
         modulesMobile: !!user.modulos_mobile,
-        userModulesDeep: JSON.stringify(user.modulos), // DEBUG
+        // userModulesDeep: JSON.stringify(user.modulos), // DEBUG
       });
 
       // Si tenemos módulos móviles y debemos usarlos, bien.
       // Si NO, usamos los módulos normales (desktop/web).
-      // Fallback: Si no hay modulos_mobile, usamos modulos normales incluso en móvil.
       const activeModulos =
         useMobileModules && user.modulos_mobile
           ? user.modulos_mobile
@@ -82,20 +78,20 @@ export default function AdminLayout({
       // (señal de que tenemos una sesión móvil cacheada), forzamos refresh.
       const hasMissingDesktopModules = !user.modulos?.clientes && !user.modulos?.empleados;
       
-      if (isLargeScreen && hasMissingDesktopModules) {
+      // Evitar bucle infinito: solo intentar arreglarlo una vez por carga de página
+      const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted') : null;
+
+      if (isLargeScreen && hasMissingDesktopModules && !fixAttempted) {
          console.warn("[AdminLayout] Detectado Desktop con módulos restringidos. Forzando refreshMe...");
-         refreshMe().then(() => {
-            // Recargar con los datos frescos
-            const updatedUser = getUser(); 
-            if (updatedUser) {
+         sessionStorage.setItem('desktop_mode_fix_attempted', 'true');
+         refreshMe().then((updatedData: any) => {
+            if (updatedData) {
                setSession({
-                  nombre: updatedUser.nombre || "Administrador",
-                  modulos: updatedUser.modulos || {},
+                  nombre: updatedData.nombre || "Administrador",
+                  modulos: updatedData.modulos || {},
                });
             }
          }).catch((err: unknown) => console.error("Error forzando refresh desktop", err));
-         
-         // Mientras tanto, mostramos lo que hay (o loading si prefieres, pero mejor no bloquear)
       }
 
       setSession({
