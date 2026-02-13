@@ -67,6 +67,7 @@ export default function AdminLayout({
         useMobileModules,
         modulesDesktop: !!user.modulos,
         modulesMobile: !!user.modulos_mobile,
+        userModulesDeep: JSON.stringify(user.modulos), // DEBUG
       });
 
       // Si tenemos módulos móviles y debemos usarlos, bien.
