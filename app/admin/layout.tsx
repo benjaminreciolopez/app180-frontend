@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User } from "lucide-react";
-import { getUser } from "@/services/auth";
+import { getUser, refreshMe } from "@/services/auth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { AICopilot } from "@/components/shared/AICopilot";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
@@ -76,6 +76,26 @@ export default function AdminLayout({
         useMobileModules && user.modulos_mobile
           ? user.modulos_mobile
           : user.modulos || {};
+
+      // Lógica de "Curación" de sesión:
+      // Si estamos en Desktop (LargeScreen) y NO tenemos módulos de escritorio completos 
+      // (quizás venimos de una sesión móvil expirada/refrescada parcialmente),
+      // forzamos un refreshMe() explícito para traer todo.
+      if (isLargeScreen && (!user.modulos || Object.keys(user.modulos).length === 0)) {
+         console.warn("[AdminLayout] Detectado Desktop con módulos vacíos. Forzando refreshMe...");
+         refreshMe().then(() => {
+            // Recargar con los datos frescos
+            const updatedUser = getUser(); 
+            if (updatedUser) {
+               setSession({
+                  nombre: updatedUser.nombre || "Administrador",
+                  modulos: updatedUser.modulos || {},
+               });
+            }
+         }).catch((err: unknown) => console.error("Error forzando refresh desktop", err));
+         
+         // Mientras tanto, mostramos lo que hay (o loading si prefieres, pero mejor no bloquear)
+      }
 
       setSession({
         nombre: user.nombre || "Administrador",

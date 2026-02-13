@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api, setAuthToken } from "@/services/api";
-import { getToken, getUser, logout, updateStoredUser } from "@/services/auth";
+import { getToken, getUser, logout, updateStoredUser, refreshMe } from "@/services/auth";
 
 /* ========================
    Types
@@ -39,13 +39,7 @@ function isPublicPath(path: string) {
    Refresh Session
 ======================== */
 
-async function refreshMe() {
-  const r = await api.get("/auth/me");
 
-  updateStoredUser(r.data); // 🆕 Usar helper que respeta storage
-
-  return r.data as StoredUser;
-}
 
 /* ========================
    Main

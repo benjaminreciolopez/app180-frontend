@@ -96,109 +96,118 @@ export async function login(
   // =========================
   // STORAGE
   // =========================
-    // =========================
-    // STORAGE
-    // =========================
-    if (typeof window !== "undefined") {
-      if (remember) {
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-        // Limpiar session por si acaso
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("user");
-      } else {
-        sessionStorage.setItem("token", token);
-        sessionStorage.setItem("user", JSON.stringify(user));
-        // Limpiar local por si acaso
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-      }
-    }
-  
-    setAuthToken(token);
-  
-    // =========================
-    // DECODE
-    // =========================
-    const decoded = jwtDecode<AppJwtPayload>(token);
-  
-    console.log("[login] token decodificado", decoded);
-  
-    return {
-      token,
-      user,
-      decoded,
-      mustChangePassword:
-        decoded.role === "empleado" && decoded.password_forced === true,
-    };
-  }
-  
-  // =================================
-  // HELPERS STORAGE (Local vs Session)
-  // =================================
-  
-  export function getToken(): string | null {
-    if (typeof window === "undefined") return null;
-    return sessionStorage.getItem("token") || localStorage.getItem("token");
-  }
-  
-  export function getUser(): any | null {
-    if (typeof window === "undefined") return null;
-    const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
-    try {
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }
-  
-  export function logout() {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
-    setAuthToken(null);
-    window.location.href = "/login";
-  }
-  
-  export function getUserFromToken(token: string) {
-    const decoded = jwtDecode<AppJwtPayload>(token);
-  
-    return {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role,
-      nombre: decoded.nombre,
-      empleadoId: decoded.empleado_id || null,
-    };
-  }
-  
-  export function updateStoredUser(user: any) {
-    if (typeof window === "undefined") return;
-    
-    // Si hay token en local, actualizamos user en local. Si no, en session.
-    if (localStorage.getItem("token")) {
+  // =========================
+  // STORAGE
+  // =========================
+  if (typeof window !== "undefined") {
+    if (remember) {
+      localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
-    }
-    if (sessionStorage.getItem("token")) {
+      // Limpiar session por si acaso
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+    } else {
+      sessionStorage.setItem("token", token);
       sessionStorage.setItem("user", JSON.stringify(user));
+      // Limpiar local por si acaso
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
     }
   }
 
-  // =================================
-  // DEVICE HASH HELPER
-  // =================================
-  export const getOrGenerateDeviceHash = (): string => {
-    if (typeof window === "undefined") return "";
+  setAuthToken(token);
 
-    let hash = localStorage.getItem("device_hash");
+  // =========================
+  // DECODE
+  // =========================
+  const decoded = jwtDecode<AppJwtPayload>(token);
 
-    if (!hash) {
-      // Intentar obtener de crypto o fallback random
-      hash = crypto.randomUUID?.() || Math.random().toString(36).substring(2);
-      localStorage.setItem("device_hash", hash);
-    }
+  console.log("[login] token decodificado", decoded);
 
-    return hash;
+  return {
+    token,
+    user,
+    decoded,
+    mustChangePassword:
+      decoded.role === "empleado" && decoded.password_forced === true,
   };
+}
+
+// =================================
+// HELPERS STORAGE (Local vs Session)
+// =================================
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem("token") || localStorage.getItem("token");
+}
+
+export function getUser(): any | null {
+  if (typeof window === "undefined") return null;
+  const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function logout() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
+  setAuthToken(null);
+  window.location.href = "/login";
+}
+
+export function getUserFromToken(token: string) {
+  const decoded = jwtDecode<AppJwtPayload>(token);
+
+  return {
+    id: decoded.id,
+    email: decoded.email,
+    role: decoded.role,
+    nombre: decoded.nombre,
+    empleadoId: decoded.empleado_id || null,
+  };
+}
+
+export function updateStoredUser(user: any) {
+  if (typeof window === "undefined") return;
+
+  // Si hay token en local, actualizamos user en local. Si no, en session.
+  if (localStorage.getItem("token")) {
+    localStorage.setItem("user", JSON.stringify(user));
+  }
+  if (sessionStorage.getItem("token")) {
+    sessionStorage.setItem("user", JSON.stringify(user));
+  }
+}
+
+// =================================
+// DEVICE HASH HELPER
+// =================================
+export const getOrGenerateDeviceHash = (): string => {
+  if (typeof window === "undefined") return "";
+
+  let hash = localStorage.getItem("device_hash");
+
+  if (!hash) {
+    // Intentar obtener de crypto o fallback random
+    hash = crypto.randomUUID?.() || Math.random().toString(36).substring(2);
+    localStorage.setItem("device_hash", hash);
+  }
+
+  return hash;
+};
+
+// =================================
+// REFRESH
+// =================================
+export async function refreshMe() {
+  const r = await api.get("/auth/me");
+  updateStoredUser(r.data);
+  return r.data;
+}
