@@ -183,7 +183,7 @@ export default function AdminLayout({
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     window.dispatchEvent(new Event("session-updated"));
-    location.href = "/login";
+    location.href = "/";
   }
 
   // ============================

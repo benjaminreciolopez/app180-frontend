@@ -159,7 +159,7 @@ export function logout() {
   sessionStorage.removeItem("token");
   sessionStorage.removeItem("user");
   setAuthToken(null);
-  window.location.href = "/login";
+  window.location.href = "/";
 }
 
 export function getUserFromToken(token: string) {
