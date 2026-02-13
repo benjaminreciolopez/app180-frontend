@@ -19,12 +19,13 @@ type SyncLog = {
   created_at: string;
 };
 
-export default function CalendarSyncHistory() {
+export default function CalendarSyncHistory({ refreshTrigger }: { refreshTrigger?: number }) {
   const [history, setHistory] = useState<SyncLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function loadHistory() {
     try {
+      setLoading(true);
       const res = await api.get("/admin/calendar-sync/history?limit=10");
       setHistory(res.data);
     } catch (err) {
@@ -37,7 +38,7 @@ export default function CalendarSyncHistory() {
 
   useEffect(() => {
     loadHistory();
-  }, []);
+  }, [refreshTrigger]);
 
   function getStatusIcon(status: string) {
     switch (status) {

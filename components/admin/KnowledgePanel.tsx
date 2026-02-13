@@ -5,7 +5,7 @@ import { api } from "@/services/api"
 import { showSuccess, showError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Pencil, X, Check, Brain, ChevronDown, ChevronUp } from "lucide-react"
+import { Plus, Trash2, Pencil, X, Check, Brain, ChevronDown, ChevronUp, RefreshCw } from "lucide-react"
 
 interface Knowledge {
   id: string
@@ -23,6 +23,7 @@ export default function KnowledgePanel() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ token: "", respuesta: "", categoria: "", prioridad: 0 })
   const [isListExpanded, setIsListExpanded] = useState(false)
+  const [aiTokens, setAiTokens] = useState({ count: 0, isCreator: false })
 
   async function load() {
     try {
@@ -35,7 +36,22 @@ export default function KnowledgePanel() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  async function loadConfig() {
+    try {
+      const r = await api.get("/admin/configuracion")
+      setAiTokens({
+        count: r.data.ai_tokens || 0,
+        isCreator: !!r.data.es_creador
+      })
+    } catch (err) {
+      console.error("Error cargando config de IA:", err)
+    }
+  }
+
+  useEffect(() => { 
+    load()
+    loadConfig()
+  }, [])
 
   function resetForm() {
     setForm({ token: "", respuesta: "", categoria: "", prioridad: 0 })
@@ -95,6 +111,17 @@ export default function KnowledgePanel() {
     setShowForm(true)
   }
 
+  async function handleSeed() {
+    if (!confirm("Esto añadirá o actualizará las respuestas de ayuda por defecto sobre las funciones de la App. ¿Continuar?")) return
+    try {
+      await api.post("/admin/conocimiento/seed")
+      showSuccess("Base de conocimiento actualizada")
+      load()
+    } catch {
+      showError("Error al recargar conocimiento base")
+    }
+  }
+
   if (loading) return <p className="text-sm text-muted-foreground">Cargando...</p>
 
   return (
@@ -104,11 +131,26 @@ export default function KnowledgePanel() {
           <Brain className="h-5 w-5 text-purple-600" />
           <h3 className="font-semibold">Base de Conocimiento de CONTENDO</h3>
         </div>
-        {!showForm && (
-          <Button size="sm" onClick={() => { resetForm(); setShowForm(true) }}>
-            <Plus className="h-4 w-4 mr-1" /> Nuevo
-          </Button>
-        )}
+        <div className="flex items-center gap-4">
+          <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 border ${aiTokens.isCreator ? "bg-purple-100 text-purple-700 border-purple-200" : (aiTokens.count < 100 ? "bg-red-100 text-red-700 border-red-200" : "bg-slate-100 text-slate-700 border-slate-200")}`}>
+            <span className="flex h-2 w-2 rounded-full bg-current animate-pulse" />
+            {aiTokens.isCreator ? (
+              <span>Uso Infinito (Creador)</span>
+            ) : (
+              <span>Saldo: {aiTokens.count.toLocaleString()} tokens</span>
+            )}
+          </div>
+          {!showForm && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleSeed} title="Recargar respuestas de ayuda de la App">
+                <RefreshCw className="h-4 w-4 mr-1" /> Ayuda App
+              </Button>
+              <Button size="sm" onClick={() => { resetForm(); setShowForm(true) }}>
+                <Plus className="h-4 w-4 mr-1" /> Nuevo
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground">

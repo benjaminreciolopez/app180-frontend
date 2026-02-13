@@ -32,6 +32,7 @@ export default function AdminConfiguracionPage() {
   const [mobileEnabled, setMobileEnabled] = useState(false);
   const [activeTab, setActiveTab] = useState<"desktop" | "mobile">("desktop");
   const [saving, setSaving] = useState(false);
+  const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
 
   async function load() {
     try {
@@ -199,12 +200,12 @@ export default function AdminConfiguracionPage() {
       {/* Google Calendar */}
       <div>
         <h2 className="text-xl font-semibold mb-3">Sincronización con Google Calendar</h2>
-        <CalendarConfigPanel />
+        <CalendarConfigPanel onSyncComplete={() => setCalendarRefreshKey(prev => prev + 1)} />
       </div>
 
       {/* Historial */}
       <div>
-        <CalendarSyncHistory />
+        <CalendarSyncHistory refreshTrigger={calendarRefreshKey} />
       </div>
 
       {/* Backup Silencioso */}

@@ -24,7 +24,7 @@ type CalendarConfig = {
   sync_range_months?: number;
 };
 
-export default function CalendarConfigPanel() {
+export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete?: () => void }) {
   const [config, setConfig] = useState<CalendarConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -90,6 +90,7 @@ export default function CalendarConfigPanel() {
           setConnecting(false);
           loadConfig(); // Recargar config
           showSuccess("Google Calendar conectado correctamente");
+          onSyncComplete?.();
         }
       }, 500);
     } catch (err: any) {
@@ -106,6 +107,7 @@ export default function CalendarConfigPanel() {
       await api.post("/admin/calendar-config/oauth2/disconnect");
       showSuccess("Google Calendar desconectado");
       loadConfig();
+      onSyncComplete?.();
     } catch (err: any) {
       console.error("Error desconectando:", err);
       showError(err.response?.data?.error || "Error al desconectar");
@@ -118,6 +120,7 @@ export default function CalendarConfigPanel() {
       const res = await api.post("/admin/calendar-sync/bidirectional");
       showSuccess(res.data.message);
       loadConfig(); // Actualizar last_sync_at
+      onSyncComplete?.();
     } catch (err: any) {
       console.error("Error sincronizando:", err);
       showError(err.response?.data?.error || "Error al sincronizar");
