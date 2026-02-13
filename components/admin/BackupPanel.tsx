@@ -1,11 +1,11 @@
-"use client";
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError, showPromise } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Database, RefreshCw, Save, Download, Upload, Loader2 } from "lucide-react";
+import { AlertTriangle, Database, RefreshCw, Save, Download, Upload, Loader2, FolderCog } from "lucide-react";
 import { toast } from "sonner";
+import { get, set } from 'idb-keyval';
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +20,18 @@ import {
 
 export default function BackupPanel() {
   const [loading, setLoading] = useState(false);
+  const [directoryHandle, setDirectoryHandle] = useState<any>(null); // FS Handle
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Intentar recuperar el handle guardado
+    get('backup_directory_handle').then((handle) => {
+        if (handle) {
+            setDirectoryHandle(handle);
+            console.log("Directorio de backup recuperado de IndexedDB");
+        }
+    });
+  }, []);
 
   async function handleForceBackup() {
     if (loading) return;
@@ -41,11 +52,85 @@ export default function BackupPanel() {
     }
   }
 
+  async function handleConfigureFolder() {
+      try {
+          if (!('showDirectoryPicker' in window)) {
+              toast.error("Tu navegador no soporta la selección de carpetas avanzada.");
+              return;
+          }
+          const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+          await set('backup_directory_handle', handle);
+          setDirectoryHandle(handle);
+          toast.success("Carpeta de backups configurada correctamente.");
+      } catch (err: any) {
+          if (err.name !== 'AbortError') {
+              console.error(err);
+              toast.error("Error al configurar carpeta.");
+          }
+      }
+  }
+
+  // Verificar permisos del handle
+  async function verifyPermission(handle: any, readWrite: boolean) {
+      const options = { mode: readWrite ? 'readwrite' : 'read' };
+      if ((await handle.queryPermission(options)) === 'granted') {
+          return true;
+      }
+      if ((await handle.requestPermission(options)) === 'granted') {
+          return true;
+      }
+      return false;
+  }
+
   async function handleDownloadLocal() {
     if (loading) return
     setLoading(true)
     
-    // Usamos fetch directo para manejar el blob
+    // Generar nombre de archivo
+    const filename = `backup_restore_${new Date().toISOString().split('T')[0]}.json`;
+
+    // Flow con File System Access API
+    if (directoryHandle) {
+        try {
+            // Verificar permisos
+            const hasPermission = await verifyPermission(directoryHandle, true);
+            if (!hasPermission) {
+                toast.error("Permiso denegado para acceder a la carpeta configurada.");
+                // Fallback a descarga normal? O re-pedir carpeta?
+                // Mejor continuamos con descarga normal o error.
+                // Intentamos re-pedir permiso arriba, si falla, removemos handle?
+                // setDirectoryHandle(null); // Opcional
+                setLoading(false);
+                return;
+            }
+
+            // Descargar datos
+            const token = localStorage.getItem('token')
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            if (!response.ok) throw new Error("Error obteniendo datos del backup");
+            const blob = await response.blob(); 
+
+            // Guardar en directorio
+            const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+
+            toast.success(`Backup guardado en carpeta configurada: ${filename}`);
+            setLoading(false);
+            return; // Fin existoso FS API
+
+        } catch (err: any) {
+            console.error("Error guardando en carpeta configurada:", err);
+            toast.error("Error guardando en carpeta local. Intentando descarga normal...");
+            // Si falla, hacemos fallback a descarga normal
+        }
+    }
+
+    // Fallback: Descarga Normal (blob url)
     const promise = (async () => {
         const token = localStorage.getItem('token')
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
@@ -61,8 +146,7 @@ export default function BackupPanel() {
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        // El nombre viene en header o generamos uno
-        a.download = `backup_restore_${new Date().toISOString().split('T')[0]}.json`
+        a.download = filename
         document.body.appendChild(a)
         a.click()
         window.URL.revokeObjectURL(url)
@@ -86,7 +170,6 @@ export default function BackupPanel() {
       const file = e.target.files?.[0]
       if (!file) return
       
-      // Confirmación extra fuerte
       const confirmed = window.confirm(`⚠️ ADVERTENCIA CRÍTICA:\n\nSe van a BORRAR TODOS LOS DATOS actuales y se reemplazarán por el contenido del archivo:\n"${file.name}"\n\nEsta acción es irreversible.\n¿Estás absolutamente seguro de continuar?`)
       
       if (!confirmed) {
@@ -175,7 +258,7 @@ export default function BackupPanel() {
             onChange={handleFileRestore} 
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
         {/* Generar Backup */}
         <Button 
           variant="outline" 
@@ -184,7 +267,19 @@ export default function BackupPanel() {
           className="gap-2 border-gray-300 hover:bg-gray-50 justify-start"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Generar Backup (Storage)
+          Generar y Subir (Storage)
+        </Button>
+
+        {/* Configurar Carpeta */}
+        <Button 
+          variant="outline" 
+          onClick={handleConfigureFolder} 
+          disabled={loading}
+          className={cn("gap-2 border-gray-300 hover:bg-gray-50 justify-start", directoryHandle ? "border-green-500 bg-green-50 text-green-700" : "")}
+          title={directoryHandle ? "Carpeta configurada (Click para cambiar)" : "Configurar carpeta de descargas"}
+        >
+           <FolderCog className="w-4 h-4" />
+           {directoryHandle ? "Carpeta Configurada" : "Configurar Carpeta Local"}
         </Button>
 
         {/* Descargar Local */}
@@ -204,10 +299,10 @@ export default function BackupPanel() {
             <Button 
               variant="destructive" 
               disabled={loading}
-              className="gap-2 bg-red-600 hover:bg-red-700 justify-start"
+              className="gap-2 bg-red-600 hover:bg-red-700 justify-start md:col-span-1 lg:col-span-1"
             >
               <RefreshCw className="w-4 h-4" />
-              Restaurar Última Copia (Storage)
+              Restaurar (Storage)
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -218,7 +313,7 @@ export default function BackupPanel() {
               </AlertDialogTitle>
               <AlertDialogDescription className="space-y-2">
                 <p>
-                  Esta acción <strong>BORRARÁ TODOS LOS DATOS ACTUALES</strong> de la empresa y los reemplazará por la última copia de seguridad disponible en el Storage.
+                  Esta acción <strong>BORRARÁ TODOS LOS DATOS ACTUALES</strong> de la empresa y los reemplazará por la última copia de seguridad del Storage.
                 </p>
                 <p>
                   Esto incluye empleados, clientes, facturas, fichajes y configuraciones.
@@ -245,7 +340,7 @@ export default function BackupPanel() {
         {/* Restaurar Local */}
         <Button 
             variant="destructive" 
-            className="gap-2 bg-red-800 hover:bg-red-900 justify-start" 
+            className="gap-2 bg-red-800 hover:bg-red-900 justify-start md:col-span-1 lg:col-span-2" 
             onClick={() => fileInputRef.current?.click()} 
             disabled={loading}
         >
