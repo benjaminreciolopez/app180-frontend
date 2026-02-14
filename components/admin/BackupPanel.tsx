@@ -279,39 +279,64 @@ export default function BackupPanel() {
         </div>
       </div>
 
-      {/* Ruta Persistente en Servidor */}
-      <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100 space-y-3">
-        <div className="flex items-center gap-2 text-amber-700">
-          <FolderCog className="w-5 h-5" />
-          <h4 className="font-bold text-sm uppercase tracking-wider">Ruta local persistente (Servidor)</h4>
+      {/* Sección 1: Ruta en el Servidor (Nube) */}
+      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+        <div className="flex items-center gap-2 text-slate-700">
+          <Database className="w-5 h-5" />
+          <h4 className="font-bold text-sm uppercase tracking-wider">Copia en Servidor (Render/Internal)</h4>
         </div>
-        <p className="text-xs text-amber-600/80">
-          Indica una ruta absoluta en el servidor (ej: <code>C:\Backups</code> o <code>/app/backups</code>) para guardar una copia física persistente en cada generación de backup.
+        <p className="text-[11px] text-slate-500">
+          Esta ruta es **interna del servidor en la nube**. Solo sirve para persistencia dentro de Render.
+          Rutas de Windows como <code>C:\...</code> no funcionarán aquí si el servidor está en la nube.
         </p>
-
-        {/* Aviso para servidores en la nube */}
-        <div className="p-3 bg-amber-100/50 border border-amber-200 rounded-lg text-[10px] leading-relaxed text-amber-800 italic">
-          <strong>⚠️ Nota sobre Servidores Cloud (Render/Vercel):</strong> Si tu servidor está en la nube, "Ruta local" se refiere al almacenamiento interno del servidor remoto, **no a tu ordenador personal**.
-          Rutas como <code>C:\Users\...</code> solo funcionan si el servidor se ejecuta físicamente en tu PC.
-          <br />
-          Para guardar en tu PC desde la nube, usa el botón <strong>"Descargar Copia Local"</strong> de abajo.
-        </div>
-
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder="Ruta absoluta en el servidor..."
-            className="flex-1 px-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+            placeholder="Ej: /app/backups/data.json"
+            className="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             value={serverBackupPath}
             onChange={(e) => setServerBackupPath(e.target.value)}
           />
           <Button
             onClick={handleSaveServerPath}
             disabled={savingPath}
-            className="bg-amber-600 hover:bg-amber-700 text-white"
+            variant="secondary"
+            className="bg-slate-200 hover:bg-slate-300 text-slate-700"
           >
-            {savingPath ? <Loader2 className="w-4 h-4 animate-spin" /> : "Vincular"}
+            {savingPath ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar Ruta"}
           </Button>
+        </div>
+      </div>
+
+      {/* Sección 2: Sincronización con ESTE EQUIPO (PC Real) */}
+      <div className="bg-green-50/50 p-4 rounded-xl border border-green-200 space-y-3">
+        <div className="flex items-center gap-2 text-green-700">
+          <FolderCog className="w-5 h-5" />
+          <h4 className="font-bold text-sm uppercase tracking-wider text-green-800">Sincronización con TU ORDENADOR (PC)</h4>
+        </div>
+        <p className="text-xs text-green-700/80 leading-relaxed font-medium">
+          ⚠️ **ACTIVA ESTO** para que la copia se guarde físicamente en una carpeta de tu ordenador cada vez que inicies sesión.
+        </p>
+
+        <div className="flex flex-wrap gap-2 items-center">
+          <Button
+            variant="outline"
+            onClick={handleConfigureFolder}
+            disabled={loading}
+            className={cn(
+              "gap-2 border-green-300 hover:bg-green-100 transition-all font-bold",
+              directoryHandle ? "bg-green-600 text-white border-green-700 hover:bg-green-700 hover:text-white" : "text-green-700"
+            )}
+          >
+            <FolderCog className="w-4 h-4" />
+            {directoryHandle ? "✓ Carpeta vinculada en este PC" : "Vincular carpeta de este PC"}
+          </Button>
+
+          {directoryHandle && (
+            <span className="text-[10px] text-green-600 italic">
+              Sincronización automática activada en este navegador.
+            </span>
+          )}
         </div>
       </div>
 

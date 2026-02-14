@@ -12,98 +12,118 @@ import { toast } from "sonner";
 export default function AutoBackupSync() {
     const syncDone = useRef(false);
 
-    useEffect(() => {
-        // Solo intentar sincronizar una vez por sesión de carga de página
+    // Función para solicitar la carpeta (gesto de usuario)
+    const pickFolderAndSync = async () => {
+        try {
+            if (!('showDirectoryPicker' in window)) {
+                toast.error("Tu navegador no soporta la selección de carpetas avanzada.");
+                return;
+            }
+            const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+            const { set } = await import('idb-keyval');
+            await set('backup_directory_handle', handle);
+            toast.success("Carpeta vinculada. Sincronizando...");
+            // Ejecutar sync inmediatamente tras vincular
+            syncDone.current = false;
+            await runSync();
+        } catch (err: any) {
+            if (err.name !== 'AbortError') {
+                console.error(err);
+                toast.error("Error al vincular carpeta.");
+            }
+        }
+    };
+
+    const runSync = async () => {
         if (syncDone.current) return;
 
-        const sync = async () => {
+        try {
+            // 1. Obtener configuración del servidor
+            let serverPath = null;
             try {
-                // 1. Obtener configuración del servidor para ver si el usuario espera un backup local
-                let serverPath = null;
-                try {
-                    const res = await api.get("/admin/facturacion/configuracion/sistema");
-                    serverPath = res.data?.data?.backup_local_path;
-                } catch (e) {
-                    console.error("[AutoBackupSync] Error obteniendo config del servidor");
-                }
-
-                // 2. Obtener el handle de la carpeta guardado en IndexedDB
-                const directoryHandle = await get('backup_directory_handle');
-
-                if (!directoryHandle) {
-                    if (serverPath) {
-                        console.warn(`[AutoBackupSync] El servidor tiene una ruta de backup (${serverPath}), pero el navegador NO tiene una carpeta vinculada en este PC.`);
-                        toast.info("Configuración de Backup detectada", {
-                            description: "El servidor espera un backup local, pero tu navegador aún no tiene una carpeta vinculada en este equipo.",
-                            action: {
-                                label: "Vincular ahora",
-                                onClick: () => window.location.href = '/admin/configuracion'
-                            },
-                        });
-                    } else {
-                        console.log("[AutoBackupSync] No hay carpeta local ni ruta de servidor configurada para sincronización.");
-                    }
-                    return;
-                }
-
-                // 3. Verificar permisos (el navegador puede pedirlos de nuevo)
-                const options = { mode: 'readwrite' };
-                if ((await directoryHandle.queryPermission(options)) !== 'granted') {
-                    // Si no tiene permisos, no queremos molestar con popups en cada página
-                    // Solo lo intentamos si estamos en una ruta de configuración o dashboard inicial
-                    const isRelevantPath = window.location.pathname === '/admin/dashboard' || window.location.pathname.includes('configuracion');
-                    if (!isRelevantPath) return;
-
-                    // Pedimos permiso
-                    if ((await directoryHandle.requestPermission(options)) !== 'granted') {
-                        console.warn("[AutoBackupSync] Permiso denegado para la carpeta de backup.");
-                        return;
-                    }
-                }
-
-                console.log("[AutoBackupSync] Iniciando sincronización de backup automático...");
-                syncDone.current = true;
-
-                // 3. Descargar el backup actual del servidor
-                const token = localStorage.getItem('token');
-                if (!token) return;
-
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!response.ok) {
-                    console.error("[AutoBackupSync] Error al descargar el backup del servidor.");
-                    return;
-                }
-
-                const blob = await response.blob();
-                const filename = "backup_auto.json";
-
-                // 4. Escribir en la carpeta local (sobrescribir siempre el auto)
-                const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
-                const writable = await fileHandle.createWritable();
-                await writable.write(blob);
-                await writable.close();
-
-                console.log(`[AutoBackupSync] ✅ Backup sincronizado en PC: ${filename}`);
-
-                // Notificación discreta
-                toast.success("Respaldo local sincronizado correctamente.", {
-                    description: "Se ha guardado una copia en tu carpeta configurada.",
-                    duration: 3000
-                });
-
-            } catch (err) {
-                console.error("[AutoBackupSync] Error en sincronización:", err);
+                const res = await api.get("/admin/facturacion/configuracion/sistema");
+                serverPath = res.data?.data?.backup_local_path;
+            } catch (e) {
+                console.error("[AutoBackupSync] Error obteniendo config del servidor");
             }
-        };
 
-        // Esperar un poco tras la carga de la app para no bloquear
-        const timer = setTimeout(sync, 5000);
+            // 2. Obtener el handle de la carpeta guardado en IndexedDB
+            const { get } = await import('idb-keyval');
+            const directoryHandle = await get('backup_directory_handle');
+
+            if (!directoryHandle) {
+                if (serverPath) {
+                    console.warn(`[AutoBackupSync] El servidor tiene una ruta de backup (${serverPath}), pero el navegador NO tiene una carpeta vinculada en este PC.`);
+                    toast.info("Configuración de Backup detectada", {
+                        description: "Vincular una carpeta de este PC para recibir las copias automáticas.",
+                        action: {
+                            label: "Vincular PC ahora",
+                            onClick: () => pickFolderAndSync()
+                        },
+                        duration: Infinity
+                    });
+                }
+                return;
+            }
+
+            // 3. Verificar permisos
+            const options = { mode: 'readwrite' };
+            if ((await directoryHandle.queryPermission(options)) !== 'granted') {
+                // Si estamos en una ruta relevante, pedir permiso mediante toast
+                const isRelevantPath = window.location.pathname === '/admin/dashboard' || window.location.pathname.includes('configuracion');
+                if (isRelevantPath) {
+                    toast.info("Acceso a carpeta de Backup", {
+                        description: "Se requiere permiso para escribir en tu carpeta local configurada.",
+                        action: {
+                            label: "Permitir ahora",
+                            onClick: async () => {
+                                if ((await directoryHandle.requestPermission(options)) === 'granted') {
+                                    syncDone.current = false;
+                                    runSync();
+                                }
+                            }
+                        },
+                        duration: 10000
+                    });
+                }
+                return;
+            }
+
+            console.log("[AutoBackupSync] Iniciando sincronización de backup automático...");
+            syncDone.current = true;
+
+            // 4. Descargar el backup actual
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) return;
+
+            const blob = await response.blob();
+            const filename = "backup_auto.json";
+
+            // 5. Escribir en PC
+            const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+
+            console.log(`[AutoBackupSync] ✅ Backup sincronizado en PC: ${filename}`);
+            toast.success("Respaldo local sincronizado en este PC.");
+
+        } catch (err) {
+            console.error("[AutoBackupSync] Error en sincronización:", err);
+        }
+    };
+
+    useEffect(() => {
+        const timer = setTimeout(runSync, 4000);
         return () => clearTimeout(timer);
     }, []);
 
-    return null; // Componente invisible
+    return null;
 }
