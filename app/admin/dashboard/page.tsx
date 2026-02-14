@@ -9,12 +9,21 @@ import {
   UserCheck, Euro, FileText, ClipboardList, RefreshCw, History, Upload,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { showSuccess } from "@/lib/toast";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface DashboardData {
   empleadosActivos: number;
@@ -63,6 +72,7 @@ const ALL_WIDGETS = [
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [modulos, setModulos] = useState<Record<string, boolean>>({});
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
@@ -72,6 +82,27 @@ export default function DashboardPage() {
   const [openMenu, setOpenMenu] = useState(false);
   const [editingWidgets, setEditingWidgets] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Estados para previsualización PDF
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [loadingPdfId, setLoadingPdfId] = useState<string | null>(null);
+  const [previewFacturaNum, setPreviewFacturaNum] = useState<string>("");
+
+  const handleOpenPreview = async (id: string, numero: string) => {
+    try {
+      setLoadingPdfId(id);
+      setPreviewFacturaNum(numero);
+      const res = await api.get(`/admin/facturacion/facturas/${id}/pdf`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      setPreviewUrl(url);
+      setIsPreviewOpen(true);
+    } catch (e) {
+      console.error("Error al cargar PDF", e);
+    } finally {
+      setLoadingPdfId(null);
+    }
+  };
 
   function hasModule(name: string) {
     return modulos[name] !== false;
@@ -556,15 +587,22 @@ export default function DashboardPage() {
                     {data.facturasPendientesList.map((f) => (
                       <tr key={f.id} className="hover:bg-gray-50">
                         <td className="px-4 md:px-6 py-3 font-medium text-blue-600">
-                          <Link 
-                            href={f.estado === 'BORRADOR' 
-                              ? `/admin/facturacion/editar/${f.id}` 
-                              : `/admin/facturacion/listado?openPdf=${f.id}`
-                            } 
-                            className="hover:underline"
+                          <button 
+                            onClick={() => {
+                              if (f.estado === 'BORRADOR') {
+                                router.push(`/admin/facturacion/editar/${f.id}`);
+                              } else {
+                                handleOpenPreview(f.id, f.numero);
+                              }
+                            }}
+                            className="text-blue-600 hover:underline font-medium flex items-center gap-2"
+                            disabled={loadingPdfId === f.id}
                           >
+                            {loadingPdfId === f.id ? (
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                            ) : null}
                             {f.numero}
-                          </Link>
+                          </button>
                         </td>
                         <td className="px-4 md:px-6 py-3">{f.cliente_nombre || "—"}</td>
                         <td className="px-4 md:px-6 py-3 text-gray-500">{fecha(f.fecha_emision)}</td>
@@ -583,6 +621,51 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Previsualización PDF */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden bg-white border-none shadow-2xl">
+          <DialogHeader className="p-4 border-b bg-slate-50 flex-row justify-between items-center space-y-0">
+            <div>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                <FileText className="w-5 h-5 text-blue-600" />
+                Visualizar Factura {previewFacturaNum}
+              </DialogTitle>
+              <DialogDescription className="text-slate-500 text-sm">
+                Vista previa del documento generado
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+          
+          <div className="flex-1 bg-slate-100 flex items-center justify-center overflow-hidden">
+            {previewUrl ? (
+              <iframe 
+                src={`${previewUrl}#toolbar=0`} 
+                className="w-full h-full border-none"
+                title="Vista previa factura"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <RefreshCw className="w-10 h-10 animate-spin text-blue-600" />
+                <p className="text-slate-500 font-medium">Cargando documento...</p>
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 border-t bg-slate-50 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setIsPreviewOpen(false)} className="px-6 border-slate-200 hover:bg-slate-100">
+              Cerrar
+            </Button>
+            {previewUrl && (
+              <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 shadow-md shadow-blue-100">
+                <a href={previewUrl} download={`Factura_${previewFacturaNum}.pdf`} className="flex items-center gap-2">
+                  DESCARGAR PDF
+                </a>
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

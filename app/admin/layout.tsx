@@ -64,7 +64,6 @@ export default function AdminLayout({
         useMobileModules,
         modulesDesktop: !!user.modulos,
         modulesMobile: !!user.modulos_mobile,
-        // userModulesDeep: JSON.stringify(user.modulos), // DEBUG
       });
 
       // Si tenemos módulos móviles y debemos usarlos, bien.
@@ -74,9 +73,9 @@ export default function AdminLayout({
           ? user.modulos_mobile
           : user.modulos || {};
 
-      // Lógica de "Curación": Si detectamos pantalla grande pero faltan módulos clave
-      // (señal de que tenemos una sesión móvil cacheada), forzamos refresh.
-      const hasMissingDesktopModules = !user.modulos?.clientes && !user.modulos?.empleados;
+      // Lógica de "Curación": Si detectamos pantalla grande pero parece una sesión móvil restringida.
+      // Un indicio es tener módulos móviles poblados pero los de escritorio casi vacíos.
+      const hasMissingDesktopModules = Object.keys(user.modulos || {}).length < 2 && !!user.modulos_mobile;
       const isAdmin = user.role === 'admin';
       
       // Evitar bucle infinito: solo intentar arreglarlo una vez por carga de página
