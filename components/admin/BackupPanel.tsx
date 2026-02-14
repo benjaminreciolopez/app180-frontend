@@ -117,7 +117,7 @@ export default function BackupPanel() {
     setLoading(true)
 
     // Generar nombre de archivo
-    const filename = `backup_restore_${new Date().toISOString().split('T')[0]}.json`;
+    const filename = "backup_auto.json";
 
     // Flow con File System Access API
     if (directoryHandle) {
