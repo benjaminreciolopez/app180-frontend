@@ -18,14 +18,35 @@ export default function AutoBackupSync() {
 
         const sync = async () => {
             try {
-                // 1. Obtener el handle de la carpeta guardado en IndexedDB
+                // 1. Obtener configuración del servidor para ver si el usuario espera un backup local
+                let serverPath = null;
+                try {
+                    const res = await api.get("/admin/facturacion/configuracion/sistema");
+                    serverPath = res.data?.data?.backup_local_path;
+                } catch (e) {
+                    console.error("[AutoBackupSync] Error obteniendo config del servidor");
+                }
+
+                // 2. Obtener el handle de la carpeta guardado en IndexedDB
                 const directoryHandle = await get('backup_directory_handle');
+
                 if (!directoryHandle) {
-                    console.log("[AutoBackupSync] No hay carpeta local configurada para sincronización.");
+                    if (serverPath) {
+                        console.warn(`[AutoBackupSync] El servidor tiene una ruta de backup (${serverPath}), pero el navegador NO tiene una carpeta vinculada en este PC.`);
+                        toast.info("Configuración de Backup detectada", {
+                            description: "El servidor espera un backup local, pero tu navegador aún no tiene una carpeta vinculada en este equipo.",
+                            action: {
+                                label: "Vincular ahora",
+                                onClick: () => window.location.href = '/admin/configuracion'
+                            },
+                        });
+                    } else {
+                        console.log("[AutoBackupSync] No hay carpeta local ni ruta de servidor configurada para sincronización.");
+                    }
                     return;
                 }
 
-                // 2. Verificar permisos (el navegador puede pedirlos de nuevo)
+                // 3. Verificar permisos (el navegador puede pedirlos de nuevo)
                 const options = { mode: 'readwrite' };
                 if ((await directoryHandle.queryPermission(options)) !== 'granted') {
                     // Si no tiene permisos, no queremos molestar con popups en cada página
