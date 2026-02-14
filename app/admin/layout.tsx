@@ -187,7 +187,8 @@ export default function AdminLayout({
     if (current?.module && !hasModule(session.modulos, current.module)) {
       // Si es un admin y detectamos que faltan muchos módulos, no redirigimos agresivamente
       const trueCount = Object.values(session.modulos).filter(v => v === true).length;
-      if (user.role === 'admin' && trueCount < 3 && pathname !== '/admin/dashboard') {
+      const currentUser = getUser();
+      if (currentUser?.role === 'admin' && trueCount < 3 && pathname !== '/admin/dashboard') {
         return; // No bloqueamos para permitir navegación si hay error de carga
       }
       
