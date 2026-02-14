@@ -65,39 +65,30 @@ export default function AdminLayout({
           ? user.modulos_mobile
           : user.modulos || {};
 
-      console.log("[AdminLayout] 🔍 Session Check:", {
+      console.log("[AdminLayout] 🔍 Session Check V3:", {
         isLargeScreen,
         useMobileModules,
-        hasDesktop: !!user.modulos,
-        hasMobile: !!user.modulos_mobile,
-        desktopCount: Object.keys(user.modulos || {}).length,
+        desktopKeys: Object.keys(user.modulos || {}),
+        mobileKeys: Object.keys(user.modulos_mobile || {}),
         role: user.role
       });
 
-      // Lógica de "Curación": Si detectamos pantalla grande pero parece una sesión móvil restringida.
-      const hasMissingDesktopModules = Object.keys(user.modulos || {}).length < 2 && !!user.modulos_mobile;
+      // Lógica de "Curación": Si detectamos pantalla grande pero la sesión parece de móvil.
+      // Un admin en desktop suele tener muchos módulos (más de 3-4).
+      const hasMissingDesktopModules = Object.keys(user.modulos || {}).length < 5 && !!user.modulos_mobile;
       const isAdmin = user.role === 'admin';
       const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted') : null;
 
       if (isLargeScreen && isAdmin && hasMissingDesktopModules && !fixAttempted) {
+         console.warn("[AdminLayout] 🚨 Detectado Desktop con módulos restringidos. Forzando curación...");
          sessionStorage.setItem('desktop_mode_fix_attempted', 'true');
          refreshMe().then((updatedData: any) => {
             if (updatedData) {
-               setSession({
-                  nombre: updatedData.nombre || "Administrador",
-                  modulos: updatedData.modulos || {},
-               });
-               window.dispatchEvent(new Event("session-updated"));
+               console.log("[AdminLayout] ✅ Curación completada, recargando página...");
+               window.location.reload(); // Recarga dura para resetear TODO
             }
-         }).catch((err: unknown) => {
-            console.error("Error forzando refresh desktop", err);
-            // Fallback al menos carga algo
-            setSession({
-              nombre: user.nombre || "Administrador",
-              modulos: activeModulos,
-            });
-         });
-         return; // ⛔ IMPORTANTE: No seguimos cargando la sesión "mala"
+         }).catch((err: unknown) => console.error("Error en curación radical:", err));
+         return; 
       }
 
       setSession({
@@ -105,13 +96,6 @@ export default function AdminLayout({
         modulos: activeModulos,
       });
       setUserId(user.id);
-      
-      // ✅ Si es escritorio y el dashboard está vacío, forzamos un refresh solo una vez
-      if (isLargeScreen && Object.keys(activeModulos).length < 2 && !fixAttempted) {
-         console.warn("[AdminLayout] ⚠️ Escritorio vacío detectado. Forzando curación automática...");
-         sessionStorage.setItem('desktop_mode_fix_attempted', 'true');
-         refreshMe().then(() => window.location.reload()); // Recarga dura tras curar
-      }
     } catch {
       setSession(null);
     }
