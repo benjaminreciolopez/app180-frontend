@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { api } from "@/services/api";
@@ -41,6 +42,7 @@ interface DashboardData {
   cobrosPendientes: number;
   saldoTotal: number;
   trabajosPendientes: number;
+  trabajosPendientesList?: { id: string; descripcion: string; fecha: string; cliente_nombre: string | null; estado_detalle: string }[];
   partesHoy: number;
   calendarioSyncStatus: {
     connected: boolean;
@@ -91,6 +93,7 @@ export default function DashboardPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [loadingPdfId, setLoadingPdfId] = useState<string | null>(null);
   const [previewFacturaNum, setPreviewFacturaNum] = useState<string>("");
+  const [isTrabajosModalOpen, setIsTrabajosModalOpen] = useState(false);
 
   const handleOpenPreview = async (id: string, numero: string) => {
     try {
@@ -143,10 +146,10 @@ export default function DashboardPage() {
         const isLargeScreen = typeof window !== "undefined" && window.innerWidth >= 1024;
         const isPwaMobile = isMobileDevice() && isStandalone();
         const useMobileModules = isPwaMobile && !isLargeScreen;
-        const activeModulos = useMobileModules && user.modulos_mobile 
-          ? user.modulos_mobile 
+        const activeModulos = useMobileModules && user.modulos_mobile
+          ? user.modulos_mobile
           : user.modulos || {};
-          
+
         setModulos(activeModulos);
       }
 
@@ -410,7 +413,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs md:text-sm font-medium text-gray-500">Por Cobrar</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1">{data.saldoTotal.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})} €</p>
+                <p className="text-2xl md:text-3xl font-bold mt-1">{data.saldoTotal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
                 <p className="text-xs text-gray-400 mt-1">{data.facturasPendientes} facturas</p>
               </div>
               <Link href="/admin/facturacion/pagos" className="p-2 md:p-3 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors">
@@ -425,11 +428,15 @@ export default function DashboardPage() {
               <div>
                 <p className="text-xs md:text-sm font-medium text-gray-500">Trabajos</p>
                 <p className="text-2xl md:text-3xl font-bold mt-1">{data.trabajosPendientes}</p>
-                <p className="text-xs text-gray-400 mt-1">Sin cobrar</p>
+                <p className="text-xs text-gray-400 mt-1">Pendientes de cobro</p>
               </div>
-              <Link href="/admin/partes-dia" className="p-2 md:p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+              <button
+                onClick={() => setIsTrabajosModalOpen(true)}
+                className="p-2 md:p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+                title="Ver lista de pendientes"
+              >
                 <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-orange-600" />
-              </Link>
+              </button>
             </div>
           </div>
         )}
@@ -610,7 +617,7 @@ export default function DashboardPage() {
                     {data.facturasPendientesList.map((f) => (
                       <tr key={f.id} className="hover:bg-gray-50">
                         <td className="px-4 md:px-6 py-3 font-medium text-blue-600">
-                          <button 
+                          <button
                             onClick={() => {
                               if (f.estado === 'BORRADOR') {
                                 router.push(`/admin/facturacion/editar/${f.id}`);
@@ -622,7 +629,7 @@ export default function DashboardPage() {
                             disabled={loadingPdfId === f.id}
                           >
                             {loadingPdfId === f.id ? (
-                                <RefreshCw className="w-3 h-3 animate-spin" />
+                              <RefreshCw className="w-3 h-3 animate-spin" />
                             ) : null}
                             {f.numero}
                           </button>
@@ -634,7 +641,7 @@ export default function DashboardPage() {
                             {f.estado_pago === 'parcial' ? 'PARCIAL' : 'PENDIENTE'}
                           </span>
                         </td>
-                        <td className="px-4 md:px-6 py-3 font-bold text-right">{Number(f.total).toLocaleString('es-ES', {minimumFractionDigits: 2})} €</td>
+                        <td className="px-4 md:px-6 py-3 font-bold text-right">{Number(f.total).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</td>
                       </tr>
                     ))}
                   </tbody>
@@ -659,11 +666,11 @@ export default function DashboardPage() {
               </DialogDescription>
             </div>
           </DialogHeader>
-          
+
           <div className="flex-1 bg-slate-100 flex items-center justify-center overflow-hidden">
             {previewUrl ? (
-              <iframe 
-                src={`${previewUrl}#toolbar=0`} 
+              <iframe
+                src={`${previewUrl}#toolbar=0`}
                 className="w-full h-full border-none"
                 title="Vista previa factura"
               />
@@ -686,6 +693,90 @@ export default function DashboardPage() {
                 </a>
               </Button>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Trabajos Pendientes */}
+      <Dialog open={isTrabajosModalOpen} onOpenChange={setIsTrabajosModalOpen}>
+        <DialogContent className="max-w-3xl flex flex-col p-0 bg-white border-none shadow-2xl">
+          <DialogHeader className="p-6 border-b bg-orange-50/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-bold flex items-center gap-2 text-orange-800">
+                  <ClipboardList className="w-6 h-6 text-orange-600" />
+                  Trabajos Pendientes de Cobro
+                </DialogTitle>
+                <DialogDescription className="text-orange-600/80 text-sm mt-1">
+                  Listado de trabajos realizados que aún no han sido cobrados o facturados.
+                </DialogDescription>
+              </div>
+              <div className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200">
+                {data.trabajosPendientes} PENDIENTES
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="max-h-[60vh] overflow-y-auto p-0">
+            {!data.trabajosPendientesList || data.trabajosPendientesList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-3">
+                <ClipboardList className="w-12 h-12 opacity-20" />
+                <p>No hay trabajos pendientes de cobro.</p>
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm border-collapse">
+                <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    <th className="px-6 py-3 font-semibold text-slate-500 border-b">Fecha</th>
+                    <th className="px-6 py-3 font-semibold text-slate-500 border-b">Cliente</th>
+                    <th className="px-6 py-3 font-semibold text-slate-500 border-b">Descripción</th>
+                    <th className="px-6 py-3 font-semibold text-slate-500 border-b text-right">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {data.trabajosPendientesList.map((job) => (
+                    <tr key={job.id} className="hover:bg-orange-50/30 transition-colors group">
+                      <td className="px-6 py-3 font-medium text-slate-600 whitespace-nowrap">
+                        {fecha(job.fecha)}
+                      </td>
+                      <td className="px-6 py-3 font-medium text-slate-800">
+                        {job.cliente_nombre || <span className="text-slate-400 italic">Sin cliente</span>}
+                      </td>
+                      <td className="px-6 py-3 text-slate-600 max-w-[250px] truncate group-hover:whitespace-normal group-hover:overflow-visible group-hover:bg-white group-hover:absolute group-hover:shadow-lg group-hover:z-20 group-hover:rounded group-hover:border group-hover:border-orange-100 p-3">
+                        {job.descripcion}
+                      </td>
+                      <td className="px-6 py-3 text-right">
+                        <span className={cn(
+                          "px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border",
+                          job.estado_detalle === 'NO_FACTURADO' ? "bg-slate-100 text-slate-500 border-slate-200" :
+                            job.estado_detalle === 'EN_BORRADOR' ? "bg-yellow-50 text-yellow-600 border-yellow-200" :
+                              "bg-orange-50 text-orange-600 border-orange-200"
+                        )}>
+                          {job.estado_detalle?.replace('_', ' ') || 'PENDIENTE'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="p-4 border-t bg-slate-50 flex justify-between items-center gap-3">
+            <p className="text-xs text-slate-400 hidden sm:block">
+              * Muestra los últimos 20 trabajos pendientes.
+            </p>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="ghost" onClick={() => setIsTrabajosModalOpen(false)} className="flex-1 sm:flex-none">
+                Cerrar
+              </Button>
+              <Button asChild className="bg-orange-600 hover:bg-orange-700 text-white font-bold flex-1 sm:flex-none shadow-md shadow-orange-100">
+                <Link href="/admin/trabajos" className="flex items-center gap-2">
+                  <Briefcase className="w-4 h-4" />
+                  IR A LISTADO DE TRABAJOS
+                </Link>
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
