@@ -700,83 +700,110 @@ export default function DashboardPage() {
       {/* Modal de Trabajos Pendientes */}
       <Dialog open={isTrabajosModalOpen} onOpenChange={setIsTrabajosModalOpen}>
         <DialogContent className="max-w-3xl flex flex-col p-0 bg-white border-none shadow-2xl">
-          <DialogHeader className="p-6 border-b bg-orange-50/50">
-            <div className="flex items-center justify-between">
+          <DialogHeader className="p-6 border-b bg-orange-50/50 flex-shrink-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <DialogTitle className="text-xl font-bold flex items-center gap-2 text-orange-800">
                   <ClipboardList className="w-6 h-6 text-orange-600" />
                   Trabajos Pendientes de Cobro
                 </DialogTitle>
                 <DialogDescription className="text-orange-600/80 text-sm mt-1">
-                  Listado de trabajos realizados que aún no han sido cobrados o facturados.
+                  Listado completo de trabajos sin cobrar.
                 </DialogDescription>
               </div>
-              <div className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200">
-                {data.trabajosPendientes} PENDIENTES
+              <div className="flex items-center gap-3">
+                <div className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200 whitespace-nowrap">
+                  {data.trabajosPendientesList?.length || 0} REGISTROS
+                </div>
               </div>
+            </div>
+
+            {/* Filtros */}
+            <div className="mt-4 flex items-center gap-2 bg-white p-2 rounded-lg border shadow-sm">
+              <Users className="w-4 h-4 text-slate-400 ml-2" />
+              <select
+                className="bg-transparent border-none text-sm font-medium text-slate-700 focus:ring-0 w-full cursor-pointer outline-none"
+                onChange={(e) => {
+                  const val = e.target.value.toLowerCase();
+                  const rows = document.querySelectorAll('.job-row');
+                  rows.forEach(row => {
+                    const clientName = row.getAttribute('data-client')?.toLowerCase() || '';
+                    if (val === 'all' || clientName.includes(val)) {
+                      (row as HTMLElement).style.display = '';
+                    } else {
+                      (row as HTMLElement).style.display = 'none';
+                    }
+                  });
+                }}
+              >
+                <option value="all">Ver todos los clientes</option>
+                {Array.from(new Set(data.trabajosPendientesList?.map(j => j.cliente_nombre).filter(Boolean))).sort().map(client => (
+                  <option key={client} value={client!}>{client}</option>
+                ))}
+              </select>
             </div>
           </DialogHeader>
 
-          <div className="max-h-[60vh] overflow-y-auto p-0">
+          <div className="flex-1 overflow-y-auto p-0 bg-slate-50/30">
             {!data.trabajosPendientesList || data.trabajosPendientesList.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-3">
-                <ClipboardList className="w-12 h-12 opacity-20" />
-                <p>No hay trabajos pendientes de cobro.</p>
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+                <ClipboardList className="w-16 h-16 opacity-10" />
+                <p className="text-lg font-light">No hay trabajos pendientes de cobro.</p>
               </div>
             ) : (
-              <table className="w-full text-left text-sm border-collapse">
-                <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                  <tr>
-                    <th className="px-6 py-3 font-semibold text-slate-500 border-b">Fecha</th>
-                    <th className="px-6 py-3 font-semibold text-slate-500 border-b">Cliente</th>
-                    <th className="px-6 py-3 font-semibold text-slate-500 border-b">Descripción</th>
-                    <th className="px-6 py-3 font-semibold text-slate-500 border-b text-right">Estado</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {data.trabajosPendientesList.map((job) => (
-                    <tr key={job.id} className="hover:bg-orange-50/30 transition-colors group">
-                      <td className="px-6 py-3 font-medium text-slate-600 whitespace-nowrap">
-                        {fecha(job.fecha)}
-                      </td>
-                      <td className="px-6 py-3 font-medium text-slate-800">
-                        {job.cliente_nombre || <span className="text-slate-400 italic">Sin cliente</span>}
-                      </td>
-                      <td className="px-6 py-3 text-slate-600 max-w-[250px] truncate group-hover:whitespace-normal group-hover:overflow-visible group-hover:bg-white group-hover:absolute group-hover:shadow-lg group-hover:z-20 group-hover:rounded group-hover:border group-hover:border-orange-100 p-3">
-                        {job.descripcion}
-                      </td>
-                      <td className="px-6 py-3 text-right">
-                        <span className={cn(
-                          "px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border",
-                          job.estado_detalle === 'NO_FACTURADO' ? "bg-slate-100 text-slate-500 border-slate-200" :
-                            job.estado_detalle === 'EN_BORRADOR' ? "bg-yellow-50 text-yellow-600 border-yellow-200" :
-                              "bg-orange-50 text-orange-600 border-orange-200"
-                        )}>
-                          {job.estado_detalle?.replace('_', ' ') || 'PENDIENTE'}
-                        </span>
-                      </td>
+              <div className="min-w-[800px]">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm text-xs uppercase tracking-wider text-slate-500">
+                    <tr>
+                      <th className="px-6 py-4 font-semibold border-b bg-slate-50">Fecha</th>
+                      <th className="px-6 py-4 font-semibold border-b bg-slate-50">Cliente</th>
+                      <th className="px-6 py-4 font-semibold border-b bg-slate-50 w-1/2">Descripción</th>
+                      <th className="px-6 py-4 font-semibold border-b bg-slate-50 text-right">Estado</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {data.trabajosPendientesList.map((job) => (
+                      <tr key={job.id} className="job-row hover:bg-orange-50/30 transition-colors group" data-client={job.cliente_nombre}>
+                        <td className="px-6 py-4 font-medium text-slate-600 whitespace-nowrap">
+                          {fecha(job.fecha)}
+                        </td>
+                        <td className="px-6 py-4 font-bold text-slate-800">
+                          {job.cliente_nombre || <span className="text-slate-400 italic font-normal">Sin cliente asignado</span>}
+                        </td>
+                        <td className="px-6 py-4 text-slate-600 relative">
+                          {job.descripcion}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border inline-flex items-center gap-1.5",
+                            job.estado_detalle === 'NO_FACTURADO' ? "bg-slate-100 text-slate-500 border-slate-200" :
+                              job.estado_detalle === 'EN_BORRADOR' ? "bg-yellow-50 text-yellow-600 border-yellow-200" :
+                                "bg-orange-50 text-orange-600 border-orange-200"
+                          )}>
+                            {job.estado_detalle === 'NO_FACTURADO' && <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />}
+                            {job.estado_detalle === 'EN_BORRADOR' && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
+                            {job.estado_detalle === 'FACTURADO_PENDIENTE' && <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
+                            {job.estado_detalle?.replace('_', ' ') || 'PENDIENTE'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
-          <div className="p-4 border-t bg-slate-50 flex justify-between items-center gap-3">
-            <p className="text-xs text-slate-400 hidden sm:block">
-              * Muestra los últimos 20 trabajos pendientes.
-            </p>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button variant="ghost" onClick={() => setIsTrabajosModalOpen(false)} className="flex-1 sm:flex-none">
-                Cerrar
-              </Button>
-              <Button asChild className="bg-orange-600 hover:bg-orange-700 text-white font-bold flex-1 sm:flex-none shadow-md shadow-orange-100">
-                <Link href="/admin/trabajos" className="flex items-center gap-2">
-                  <Briefcase className="w-4 h-4" />
-                  IR A LISTADO DE TRABAJOS
-                </Link>
-              </Button>
-            </div>
+          <div className="p-4 border-t bg-slate-50 flex justify-end gap-3 flex-shrink-0">
+            <Button variant="outline" onClick={() => setIsTrabajosModalOpen(false)} className="px-6 border-slate-200 hover:bg-white text-slate-600">
+              Cerrar
+            </Button>
+            <Button asChild className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 shadow-md shadow-orange-100">
+              <Link href="/admin/trabajos" className="flex items-center gap-2">
+                <Briefcase className="w-4 h-4" />
+                IR A LISTADO DE TRABAJOS
+              </Link>
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
