@@ -73,29 +73,41 @@ export default function AdminLayout({
         role: user.role
       });
 
-      // Lógica de "Curación": Si detectamos pantalla grande pero la sesión parece de móvil.
-      // Si el user de sessionStorage tiene pocos módulos pero el de localStorage o backend tiene muchos,
-      // es una señal clara de desincronización.
-      const hasMissingDesktopModules = Object.keys(user.modulos || {}).length < 5 && !!user.modulos_mobile;
+      // Lógica de "Curación": Si detectamos pantalla grande pero la sesión parece de móvil o está incompleta.
+      const enabledModulesCount = Object.values(user.modulos || {}).filter(v => v === true).length;
       const isAdmin = user.role === 'admin';
-      const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted') : null;
+      const hasMissingModules = isAdmin && enabledModulesCount < 5;
+      const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted_v5') : null;
 
-      if (isLargeScreen && isAdmin && hasMissingDesktopModules && !fixAttempted) {
-         console.warn("[AdminLayout] 🚨 Detectada sesión móvil en escritorio. Limpiando caché y curando...");
-         sessionStorage.setItem('desktop_mode_fix_attempted', 'true');
+      if (isLargeScreen && hasMissingModules && !fixAttempted) {
+         console.warn("[AdminLayout] 🚨 Detectada sesión incompleta en escritorio. Limpiando caché y curando V5...");
+         sessionStorage.setItem('desktop_mode_fix_attempted_v5', 'true');
          
-         // 1. Limpiar sessionStorage que suele tener el user "sucio" de móvil
+         // 1. Limpiar rastro de sesión
          sessionStorage.removeItem('user');
          
-         // 2. Desregistrar SW para matar cabeceras COOP viejas
+         // 2. Desregistrar SW de forma masiva para resetear cabeceras COOP
          if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
-            navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+            navigator.serviceWorker.getRegistrations().then(regs => {
+               regs.forEach(r => {
+                  r.unregister();
+                  console.log("[AdminLayout] 🧹 Service Worker eliminado.");
+               });
+            });
          }
 
-         // 3. Curar sesión y refrescar
+         // 3. Curar sesión
          refreshMe().then(() => {
+            console.log("[AdminLayout] ✅ Datos frescos obtenidos. Recargando...");
             window.location.reload(); 
-         }).catch(err => console.error("Error en curación radical:", err));
+         }).catch(err => {
+            console.error("Error en curación radical:", err);
+            // Si falla, al menos dejamos de bloquear la pantalla tras un re-esfuerzo
+            setSession({
+              nombre: user.nombre || "Administrador",
+              modulos: activeModulos,
+            });
+         });
          return; 
       }
 
@@ -173,6 +185,12 @@ export default function AdminLayout({
       .find((g) => pathname.startsWith(g.path));
 
     if (current?.module && !hasModule(session.modulos, current.module)) {
+      // Si es un admin y detectamos que faltan muchos módulos, no redirigimos agresivamente
+      const trueCount = Object.values(session.modulos).filter(v => v === true).length;
+      if (user.role === 'admin' && trueCount < 3 && pathname !== '/admin/dashboard') {
+        return; // No bloqueamos para permitir navegación si hay error de carga
+      }
+      
       // Excepción especial para /admin/jornadas: permitir si tiene calendario
       if (current.path === "/admin/jornadas" && hasModule(session.modulos, "calendario")) {
         return;
