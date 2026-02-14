@@ -178,24 +178,15 @@ export default function DashboardPage() {
   useEffect(() => {
     loadAll();
 
-    function onSessionUpdated() {
+    const onSessionUpdated = () => {
+      // Recargar datos (loadAll ya se encarga de leer el usuario y actualizar módulos)
       loadAll();
-    }
+    };
 
     window.addEventListener("session-updated", onSessionUpdated);
     return () => {
       window.removeEventListener("session-updated", onSessionUpdated);
     };
-  }, []);
-
-  useEffect(() => {
-    const handler = () => {
-      const u = getUser();
-      if (u) setModulos(u.modulos || {});
-      loadAll();
-    };
-    window.addEventListener("session-updated", handler);
-    return () => window.removeEventListener("session-updated", handler);
   }, []);
 
   useEffect(() => {
