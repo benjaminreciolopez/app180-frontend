@@ -49,7 +49,7 @@ export default function AdminLayout({
         setSession(null);
         return;
       }
-      
+
       // Detectar si estamos en móvil PWA para usar módulos móviles
       const isLargeScreen =
         typeof window !== "undefined" && window.innerWidth >= 1024;
@@ -74,35 +74,35 @@ export default function AdminLayout({
       const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted_v5') : null;
 
       if (isLargeScreen && hasMissingModules && !fixAttempted) {
-         console.warn("[AdminLayout] 🚨 Detectada sesión incompleta en escritorio. Limpiando caché y curando V5...");
-         sessionStorage.setItem('desktop_mode_fix_attempted_v5', 'true');
-         
-         // 1. Limpiar rastro de sesión
-         sessionStorage.removeItem('user');
-         
-         // 2. Desregistrar SW de forma masiva para resetear cabeceras COOP
-         if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
-            navigator.serviceWorker.getRegistrations().then(regs => {
-               regs.forEach(r => {
-                  r.unregister();
-                  console.log("[AdminLayout] 🧹 Service Worker eliminado.");
-               });
-            });
-         }
+        console.warn("[AdminLayout] 🚨 Detectada sesión incompleta en escritorio. Limpiando caché y curando V5...");
+        sessionStorage.setItem('desktop_mode_fix_attempted_v5', 'true');
 
-         // 3. Curar sesión
-         refreshMe().then(() => {
-            console.log("[AdminLayout] ✅ Datos frescos obtenidos. Recargando...");
-            window.location.reload(); 
-         }).catch(err => {
-            console.error("Error en curación radical:", err);
-            // Si falla, al menos dejamos de bloquear la pantalla tras un re-esfuerzo
-            setSession({
-              nombre: user.nombre || "Administrador",
-              modulos: activeModulos,
+        // 1. Limpiar rastro de sesión
+        sessionStorage.removeItem('user');
+
+        // 2. Desregistrar SW de forma masiva para resetear cabeceras COOP
+        if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+          navigator.serviceWorker.getRegistrations().then(regs => {
+            regs.forEach(r => {
+              r.unregister();
+              console.log("[AdminLayout] 🧹 Service Worker eliminado.");
             });
-         });
-         return; 
+          });
+        }
+
+        // 3. Curar sesión
+        refreshMe().then(() => {
+          console.log("[AdminLayout] ✅ Datos frescos obtenidos. Recargando...");
+          window.location.reload();
+        }).catch(err => {
+          console.error("Error en curación radical:", err);
+          // Si falla, al menos dejamos de bloquear la pantalla tras un re-esfuerzo
+          setSession({
+            nombre: user.nombre || "Administrador",
+            modulos: activeModulos,
+          });
+        });
+        return;
       }
 
       setSession({
@@ -185,7 +185,7 @@ export default function AdminLayout({
       if (currentUser?.role === 'admin' && trueCount < 3 && pathname !== '/admin/dashboard') {
         return; // No bloqueamos para permitir navegación si hay error de carga
       }
-      
+
       // Excepción especial para /admin/jornadas: permitir si tiene calendario
       if (current.path === "/admin/jornadas" && hasModule(session.modulos, "calendario")) {
         return;
@@ -267,6 +267,12 @@ export default function AdminLayout({
       return hasModule(session.modulos, "fichajes") || hasModule(session.modulos, "calendario");
     }
     return hasModule(session.modulos, item.module);
+  }).map(item => {
+    // VISIÓN RENTABILIDAD: Si no hay empleados, el enfoque es auditar tiempos y costes
+    if (item.path === "/admin/partes-dia" && !hasModule(session.modulos, "empleados")) {
+      return { ...item, label: "Rentabilidad y Tiempos" };
+    }
+    return item;
   });
 
   // ============================
@@ -311,11 +317,10 @@ export default function AdminLayout({
               <Link
                 href={item.path}
                 onClick={() => setMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md transition ${
-                  pathname === item.path
+                className={`block px-3 py-2 rounded-md transition ${pathname === item.path
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-muted"
-                }`}
+                  }`}
               >
                 {item.label}
               </Link>
@@ -373,7 +378,7 @@ export default function AdminLayout({
 
       {/* Modal Autoconfiguración Admin */}
       {userId && (
-        <AdminSelfConfigModal 
+        <AdminSelfConfigModal
           isOpen={selfConfigOpen}
           onClose={() => setSelfConfigOpen(false)}
           adminId={userId}
