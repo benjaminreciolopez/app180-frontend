@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { api } from "@/services/api";
 import { getUser, logout } from "@/services/auth";
 import {
@@ -137,7 +140,14 @@ export default function DashboardPage() {
       // Cargar módulos actualizados de la sesión cada vez que cargamos todo
       const user = getUser();
       if (user) {
-        setModulos(user.modulos || {});
+        const isLargeScreen = typeof window !== "undefined" && window.innerWidth >= 1024;
+        const isPwaMobile = isMobileDevice() && isStandalone();
+        const useMobileModules = isPwaMobile && !isLargeScreen;
+        const activeModulos = useMobileModules && user.modulos_mobile 
+          ? user.modulos_mobile 
+          : user.modulos || {};
+          
+        setModulos(activeModulos);
       }
 
       // FIX: El backend devuelve widgets como string JSON, necesitamos parsearlo
@@ -608,7 +618,7 @@ export default function DashboardPage() {
                                 handleOpenPreview(f.id, f.numero);
                               }
                             }}
-                            className="text-blue-600 hover:underline font-medium flex items-center gap-2"
+                            className="text-blue-600 hover:underline font-medium flex items-center gap-2 cursor-pointer"
                             disabled={loadingPdfId === f.id}
                           >
                             {loadingPdfId === f.id ? (

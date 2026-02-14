@@ -65,13 +65,7 @@ export default function AdminLayout({
           ? user.modulos_mobile
           : user.modulos || {};
 
-      console.log("[AdminLayout] 🔍 Session Check V4:", {
-        isLargeScreen,
-        useMobileModules,
-        desktopModulos: user.modulos,
-        mobileKeys: Object.keys(user.modulos_mobile || {}),
-        role: user.role
-      });
+
 
       // Lógica de "Curación": Si detectamos pantalla grande pero la sesión parece de móvil o está incompleta.
       const enabledModulesCount = Object.values(user.modulos || {}).filter(v => v === true).length;
