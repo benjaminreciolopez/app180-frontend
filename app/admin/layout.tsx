@@ -65,29 +65,37 @@ export default function AdminLayout({
           ? user.modulos_mobile
           : user.modulos || {};
 
-      console.log("[AdminLayout] 🔍 Session Check V3:", {
+      console.log("[AdminLayout] 🔍 Session Check V4:", {
         isLargeScreen,
         useMobileModules,
-        desktopKeys: Object.keys(user.modulos || {}),
+        desktopModulos: user.modulos,
         mobileKeys: Object.keys(user.modulos_mobile || {}),
         role: user.role
       });
 
       // Lógica de "Curación": Si detectamos pantalla grande pero la sesión parece de móvil.
-      // Un admin en desktop suele tener muchos módulos (más de 3-4).
+      // Si el user de sessionStorage tiene pocos módulos pero el de localStorage o backend tiene muchos,
+      // es una señal clara de desincronización.
       const hasMissingDesktopModules = Object.keys(user.modulos || {}).length < 5 && !!user.modulos_mobile;
       const isAdmin = user.role === 'admin';
       const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted') : null;
 
       if (isLargeScreen && isAdmin && hasMissingDesktopModules && !fixAttempted) {
-         console.warn("[AdminLayout] 🚨 Detectado Desktop con módulos restringidos. Forzando curación...");
+         console.warn("[AdminLayout] 🚨 Detectada sesión móvil en escritorio. Limpiando caché y curando...");
          sessionStorage.setItem('desktop_mode_fix_attempted', 'true');
-         refreshMe().then((updatedData: any) => {
-            if (updatedData) {
-               console.log("[AdminLayout] ✅ Curación completada, recargando página...");
-               window.location.reload(); // Recarga dura para resetear TODO
-            }
-         }).catch((err: unknown) => console.error("Error en curación radical:", err));
+         
+         // 1. Limpiar sessionStorage que suele tener el user "sucio" de móvil
+         sessionStorage.removeItem('user');
+         
+         // 2. Desregistrar SW para matar cabeceras COOP viejas
+         if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+         }
+
+         // 3. Curar sesión y refrescar
+         refreshMe().then(() => {
+            window.location.reload(); 
+         }).catch(err => console.error("Error en curación radical:", err));
          return; 
       }
 
