@@ -5,6 +5,8 @@ import { get } from 'idb-keyval';
 import { api } from "@/services/api";
 import { toast } from "sonner";
 
+import { isMobileDevice } from "@/utils/pwaDetection";
+
 /**
  * Componente invisible que gestiona la sincronización automática del backup
  * del servidor a la carpeta local configurada en el navegador.
@@ -35,7 +37,8 @@ export default function AutoBackupSync() {
     };
 
     const runSync = async () => {
-        if (syncDone.current) return;
+        // En móviles, el sistema de archivos local no funciona igual y es molesto
+        if (isMobileDevice() || syncDone.current) return;
 
         try {
             // 1. Obtener configuración del servidor
@@ -53,6 +56,9 @@ export default function AutoBackupSync() {
 
             if (!directoryHandle) {
                 if (serverPath) {
+                    // SILENCIAR AVISO EN MÓVIL (Redundante por el check inicial, pero por seguridad)
+                    if (isMobileDevice()) return;
+
                     console.warn(`[AutoBackupSync] El servidor tiene una ruta de backup (${serverPath}), pero el navegador NO tiene una carpeta vinculada en este PC.`);
                     toast.info("Configuración de Backup detectada", {
                         description: "Vincular una carpeta de este PC para recibir las copias automáticas.",
