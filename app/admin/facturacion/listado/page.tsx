@@ -23,7 +23,7 @@ import {
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton"
 
 import { api } from "@/services/api"
@@ -107,6 +107,18 @@ export default function FacturasListadoPage() {
   useEffect(() => {
     loadFacturas()
   }, [loadFacturas])
+
+  const searchParams = useSearchParams()
+  const openPdfId = searchParams.get('openPdf')
+
+  useEffect(() => {
+    if (openPdfId && facturas.length > 0) {
+      const id = parseInt(openPdfId)
+      if (!isNaN(id)) {
+        handleOpenPreview(id)
+      }
+    }
+  }, [openPdfId, facturas.length])
 
   // Filtrado local (búsqueda y estado)
   useEffect(() => {

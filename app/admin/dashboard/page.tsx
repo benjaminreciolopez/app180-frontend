@@ -22,7 +22,7 @@ interface DashboardData {
   sospechososHoy: number;
   trabajandoAhora: { id: string; empleado_nombre: string; cliente_nombre: string | null; estado: string; desde: string }[];
   ultimosFichajes: { id: string; empleado_nombre: string; cliente_nombre: string | null; tipo: string; fecha: string }[];
-  facturasPendientesList?: { id: string; numero: string; total: string; fecha_emision: string; cliente_nombre: string | null; estado_pago: string }[];
+  facturasPendientesList?: { id: string; numero: string; total: string; fecha_emision: string; cliente_nombre: string | null; estado_pago: string; estado: string }[];
   clientesActivos: number;
   clientesNuevos: number;
   facturasPendientes: number;
@@ -556,7 +556,15 @@ export default function DashboardPage() {
                     {data.facturasPendientesList.map((f) => (
                       <tr key={f.id} className="hover:bg-gray-50">
                         <td className="px-4 md:px-6 py-3 font-medium text-blue-600">
-                          <Link href={`/admin/facturacion/ver/${f.id}`} className="hover:underline">{f.numero}</Link>
+                          <Link 
+                            href={f.estado === 'BORRADOR' 
+                              ? `/admin/facturacion/editar/${f.id}` 
+                              : `/admin/facturacion/listado?openPdf=${f.id}`
+                            } 
+                            className="hover:underline"
+                          >
+                            {f.numero}
+                          </Link>
                         </td>
                         <td className="px-4 md:px-6 py-3">{f.cliente_nombre || "—"}</td>
                         <td className="px-4 md:px-6 py-3 text-gray-500">{fecha(f.fecha_emision)}</td>

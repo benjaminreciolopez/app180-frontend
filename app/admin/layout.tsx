@@ -77,12 +77,13 @@ export default function AdminLayout({
       // Lógica de "Curación": Si detectamos pantalla grande pero faltan módulos clave
       // (señal de que tenemos una sesión móvil cacheada), forzamos refresh.
       const hasMissingDesktopModules = !user.modulos?.clientes && !user.modulos?.empleados;
+      const isAdmin = user.role === 'admin';
       
       // Evitar bucle infinito: solo intentar arreglarlo una vez por carga de página
       const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted') : null;
 
-      if (isLargeScreen && hasMissingDesktopModules && !fixAttempted) {
-         console.warn("[AdminLayout] Detectado Desktop con módulos restringidos. Forzando refreshMe...");
+      if (isLargeScreen && isAdmin && hasMissingDesktopModules && !fixAttempted) {
+         console.warn("[AdminLayout] Detectado Desktop con módulos restringidos (Admin). Forzando refreshMe...");
          sessionStorage.setItem('desktop_mode_fix_attempted', 'true');
          refreshMe().then((updatedData: any) => {
             if (updatedData) {
