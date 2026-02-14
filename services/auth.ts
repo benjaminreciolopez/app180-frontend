@@ -154,11 +154,18 @@ export function getUser(): any | null {
 
 export function logout() {
   if (typeof window === "undefined") return;
+
+  // Limpieza local
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+
+  // Limpieza sesión (CRÍTICO para evitar persistencia de modo móvil erróneo)
   sessionStorage.removeItem("token");
   sessionStorage.removeItem("user");
+  sessionStorage.removeItem("desktop_mode_fix_attempted_v5");
+
   setAuthToken(null);
+  window.dispatchEvent(new Event("session-updated"));
   window.location.href = "/";
 }
 

@@ -20,17 +20,17 @@ export function isStandalone(): boolean {
 
   // Método 1: display-mode standalone
   const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
-  
+
   // Método 2: navigator.standalone (iOS)
   const isIOSStandalone = (window.navigator as any).standalone === true;
-  
+
   // Método 3: verificar si fue lanzada desde home screen
   const isLaunchedFromHomeScreen = window.matchMedia('(display-mode: standalone)').matches ||
-                                    window.matchMedia('(display-mode: fullscreen)').matches ||
-                                    window.matchMedia('(display-mode: minimal-ui)').matches;
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches;
 
   const result = isStandaloneMode || isIOSStandalone || isLaunchedFromHomeScreen;
-  
+
   // 🐛 Debug logging
   console.log('🔍 PWA Detection:', {
     isStandaloneMode,
@@ -38,9 +38,9 @@ export function isStandalone(): boolean {
     isLaunchedFromHomeScreen,
     finalResult: result,
     userAgent: window.navigator.userAgent,
-    displayMode: window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 
-                 window.matchMedia('(display-mode: fullscreen)').matches ? 'fullscreen' :
-                 window.matchMedia('(display-mode: minimal-ui)').matches ? 'minimal-ui' : 'browser'
+    displayMode: window.matchMedia('(display-mode: standalone)').matches ? 'standalone' :
+      window.matchMedia('(display-mode: fullscreen)').matches ? 'fullscreen' :
+        window.matchMedia('(display-mode: minimal-ui)').matches ? 'minimal-ui' : 'browser'
   });
 
   return result;
@@ -51,6 +51,12 @@ export function isStandalone(): boolean {
  */
 export function getPlatform(): 'ios' | 'android' | 'desktop' | 'unknown' {
   if (typeof window === 'undefined') return 'unknown';
+
+  // 🛡️ REGLA MAESTRA PARA ESCRITORIO
+  // Si la pantalla es ancha, ES ESCRITORIO, sin importar el User Agent (útil para iPads Pro o tablets grandes en modo paisaje)
+  if (window.innerWidth >= 1024) {
+    return 'desktop';
+  }
 
   const userAgent = window.navigator.userAgent.toLowerCase();
 
@@ -64,7 +70,7 @@ export function getPlatform(): 'ios' | 'android' | 'desktop' | 'unknown' {
     return 'android';
   }
 
-  // Desktop
+  // Desktop legacy check
   if (/windows|mac|linux/.test(userAgent)) {
     return 'desktop';
   }
@@ -86,17 +92,28 @@ export function getBrowser(): string {
   if (userAgent.includes('safari')) return 'Safari';
   if (userAgent.includes('opera') || userAgent.includes('opr')) return 'Opera';
 
-  return 'Unknown';
+  return 'unknown';
 }
 
 /**
- * Verifica si el navegador puede instalar PWA
+ * Verifica si es posible instalar la PWA
+ * (Aproximación basada en eventos y características)
  */
 export function canInstallPWA(): boolean {
   if (typeof window === 'undefined') return false;
 
-  // Verificar si beforeinstallprompt está disponible
-  return 'BeforeInstallPromptEvent' in window;
+  const platform = getPlatform();
+  const browser = getBrowser();
+  const standalone = isStandalone();
+
+  if (standalone) return false;
+
+  // iOS Safari
+  if (platform === 'ios' && browser === 'Safari') return true;
+
+  // Chrome/Edge/Firefox on Android/Desktop usually fire beforeinstallprompt
+  // We can't know for sure without the event, but we can guess it's supported
+  return true;
 }
 
 /**
@@ -121,6 +138,9 @@ export function getDeviceInfo(): DeviceInfo {
  * Verifica si el dispositivo es móvil
  */
 export function isMobileDevice(): boolean {
+  if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+    return false;
+  }
   const platform = getPlatform();
   return platform === 'ios' || platform === 'android';
 }
@@ -151,30 +171,22 @@ export function getInstallInstructions(platform?: 'ios' | 'android' | 'desktop' 
   switch (detectedPlatform) {
     case 'ios':
       return [
-        'Toca el botón "Compartir" (cuadrado con flecha hacia arriba)',
-        'Desplázate y selecciona "Añadir a pantalla de inicio"',
-        'Toca "Añadir"',
-        'Abre la aplicación desde el icono en tu pantalla de inicio',
+        'Abre el menú "Compartir" (icono cuadrado con flecha)',
+        'Busca y selecciona "Añadir a pantalla de inicio"'
       ];
-
     case 'android':
       return [
-        'Toca el menú ⋮ (tres puntos en la esquina superior)',
-        'Selecciona "Instalar aplicación" o "Añadir a pantalla de inicio"',
-        'Toca "Instalar"',
-        'Abre la aplicación desde el icono en tu pantalla de inicio',
+        'Abre el menú del navegador (tres puntos)',
+        'Selecciona "Instalar aplicación" o "Añadir a pantalla de inicio"'
       ];
-
     case 'desktop':
       return [
-        'Esta aplicación está diseñada para dispositivos móviles',
-        'Por favor, abre este enlace desde tu teléfono',
+        'Busca el icono de instalación (+) en la barra de direcciones',
+        'O abre el menú y selecciona "Instalar aplicación"'
       ];
-
     default:
       return [
-        'Busca la opción "Instalar aplicación" o "Añadir a pantalla de inicio" en el menú de tu navegador',
-        'Sigue las instrucciones para instalar la aplicación',
+        'Busca la opción "Añadir a pantalla de inicio" o "Instalar" en el menú de tu navegador'
       ];
   }
 }

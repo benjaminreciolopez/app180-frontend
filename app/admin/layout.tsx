@@ -201,6 +201,10 @@ export default function AdminLayout({
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("desktop_mode_fix_attempted_v5");
+
     window.dispatchEvent(new Event("session-updated"));
     location.href = "/";
   }
