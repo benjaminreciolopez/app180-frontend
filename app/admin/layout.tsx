@@ -66,11 +66,8 @@ export default function AdminLayout({
           : user.modulos || {};
 
       // Lógica de "Curación": Si detectamos pantalla grande pero parece una sesión móvil restringida.
-      // Un indicio es tener módulos móviles poblados pero los de escritorio casi vacíos.
       const hasMissingDesktopModules = Object.keys(user.modulos || {}).length < 2 && !!user.modulos_mobile;
       const isAdmin = user.role === 'admin';
-      
-      // Evitar bucle infinito: solo intentar arreglarlo una vez por carga de página
       const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted') : null;
 
       if (isLargeScreen && isAdmin && hasMissingDesktopModules && !fixAttempted) {
@@ -81,10 +78,17 @@ export default function AdminLayout({
                   nombre: updatedData.nombre || "Administrador",
                   modulos: updatedData.modulos || {},
                });
-               // Notificar al Dashboard y otros componentes
                window.dispatchEvent(new Event("session-updated"));
             }
-         }).catch((err: unknown) => console.error("Error forzando refresh desktop", err));
+         }).catch((err: unknown) => {
+            console.error("Error forzando refresh desktop", err);
+            // Fallback al menos carga algo
+            setSession({
+              nombre: user.nombre || "Administrador",
+              modulos: activeModulos,
+            });
+         });
+         return; // ⛔ IMPORTANTE: No seguimos cargando la sesión "mala"
       }
 
       setSession({
