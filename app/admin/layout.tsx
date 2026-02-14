@@ -58,12 +58,16 @@ export default function AdminLayout({
       // Solo usar módulos móviles si es PWA móvil Y pantalla pequeña
       const useMobileModules = isPwaMobile && !isLargeScreen;
 
-      console.log("[AdminLayout] Session Check:", {
-        isPwaMobile,
+      console.log("[AdminLayout] Session Raw Data:", {
+        userName: user.nombre,
+        userRole: user.role,
+        hasDesktopModules: !!user.modulos,
+        hasMobileModules: !!user.modulos_mobile,
+        desktopModulesCount: Object.keys(user.modulos || {}).length,
+        mobileModulesCount: user.modulos_mobile ? Object.keys(user.modulos_mobile).length : 0,
         isLargeScreen,
-        useMobileModules,
-        modulesDesktop: !!user.modulos,
-        modulesMobile: !!user.modulos_mobile,
+        isPwaMobile,
+        useMobileModules
       });
 
       // Si tenemos módulos móviles y debemos usarlos, bien.
@@ -72,6 +76,11 @@ export default function AdminLayout({
         useMobileModules && user.modulos_mobile
           ? user.modulos_mobile
           : user.modulos || {};
+      
+      console.log("[AdminLayout] Active Modules Calculated:", {
+        usingMobile: useMobileModules && !!user.modulos_mobile,
+        modulesKeys: Object.keys(activeModulos)
+      });
 
       // Lógica de "Curación": Si detectamos pantalla grande pero parece una sesión móvil restringida.
       // Un indicio es tener módulos móviles poblados pero los de escritorio casi vacíos.
