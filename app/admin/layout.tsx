@@ -58,29 +58,12 @@ export default function AdminLayout({
       // Solo usar módulos móviles si es PWA móvil Y pantalla pequeña
       const useMobileModules = isPwaMobile && !isLargeScreen;
 
-      console.log("[AdminLayout] Session Raw Data:", {
-        userName: user.nombre,
-        userRole: user.role,
-        hasDesktopModules: !!user.modulos,
-        hasMobileModules: !!user.modulos_mobile,
-        desktopModulesCount: Object.keys(user.modulos || {}).length,
-        mobileModulesCount: user.modulos_mobile ? Object.keys(user.modulos_mobile).length : 0,
-        isLargeScreen,
-        isPwaMobile,
-        useMobileModules
-      });
-
       // Si tenemos módulos móviles y debemos usarlos, bien.
       // Si NO, usamos los módulos normales (desktop/web).
       const activeModulos =
         useMobileModules && user.modulos_mobile
           ? user.modulos_mobile
           : user.modulos || {};
-      
-      console.log("[AdminLayout] Active Modules Calculated:", {
-        usingMobile: useMobileModules && !!user.modulos_mobile,
-        modulesKeys: Object.keys(activeModulos)
-      });
 
       // Lógica de "Curación": Si detectamos pantalla grande pero parece una sesión móvil restringida.
       // Un indicio es tener módulos móviles poblados pero los de escritorio casi vacíos.
@@ -91,7 +74,6 @@ export default function AdminLayout({
       const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted') : null;
 
       if (isLargeScreen && isAdmin && hasMissingDesktopModules && !fixAttempted) {
-         console.warn("[AdminLayout] Detectado Desktop con módulos restringidos (Admin). Forzando refreshMe...");
          sessionStorage.setItem('desktop_mode_fix_attempted', 'true');
          refreshMe().then((updatedData: any) => {
             if (updatedData) {
@@ -99,6 +81,8 @@ export default function AdminLayout({
                   nombre: updatedData.nombre || "Administrador",
                   modulos: updatedData.modulos || {},
                });
+               // Notificar al Dashboard y otros componentes
+               window.dispatchEvent(new Event("session-updated"));
             }
          }).catch((err: unknown) => console.error("Error forzando refresh desktop", err));
       }

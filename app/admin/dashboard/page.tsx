@@ -134,6 +134,12 @@ export default function DashboardPage() {
       setData(dashRes.data);
       let w = widgetRes.data.widgets;
 
+      // Cargar módulos actualizados de la sesión cada vez que cargamos todo
+      const user = getUser();
+      if (user) {
+        setModulos(user.modulos || {});
+      }
+
       // FIX: El backend devuelve widgets como string JSON, necesitamos parsearlo
       if (typeof w === 'string') {
         try {
@@ -157,9 +163,16 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    const u = getUser();
-    if (u) setModulos(u.modulos || {});
     loadAll();
+
+    function onSessionUpdated() {
+      loadAll();
+    }
+
+    window.addEventListener("session-updated", onSessionUpdated);
+    return () => {
+      window.removeEventListener("session-updated", onSessionUpdated);
+    };
   }, []);
 
   useEffect(() => {
