@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { AICopilot } from "@/components/shared/AICopilot";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
+import AutoBackupSync from "@/components/admin/AutoBackupSync";
 
 type Modulos = Record<string, boolean>;
 
@@ -280,6 +281,7 @@ export default function AdminLayout({
   // ============================
   return (
     <div className="flex h-[100svh] w-screen">
+      <AutoBackupSync />
       {/* Overlay móvil */}
       {menuOpen && (
         <div
@@ -318,8 +320,8 @@ export default function AdminLayout({
                 href={item.path}
                 onClick={() => setMenuOpen(false)}
                 className={`block px-3 py-2 rounded-md transition ${pathname === item.path
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted"
                   }`}
               >
                 {item.label}

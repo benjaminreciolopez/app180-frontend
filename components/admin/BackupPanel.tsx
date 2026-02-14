@@ -28,10 +28,10 @@ export default function BackupPanel() {
   useEffect(() => {
     // Intentar recuperar el handle guardado
     get('backup_directory_handle').then((handle) => {
-        if (handle) {
-            setDirectoryHandle(handle);
-            console.log("Directorio de backup recuperado de IndexedDB");
-        }
+      if (handle) {
+        setDirectoryHandle(handle);
+        console.log("Directorio de backup recuperado de IndexedDB");
+      }
     });
 
     // Cargar configuración del servidor para la ruta persistente
@@ -66,9 +66,9 @@ export default function BackupPanel() {
   async function handleForceBackup() {
     if (loading) return;
     setLoading(true);
-    
+
     const promise = api.post("/admin/backup/force");
-    
+
     showPromise(promise, {
       loading: "Generando copia de seguridad...",
       success: "Copia de seguridad guardada correctamente en el Storage.",
@@ -83,163 +83,163 @@ export default function BackupPanel() {
   }
 
   async function handleConfigureFolder() {
-      try {
-          if (!('showDirectoryPicker' in window)) {
-              toast.error("Tu navegador no soporta la selección de carpetas avanzada.");
-              return;
-          }
-          const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
-          await set('backup_directory_handle', handle);
-          setDirectoryHandle(handle);
-          toast.success("Carpeta de backups configurada correctamente.");
-      } catch (err: any) {
-          if (err.name !== 'AbortError') {
-              console.error(err);
-              toast.error("Error al configurar carpeta.");
-          }
+    try {
+      if (!('showDirectoryPicker' in window)) {
+        toast.error("Tu navegador no soporta la selección de carpetas avanzada.");
+        return;
       }
+      const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+      await set('backup_directory_handle', handle);
+      setDirectoryHandle(handle);
+      toast.success("Carpeta de backups configurada correctamente.");
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error(err);
+        toast.error("Error al configurar carpeta.");
+      }
+    }
   }
 
   // Verificar permisos del handle
   async function verifyPermission(handle: any, readWrite: boolean) {
-      const options = { mode: readWrite ? 'readwrite' : 'read' };
-      if ((await handle.queryPermission(options)) === 'granted') {
-          return true;
-      }
-      if ((await handle.requestPermission(options)) === 'granted') {
-          return true;
-      }
-      return false;
+    const options = { mode: readWrite ? 'readwrite' : 'read' };
+    if ((await handle.queryPermission(options)) === 'granted') {
+      return true;
+    }
+    if ((await handle.requestPermission(options)) === 'granted') {
+      return true;
+    }
+    return false;
   }
 
   async function handleDownloadLocal() {
     if (loading) return
     setLoading(true)
-    
+
     // Generar nombre de archivo
     const filename = `backup_restore_${new Date().toISOString().split('T')[0]}.json`;
 
     // Flow con File System Access API
     if (directoryHandle) {
-        try {
-            // Verificar permisos
-            const hasPermission = await verifyPermission(directoryHandle, true);
-            if (!hasPermission) {
-                toast.error("Permiso denegado para acceder a la carpeta configurada.");
-                // Fallback a descarga normal? O re-pedir carpeta?
-                // Mejor continuamos con descarga normal o error.
-                // Intentamos re-pedir permiso arriba, si falla, removemos handle?
-                // setDirectoryHandle(null); // Opcional
-                setLoading(false);
-                return;
-            }
-
-            // Descargar datos
-            const token = localStorage.getItem('token')
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            if (!response.ok) throw new Error("Error obteniendo datos del backup");
-            const blob = await response.blob(); 
-
-            // Guardar en directorio
-            const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(blob);
-            await writable.close();
-
-            toast.success(`Backup guardado en carpeta configurada: ${filename}`);
-            setLoading(false);
-            return; // Fin existoso FS API
-
-        } catch (err: any) {
-            console.error("Error guardando en carpeta configurada:", err);
-            toast.error("Error guardando en carpeta local. Intentando descarga normal...");
-            // Si falla, hacemos fallback a descarga normal
+      try {
+        // Verificar permisos
+        const hasPermission = await verifyPermission(directoryHandle, true);
+        if (!hasPermission) {
+          toast.error("Permiso denegado para acceder a la carpeta configurada.");
+          // Fallback a descarga normal? O re-pedir carpeta?
+          // Mejor continuamos con descarga normal o error.
+          // Intentamos re-pedir permiso arriba, si falla, removemos handle?
+          // setDirectoryHandle(null); // Opcional
+          setLoading(false);
+          return;
         }
+
+        // Descargar datos
+        const token = localStorage.getItem('token')
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!response.ok) throw new Error("Error obteniendo datos del backup");
+        const blob = await response.blob();
+
+        // Guardar en directorio
+        const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+
+        toast.success(`Backup guardado en carpeta configurada: ${filename}`);
+        setLoading(false);
+        return; // Fin existoso FS API
+
+      } catch (err: any) {
+        console.error("Error guardando en carpeta configurada:", err);
+        toast.error("Error guardando en carpeta local. Intentando descarga normal...");
+        // Si falla, hacemos fallback a descarga normal
+      }
     }
 
     // Fallback: Descarga Normal (blob url)
     const promise = (async () => {
-        const token = localStorage.getItem('token')
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        
-        if (!response.ok) throw new Error("Error descargando backup")
-        
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) throw new Error("Error descargando backup")
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
     })()
 
     showPromise(promise, {
-        loading: "Preparando descarga...",
-        success: "Copia descargada correctamente",
-        error: "Error al descargar la copia"
+      loading: "Preparando descarga...",
+      success: "Copia descargada correctamente",
+      error: "Error al descargar la copia"
     })
-    
+
     try {
-        await promise
+      await promise
     } finally {
-        setLoading(false)
+      setLoading(false)
     }
   }
 
   const handleFileRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
-      
-      const confirmed = window.confirm(`⚠️ ADVERTENCIA CRÍTICA:\n\nSe van a BORRAR TODOS LOS DATOS actuales y se reemplazarán por el contenido del archivo:\n"${file.name}"\n\nEsta acción es irreversible.\n¿Estás absolutamente seguro de continuar?`)
-      
-      if (!confirmed) {
-           e.target.value = '' // Reset input
-           return
-      }
+    const file = e.target.files?.[0]
+    if (!file) return
 
-      setLoading(true)
-      const formData = new FormData()
-      formData.append('file', file)
+    const confirmed = window.confirm(`⚠️ ADVERTENCIA CRÍTICA:\n\nSe van a BORRAR TODOS LOS DATOS actuales y se reemplazarán por el contenido del archivo:\n"${file.name}"\n\nEsta acción es irreversible.\n¿Estás absolutamente seguro de continuar?`)
 
-      const promise = (async () => {
-          const token = localStorage.getItem('token')
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/restore-upload`, {
-              method: 'POST',
-              headers: {
-                  'Authorization': `Bearer ${token}`
-              },
-              body: formData
-          })
-          const data = await response.json()
-          if (!response.ok || !data.success) throw new Error(data.error || "Error en restauración")
-          return data
-      })()
+    if (!confirmed) {
+      e.target.value = '' // Reset input
+      return
+    }
 
-      showPromise(promise, {
-          loading: "Subiendo y restaurando copia local...",
-          success: "Sistema restaurado correctamente desde archivo local.",
-          error: "Error restaurando copia local."
+    setLoading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const promise = (async () => {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/restore-upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
       })
+      const data = await response.json()
+      if (!response.ok || !data.success) throw new Error(data.error || "Error en restauración")
+      return data
+    })()
 
-      try {
-          await promise
-          setTimeout(() => window.location.reload(), 2000)
-      } catch (err) {
-          // Error handled by toast
-      } finally {
-          setLoading(false)
-          if (fileInputRef.current) fileInputRef.current.value = ''
-      }
+    showPromise(promise, {
+      loading: "Subiendo y restaurando copia local...",
+      success: "Sistema restaurado correctamente desde archivo local.",
+      error: "Error restaurando copia local."
+    })
+
+    try {
+      await promise
+      setTimeout(() => window.location.reload(), 2000)
+    } catch (err) {
+      // Error handled by toast
+    } finally {
+      setLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   async function handleRestoreBackup() {
@@ -288,38 +288,47 @@ export default function BackupPanel() {
         <p className="text-xs text-amber-600/80">
           Indica una ruta absoluta en el servidor (ej: <code>C:\Backups</code> o <code>/app/backups</code>) para guardar una copia física persistente en cada generación de backup.
         </p>
+
+        {/* Aviso para servidores en la nube */}
+        <div className="p-3 bg-amber-100/50 border border-amber-200 rounded-lg text-[10px] leading-relaxed text-amber-800 italic">
+          <strong>⚠️ Nota sobre Servidores Cloud (Render/Vercel):</strong> Si tu servidor está en la nube, "Ruta local" se refiere al almacenamiento interno del servidor remoto, **no a tu ordenador personal**.
+          Rutas como <code>C:\Users\...</code> solo funcionan si el servidor se ejecuta físicamente en tu PC.
+          <br />
+          Para guardar en tu PC desde la nube, usa el botón <strong>"Descargar Copia Local"</strong> de abajo.
+        </div>
+
         <div className="flex gap-2">
-            <input 
-                type="text" 
-                placeholder="Ruta absoluta en el servidor..."
-                className="flex-1 px-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none"
-                value={serverBackupPath}
-                onChange={(e) => setServerBackupPath(e.target.value)}
-            />
-            <Button 
-                onClick={handleSaveServerPath} 
-                disabled={savingPath}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
-            >
-                {savingPath ? <Loader2 className="w-4 h-4 animate-spin" /> : "Vincular"}
-            </Button>
+          <input
+            type="text"
+            placeholder="Ruta absoluta en el servidor..."
+            className="flex-1 px-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+            value={serverBackupPath}
+            onChange={(e) => setServerBackupPath(e.target.value)}
+          />
+          <Button
+            onClick={handleSaveServerPath}
+            disabled={savingPath}
+            className="bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            {savingPath ? <Loader2 className="w-4 h-4 animate-spin" /> : "Vincular"}
+          </Button>
         </div>
       </div>
 
       {/* Inputs ocultos */}
-      <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept=".json" 
-            onChange={handleFileRestore} 
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".json"
+        onChange={handleFileRestore}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
         {/* Generar Backup */}
-        <Button 
-          variant="outline" 
-          onClick={handleForceBackup} 
+        <Button
+          variant="outline"
+          onClick={handleForceBackup}
           disabled={loading}
           className="gap-2 border-gray-300 hover:bg-gray-50 justify-start"
         >
@@ -328,21 +337,21 @@ export default function BackupPanel() {
         </Button>
 
         {/* Configurar Carpeta */}
-        <Button 
-          variant="outline" 
-          onClick={handleConfigureFolder} 
+        <Button
+          variant="outline"
+          onClick={handleConfigureFolder}
           disabled={loading}
           className={cn("gap-2 border-gray-300 hover:bg-gray-50 justify-start", directoryHandle ? "border-green-500 bg-green-50 text-green-700" : "")}
           title={directoryHandle ? "Carpeta configurada (Click para cambiar)" : "Configurar carpeta de descargas"}
         >
-           <FolderCog className="w-4 h-4" />
-           {directoryHandle ? "Carpeta Configurada" : "Configurar Carpeta Local"}
+          <FolderCog className="w-4 h-4" />
+          {directoryHandle ? "Carpeta Configurada" : "Configurar Carpeta Local"}
         </Button>
 
         {/* Descargar Local */}
-        <Button 
-          variant="outline" 
-          onClick={handleDownloadLocal} 
+        <Button
+          variant="outline"
+          onClick={handleDownloadLocal}
           disabled={loading}
           className="gap-2 border-gray-300 hover:bg-gray-50 justify-start"
         >
@@ -353,8 +362,8 @@ export default function BackupPanel() {
         {/* Restaurar Storage */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               disabled={loading}
               className="gap-2 bg-red-600 hover:bg-red-700 justify-start md:col-span-1 lg:col-span-1"
             >
@@ -374,17 +383,17 @@ export default function BackupPanel() {
                 </p>
                 <p>
                   Esto incluye empleados, clientes, facturas, fichajes y configuraciones.
-                  <br/>
+                  <br />
                   <strong>Esta acción no se puede deshacer.</strong>
                 </p>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction 
+              <AlertDialogAction
                 onClick={(e) => {
-                   e.preventDefault(); 
-                   handleRestoreBackup();
+                  e.preventDefault();
+                  handleRestoreBackup();
                 }}
                 className="bg-red-600 hover:bg-red-700"
               >
@@ -395,14 +404,14 @@ export default function BackupPanel() {
         </AlertDialog>
 
         {/* Restaurar Local */}
-        <Button 
-            variant="destructive" 
-            className="gap-2 bg-red-800 hover:bg-red-900 justify-start md:col-span-1 lg:col-span-2" 
-            onClick={() => fileInputRef.current?.click()} 
-            disabled={loading}
+        <Button
+          variant="destructive"
+          className="gap-2 bg-red-800 hover:bg-red-900 justify-start md:col-span-1 lg:col-span-2"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={loading}
         >
-            <Upload className="w-4 h-4" />
-            Restaurar desde Archivo Local
+          <Upload className="w-4 h-4" />
+          Restaurar desde Archivo Local
         </Button>
 
       </div>
