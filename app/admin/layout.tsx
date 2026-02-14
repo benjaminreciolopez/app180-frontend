@@ -65,6 +65,15 @@ export default function AdminLayout({
           ? user.modulos_mobile
           : user.modulos || {};
 
+      console.log("[AdminLayout] 🔍 Session Check:", {
+        isLargeScreen,
+        useMobileModules,
+        hasDesktop: !!user.modulos,
+        hasMobile: !!user.modulos_mobile,
+        desktopCount: Object.keys(user.modulos || {}).length,
+        role: user.role
+      });
+
       // Lógica de "Curación": Si detectamos pantalla grande pero parece una sesión móvil restringida.
       const hasMissingDesktopModules = Object.keys(user.modulos || {}).length < 2 && !!user.modulos_mobile;
       const isAdmin = user.role === 'admin';
@@ -96,6 +105,13 @@ export default function AdminLayout({
         modulos: activeModulos,
       });
       setUserId(user.id);
+      
+      // ✅ Si es escritorio y el dashboard está vacío, forzamos un refresh solo una vez
+      if (isLargeScreen && Object.keys(activeModulos).length < 2 && !fixAttempted) {
+         console.warn("[AdminLayout] ⚠️ Escritorio vacío detectado. Forzando curación automática...");
+         sessionStorage.setItem('desktop_mode_fix_attempted', 'true');
+         refreshMe().then(() => window.location.reload()); // Recarga dura tras curar
+      }
     } catch {
       setSession(null);
     }
