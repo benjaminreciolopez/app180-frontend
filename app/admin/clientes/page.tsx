@@ -193,6 +193,13 @@ export default function AdminClientesPage() {
         iva_defecto: editing.iva_defecto || null,
       };
 
+      console.log("[save] dataToSend:", {
+        nombre: dataToSend.nombre,
+        razon_social: dataToSend.razon_social,
+        nif_cif: dataToSend.nif_cif,
+        persona_contacto: dataToSend.persona_contacto,
+      });
+
       let result;
       if (editing.id) {
         result = await api(`${BASE}/${editing.id}`, {
