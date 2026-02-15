@@ -193,10 +193,21 @@ export default function AdminClientesPage() {
         iva_defecto: editing.iva_defecto || null,
       };
 
+      console.log("[save] editing state COMPLETO:", {
+        nombre: editing.nombre,
+        razon_social: editing.razon_social,
+        nif_cif: editing.nif_cif,
+        iva_defecto: editing.iva_defecto,
+        forma_pago: editing.forma_pago,
+        iban: editing.iban,
+        persona_contacto: editing.persona_contacto,
+      });
+
       console.log("[save] dataToSend:", {
         nombre: dataToSend.nombre,
         razon_social: dataToSend.razon_social,
         nif_cif: dataToSend.nif_cif,
+        iva_defecto: dataToSend.iva_defecto,
         persona_contacto: dataToSend.persona_contacto,
       });
 
