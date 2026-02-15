@@ -75,8 +75,8 @@ export default function ClientFiscalFields({
               disabled={readOnly}
               placeholder={readOnly ? "—" : "facturas@empresa.com"}
               className={commonInputClass}
-              value={data.email || ""}
-              onChange={(e) => handleChange("email", e.target.value)}
+              value={data.email_factura || ""}
+              onChange={(e) => handleChange("email_factura", e.target.value)}
             />
           </div>
         </div>
@@ -92,8 +92,8 @@ export default function ClientFiscalFields({
             disabled={readOnly}
             placeholder={readOnly ? "—" : "Calle, número, piso..."}
             className={commonInputClass}
-            value={data.direccion || ""}
-            onChange={(e) => handleChange("direccion", e.target.value)}
+            value={data.direccion_fiscal || ""}
+            onChange={(e) => handleChange("direccion_fiscal", e.target.value)}
           />
         </div>
 
@@ -104,18 +104,18 @@ export default function ClientFiscalFields({
               disabled={readOnly}
               placeholder={readOnly ? "—" : "28001"}
               className={commonInputClass}
-              value={data.cp || ""}
-              onChange={(e) => handleChange("cp", e.target.value)}
+              value={data.codigo_postal || ""}
+              onChange={(e) => handleChange("codigo_postal", e.target.value)}
             />
           </div>
           <div>
-            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Población</Label>
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Municipio</Label>
             <Input
               disabled={readOnly}
               placeholder={readOnly ? "—" : "Madrid"}
               className={commonInputClass}
-              value={data.poblacion || ""}
-              onChange={(e) => handleChange("poblacion", e.target.value)}
+              value={data.municipio || ""}
+              onChange={(e) => handleChange("municipio", e.target.value)}
             />
           </div>
         </div>
@@ -151,13 +151,13 @@ export default function ClientFiscalFields({
           </h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Teléfono</Label>
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Teléfono Facturación</Label>
               <Input
                 disabled={readOnly}
                 placeholder={readOnly ? "—" : "+34 600..."}
                 className={commonInputClass}
-                value={data.telefono || ""}
-                onChange={(e) => handleChange("telefono", e.target.value)}
+                value={data.telefono_factura || ""}
+                onChange={(e) => handleChange("telefono_factura", e.target.value)}
               />
             </div>
             <div>
@@ -166,22 +166,11 @@ export default function ClientFiscalFields({
                 disabled={readOnly}
                 placeholder={readOnly ? "—" : "Nombre"}
                 className={commonInputClass}
-                value={data.contacto_nombre || ""}
-                onChange={(e) => handleChange("contacto_nombre", e.target.value)}
+                value={data.persona_contacto || ""}
+                onChange={(e) => handleChange("persona_contacto", e.target.value)}
               />
             </div>
           </div>
-           <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Email Contacto (Opciónal)</Label>
-              <Input
-                type="email"
-                disabled={readOnly}
-                placeholder={readOnly ? "—" : "contacto@empresa.com"}
-                className={commonInputClass}
-                value={data.contacto_email || ""}
-                onChange={(e) => handleChange("contacto_email", e.target.value)}
-              />
-            </div>
         </div>
 
       {/* 4. Facturación */}
