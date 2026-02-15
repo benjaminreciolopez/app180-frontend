@@ -172,12 +172,27 @@ export default function AdminClientesPage() {
   }
 
   function openEdit(c: Cliente) {
+    // DEBUG: Ver qué datos llegan del cliente
+    console.log("[openEdit] Cliente recibido:", {
+      id: c.id,
+      nombre: c.nombre,
+      iva_defecto: c.iva_defecto,
+      forma_pago: c.forma_pago,
+      razon_social: c.razon_social,
+    });
+    
     // Asegurar que iva_defecto tenga un valor por defecto si viene null
     const clienteConDefaults = {
       ...c,
       iva_defecto: c.iva_defecto || "21",
       forma_pago: c.forma_pago || "TRANSFERENCIA",
     };
+    
+    console.log("[openEdit] Cliente después de defaults:", {
+      id: clienteConDefaults.id,
+      iva_defecto: clienteConDefaults.iva_defecto,
+    });
+    
     setEditing(clienteConDefaults);
     setDrawerOpen(true);
   }
