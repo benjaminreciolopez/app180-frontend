@@ -49,6 +49,7 @@ export default function ClientFiscalFields({
               disabled={readOnly}
               placeholder={readOnly ? "—" : "Nombre legal completo"}
               className={commonInputClass}
+              maxLength={200}
               value={data.razon_social || ""}
               onChange={(e) => handleChange("razon_social", e.target.value)}
             />
@@ -164,8 +165,9 @@ export default function ClientFiscalFields({
               <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Persona de Contacto</Label>
               <Input
                 disabled={readOnly}
-                placeholder={readOnly ? "—" : "Nombre"}
+                placeholder={readOnly ? "—" : "Nombre completo"}
                 className={commonInputClass}
+                maxLength={200}
                 value={data.persona_contacto || ""}
                 onChange={(e) => handleChange("persona_contacto", e.target.value)}
               />
