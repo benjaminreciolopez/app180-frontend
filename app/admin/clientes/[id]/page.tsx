@@ -75,6 +75,7 @@ export default function ClienteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'fiscal' | 'tarifas'>('general');
+  const [savingFiscal, setSavingFiscal] = useState(false);
 
   /* =========================
      Load
@@ -95,6 +96,26 @@ export default function ClienteDetailPage() {
   useEffect(() => {
     if (id) load();
   }, [id]);
+
+  /* =========================
+     Save fiscal data
+  ========================= */
+
+  async function saveFiscalData(formData: any) {
+    try {
+      setSavingFiscal(true);
+      const result = await api(`/admin/clientes/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(formData),
+      });
+      // Update local cliente state with new data
+      setCliente(result);
+    } catch (e: any) {
+      throw new Error(e.message);
+    } finally {
+      setSavingFiscal(false);
+    }
+  }
 
   /* ===================================================== */
 
@@ -199,7 +220,8 @@ export default function ClienteDetailPage() {
              <div className="fade-in">
                 <ClientFiscalForm 
                     data={cliente}
-                    readOnly={true} 
+                    onSave={saveFiscalData}
+                    readOnly={false} 
                 />
              </div>
         )}
