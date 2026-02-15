@@ -200,7 +200,11 @@ export default function ClientFiscalFields({
             <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">IVA por Defecto</Label>
             <Select
               disabled={readOnly}
-              value={String(data.iva_defecto || "21")}
+              value={
+                data.iva_defecto 
+                  ? String(data.iva_defecto).split('.')[0]  // Convertir "10.00" a "10"
+                  : "21"
+              }
               onValueChange={(v) => handleChange("iva_defecto", v)}
             >
               <SelectTrigger className={`w-full ${commonInputClass}`}>
