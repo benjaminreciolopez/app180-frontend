@@ -40,25 +40,34 @@ type Cliente = {
   lat?: number | null;
   lng?: number | null;
   radio_m?: number | null;
-  razon_social?: string | null;
-  nif?: string | null;
-  nif_cif?: string | null;
-  iban?: string | null;
   notas?: string | null;
 
-  // New Fields
-  direccion?: string | null;
-  poblacion?: string | null;
-  provincia?: string | null;
-  cp?: string | null;
+  // Fiscal Fields (from client_fiscal_data_180)
+  razon_social?: string | null;
+  nif_cif?: string | null;
+  tipo_fiscal?: string | null;
   pais?: string | null;
-  telefono?: string | null; // Added
-  email?: string | null;
-  contacto_nombre?: string | null;
-  contacto_email?: string | null;
+  provincia?: string | null;
+  municipio?: string | null;
+  codigo_postal?: string | null;
+  direccion_fiscal?: string | null;
+  email_factura?: string | null;
+  telefono_factura?: string | null;
+  persona_contacto?: string | null;
   iva_defecto?: string | null;
   exento_iva?: boolean | null;
   forma_pago?: string | null;
+  iban?: string | null;
+
+  // Legacy fields (backward compatibility)
+  nif?: string | null;
+  direccion?: string | null;
+  poblacion?: string | null;
+  cp?: string | null;
+  telefono?: string | null;
+  email?: string | null;
+  contacto_nombre?: string | null;
+  contacto_email?: string | null;
 };
 
 /* =====================================================
