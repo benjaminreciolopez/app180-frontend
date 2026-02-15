@@ -173,13 +173,14 @@ export default function AdminClientesPage() {
     try {
       setLoading(true);
 
+      let result;
       if (editing.id) {
-        await api(`${BASE}/${editing.id}`, {
-          method: "PATCH",
+        result = await api(`${BASE}/${editing.id}`, {
+          method: "PUT",
           body: JSON.stringify(editing),
         });
       } else {
-        await api(BASE, {
+        result = await api(BASE, {
           method: "POST",
           body: JSON.stringify(editing),
         });
