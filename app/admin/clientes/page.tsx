@@ -173,16 +173,27 @@ export default function AdminClientesPage() {
     try {
       setLoading(true);
 
+      // Normalizar datos antes de enviar
+      const dataToSend = {
+        ...editing,
+        // Asegurar que los campos de formulario sean strings o null
+        razon_social: editing.razon_social || null,
+        nif_cif: editing.nif_cif || null,
+        forma_pago: editing.forma_pago || null,
+        iban: editing.iban || null,
+        iva_defecto: editing.iva_defecto || null,
+      };
+
       let result;
       if (editing.id) {
         result = await api(`${BASE}/${editing.id}`, {
           method: "PUT",
-          body: JSON.stringify(editing),
+          body: JSON.stringify(dataToSend),
         });
       } else {
         result = await api(BASE, {
           method: "POST",
-          body: JSON.stringify(editing),
+          body: JSON.stringify(dataToSend),
         });
       }
 
