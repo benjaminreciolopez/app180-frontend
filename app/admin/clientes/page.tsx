@@ -172,7 +172,13 @@ export default function AdminClientesPage() {
   }
 
   function openEdit(c: Cliente) {
-    setEditing({ ...c });
+    // Asegurar que iva_defecto tenga un valor por defecto si viene null
+    const clienteConDefaults = {
+      ...c,
+      iva_defecto: c.iva_defecto || "21",
+      forma_pago: c.forma_pago || "TRANSFERENCIA",
+    };
+    setEditing(clienteConDefaults);
     setDrawerOpen(true);
   }
 
