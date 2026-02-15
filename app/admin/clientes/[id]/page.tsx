@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import ClientFiscalForm from "@/components/admin/clientes/ClientFiscalForm";
-import ClientTarifasPanel from "@/components/admin/clientes/ClientTarifasPanel";
 
 /* =====================================================
    Types
@@ -74,8 +73,7 @@ export default function ClienteDetailPage() {
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'fiscal' | 'tarifas'>('general');
-  const [savingFiscal, setSavingFiscal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'general' | 'fiscal'>('general');
 
   /* =========================
      Load
@@ -96,26 +94,6 @@ export default function ClienteDetailPage() {
   useEffect(() => {
     if (id) load();
   }, [id]);
-
-  /* =========================
-     Save fiscal data
-  ========================= */
-
-  async function saveFiscalData(formData: any) {
-    try {
-      setSavingFiscal(true);
-      const result = await api(`/admin/clientes/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(formData),
-      });
-      // Update local cliente state with new data
-      setCliente(result);
-    } catch (e: any) {
-      throw new Error(e.message);
-    } finally {
-      setSavingFiscal(false);
-    }
-  }
 
   /* ===================================================== */
 
@@ -156,6 +134,13 @@ export default function ClienteDetailPage() {
             <p className="text-sm text-slate-500">Código: {cliente.codigo}</p>
           )}
         </div>
+
+        <Button 
+          onClick={() => router.push(`/admin/clientes`)}
+          className="gap-2"
+        >
+          <Pencil size={16} /> Editar
+        </Button>
       </div>
 
       {/* Tabs Navigation */}
@@ -171,12 +156,6 @@ export default function ClienteDetailPage() {
             onClick={() => setActiveTab('fiscal')}
         >
             Datos Fiscales
-        </button>
-        <button 
-            className={`pb-3 border-b-2 transition-colors ${activeTab === 'tarifas' ? 'border-black text-black' : 'border-transparent hover:text-gray-700'}`}
-            onClick={() => setActiveTab('tarifas')}
-        >
-            Tarifas
         </button>
       </div>
 
@@ -220,15 +199,8 @@ export default function ClienteDetailPage() {
              <div className="fade-in">
                 <ClientFiscalForm 
                     data={cliente}
-                    onSave={saveFiscalData}
-                    readOnly={false} 
+                    readOnly={true} 
                 />
-             </div>
-        )}
-
-        {activeTab === 'tarifas' && (
-             <div className="fade-in">
-                <ClientTarifasPanel clienteId={id} />
              </div>
         )}
       </div>

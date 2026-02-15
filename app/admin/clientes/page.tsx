@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, X, Building2, MapPin, Receipt, Info, Map as MapIcon } from "lucide-react";
+import { Plus, Pencil, X, Building2, MapPin, Receipt, Info, Map as MapIcon, DollarSign } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showSuccess, showError } from "@/lib/toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +19,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 import ClientFiscalFields from "@/components/admin/clientes/ClientFiscalFields";
+import ClientTarifasPanel from "@/components/admin/clientes/ClientTarifasPanel";
 
 const GeoPicker = dynamic(() => import("@/components/GeoPicker"), {
   ssr: false,
@@ -346,12 +347,15 @@ export default function AdminClientesPage() {
               {/* Form Content with Tabs */}
               <div className="flex-1 overflow-y-auto p-6">
                 <Tabs defaultValue="general" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-100 p-1 rounded-xl">
+                  <TabsList className="grid w-full grid-cols-4 mb-6 bg-slate-100 p-1 rounded-xl">
                     <TabsTrigger value="general" className="rounded-lg gap-2">
                        <Building2 size={14} /> General
                     </TabsTrigger>
                     <TabsTrigger value="fiscal" className="rounded-lg gap-2">
                        <Receipt size={14} /> Fiscal
+                    </TabsTrigger>
+                    <TabsTrigger value="tarifas" className="rounded-lg gap-2">
+                       <DollarSign size={14} /> Tarifas
                     </TabsTrigger>
                     <TabsTrigger value="geo" className="rounded-lg gap-2">
                        <MapPin size={14} /> Ubicación
@@ -469,6 +473,17 @@ export default function AdminClientesPage() {
                         onChange={(field, value) => setEditing({ ...editing, [field]: value })}
                         readOnly={false}
                     />
+                  </TabsContent>
+
+                  {/* TAB TARIFAS */}
+                  <TabsContent value="tarifas" className="space-y-6 mt-0 border-0 p-0 pt-4">
+                    {editing.id ? (
+                      <ClientTarifasPanel clienteId={editing.id} />
+                    ) : (
+                      <div className="text-center text-slate-500 py-12">
+                        <p>Guarda el cliente primero para gestionar las tarifas</p>
+                      </div>
+                    )}
                   </TabsContent>
 
                   {/* TAB GEOLOCALIZACIÓN Y DIRECCIÓN */}
