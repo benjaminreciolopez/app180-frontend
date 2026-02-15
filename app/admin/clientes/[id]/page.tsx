@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import ClientFiscalForm from "@/components/admin/clientes/ClientFiscalForm";
+import ClientTarifasPanel from "@/components/admin/clientes/ClientTarifasPanel";
 
 /* =====================================================
    Types
@@ -73,7 +74,7 @@ export default function ClienteDetailPage() {
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'fiscal'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'fiscal' | 'tarifas'>('general');
 
   /* =========================
      Load
@@ -134,17 +135,6 @@ export default function ClienteDetailPage() {
             <p className="text-sm text-slate-500">Código: {cliente.codigo}</p>
           )}
         </div>
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/admin/clientes/${id}/tarifas`)}
-            className="gap-2"
-          >
-            <FileText size={16} /> Tarifas
-          </Button>
-        </div>
       </div>
 
       {/* Tabs Navigation */}
@@ -160,6 +150,12 @@ export default function ClienteDetailPage() {
             onClick={() => setActiveTab('fiscal')}
         >
             Datos Fiscales
+        </button>
+        <button 
+            className={`pb-3 border-b-2 transition-colors ${activeTab === 'tarifas' ? 'border-black text-black' : 'border-transparent hover:text-gray-700'}`}
+            onClick={() => setActiveTab('tarifas')}
+        >
+            Tarifas
         </button>
       </div>
 
@@ -205,6 +201,12 @@ export default function ClienteDetailPage() {
                     data={cliente}
                     readOnly={true} 
                 />
+             </div>
+        )}
+
+        {activeTab === 'tarifas' && (
+             <div className="fade-in">
+                <ClientTarifasPanel clienteId={id} />
              </div>
         )}
       </div>
