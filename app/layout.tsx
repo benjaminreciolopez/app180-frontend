@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { QueryProvider } from "@/components/QueryProvider";
 import AuthInit from "@/components/AuthInit";
 import ToastProvider from "@/components/ToastProvider";
 import DynamicAuthor from "@/components/DynamicAuthor";
@@ -19,12 +20,14 @@ export default function RootLayout({
         <script src="https://accounts.google.com/gsi/client" async defer></script>
       </head>
       <body className="app-shell">
-        <ThemeProvider>
-          <AuthInit />
-          <DynamicAuthor />
-          {children}
-          <ToastProvider />
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <AuthInit />
+            <DynamicAuthor />
+            {children}
+            <ToastProvider />
+          </ThemeProvider>
+        </QueryProvider>
         {/* Portal container para evitar conflictos con aria-hidden */}
         <div id="portal-root" />
       </body>

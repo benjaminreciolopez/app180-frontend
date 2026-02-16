@@ -9,7 +9,8 @@ import {
   Loader2,
   Sparkles,
   MessageCircle,
-  Trash2
+  Trash2,
+  HelpCircle
 } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/services/api"
@@ -134,6 +135,43 @@ export function AICopilot() {
     }
   }
 
+  const mostrarAyuda = () => {
+    const ayuda: Mensaje = {
+      role: "assistant",
+      content: `## Esto es lo que puedo hacer por ti:
+
+### Consultas
+- **Facturas**: "Facturas pendientes", "Facturas de este mes"
+- **Clientes**: "Top 5 clientes", "Clientes en riesgo"
+- **Deuda**: "Quien me debe?", "Morosos"
+- **Pagos**: "Pagos recibidos este mes"
+- **Empleados**: "Horas trabajadas", "Fichajes de hoy"
+- **Ausencias**: "Vacaciones de Juan", "Resumen ausencias"
+- **Calendario**: "Festivos del mes"
+
+### Analisis
+- **Resumen**: "Como va el negocio?"
+- **Comparar**: "Este mes vs el anterior"
+- **Tendencia**: "Tendencia de facturacion"
+- **Alertas**: "Algun problema?" o "Que tengo pendiente?"
+- **Cierre**: "Cierre del mes"
+- **Productividad**: "Productividad del equipo"
+
+### Acciones
+- **Facturas**: "Crea factura para [cliente]", "Valida factura X"
+- **Auto-facturar**: "Factura los trabajos de [cliente]"
+- **Clientes**: "Crea cliente nuevo"
+- **Pagos**: "Registra pago de [cliente]"
+- **Trabajos**: "Registra trabajo de 2h para [cliente]"
+- **Ausencias**: "Pon vacaciones a [empleado]"
+- **Calendario**: "Crea evento festivo el [fecha]"
+
+Preguntame lo que necesites.`,
+      timestamp: new Date().toISOString()
+    }
+    setMensajes(prev => [...prev, ayuda])
+  }
+
   const limpiarHistorial = () => {
     toast("¿Eliminar todo el historial?", {
       action: {
@@ -199,7 +237,16 @@ export function AICopilot() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={mostrarAyuda}
+                  className="text-white hover:bg-white/20"
+                  title="Que puedo hacer"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -283,42 +330,25 @@ export function AICopilot() {
               <div className="px-4 py-2 border-t border-slate-200 bg-slate-50 shrink-0">
                 <p className="text-xs text-slate-500 mb-2">Prueba estas consultas:</p>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => {
-                      setInputValue("¿Cuántas facturas tengo pendientes de cobro?")
-                      setTimeout(() => enviarMensaje(), 100)
-                    }}
-                    className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-full hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                  >
-                    💰 Facturas pendientes
-                  </button>
-                  <button
-                    onClick={() => {
-                      setInputValue("Dame un resumen de facturación de este mes")
-                      setTimeout(() => enviarMensaje(), 100)
-                    }}
-                    className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-full hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                  >
-                    📊 Resumen del mes
-                  </button>
-                  <button
-                    onClick={() => {
-                      setInputValue("¿Quiénes son mis top 5 clientes?")
-                      setTimeout(() => enviarMensaje(), 100)
-                    }}
-                    className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-full hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                  >
-                    👥 Top clientes
-                  </button>
-                  <button
-                    onClick={() => {
-                      setInputValue("¿Hay trabajos pendientes de facturar?")
-                      setTimeout(() => enviarMensaje(), 100)
-                    }}
-                    className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-full hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                  >
-                    ⏰ Trabajos sin facturar
-                  </button>
+                  {[
+                    { emoji: "📊", text: "Como va el negocio?", query: "Dame un resumen ejecutivo del negocio" },
+                    { emoji: "🏦", text: "Quien me debe?", query: "Quien me debe dinero? Facturas vencidas" },
+                    { emoji: "📈", text: "Tendencia", query: "Tendencia de facturacion de los ultimos 6 meses" },
+                    { emoji: "⚠️", text: "Algun problema?", query: "Hay algun problema o alerta en el negocio?" },
+                    { emoji: "👥", text: "Top clientes", query: "Quienes son mis top 5 clientes?" },
+                    { emoji: "⏱️", text: "Horas equipo", query: "Resumen de horas trabajadas del equipo este mes" },
+                  ].map((action) => (
+                    <button
+                      key={action.text}
+                      onClick={() => {
+                        setInputValue(action.query)
+                        setTimeout(() => enviarMensaje(), 100)
+                      }}
+                      className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-full hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                    >
+                      {action.emoji} {action.text}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
