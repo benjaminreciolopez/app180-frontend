@@ -134,74 +134,67 @@ export default function ClienteDetailPage() {
             <p className="text-sm text-slate-500">Código: {cliente.codigo}</p>
           )}
         </div>
-
-        <Button 
-          onClick={() => router.push(`/admin/clientes`)}
-          className="gap-2"
-        >
-          <Pencil size={16} /> Editar
-        </Button>
       </div>
 
       {/* Tabs Navigation */}
       <div className="border-b flex gap-6 text-sm font-medium text-gray-500">
-        <button 
-            className={`pb-3 border-b-2 transition-colors ${activeTab === 'general' ? 'border-black text-black' : 'border-transparent hover:text-gray-700'}`}
-            onClick={() => setActiveTab('general')}
+        <button
+          className={`pb-3 border-b-2 transition-colors ${activeTab === 'general' ? 'border-black text-black' : 'border-transparent hover:text-gray-700'}`}
+          onClick={() => setActiveTab('general')}
         >
-            General
+          General
         </button>
-        <button 
-            className={`pb-3 border-b-2 transition-colors ${activeTab === 'fiscal' ? 'border-black text-black' : 'border-transparent hover:text-gray-700'}`}
-            onClick={() => setActiveTab('fiscal')}
+        <button
+          className={`pb-3 border-b-2 transition-colors ${activeTab === 'fiscal' ? 'border-black text-black' : 'border-transparent hover:text-gray-700'}`}
+          onClick={() => setActiveTab('fiscal')}
         >
-            Datos Fiscales
+          Datos Fiscales
         </button>
       </div>
 
       {/* Content */}
       <div className="min-h-[400px]">
         {activeTab === 'general' && (
-            <div className="space-y-6 fade-in">
-                 <Card className="rounded-2xl">
-                    <CardContent className="p-5 grid md:grid-cols-2 gap-4 text-sm">
-                    <Info label="Tipo" value={cliente.tipo} />
-                    <Info label="Modo defecto" value={cliente.modo_defecto} />
+          <div className="space-y-6 fade-in">
+            <Card className="rounded-2xl">
+              <CardContent className="p-5 grid md:grid-cols-2 gap-4 text-sm">
+                <Info label="Tipo" value={cliente.tipo} />
+                <Info label="Modo defecto" value={cliente.modo_defecto} />
 
-                    <Info label="Dirección" value={cliente.direccion} />
-                    <Info label="Teléfono" value={cliente.telefono} />
+                <Info label="Dirección" value={cliente.direccion} />
+                <Info label="Teléfono" value={cliente.telefono} />
 
-                    <Info label="Contacto" value={cliente.contacto_nombre} />
-                    <Info label="Email contacto" value={cliente.contacto_email} />
+                <Info label="Contacto" value={cliente.contacto_nombre} />
+                <Info label="Email contacto" value={cliente.contacto_email} />
 
-                    <Info
-                        label="Requiere geo"
-                        value={cliente.requiere_geo ? "Sí" : "No"}
-                    />
-                    <Info label="Geo policy" value={cliente.geo_policy} />
-                    </CardContent>
-                </Card>
+                <Info
+                  label="Requiere geo"
+                  value={cliente.requiere_geo ? "Sí" : "No"}
+                />
+                <Info label="Geo policy" value={cliente.geo_policy} />
+              </CardContent>
+            </Card>
 
-                {cliente.notas && (
-                    <Card className="rounded-2xl">
-                    <CardContent className="p-5">
-                        <h3 className="font-semibold mb-2">Notas</h3>
-                        <p className="text-sm text-slate-700 whitespace-pre-wrap">
-                        {cliente.notas}
-                        </p>
-                    </CardContent>
-                    </Card>
-                )}
-            </div>
+            {cliente.notas && (
+              <Card className="rounded-2xl">
+                <CardContent className="p-5">
+                  <h3 className="font-semibold mb-2">Notas</h3>
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                    {cliente.notas}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )}
 
         {activeTab === 'fiscal' && (
-             <div className="fade-in">
-                <ClientFiscalForm 
-                    data={cliente}
-                    readOnly={true} 
-                />
-             </div>
+          <div className="fade-in">
+            <ClientFiscalForm
+              data={cliente}
+              readOnly={true}
+            />
+          </div>
         )}
       </div>
 
