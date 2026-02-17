@@ -230,6 +230,7 @@ export default function InformesPage() {
                                                 <Pie
                                                     data={clientesData.slice(0, 5).map(c => ({
                                                         ...c,
+                                                        name: c.nombre,
                                                         total_facturado: Number(c.total_facturado)
                                                     }))}
                                                     cx="50%"
@@ -238,6 +239,7 @@ export default function InformesPage() {
                                                     outerRadius={80}
                                                     paddingAngle={5}
                                                     dataKey="total_facturado"
+                                                    nameKey="name"
                                                 >
                                                     {clientesData.slice(0, 5).map((entry: any, index: number) => (
                                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
