@@ -200,7 +200,7 @@ export default function InformesPage() {
                                             {clientesData.map((c: any) => (
                                                 <TableRow key={c.id}>
                                                     <TableCell className="font-medium">{c.nombre}</TableCell>
-                                                    <TableCell className="text-slate-500 text-xs">{(c.nif || c.nif_cif) || '—'}</TableCell>
+                                                    <TableCell className="text-slate-500 text-xs">{c.nif_cif || '—'}</TableCell>
                                                     <TableCell className="text-right">{c.num_facturas}</TableCell>
                                                     <TableCell className="text-right font-bold text-slate-700">
                                                         {formatCurrency(Number(c.total_facturado))}
