@@ -29,6 +29,9 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
     LineChart,
     Line,
     Legend
