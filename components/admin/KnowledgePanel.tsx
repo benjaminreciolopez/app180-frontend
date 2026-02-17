@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useConfirm } from "@/components/shared/ConfirmDialog"
 import { api } from "@/services/api"
 import { showSuccess, showError } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
@@ -17,6 +18,7 @@ interface Knowledge {
 }
 
 export default function KnowledgePanel() {
+  const confirm = useConfirm()
   const [items, setItems] = useState<Knowledge[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -81,7 +83,8 @@ export default function KnowledgePanel() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este conocimiento?")) return
+    const ok = await confirm({ title: "Eliminar conocimiento", description: "Este conocimiento se eliminará permanentemente.", confirmLabel: "Eliminar", variant: "destructive" })
+    if (!ok) return
     try {
       await api.delete(`/admin/conocimiento/${id}`)
       showSuccess("Eliminado")
@@ -112,7 +115,8 @@ export default function KnowledgePanel() {
   }
 
   async function handleSeed() {
-    if (!confirm("Esto añadirá o actualizará las respuestas de ayuda por defecto sobre las funciones de la App. ¿Continuar?")) return
+    const ok = await confirm({ title: "Actualizar conocimiento base", description: "Esto añadirá o actualizará las respuestas de ayuda por defecto sobre las funciones de la App.", confirmLabel: "Continuar" })
+    if (!ok) return
     try {
       await api.post("/admin/conocimiento/seed")
       showSuccess("Base de conocimiento actualizada")

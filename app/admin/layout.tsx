@@ -171,6 +171,46 @@ export default function AdminLayout({
     [],
   );
 
+  // Dynamic page title
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      "/admin/dashboard": "Dashboard",
+      "/admin/empleados": "Empleados",
+      "/admin/clientes": "Clientes",
+      "/admin/facturacion/listado": "Facturas",
+      "/admin/facturacion/crear": "Nueva Factura",
+      "/admin/facturacion/pagos": "Pagos",
+      "/admin/facturacion/informes": "Informes",
+      "/admin/facturacion/conceptos": "Conceptos",
+      "/admin/facturacion/auditoria": "Auditoría Facturas",
+      "/admin/facturacion/almacenamiento": "Almacenamiento",
+      "/admin/facturacion/configuracion": "Config. Facturación",
+      "/admin/facturacion/dashboard": "Dashboard Facturación",
+      "/admin/facturacion": "Facturación",
+      "/admin/cobros-pagos": "Cobros y Pagos",
+      "/admin/calendario": "Calendario",
+      "/admin/jornadas": "Jornadas",
+      "/admin/turnos": "Turnos",
+      "/admin/fichajes/sospechosos": "Sospechosos",
+      "/admin/fichajes": "Fichajes",
+      "/admin/auditoria/rechazados": "Rechazados",
+      "/admin/auditoria": "Auditoría",
+      "/admin/partes-dia": "Partes del Día",
+      "/admin/trabajos": "Trabajos",
+      "/admin/planings": "Planings",
+      "/admin/configuracion": "Configuración",
+      "/admin/perfil": "Mi Perfil",
+      "/admin/reportes/rentabilidad": "Rentabilidad",
+    };
+
+    // Match most specific path first
+    const match = Object.entries(titles)
+      .sort(([a], [b]) => b.length - a.length)
+      .find(([p]) => pathname.startsWith(p));
+
+    document.title = match ? `${match[1]} | CONTENDO` : "CONTENDO GESTIONES";
+  }, [pathname]);
+
   useEffect(() => {
     if (!session) return;
 

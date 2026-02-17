@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 /* =====================================================
    Types
@@ -54,6 +55,7 @@ async function api(url: string, options: RequestInit = {}) {
 export default function TarifasPage() {
   const params = useParams();
   const router = useRouter();
+  const confirm = useConfirm();
 
   const clienteId = params?.id as string;
 
@@ -138,7 +140,13 @@ export default function TarifasPage() {
   }
 
   async function cerrarTarifa(id: string) {
-    if (!confirm("¿Cerrar esta tarifa?")) return;
+    const ok = await confirm({
+      title: "Cerrar tarifa",
+      description: "¿Cerrar esta tarifa? No se podrá reactivar.",
+      confirmLabel: "Cerrar tarifa",
+      variant: "destructive",
+    });
+    if (!ok) return;
 
     try {
       await api(`/admin/clientes/tarifas/${id}`, {

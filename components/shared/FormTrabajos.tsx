@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { api } from "@/services/api";
 import { X, Save, Copy, ChevronDown, Trash2, Edit, Calendar } from "lucide-react";
 import SimpleMultiselectCalendar from "@/components/shared/SimpleMultiselectCalendar";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 type Option = { id: string; nombre: string; modo_defecto?: string };
 type Template = { id: string; descripcion: string; detalles?: string };
@@ -28,6 +29,7 @@ export default function FormTrabajos({
   onCancel
 }: Props) {
   const [loading, setLoading] = useState(false);
+  const confirm = useConfirm();
 
   // Fields
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
@@ -117,7 +119,13 @@ export default function FormTrabajos({
 
   async function handleDeleteTemplate(id: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!confirm("¿Borrar esta plantilla?")) return;
+    const ok = await confirm({
+      title: "Borrar plantilla",
+      description: "¿Borrar esta plantilla?",
+      confirmLabel: "Borrar",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await api.delete(`/worklogs/templates/${id}`);
       loadDataResources();

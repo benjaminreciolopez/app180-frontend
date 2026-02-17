@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ type CalendarConfig = {
 };
 
 export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete?: () => void }) {
+  const confirm = useConfirm();
   const [config, setConfig] = useState<CalendarConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -101,7 +103,8 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
   }
 
   async function handleDisconnect() {
-    if (!confirm("¿Estás seguro de desconectar Google Calendar?")) return;
+    const ok = await confirm({ title: "Desconectar Google Calendar", description: "Se perderá la sincronización con Google Calendar.", confirmLabel: "Desconectar", variant: "destructive" });
+    if (!ok) return;
 
     try {
       await api.post("/admin/calendar-config/oauth2/disconnect");

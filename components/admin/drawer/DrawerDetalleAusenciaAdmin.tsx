@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { api } from "@/services/api";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import AusenciaAdjuntosPanel from "@/components/ausencias/AusenciaAdjuntosPanel";
 import type { EventoAdmin } from "@/types/ausencias";
 
@@ -17,9 +18,15 @@ export default function DrawerDetalleAusenciaAdmin({
   onUpdated: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const confirm = useConfirm();
 
   async function aprobar() {
-    if (!confirm("¿Aprobar esta solicitud?")) return;
+    const ok = await confirm({
+      title: "Aprobar solicitud",
+      description: "¿Aprobar esta solicitud?",
+      confirmLabel: "Aprobar",
+    });
+    if (!ok) return;
     setLoading(true);
     try {
       await api.patch(`/admin/ausencias/${evento.id}/estado`, {
@@ -37,7 +44,13 @@ export default function DrawerDetalleAusenciaAdmin({
   }
 
   async function rechazar() {
-    if (!confirm("¿Rechazar esta solicitud?")) return;
+    const ok = await confirm({
+      title: "Rechazar solicitud",
+      description: "¿Rechazar esta solicitud?",
+      confirmLabel: "Rechazar",
+      variant: "destructive",
+    });
+    if (!ok) return;
     setLoading(true);
     try {
       await api.patch(`/admin/ausencias/${evento.id}/estado`, {

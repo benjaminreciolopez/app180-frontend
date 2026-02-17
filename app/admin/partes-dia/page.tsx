@@ -5,8 +5,10 @@ import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getUser } from "@/services/auth";
-import { Search, Filter, ArrowUpDown, Calendar, CheckSquare, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Search, Filter, ArrowUpDown, Calendar, CheckSquare, AlertTriangle, CheckCircle2, ClipboardList } from "lucide-react";
 
 type ParteItem = {
   empleado_id: string;
@@ -316,10 +318,44 @@ export default function AdminPartesDiaPage() {
         </button>
       </div>
 
-      {loading && <LoadingSpinner fullPage />}
       {error && <div className="p-2 text-red-600 font-semibold">{error}</div>}
 
-      {!loading && !error && (
+      {loading ? (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="p-4 w-10"><Skeleton className="h-4 w-4" /></th>
+                <th className="p-4 text-left"><Skeleton className="h-4 w-16" /></th>
+                <th className="p-4 text-left"><Skeleton className="h-4 w-20" /></th>
+                <th className="p-4 text-left"><Skeleton className="h-4 w-16" /></th>
+                <th className="p-4 text-left"><Skeleton className="h-4 w-14" /></th>
+                <th className="p-4 text-left"><Skeleton className="h-4 w-16" /></th>
+                <th className="p-4 text-left"><Skeleton className="h-4 w-16" /></th>
+                <th className="p-4 text-left"><Skeleton className="h-4 w-28" /></th>
+                <th className="p-4 text-left"><Skeleton className="h-4 w-20" /></th>
+                <th className="p-4 text-right"><Skeleton className="h-4 w-16 ml-auto" /></th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <tr key={i} className="border-b border-slate-100">
+                  <td className="p-4"><Skeleton className="h-4 w-4" /></td>
+                  <td className="p-4"><Skeleton className="h-4 w-20" /></td>
+                  <td className="p-4"><Skeleton className="h-4 w-28" /></td>
+                  <td className="p-4"><Skeleton className="h-5 w-24 rounded-full" /></td>
+                  <td className="p-4"><Skeleton className="h-4 w-12" /></td>
+                  <td className="p-4"><Skeleton className="h-4 w-20" /></td>
+                  <td className="p-4"><Skeleton className="h-4 w-16" /></td>
+                  <td className="p-4"><Skeleton className="h-4 w-36" /></td>
+                  <td className="p-4"><Skeleton className="h-4 w-24" /></td>
+                  <td className="p-4 text-right"><Skeleton className="h-4 w-14 ml-auto" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : !error && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -365,7 +401,7 @@ export default function AdminPartesDiaPage() {
                   </div>
                 </th>
                 <th className="p-4 text-left font-semibold text-slate-700">Estado</th>
-                <th className="p-4 text-left font-semibold text-slate-700">Revisión</th>
+                <th className="p-4 text-left font-semibold text-slate-700">Revision</th>
                 <th className="p-4 text-left font-semibold text-slate-700 max-w-xs">Resumen / Tareas</th>
                 <th className="p-4 text-left font-semibold text-slate-700">Notas Admin</th>
                 <th className="p-4 text-right font-semibold text-slate-700">Acciones</th>
@@ -374,8 +410,8 @@ export default function AdminPartesDiaPage() {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td className="p-8 text-center text-slate-400" colSpan={10}>
-                    No se han encontrado registros con los filtros actuales
+                  <td colSpan={10}>
+                    <EmptyState icon={ClipboardList} title="Sin registros" description="No se han encontrado registros con los filtros actuales." />
                   </td>
                 </tr>
               ) : (

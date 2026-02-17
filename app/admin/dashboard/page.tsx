@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { SkeletonDashboard } from "@/components/ui/skeletons";
 import { showSuccess } from "@/lib/toast";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -258,7 +259,7 @@ export default function DashboardPage() {
     return m[t] || `bg-gray-100 text-gray-800 ${base}`;
   }
 
-  if (loading) return <LoadingSpinner fullPage />;
+  if (loading) return <SkeletonDashboard />;
   if (error || !data) {
     return (
       <div className="app-main">

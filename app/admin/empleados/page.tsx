@@ -7,7 +7,9 @@ import { api } from "@/services/api";
 import ShareInviteLinkModal from "@/components/admin/ShareInviteLinkModal";
 import EditEmployeeModal from "@/components/admin/EditEmployeeModal";
 import { showSuccess, showError } from "@/lib/toast";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Users } from "lucide-react";
 
 interface Empleado {
   id: string;
@@ -130,17 +132,15 @@ export default function EmpleadosPage() {
     loadEmpleados();
   }
 
-  if (loading) return <LoadingSpinner fullPage />;
-
   return (
     <div className="app-main">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold">Empleados</h1>
 
         <div className="flex gap-2">
-            <UniversalExportButton 
-                module="empleados" 
-                queryParams={{}} 
+            <UniversalExportButton
+                module="empleados"
+                queryParams={{}}
                 label="Exportar"
             />
             <button
@@ -167,7 +167,30 @@ export default function EmpleadosPage() {
           </thead>
 
           <tbody>
-            {empleados.map((e) => (
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <tr key={`skeleton-${i}`}>
+                  <td><div className="space-y-1"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-40" /></div></td>
+                  <td><Skeleton className="h-5 w-24 rounded-full" /></td>
+                  <td><Skeleton className="h-5 w-16 rounded-full" /></td>
+                  <td><Skeleton className="h-5 w-20 rounded-full" /></td>
+                  <td><Skeleton className="h-5 w-24 rounded-full" /></td>
+                  <td className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></td>
+                </tr>
+              ))
+            ) : empleados.length === 0 ? (
+              <tr>
+                <td colSpan={6}>
+                  <EmptyState
+                    icon={Users}
+                    title="Sin empleados"
+                    description="Aún no hay empleados registrados."
+                    actionLabel="+ Nuevo empleado"
+                    onAction={() => (window.location.href = "/admin/empleados/nuevo")}
+                  />
+                </td>
+              </tr>
+            ) : empleados.map((e) => (
               <tr key={e.id}>
                 <td>
                     <div className="font-medium">{e.nombre}</div>
@@ -244,7 +267,7 @@ export default function EmpleadosPage() {
         </table>
       </div>
 
-      {/* MODAL COMPARTIR INVITACIÓN */}
+      {/* MODAL COMPARTIR INVITACION */}
       {showShareModal && inviteData && currentEmpleadoId && (
         <ShareInviteLinkModal
           isOpen={showShareModal}

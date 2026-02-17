@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { Paperclip, Trash2, Eye, Upload } from "lucide-react";
 import ModalAdjuntoFullscreen from "@/components/ui/ModalAdjuntoFullscreen";
 
@@ -26,6 +27,7 @@ export default function AdjuntosPanel({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [preview, setPreview] = useState<Adjunto | null>(null);
   const [working, setWorking] = useState(false);
+  const confirmDialog = useConfirm();
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files || !onUpload) return;
@@ -40,7 +42,8 @@ export default function AdjuntosPanel({
 
   async function handleDelete(id: string) {
     if (!onDelete) return;
-    if (!confirm("¿Eliminar este adjunto?")) return;
+    const ok = await confirmDialog({ title: "Eliminar adjunto", description: "Este adjunto se eliminará permanentemente.", confirmLabel: "Eliminar", variant: "destructive" });
+    if (!ok) return;
     setWorking(true);
     try {
       await onDelete(id);

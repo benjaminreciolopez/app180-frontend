@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,7 @@ async function api(url: string, options: RequestInit = {}) {
 ===================================================== */
 
 export default function ClientTarifasPanel({ clienteId }: ClientTarifasPanelProps) {
+  const confirm = useConfirm();
   const [tarifas, setTarifas] = useState<Tarifa[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +134,8 @@ export default function ClientTarifasPanel({ clienteId }: ClientTarifasPanelProp
   }
 
   async function cerrarTarifa(id: string) {
-    if (!confirm("¿Cerrar esta tarifa?")) return;
+    const ok = await confirm({ title: "Cerrar tarifa", description: "La tarifa dejará de estar activa. Esta acción no afecta a facturas ya generadas.", confirmLabel: "Cerrar tarifa", variant: "destructive" });
+    if (!ok) return;
 
     try {
       await api(`/admin/clientes/tarifas/${id}`, {

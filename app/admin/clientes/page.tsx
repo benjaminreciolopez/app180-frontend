@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,15 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, X, Building2, MapPin, Receipt, Info, Map as MapIcon, DollarSign } from "lucide-react";
+import { Plus, Pencil, X, Building2, MapPin, Receipt, Info, Map as MapIcon, DollarSign, ArrowUp, ArrowDown, ArrowUpDown, Users } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showSuccess, showError } from "@/lib/toast";
+import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 import ClientFiscalFields from "@/components/admin/clientes/ClientFiscalFields";
 import ClientTarifasPanel from "@/components/admin/clientes/ClientTarifasPanel";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 const GeoPicker = dynamic(() => import("@/components/GeoPicker"), {
   ssr: false,
@@ -70,6 +74,29 @@ type Cliente = {
   contacto_email?: string | null;
 };
 
+const clienteSchema = z.object({
+  nombre: z.string().min(1, "El nombre es obligatorio").max(200, "Máximo 200 caracteres"),
+  email_factura: z.string().email("Email no válido").nullable().optional().or(z.literal("")),
+  contacto_email: z.string().email("Email no válido").nullable().optional().or(z.literal("")),
+  nif_cif: z.string().max(20, "Máximo 20 caracteres").nullable().optional().or(z.literal("")),
+  iban: z.string().max(34, "IBAN no válido").nullable().optional().or(z.literal("")),
+  cp: z.string().max(10, "CP no válido").nullable().optional().or(z.literal("")),
+});
+
+type SortColumn = "nombre" | "codigo" | "modo_defecto" | "geo" | "activo";
+type SortDirection = "asc" | "desc";
+type SortConfig = { column: SortColumn; direction: SortDirection };
+
+const SORT_STORAGE_KEY = "clientes_sort";
+
+function loadSortConfig(): SortConfig {
+  try {
+    const saved = localStorage.getItem(SORT_STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return { column: "nombre", direction: "asc" };
+}
+
 /* =====================================================
    API helper
 ===================================================== */
@@ -106,7 +133,63 @@ export default function AdminClientesPage() {
 
   const [editing, setEditing] = useState<Cliente | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sortConfig, setSortConfig] = useState<SortConfig>(loadSortConfig);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const router = useRouter();
+  const confirm = useConfirm();
+
+  const toggleSort = useCallback((column: SortColumn) => {
+    setSortConfig((prev) => {
+      const next: SortConfig =
+        prev.column === column
+          ? { column, direction: prev.direction === "asc" ? "desc" : "asc" }
+          : { column, direction: "asc" };
+      localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const sortedClientes = useMemo(() => {
+    const sorted = [...clientes];
+    const { column, direction } = sortConfig;
+    const dir = direction === "asc" ? 1 : -1;
+
+    sorted.sort((a, b) => {
+      let valA: string | boolean | number;
+      let valB: string | boolean | number;
+
+      switch (column) {
+        case "nombre":
+          valA = (a.nombre || "").toLowerCase();
+          valB = (b.nombre || "").toLowerCase();
+          break;
+        case "codigo":
+          valA = (a.codigo || "").toLowerCase();
+          valB = (b.codigo || "").toLowerCase();
+          break;
+        case "modo_defecto":
+          valA = (a.modo_defecto || "").toLowerCase();
+          valB = (b.modo_defecto || "").toLowerCase();
+          break;
+        case "geo":
+          valA = a.requiere_geo ? (a.geo_policy || "strict") : "no";
+          valB = b.requiere_geo ? (b.geo_policy || "strict") : "no";
+          break;
+        case "activo":
+          valA = a.activo ? 1 : 0;
+          valB = b.activo ? 1 : 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (valA < valB) return -1 * dir;
+      if (valA > valB) return 1 * dir;
+      return 0;
+    });
+
+    return sorted;
+  }, [clientes, sortConfig]);
 
   /* =========================
      Load
@@ -136,6 +219,7 @@ export default function AdminClientesPage() {
 
   async function openCreate() {
     try {
+      setFormErrors({});
       const r = await api("/admin/clientes/next-code");
 
       setEditing({
@@ -172,27 +256,14 @@ export default function AdminClientesPage() {
   }
 
   function openEdit(c: Cliente) {
-    // DEBUG: Ver qué datos llegan del cliente
-    console.log("[openEdit] Cliente recibido:", {
-      id: c.id,
-      nombre: c.nombre,
-      iva_defecto: c.iva_defecto,
-      forma_pago: c.forma_pago,
-      razon_social: c.razon_social,
-    });
-    
+    setFormErrors({});
     // Asegurar que iva_defecto tenga un valor por defecto si viene null
     const clienteConDefaults = {
       ...c,
       iva_defecto: c.iva_defecto || "21",
       forma_pago: c.forma_pago || "TRANSFERENCIA",
     };
-    
-    console.log("[openEdit] Cliente después de defaults:", {
-      id: clienteConDefaults.id,
-      iva_defecto: clienteConDefaults.iva_defecto,
-    });
-    
+
     setEditing(clienteConDefaults);
     setDrawerOpen(true);
   }
@@ -200,37 +271,32 @@ export default function AdminClientesPage() {
   async function save() {
     if (!editing) return;
 
+    // Validate with Zod
+    const result = clienteSchema.safeParse(editing);
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as string;
+        errors[field] = issue.message;
+      }
+      setFormErrors(errors);
+      showError("Corrige los errores del formulario");
+      return;
+    }
+    setFormErrors({});
+
     try {
       setLoading(true);
 
       // Normalizar datos antes de enviar
       const dataToSend = {
         ...editing,
-        // Asegurar que los campos de formulario sean strings o null
         razon_social: editing.razon_social || null,
         nif_cif: editing.nif_cif || null,
         forma_pago: editing.forma_pago || null,
         iban: editing.iban || null,
         iva_defecto: editing.iva_defecto || null,
       };
-
-      console.log("[save] editing state COMPLETO:", {
-        nombre: editing.nombre,
-        razon_social: editing.razon_social,
-        nif_cif: editing.nif_cif,
-        iva_defecto: editing.iva_defecto,
-        forma_pago: editing.forma_pago,
-        iban: editing.iban,
-        persona_contacto: editing.persona_contacto,
-      });
-
-      console.log("[save] dataToSend:", {
-        nombre: dataToSend.nombre,
-        razon_social: dataToSend.razon_social,
-        nif_cif: dataToSend.nif_cif,
-        iva_defecto: dataToSend.iva_defecto,
-        persona_contacto: dataToSend.persona_contacto,
-      });
 
       let result;
       if (editing.id) {
@@ -257,7 +323,13 @@ export default function AdminClientesPage() {
   }
 
   async function deactivate(id: string) {
-    if (!confirm("¿Desactivar cliente?")) return;
+    const ok = await confirm({
+      title: "Desactivar cliente",
+      description: "El cliente quedará inactivo y no aparecerá en los listados por defecto. Podrás reactivarlo más adelante.",
+      confirmLabel: "Desactivar",
+      variant: "destructive",
+    });
+    if (!ok) return;
 
     try {
       await api(`${BASE}/${id}`, {
@@ -299,17 +371,38 @@ export default function AdminClientesPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b">
               <tr className="text-left">
-                <th className="p-3">Nombre</th>
-                <th className="p-3">Código</th>
-                <th className="p-3">Modo</th>
-                <th className="p-3">Geo</th>
-                <th className="p-3">Activo</th>
+                {([
+                  ["nombre", "Nombre"],
+                  ["codigo", "Código"],
+                  ["modo_defecto", "Modo"],
+                  ["geo", "Geo"],
+                  ["activo", "Activo"],
+                ] as [SortColumn, string][]).map(([col, label]) => (
+                  <th
+                    key={col}
+                    className="p-3 cursor-pointer select-none hover:bg-slate-100 transition-colors"
+                    onClick={() => toggleSort(col)}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {label}
+                      {sortConfig.column === col ? (
+                        sortConfig.direction === "asc" ? (
+                          <ArrowUp size={14} className="text-blue-600" />
+                        ) : (
+                          <ArrowDown size={14} className="text-blue-600" />
+                        )
+                      ) : (
+                        <ArrowUpDown size={14} className="text-slate-300" />
+                      )}
+                    </span>
+                  </th>
+                ))}
                 <th className="p-3 text-right">Acciones</th>
               </tr>
             </thead>
 
             <tbody>
-              {clientes.map((c) => (
+              {sortedClientes.map((c) => (
                 <tr
                   key={c.id}
                   className="border-b last:border-0 hover:bg-slate-50"
@@ -355,10 +448,29 @@ export default function AdminClientesPage() {
                 </tr>
               ))}
 
+              {loading && !clientes.length && (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={`skel-${i}`} className="border-b last:border-0">
+                    <td className="p-3"><Skeleton className="h-4 w-32" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-20" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-16" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-12" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-8" /></td>
+                    <td className="p-3 text-right"><Skeleton className="h-8 w-16 inline-block" /></td>
+                  </tr>
+                ))
+              )}
+
               {!clientes.length && !loading && (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-500">
-                    Sin clientes
+                  <td colSpan={6}>
+                    <EmptyState
+                      icon={Users}
+                      title="Sin clientes"
+                      description="Aún no hay clientes registrados. Crea el primero para empezar."
+                      actionLabel="Nuevo cliente"
+                      onAction={openCreate}
+                    />
                   </td>
                 </tr>
               )}
@@ -429,12 +541,14 @@ export default function AdminClientesPage() {
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nombre Comercial</label>
                         <Input
                           placeholder="Ej: Restaurante El Faro"
-                          className="bg-white border-slate-200"
+                          className={`bg-white border-slate-200 ${formErrors.nombre ? "border-red-400 ring-1 ring-red-400" : ""}`}
                           value={editing.nombre}
-                          onChange={(e) =>
-                            setEditing({ ...editing, nombre: e.target.value })
-                          }
+                          onChange={(e) => {
+                            setEditing({ ...editing, nombre: e.target.value });
+                            if (formErrors.nombre) setFormErrors((p) => ({ ...p, nombre: "" }));
+                          }}
                         />
+                        {formErrors.nombre && <p className="text-xs text-red-500 mt-1">{formErrors.nombre}</p>}
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -502,12 +616,14 @@ export default function AdminClientesPage() {
                           <Input
                             type="email"
                             placeholder="contacto@empresa.com"
-                            className="bg-white border-slate-200"
+                            className={`bg-white border-slate-200 ${formErrors.contacto_email ? "border-red-400 ring-1 ring-red-400" : ""}`}
                             value={editing.contacto_email || ""}
-                            onChange={(e) =>
-                              setEditing({ ...editing, contacto_email: e.target.value })
-                            }
+                            onChange={(e) => {
+                              setEditing({ ...editing, contacto_email: e.target.value });
+                              if (formErrors.contacto_email) setFormErrors((p) => ({ ...p, contacto_email: "" }));
+                            }}
                           />
+                          {formErrors.contacto_email && <p className="text-xs text-red-500 mt-1">{formErrors.contacto_email}</p>}
                         </div>
                     </div>
 

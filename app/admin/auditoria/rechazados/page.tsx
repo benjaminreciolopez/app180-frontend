@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { api, setAuthToken } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { XCircle } from "lucide-react";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 interface FichajeRechazado {
   id: string;
@@ -28,6 +31,7 @@ export default function FichajesRechazadosPage() {
   const [fichajes, setFichajes] = useState<FichajeRechazado[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFichaje, setSelectedFichaje] = useState<FichajeRechazado | null>(null);
+  const confirm = useConfirm();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -48,9 +52,13 @@ export default function FichajesRechazadosPage() {
   }
 
   async function eliminarFichaje(id: string) {
-    if (!confirm("¿Eliminar este fichaje permanentemente? Esta acción no se puede deshacer.")) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Eliminar fichaje",
+      description: "¿Eliminar este fichaje permanentemente? Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "destructive",
+    });
+    if (!ok) return;
 
     try {
       await api.delete(`/admin/auditoria/fichajes-rechazados/${id}`);
@@ -120,13 +128,36 @@ export default function FichajesRechazadosPage() {
       {/* Tabla */}
       <div className="bg-white rounded-lg shadow border overflow-hidden">
         {loading ? (
-          <div className="p-8">
-            <LoadingSpinner />
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-20" /></th>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-24" /></th>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-12" /></th>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-28" /></th>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-24" /></th>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-24" /></th>
+                  <th className="px-4 py-3 text-center"><Skeleton className="h-4 w-16 mx-auto" /></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-36" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
+                    <td className="px-4 py-3 text-center"><Skeleton className="h-4 w-20 mx-auto" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : fichajes.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            No hay fichajes rechazados
-          </div>
+          <EmptyState icon={XCircle} title="Sin rechazados" description="No hay fichajes rechazados." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

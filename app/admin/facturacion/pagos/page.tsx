@@ -66,6 +66,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { api as apiService } from "@/services/api";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type DeudaPendiente = {
     id: string;
@@ -415,20 +417,29 @@ export default function GlobalPagosPage() {
         </div>
 
         {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                <p className="text-sm text-slate-500 animate-pulse">Cargando transacciones...</p>
+            <div className="divide-y divide-slate-100">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="grid grid-cols-12 gap-4 p-4 items-center">
+                  <div className="col-span-3 flex items-center gap-3">
+                    <Skeleton className="w-8 h-8 rounded-full" />
+                    <div className="space-y-1 flex-1"><Skeleton className="h-4 w-28" /><Skeleton className="h-3 w-16" /></div>
+                  </div>
+                  <Skeleton className="col-span-2 h-4 w-24" />
+                  <Skeleton className="col-span-2 h-5 w-24 rounded-full" />
+                  <Skeleton className="col-span-2 h-4 w-20 ml-auto" />
+                  <Skeleton className="col-span-2 h-3 w-24 ml-auto" />
+                  <Skeleton className="col-span-1 h-8 w-8 ml-auto rounded" />
+                </div>
+              ))}
             </div>
         ) : filteredPagos.length === 0 ? (
-            <div className="p-20 text-center flex flex-col items-center justify-center gap-4">
-                <div className="p-4 bg-slate-100 rounded-full">
-                    <AlertCircle className="w-8 h-8 text-slate-400" />
-                </div>
-                <div>
-                    <p className="text-lg font-semibold text-slate-900">No se encontraron cobros</p>
-                    <p className="text-sm text-slate-500">Prueba a cambiar los filtros o registra un nuevo cobro.</p>
-                </div>
-            </div>
+            <EmptyState
+                icon={CreditCard}
+                title="Sin pagos registrados"
+                description="No hay transacciones de pago aún."
+                actionLabel="Registrar Cobro"
+                onAction={() => setDrawerOpen(true)}
+            />
         ) : (
             <div className="divide-y divide-slate-100">
                 <AnimatePresence>

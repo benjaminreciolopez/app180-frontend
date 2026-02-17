@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/services/api";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 type Adjunto = {
   id: string;
@@ -96,6 +97,7 @@ export default function AdjuntosViewer({
   onChanged,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const confirm = useConfirm();
 
   const [items, setItems] = useState<Adjunto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -246,9 +248,11 @@ export default function AdjuntosViewer({
 
     // intentamos ZIP, pero sin JSZip no es viable de forma fiable.
     // Fallback: descarga secuencial.
-    const ok = confirm(
-      "Se descargarán todos los archivos. (ZIP se añadirá cuando lo pasemos a producción con storage real). ¿Continuar?"
-    );
+    const ok = await confirm({
+      title: "Descargar todos",
+      description: "Se descargarán todos los archivos. (ZIP se añadirá cuando lo pasemos a producción con storage real). ¿Continuar?",
+      confirmLabel: "Descargar",
+    });
     if (!ok) return;
 
     for (const a of items) {
@@ -259,7 +263,13 @@ export default function AdjuntosViewer({
 
   async function remove(a: Adjunto) {
     if (!canDelete(a)) return;
-    if (!confirm("¿Eliminar este adjunto?")) return;
+    const ok = await confirm({
+      title: "Eliminar adjunto",
+      description: "¿Eliminar este adjunto?",
+      confirmLabel: "Eliminar",
+      variant: "destructive",
+    });
+    if (!ok) return;
 
     setWorkingId(a.id);
     try {

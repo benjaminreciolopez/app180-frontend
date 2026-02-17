@@ -6,9 +6,10 @@ import { api } from "@/services/api";
 import { getUser } from "@/services/auth";
 import TableTrabajos, { WorkLogItem } from "@/components/shared/TableTrabajos";
 import FormTrabajos from "@/components/shared/FormTrabajos";
-import { Plus, X, RefreshCw } from "lucide-react";
+import { Plus, X, RefreshCw, Briefcase } from "lucide-react";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
 
 
@@ -254,14 +255,49 @@ export default function AdminTrabajosPage() {
 
       {/* Tabla */}
       {loading ? (
-        <div className="py-12">
-            <LoadingSpinner />
+        <div className="card p-0 overflow-x-auto">
+          <table className="table w-full">
+            <thead>
+              <tr>
+                <th><Skeleton className="h-4 w-16" /></th>
+                <th><Skeleton className="h-4 w-20" /></th>
+                <th><Skeleton className="h-4 w-24" /></th>
+                <th><Skeleton className="h-4 w-20" /></th>
+                <th><Skeleton className="h-4 w-16" /></th>
+                <th><Skeleton className="h-4 w-16" /></th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <tr key={`skeleton-${i}`}>
+                  <td><Skeleton className="h-4 w-24" /></td>
+                  <td><Skeleton className="h-4 w-28" /></td>
+                  <td><Skeleton className="h-4 w-32" /></td>
+                  <td><Skeleton className="h-4 w-20" /></td>
+                  <td><Skeleton className="h-4 w-16" /></td>
+                  <td><Skeleton className="h-8 w-20" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      ) : items.length === 0 ? (
+        <EmptyState
+          icon={Briefcase}
+          title="Sin trabajos"
+          description="No hay trabajos registrados aún."
+          actionLabel="Crear Trabajo"
+          onAction={() => {
+            setFormMode('create');
+            setSelectedItem(null);
+            setShowForm(true);
+          }}
+        />
       ) : (
-        <TableTrabajos 
-          items={items} 
-          isAdmin={true} 
-          enableGrouping={isGrouped} 
+        <TableTrabajos
+          items={items}
+          isAdmin={true}
+          enableGrouping={isGrouped}
           onDelete={handleDelete}
           onEdit={handleEdit}
           onClone={handleClone}

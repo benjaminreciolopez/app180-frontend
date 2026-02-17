@@ -4,7 +4,10 @@ import { api, setAuthToken } from "@/services/api";
 import "leaflet/dist/leaflet.css";
 import { showSuccess, showError } from "@/lib/toast";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
+import { AlertTriangle } from "lucide-react";
 
 type FichajeRow = {
   id: string;
@@ -33,6 +36,7 @@ type FichajeRow = {
 };
 
 export default function SospechososPage() {
+  const confirm = useConfirm();
   const [fichajes, setFichajes] = useState<FichajeRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -110,11 +114,18 @@ export default function SospechososPage() {
       return;
     }
 
-    const confirmMsg = accion === "confirmar" 
-      ? `¿Validar ${idsArray.length} fichaje(s)?`
-      : `¿Rechazar ${idsArray.length} fichaje(s)?`;
-    
-    if (!confirm(confirmMsg)) return;
+    const isRechazar = accion === "rechazar";
+    const confirmMsg = isRechazar
+      ? `¿Rechazar ${idsArray.length} fichaje(s)?`
+      : `¿Validar ${idsArray.length} fichaje(s)?`;
+
+    const ok = await confirm({
+      title: isRechazar ? "Rechazar fichajes" : "Validar fichajes",
+      description: confirmMsg,
+      confirmLabel: isRechazar ? "Rechazar" : "Validar",
+      variant: isRechazar ? "destructive" : "default",
+    });
+    if (!ok) return;
 
     setProcessing(true);
     try {
@@ -314,9 +325,36 @@ export default function SospechososPage() {
       </div>
 
       {loading ? (
-        <LoadingSpinner fullPage />
+        <div className="overflow-x-auto shadow rounded-lg border">
+          <table className="w-full bg-white">
+            <thead className="bg-gray-50 text-gray-700 text-sm uppercase">
+              <tr>
+                <th className="p-3 text-center w-12"><Skeleton className="h-4 w-4 mx-auto" /></th>
+                <th className="p-3 text-left"><Skeleton className="h-4 w-20" /></th>
+                <th className="p-3 text-left"><Skeleton className="h-4 w-24" /></th>
+                <th className="p-3 text-left"><Skeleton className="h-4 w-32" /></th>
+                <th className="p-3 text-left"><Skeleton className="h-4 w-28" /></th>
+                <th className="p-3 text-center"><Skeleton className="h-4 w-12 mx-auto" /></th>
+                <th className="p-3 text-right"><Skeleton className="h-4 w-16 ml-auto" /></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <tr key={i}>
+                  <td className="p-3 text-center"><Skeleton className="h-4 w-4 mx-auto" /></td>
+                  <td className="p-3"><Skeleton className="h-4 w-28" /></td>
+                  <td className="p-3"><Skeleton className="h-4 w-24" /></td>
+                  <td className="p-3"><Skeleton className="h-4 w-36" /></td>
+                  <td className="p-3"><Skeleton className="h-5 w-24 rounded-full" /></td>
+                  <td className="p-3 text-center"><Skeleton className="h-4 w-12 mx-auto" /></td>
+                  <td className="p-3 text-right"><Skeleton className="h-4 w-14 ml-auto" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : fichajes.length === 0 ? (
-        <p className="text-gray-500 italic">No hay fichajes sospechosos pendientes de revisión.</p>
+        <EmptyState icon={AlertTriangle} title="Sin fichajes sospechosos" description="No hay fichajes sospechosos pendientes de revisión." />
       ) : (
         <>
           <div className="mb-4 flex items-center justify-between">

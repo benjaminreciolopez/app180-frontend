@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -33,6 +34,7 @@ export default function EmpleadoCalendarioPage() {
   const [events, setEvents] = useState<EventoCalendario[]>([]);
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
+  const confirm = useConfirm();
 
   async function loadCalendario() {
     try {
@@ -86,9 +88,15 @@ export default function EmpleadoCalendarioPage() {
             </div>
             <span className="font-bold text-gray-900">Mi Calendario</span>
         </div>
-        <button 
-           onClick={() => {
-             if(confirm("¿Cerrar sesión?")) {
+        <button
+           onClick={async () => {
+             const ok = await confirm({
+               title: "Cerrar sesión",
+               description: "¿Cerrar sesión?",
+               confirmLabel: "Cerrar sesión",
+               variant: "destructive",
+             });
+             if (ok) {
                document.cookie = "token=; Max-Age=0; path=/;";
                localStorage.removeItem("token");
                localStorage.removeItem("user_180");

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { useConfirm } from "@/components/shared/ConfirmDialog"
 import { 
   Plus, 
   Search, 
@@ -59,6 +60,7 @@ interface Concepto {
 }
 
 export default function ConceptosPage() {
+  const confirm = useConfirm()
   const [conceptos, setConceptos] = useState<Concepto[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [loading, setLoading] = useState(true)
@@ -157,7 +159,8 @@ export default function ConceptosPage() {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm("¿Seguro que quieres eliminar este concepto?")) return
+    const ok = await confirm({ title: "Eliminar concepto", description: "Este concepto se eliminará permanentemente.", confirmLabel: "Eliminar", variant: "destructive" })
+    if (!ok) return
     setDeletingId(id)
     try {
       await api.delete(`/admin/facturacion/conceptos/${id}`)

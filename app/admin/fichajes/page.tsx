@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Clock } from "lucide-react";
 
 type TipoFichaje = "entrada" | "salida" | "descanso_inicio" | "descanso_fin";
 
@@ -317,7 +319,35 @@ export default function FichajesPage() {
     });
   }, [jornadaSel, detalleModoFecha, detalleFecha]);
 
-  if (loading) return <LoadingSpinner fullPage />;
+  if (loading) return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-48" />
+        <div className="flex gap-2">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-48" />
+        </div>
+      </div>
+      <Skeleton className="h-32 w-full rounded" />
+      <div className="bg-white border rounded overflow-hidden">
+        <div className="bg-gray-100 p-3 flex gap-4">
+          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-4 w-20" />)}
+        </div>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex gap-4 p-3 border-b">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-4 space-y-4">
@@ -436,7 +466,11 @@ export default function FichajesPage() {
 
       {/* TABLA JORNADAS */}
       {jornadas.length === 0 ? (
-        <p className="text-gray-600">No hay jornadas para el filtro actual.</p>
+        <EmptyState
+          icon={Clock}
+          title="Sin fichajes"
+          description="No hay jornadas para el filtro actual. Prueba a cambiar los filtros o registra un fichaje manual."
+        />
       ) : (
         <table className="w-full bg-white border rounded overflow-hidden">
           <thead>

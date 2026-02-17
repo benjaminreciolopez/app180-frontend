@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { api, setAuthToken } from "@/services/api";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Search } from "lucide-react";
 
 interface AuditLog {
   id: string;
@@ -333,13 +335,34 @@ export default function AuditoriaPage() {
       {/* Tabla de Logs */}
       <div className="bg-white rounded-lg shadow border overflow-hidden">
         {loading ? (
-          <div className="p-8">
-            <LoadingSpinner />
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-20" /></th>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-16" /></th>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-24" /></th>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-20" /></th>
+                  <th className="px-4 py-3 text-left"><Skeleton className="h-4 w-28" /></th>
+                  <th className="px-4 py-3 text-center"><Skeleton className="h-4 w-12 mx-auto" /></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-5 w-24 rounded-full" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-36" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
+                    <td className="px-4 py-3 text-center"><Skeleton className="h-4 w-10 mx-auto" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : logs.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            No hay registros de auditoría
-          </div>
+          <EmptyState icon={Search} title="Sin registros" description="No hay registros de auditoría para los filtros aplicados." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

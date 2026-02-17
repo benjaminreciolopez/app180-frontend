@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/empty-state"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -300,16 +301,27 @@ export default function FacturasListadoPage() {
         </div>
 
         {loading ? (
-           <div className="flex items-center justify-center py-20">
-             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+           <div className="divide-y divide-slate-100">
+             {Array.from({ length: 6 }).map((_, i) => (
+               <div key={i} className="grid grid-cols-12 gap-2 px-4 py-3 items-center">
+                 <Skeleton className="col-span-1 h-4 w-20" />
+                 <Skeleton className="col-span-2 h-4" />
+                 <Skeleton className="col-span-4 h-4" />
+                 <Skeleton className="col-span-1 h-6 w-16 rounded-full" />
+                 <Skeleton className="col-span-2 h-4" />
+                 <Skeleton className="col-span-2 h-4" />
+               </div>
+             ))}
            </div>
         ) : filteredFacturas.length === 0 ? (
-            <div className="p-12 text-center text-slate-400 flex flex-col items-center">
-                <FileX className="w-10 h-10 mb-2 opacity-20" />
-                <p>No se encontraron facturas</p>
-                {estadoFilter !== 'TODOS' && (
-                    <Button variant="link" onClick={() => setEstadoFilter('TODOS')}>Limpiar filtros</Button>
-                )}
+            <div>
+                <EmptyState
+                    icon={FileText}
+                    title="No se encontraron facturas"
+                    description={estadoFilter !== 'TODOS' || searchTerm ? "Prueba a ajustar los filtros de búsqueda." : "Aún no hay facturas registradas."}
+                    actionLabel={estadoFilter !== 'TODOS' ? "Limpiar filtros" : undefined}
+                    onAction={estadoFilter !== 'TODOS' ? () => setEstadoFilter('TODOS') : undefined}
+                />
             </div>
         ) : (
             <div className="divide-y divide-slate-100">

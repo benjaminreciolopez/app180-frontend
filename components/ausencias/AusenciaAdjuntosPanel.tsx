@@ -5,6 +5,7 @@ import { api } from "@/services/api";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import IOSDrawer, { IOSDrawerHeader } from "@/components/ui/IOSDrawer";
 import ModalAdjuntoFullscreen from "@/components/ui/ModalAdjuntoFullscreen";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 type Adjunto = {
   id: string;
@@ -50,6 +51,7 @@ export default function AusenciaAdjuntosPanel({
   title?: string;
 }) {
   const isMobile = useIsMobile();
+  const confirm = useConfirm();
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -274,8 +276,14 @@ export default function AusenciaAdjuntosPanel({
 
                 {canDelete ? (
                   <button
-                    onClick={() => {
-                      if (!confirm("¿Eliminar este adjunto?")) return;
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: "Eliminar adjunto",
+                        description: "¿Eliminar este adjunto?",
+                        confirmLabel: "Eliminar",
+                        variant: "destructive",
+                      });
+                      if (!ok) return;
                       deleteAdjunto(a.id);
                     }}
                     className="px-3 py-1.5 rounded-lg border border-red-200 text-xs font-semibold text-red-700 active:bg-red-50"

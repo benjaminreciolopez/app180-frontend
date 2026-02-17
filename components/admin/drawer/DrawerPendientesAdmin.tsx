@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import type { Pendiente } from "@/types/ausencias";
 
 function tipoLabel(t: string) {
@@ -19,6 +20,7 @@ export default function DrawerPendientesAdmin({
   onUpdated: () => void;
   onOpenDetalle?: (p: Pendiente) => void;
 }) {
+  const confirm = useConfirm();
   const [items, setItems] = useState<Pendiente[]>([]);
   const [loading, setLoading] = useState(true);
   const [workingId, setWorkingId] = useState<string | null>(null);
@@ -43,7 +45,12 @@ export default function DrawerPendientesAdmin({
   }, []);
 
   async function aprobar(p: Pendiente) {
-    if (!confirm("¿Aprobar esta solicitud?")) return;
+    const ok = await confirm({
+      title: "Aprobar solicitud",
+      description: "¿Aprobar esta solicitud?",
+      confirmLabel: "Aprobar",
+    });
+    if (!ok) return;
     setWorkingId(p.id);
     try {
       await api.patch(`/admin/ausencias/${p.id}/estado`, {
@@ -60,7 +67,13 @@ export default function DrawerPendientesAdmin({
   }
 
   async function rechazar(p: Pendiente) {
-    if (!confirm("¿Rechazar esta solicitud?")) return;
+    const ok = await confirm({
+      title: "Rechazar solicitud",
+      description: "¿Rechazar esta solicitud?",
+      confirmLabel: "Rechazar",
+      variant: "destructive",
+    });
+    if (!ok) return;
     setWorkingId(p.id);
     try {
       await api.patch(`/admin/ausencias/${p.id}/estado`, {

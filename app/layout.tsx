@@ -5,6 +5,7 @@ import { QueryProvider } from "@/components/QueryProvider";
 import AuthInit from "@/components/AuthInit";
 import ToastProvider from "@/components/ToastProvider";
 import DynamicAuthor from "@/components/DynamicAuthor";
+import { ConfirmProvider } from "@/components/shared/ConfirmDialog";
 
 export default function RootLayout({
   children,
@@ -22,10 +23,12 @@ export default function RootLayout({
       <body className="app-shell">
         <QueryProvider>
           <ThemeProvider>
-            <AuthInit />
-            <DynamicAuthor />
-            {children}
-            <ToastProvider />
+            <ConfirmProvider>
+              <AuthInit />
+              <DynamicAuthor />
+              {children}
+              <ToastProvider />
+            </ConfirmProvider>
           </ThemeProvider>
         </QueryProvider>
         {/* Portal container para evitar conflictos con aria-hidden */}

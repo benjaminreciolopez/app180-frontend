@@ -34,6 +34,7 @@ import { toast } from "sonner"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { useConfirm } from "@/components/shared/ConfirmDialog"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -65,6 +66,7 @@ type GridItem =
   | { type: 'file', data: FileInfo }
 
 export default function AlmacenamientoPage() {
+  const confirm = useConfirm()
   const [loadingFiles, setLoadingFiles] = useState(false)
   const [loadingFolders, setLoadingFolders] = useState(true)
   
@@ -233,7 +235,13 @@ export default function AlmacenamientoPage() {
         return
     }
 
-    if (!confirm("¿Seguro que quieres eliminar este archivo?")) return
+    const ok = await confirm({
+      title: "Eliminar archivo",
+      description: "¿Seguro que quieres eliminar este archivo?",
+      confirmLabel: "Eliminar",
+      variant: "destructive",
+    })
+    if (!ok) return
     setDeletingId(id)
     try {
       await api.delete(`/admin/storage/files/${id}`)
@@ -257,7 +265,13 @@ export default function AlmacenamientoPage() {
         return
     }
 
-    if (!confirm(`¿Seguro que quieres eliminar ${selectedItems.size} archivos?`)) return
+    const okBulk = await confirm({
+      title: "Eliminar archivos",
+      description: `¿Seguro que quieres eliminar ${selectedItems.size} archivos?`,
+      confirmLabel: "Eliminar",
+      variant: "destructive",
+    })
+    if (!okBulk) return
     
     setIsDeletingBulk(true)
     try {

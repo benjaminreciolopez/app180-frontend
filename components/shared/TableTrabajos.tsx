@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { ArrowDown, ArrowUp, Search, Edit, Trash2, Copy, Info, CreditCard, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 export type WorkLogItem = {
   id: string;
@@ -83,6 +84,7 @@ export default function TableTrabajos({
   onDelete,
   onClone
 }: Props) {
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<ColKey>("fecha");
   const [sortAsc, setSortAsc] = useState(false); // default desc (mas reciente primero)
@@ -295,9 +297,15 @@ export default function TableTrabajos({
             >
               <Edit size={16} />
             </button>
-            <button 
-              onClick={() => {
-                if (confirm("¿Seguro que deseas eliminar este trabajo?")) {
+            <button
+              onClick={async () => {
+                const ok = await confirm({
+                  title: "Eliminar trabajo",
+                  description: "¿Seguro que deseas eliminar este trabajo?",
+                  confirmLabel: "Eliminar",
+                  variant: "destructive",
+                });
+                if (ok) {
                   onDelete?.(it.id);
                 }
               }}

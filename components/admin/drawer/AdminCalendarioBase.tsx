@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus 
 
 import { api } from "@/services/api";
 import { getUser } from "@/services/auth";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { colorFor } from "@/components/empleado/calendarioColors";
 import CalendarioLegend from "@/components/empleado/CalendarioLegend";
 
@@ -238,6 +239,7 @@ function DrawerInfoEventoAdmin({ evento, onClose }: { evento: CalendarioIntegrad
 export default function AdminCalendarioBase() {
   const isMobile = useIsMobile();
   const router = useRouter();
+  const confirm = useConfirm();
   const calendarRef = useRef<FullCalendar | null>(null);
 
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
@@ -496,8 +498,14 @@ export default function AdminCalendarioBase() {
       </button>
 
       <button
-        onClick={() => {
-           if(confirm("¿Cerrar sesión?")) {
+        onClick={async () => {
+           const ok = await confirm({
+             title: "Cerrar sesión",
+             description: "¿Cerrar sesión?",
+             confirmLabel: "Cerrar sesión",
+             variant: "destructive",
+           });
+           if (ok) {
              document.cookie = "token=; Max-Age=0; path=/;";
              localStorage.removeItem("token");
              localStorage.removeItem("user_180");

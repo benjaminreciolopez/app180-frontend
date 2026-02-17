@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { api } from '@/services/api';
 import { showSuccess, showError } from '@/lib/toast';
 import { Mail, CheckCircle2, XCircle, Send, Loader2 } from 'lucide-react';
@@ -16,6 +17,7 @@ interface EmailConfig {
 }
 
 export default function EmailConfigPanel() {
+  const confirm = useConfirm();
   const [config, setConfig] = useState<EmailConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -84,9 +86,8 @@ export default function EmailConfigPanel() {
   async function handleDisconnect() {
     if (disconnecting) return;
     
-    if (!confirm('¿Estás seguro de que quieres desconectar Gmail?')) {
-      return;
-    }
+    const ok = await confirm({ title: "Desconectar Gmail", description: "Se perderá la conexión con Gmail. Podrás reconectar más adelante.", confirmLabel: "Desconectar", variant: "destructive" });
+    if (!ok) return;
 
     setDisconnecting(true);
 

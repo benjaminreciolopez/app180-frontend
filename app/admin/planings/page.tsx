@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { api } from "@/services/api";
 import { getUser } from "@/services/auth";
 import { showSuccess, showError } from "@/lib/toast";
@@ -25,6 +26,7 @@ interface Asignacion {
 }
 
 export default function PlaningsPage() {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
   // Drawer edición/creación
@@ -120,7 +122,8 @@ export default function PlaningsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const borrarAsignacion = async (id: string) => {
-      if(!confirm("¿Seguro que quieres eliminar este planing? Esta acción no se puede deshacer.")) return;
+      const ok = await confirm({ title: "Eliminar planing", description: "Esta acción no se puede deshacer. El planing se eliminará permanentemente.", confirmLabel: "Eliminar", variant: "destructive" });
+      if (!ok) return;
       
       setDeletingId(id);
       try {
