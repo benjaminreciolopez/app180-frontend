@@ -44,6 +44,7 @@ export default function EmpleadosPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Empleado | null>(null);
 
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [loadingInviteId, setLoadingInviteId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
@@ -101,6 +102,7 @@ export default function EmpleadosPage() {
       return;
     }
 
+    setTogglingId(id);
     try {
       await api.put(`/employees/${id}/status`, { activo });
       await loadEmpleados();
@@ -108,6 +110,8 @@ export default function EmpleadosPage() {
     } catch (err) {
       console.error("Error cambiando estado del empleado", err);
       showError('No se pudo actualizar el estado');
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -404,16 +408,17 @@ export default function EmpleadosPage() {
 
                   <button
                     type="button"
+                    disabled={togglingId === e.id}
                     onClick={async () => {
                       setOpenMenuId(null);
                       setMenuPos(null);
                       await cambiarEstadoEmpleado(e.id, !e.activo);
                     }}
-                    className={`block w-full text-left px-3 py-2 hover:bg-muted ${
+                    className={`block w-full text-left px-3 py-2 hover:bg-muted disabled:opacity-50 ${
                       e.activo ? "text-orange-600" : "text-green-600"
                     }`}
                   >
-                    {e.activo ? "Desactivar empleado" : "Activar empleado"}
+                    {togglingId === e.id ? "Procesando..." : (e.activo ? "Desactivar empleado" : "Activar empleado")}
                   </button>
                 </>
               );

@@ -103,6 +103,7 @@ export default function AdjuntosViewer({
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [workingId, setWorkingId] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
   const [preview, setPreview] = useState<Adjunto | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -255,9 +256,14 @@ export default function AdjuntosViewer({
     });
     if (!ok) return;
 
-    for (const a of items) {
-      // eslint-disable-next-line no-await-in-loop
-      await downloadOne(a);
+    setDownloadingAll(true);
+    try {
+      for (const a of items) {
+        // eslint-disable-next-line no-await-in-loop
+        await downloadOne(a);
+      }
+    } finally {
+      setDownloadingAll(false);
     }
   }
 
@@ -305,10 +311,11 @@ export default function AdjuntosViewer({
         </div>
 
         <button
+          disabled={loading}
           onClick={load}
-          className="text-sm font-semibold px-3 py-2 rounded-xl border border-black/10 bg-white active:bg-black/[0.04]"
+          className="text-sm font-semibold px-3 py-2 rounded-xl border border-black/10 bg-white active:bg-black/[0.04] disabled:opacity-50"
         >
-          Recargar
+          {loading ? "Cargando..." : "Recargar"}
         </button>
       </div>
 
@@ -369,10 +376,11 @@ export default function AdjuntosViewer({
                 {items.length} archivo(s)
               </div>
               <button
+                disabled={downloadingAll}
                 onClick={downloadAll}
-                className="text-sm font-semibold px-3 py-2 rounded-xl border border-black/10 bg-white active:bg-black/[0.04]"
+                className="text-sm font-semibold px-3 py-2 rounded-xl border border-black/10 bg-white active:bg-black/[0.04] disabled:opacity-50"
               >
-                Descargar todo
+                {downloadingAll ? "Descargando..." : "Descargar todo"}
               </button>
             </div>
 
@@ -460,10 +468,11 @@ export default function AdjuntosViewer({
 
             <div className="flex items-center gap-2">
               <button
+                disabled={workingId === preview.id}
                 onClick={() => downloadOne(preview)}
-                className="px-3 py-2 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04]"
+                className="px-3 py-2 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04] disabled:opacity-50"
               >
-                Descargar
+                {workingId === preview.id ? "Descargando..." : "Descargar"}
               </button>
               <button
                 onClick={() => setPreview(null)}

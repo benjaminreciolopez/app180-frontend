@@ -169,6 +169,9 @@ export default function FichajesPage() {
     motivo: "",
   });
 
+  // saving state for manual fichaje
+  const [saving, setSaving] = useState(false);
+
   // detalle jornada (al clicar)
   const [detalleOpen, setDetalleOpen] = useState(false);
   const [jornadaSel, setJornadaSel] = useState<JornadaUI | null>(null);
@@ -225,12 +228,13 @@ export default function FichajesPage() {
   const jornadas = useMemo(() => agruparPorJornada(rawFiltrado), [rawFiltrado]);
 
   async function registrarManual() {
-    try {
-      if (!form.empleado_id || !form.fecha) {
-        showError("Empleado y fecha obligatorios");
-        return;
-      }
+    if (!form.empleado_id || !form.fecha) {
+      showError("Empleado y fecha obligatorios");
+      return;
+    }
 
+    setSaving(true);
+    try {
       if (form.tipo !== "completa") {
         if (!form.hora) {
           showError("Debes indicar la hora");
@@ -288,6 +292,8 @@ export default function FichajesPage() {
     } catch (e) {
       console.error(e);
       showError('Error creando fichaje');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -450,10 +456,11 @@ export default function FichajesPage() {
               Limpiar
             </button>
             <button
-              className="px-3 py-2 rounded bg-black text-white"
+              className="px-3 py-2 rounded bg-black text-white disabled:opacity-50"
               onClick={loadFichajes}
+              disabled={loading}
             >
-              Refrescar
+              {loading ? "Cargando..." : "Refrescar"}
             </button>
           </div>
         </div>
@@ -609,7 +616,8 @@ export default function FichajesPage() {
 
             <div className="flex justify-end gap-3 pt-2">
               <button
-                className="px-3 py-2 bg-gray-300 rounded"
+                className="px-3 py-2 bg-gray-300 rounded disabled:opacity-50"
+                disabled={saving}
                 onClick={() => {
                   setShowModal(false);
                   setForm({
@@ -627,10 +635,11 @@ export default function FichajesPage() {
               </button>
 
               <button
-                className="px-3 py-2 bg-blue-600 text-white rounded"
+                className="px-3 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
                 onClick={registrarManual}
+                disabled={saving}
               >
-                Guardar
+                {saving ? "Guardando..." : "Guardar"}
               </button>
             </div>
           </div>

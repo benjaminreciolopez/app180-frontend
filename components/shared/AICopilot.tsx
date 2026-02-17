@@ -340,11 +340,12 @@ Preguntame lo que necesites.`,
                   ].map((action) => (
                     <button
                       key={action.text}
+                      disabled={isLoading}
                       onClick={() => {
                         setInputValue(action.query)
                         setTimeout(() => enviarMensaje(), 100)
                       }}
-                      className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-full hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                      className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-full hover:bg-blue-50 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {action.emoji} {action.text}
                     </button>

@@ -29,6 +29,7 @@ export default function FormTrabajos({
   onCancel
 }: Props) {
   const [loading, setLoading] = useState(false);
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
   const confirm = useConfirm();
 
   // Fields
@@ -126,11 +127,14 @@ export default function FormTrabajos({
       variant: "destructive",
     });
     if (!ok) return;
+    setDeletingTemplateId(id);
     try {
       await api.delete(`/worklogs/templates/${id}`);
       loadDataResources();
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeletingTemplateId(null);
     }
   }
 
@@ -315,8 +319,9 @@ export default function FormTrabajos({
                   </button>
                   <button
                     type="button"
+                    disabled={deletingTemplateId === t.id}
                     onClick={(e) => handleDeleteTemplate(t.id, e)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-all bg-white/80 rounded"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-all bg-white/80 rounded disabled:opacity-50"
                     title="Borrar plantilla"
                   >
                     <Trash2 size={14} />

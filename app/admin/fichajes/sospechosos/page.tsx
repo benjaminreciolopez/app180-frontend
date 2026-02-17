@@ -43,6 +43,9 @@ export default function SospechososPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detalle, setDetalle] = useState<FichajeRow | null>(null);
 
+  // Individual review
+  const [validating, setValidating] = useState(false);
+
   // Bulk actions
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState(false);
@@ -74,6 +77,7 @@ export default function SospechososPage() {
   }
 
   async function validar(id: string, accion: "confirmar" | "rechazar") {
+    setValidating(true);
     try {
       await api.patch(`/fichajes/sospechosos/${id}`, { accion });
       await load();
@@ -84,6 +88,8 @@ export default function SospechososPage() {
     } catch (e) {
       console.error(e);
       showError('Error actualizando fichaje');
+    } finally {
+      setValidating(false);
     }
   }
 
@@ -489,15 +495,17 @@ export default function SospechososPage() {
                 <div className="flex gap-2">
                      <button
                         onClick={() => validar(detalle.id, "rechazar")}
-                        className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 font-medium transition"
+                        disabled={validating}
+                        className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Rechazar (Fraude)
+                        {validating ? "Procesando..." : "Rechazar (Fraude)"}
                     </button>
                      <button
                         onClick={() => validar(detalle.id, "confirmar")}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm transition"
+                        disabled={validating}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Validar (Aceptar)
+                        {validating ? "Procesando..." : "Validar (Aceptar)"}
                     </button>
                 </div>
             </div>

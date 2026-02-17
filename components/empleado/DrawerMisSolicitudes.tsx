@@ -141,9 +141,10 @@ export default function DrawerMisSolicitudes({
 
       <button
         onClick={load}
-        className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04]"
+        disabled={loading}
+        className="w-full py-3 rounded-xl border border-black/10 bg-white text-sm font-semibold active:bg-black/[0.04] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Recargar
+        {loading ? "Cargando..." : "Recargar"}
       </button>
     </div>
   );

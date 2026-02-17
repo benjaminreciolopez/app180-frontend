@@ -56,6 +56,7 @@ export default function AusenciaAdjuntosPanel({
 
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [adjuntos, setAdjuntos] = useState<UiAdjunto[]>([]);
   const [preview, setPreview] = useState<UiAdjunto | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -276,6 +277,7 @@ export default function AusenciaAdjuntosPanel({
 
                 {canDelete ? (
                   <button
+                    disabled={deletingId === a.id}
                     onClick={async () => {
                       const ok = await confirm({
                         title: "Eliminar adjunto",
@@ -284,11 +286,16 @@ export default function AusenciaAdjuntosPanel({
                         variant: "destructive",
                       });
                       if (!ok) return;
-                      deleteAdjunto(a.id);
+                      setDeletingId(a.id);
+                      try {
+                        await deleteAdjunto(a.id);
+                      } finally {
+                        setDeletingId(null);
+                      }
                     }}
-                    className="px-3 py-1.5 rounded-lg border border-red-200 text-xs font-semibold text-red-700 active:bg-red-50"
+                    className="px-3 py-1.5 rounded-lg border border-red-200 text-xs font-semibold text-red-700 active:bg-red-50 disabled:opacity-50"
                   >
-                    Borrar
+                    {deletingId === a.id ? "Borrando..." : "Borrar"}
                   </button>
                 ) : null}
               </div>

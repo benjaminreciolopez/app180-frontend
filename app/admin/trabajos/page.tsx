@@ -206,12 +206,13 @@ export default function AdminTrabajosPage() {
             </button>
           )}
           
-          <button 
+          <button
              onClick={handleRecalculate}
-             className="px-3 py-2 border rounded-lg text-xs font-medium bg-white text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+             disabled={loading}
+             className="px-3 py-2 border rounded-lg text-xs font-medium bg-white text-gray-600 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
              title="Recalcular importes de trabajos a 0€"
           >
-             <RefreshCw size={14}/> Recalcular 0€
+             <RefreshCw size={14} className={loading ? "animate-spin" : ""}/> Recalcular 0€
           </button>
 
           <button 

@@ -30,6 +30,7 @@ interface FichajeRechazado {
 export default function FichajesRechazadosPage() {
   const [fichajes, setFichajes] = useState<FichajeRechazado[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedFichaje, setSelectedFichaje] = useState<FichajeRechazado | null>(null);
   const confirm = useConfirm();
 
@@ -60,6 +61,7 @@ export default function FichajesRechazadosPage() {
     });
     if (!ok) return;
 
+    setDeletingId(id);
     try {
       await api.delete(`/admin/auditoria/fichajes-rechazados/${id}`);
       setFichajes(prev => prev.filter(f => f.id !== id));
@@ -69,6 +71,8 @@ export default function FichajesRechazadosPage() {
     } catch (error) {
       console.error("Error eliminando fichaje:", error);
       showError("Error al eliminar fichaje");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -218,9 +222,10 @@ export default function FichajesRechazadosPage() {
                       </button>
                       <button
                         onClick={() => eliminarFichaje(f.id)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        disabled={deletingId === f.id}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Eliminar
+                        {deletingId === f.id ? "Eliminando..." : "Eliminar"}
                       </button>
                     </td>
                   </tr>
@@ -344,9 +349,10 @@ export default function FichajesRechazadosPage() {
             <div className="p-4 border-t flex justify-between">
               <button
                 onClick={() => eliminarFichaje(selectedFichaje.id)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+                disabled={deletingId === selectedFichaje.id}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Eliminar Permanentemente
+                {deletingId === selectedFichaje.id ? "Eliminando..." : "Eliminar Permanentemente"}
               </button>
               <button
                 onClick={() => setSelectedFichaje(null)}

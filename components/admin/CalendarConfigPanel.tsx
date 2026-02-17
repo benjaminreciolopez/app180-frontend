@@ -30,7 +30,9 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
   const [config, setConfig] = useState<CalendarConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
   // Settings state
@@ -103,9 +105,11 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
   }
 
   async function handleDisconnect() {
+    if (disconnecting) return;
     const ok = await confirm({ title: "Desconectar Google Calendar", description: "Se perderá la sincronización con Google Calendar.", confirmLabel: "Desconectar", variant: "destructive" });
     if (!ok) return;
 
+    setDisconnecting(true);
     try {
       await api.post("/admin/calendar-config/oauth2/disconnect");
       showSuccess("Google Calendar desconectado");
@@ -114,6 +118,8 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
     } catch (err: any) {
       console.error("Error desconectando:", err);
       showError(err.response?.data?.error || "Error al desconectar");
+    } finally {
+      setDisconnecting(false);
     }
   }
 
@@ -133,6 +139,8 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
   }
 
   async function handleSaveSettings() {
+    if (savingSettings) return;
+    setSavingSettings(true);
     try {
       await api.put("/admin/calendar-config/settings", {
         sync_enabled: syncEnabled,
@@ -145,6 +153,8 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
     } catch (err: any) {
       console.error("Error guardando settings:", err);
       showError(err.response?.data?.error || "Error al guardar configuración");
+    } finally {
+      setSavingSettings(false);
     }
   }
 
@@ -268,13 +278,14 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleSaveSettings} className="flex-1">
-                Guardar cambios
+              <Button onClick={handleSaveSettings} disabled={savingSettings} className="flex-1">
+                {savingSettings ? "Guardando..." : "Guardar cambios"}
               </Button>
               <Button
                 onClick={() => setShowSettings(false)}
                 variant="outline"
                 className="flex-1"
+                disabled={savingSettings}
               >
                 Cancelar
               </Button>
@@ -314,11 +325,12 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
 
               <Button
                 onClick={handleDisconnect}
+                disabled={disconnecting}
                 variant="outline"
                 className="px-6 py-6"
                 title="Desconectar"
               >
-                <Trash2 className="w-4 h-4" />
+                {disconnecting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               </Button>
             </>
           )}

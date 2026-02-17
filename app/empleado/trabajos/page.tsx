@@ -119,11 +119,12 @@ export default function EmpleadoTrabajosPage() {
               ✕
             </button>
           )}
-           <button 
+           <button
              onClick={loadData}
-             className="px-3 py-1 bg-white border rounded text-xs font-medium shadow-sm active:translate-y-0.5"
+             disabled={loading}
+             className="px-3 py-1 bg-white border rounded text-xs font-medium shadow-sm active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
            >
-             Filtrar
+             {loading ? "Cargando..." : "Filtrar"}
            </button>
         </div>
       </div>

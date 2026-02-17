@@ -103,9 +103,10 @@ export default function DrawerPendientesAdmin({
 
         <button
           onClick={load}
-          className="text-sm font-semibold px-3 py-2 rounded-xl border border-black/10 bg-white active:bg-black/[0.04]"
+          disabled={loading}
+          className="text-sm font-semibold px-3 py-2 rounded-xl border border-black/10 bg-white active:bg-black/[0.04] disabled:opacity-50"
         >
-          Recargar
+          {loading ? "Cargando..." : "Recargar"}
         </button>
       </div>
 

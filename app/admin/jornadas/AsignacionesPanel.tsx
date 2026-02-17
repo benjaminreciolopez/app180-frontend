@@ -17,6 +17,7 @@ export default function AsignacionesPanel() {
 
   const [hist, setHist] = useState<Asignacion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [clientes, setClientes] = useState<
     { id: string; nombre: string; codigo?: string }[]
   >([]);
@@ -69,15 +70,23 @@ export default function AsignacionesPanel() {
       alert("Empleado, plantilla, cliente y fecha_inicio son obligatorios");
       return;
     }
-    await api.post("/admin/plantillas/asignar", {
-      empleado_id: empleadoSel,
-      plantilla_id: plantillaSel,
-      cliente_id: clienteSel,
-      fecha_inicio: fechaInicio,
-      fecha_fin: fechaFin || null,
-    });
-    await loadHist(empleadoSel);
-    alert("Asignación creada");
+    setSaving(true);
+    try {
+      await api.post("/admin/plantillas/asignar", {
+        empleado_id: empleadoSel,
+        plantilla_id: plantillaSel,
+        cliente_id: clienteSel,
+        fecha_inicio: fechaInicio,
+        fecha_fin: fechaFin || null,
+      });
+      await loadHist(empleadoSel);
+      alert("Asignación creada");
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.response?.data?.error || "Error al asignar");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) return <LoadingSpinner fullPage />;
@@ -160,10 +169,11 @@ export default function AsignacionesPanel() {
         </div>
 
         <button
-          className="px-4 py-2 rounded bg-blue-600 text-white"
+          className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-60"
           onClick={asignar}
+          disabled={saving}
         >
-          Asignar
+          {saving ? "Asignando..." : "Asignar"}
         </button>
 
         <div className="text-xs text-gray-600">

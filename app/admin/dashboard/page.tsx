@@ -87,6 +87,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [openMenu, setOpenMenu] = useState(false);
   const [editingWidgets, setEditingWidgets] = useState(false);
+  const [savingWidgets, setSavingWidgets] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   // Estados para previsualización PDF
@@ -230,12 +231,15 @@ export default function DashboardPage() {
   }
 
   async function saveWidgets() {
+    setSavingWidgets(true);
     try {
       await api.put("/admin/configuracion/widgets", { widgets });
       showSuccess("Widgets guardados");
       setEditingWidgets(false);
     } catch {
       // silent
+    } finally {
+      setSavingWidgets(false);
     }
   }
 
@@ -264,7 +268,9 @@ export default function DashboardPage() {
     return (
       <div className="app-main">
         <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4"><p className="text-red-700">{error}</p></div>
-        <button onClick={loadAll} className="btn-primary">Reintentar</button>
+        <button onClick={loadAll} disabled={loading} className="btn-primary">
+          {loading ? "Cargando..." : "Reintentar"}
+        </button>
       </div>
     );
   }
@@ -309,7 +315,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm">Personalizar Dashboard</h3>
             <div className="flex gap-2">
-              <button onClick={saveWidgets} className="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-600">Guardar</button>
+              <button onClick={saveWidgets} disabled={savingWidgets} className="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50">{savingWidgets ? "Guardando..." : "Guardar"}</button>
               <button onClick={() => setEditingWidgets(false)} className="p-1"><X className="w-4 h-4 text-gray-400" /></button>
             </div>
           </div>

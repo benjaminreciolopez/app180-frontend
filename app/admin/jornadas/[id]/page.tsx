@@ -70,6 +70,11 @@ export default function EditarPlantillaPage() {
 
   const [loading, setLoading] = useState(true);
   const [savingMeta, setSavingMeta] = useState(false);
+  const [savingDia, setSavingDia] = useState(false);
+  const [savingBloques, setSavingBloques] = useState(false);
+  const [savingExcepcion, setSavingExcepcion] = useState(false);
+  const [savingAsig, setSavingAsig] = useState(false);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const [plantilla, setPlantilla] = useState<Plantilla | null>(null);
   const [dias, setDias] = useState<PlantillaDia[]>([]);
@@ -210,6 +215,7 @@ export default function EditarPlantillaPage() {
 
   async function upsertDiaSemana() {
     // crea o actualiza el día (y nos devuelve el registro con id)
+    setSavingDia(true);
     try {
       const res = await api.put(`/admin/plantillas/${id}/dias/${diaSel}`, {
         hora_inicio: diaObj?.hora_inicio ?? "08:00:00",
@@ -224,6 +230,8 @@ export default function EditarPlantillaPage() {
     } catch (e) {
       console.error(e);
       alert("No se pudo guardar el día");
+    } finally {
+      setSavingDia(false);
     }
   }
 
@@ -245,6 +253,7 @@ export default function EditarPlantillaPage() {
       }
     }
 
+    setSavingBloques(true);
     try {
       const res = await api.put(`/admin/plantillas/dias/${diaObj.id}/bloques`, {
         bloques: bloques.map((b) => ({
@@ -259,6 +268,8 @@ export default function EditarPlantillaPage() {
     } catch (e) {
       console.error(e);
       alert("No se pudieron guardar los bloques");
+    } finally {
+      setSavingBloques(false);
     }
   }
 
@@ -272,6 +283,7 @@ export default function EditarPlantillaPage() {
   });
 
   async function upsertExcepcion() {
+    setSavingExcepcion(true);
     try {
       const r = await api.put(
         `/admin/plantillas/${id}/excepciones/${exForm.fecha}`,
@@ -288,6 +300,8 @@ export default function EditarPlantillaPage() {
     } catch (e) {
       console.error(e);
       alert("No se pudo guardar la excepción");
+    } finally {
+      setSavingExcepcion(false);
     }
   }
 
@@ -306,6 +320,7 @@ export default function EditarPlantillaPage() {
     if (!empleadoSel) return alert("Selecciona empleado");
     if (!asigForm.fecha_inicio) return alert("fecha_inicio obligatoria");
 
+    setSavingAsig(true);
     try {
       await api.post("/admin/plantillas/asignar", {
         empleado_id: empleadoSel,
@@ -318,12 +333,15 @@ export default function EditarPlantillaPage() {
     } catch (e) {
       console.error(e);
       alert("No se pudo asignar");
+    } finally {
+      setSavingAsig(false);
     }
   }
 
   // ---- PREVIEW ----
   async function loadPreview() {
     if (!previewEmpleado) return alert("Selecciona empleado");
+    setLoadingPreview(true);
     try {
       const res = await api.get(
         `/admin/plantillas/plan-dia/${previewEmpleado}?fecha=${encodeURIComponent(
@@ -335,6 +353,8 @@ export default function EditarPlantillaPage() {
       console.error(e);
       setPreview(null);
       alert("No se pudo cargar preview");
+    } finally {
+      setLoadingPreview(false);
     }
   }
 
@@ -470,10 +490,11 @@ export default function EditarPlantillaPage() {
                 </select>
 
                 <button
-                  className="px-3 py-2 rounded bg-gray-200"
+                  className="px-3 py-2 rounded bg-gray-200 disabled:opacity-60"
                   onClick={upsertDiaSemana}
+                  disabled={savingDia}
                 >
-                  Guardar día
+                  {savingDia ? "Guardando..." : "Guardar día"}
                 </button>
               </div>
             </div>
@@ -694,10 +715,11 @@ export default function EditarPlantillaPage() {
 
               <div className="flex justify-end">
                 <button
-                  className="px-3 py-2 rounded bg-blue-600 text-white"
+                  className="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-60"
                   onClick={guardarBloquesDia}
+                  disabled={savingBloques}
                 >
-                  Guardar bloques
+                  {savingBloques ? "Guardando..." : "Guardar bloques"}
                 </button>
               </div>
             </div>
@@ -762,10 +784,11 @@ export default function EditarPlantillaPage() {
 
               <div>
                 <button
-                  className="px-3 py-2 rounded bg-blue-600 text-white w-full"
+                  className="px-3 py-2 rounded bg-blue-600 text-white w-full disabled:opacity-60"
                   onClick={upsertExcepcion}
+                  disabled={savingExcepcion}
                 >
-                  Guardar excepción
+                  {savingExcepcion ? "Guardando..." : "Guardar excepción"}
                 </button>
               </div>
 
@@ -876,10 +899,11 @@ export default function EditarPlantillaPage() {
 
               <div className="md:col-span-4 flex justify-end">
                 <button
-                  className="px-3 py-2 rounded bg-blue-600 text-white"
+                  className="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-60"
                   onClick={asignar}
+                  disabled={savingAsig}
                 >
-                  Asignar
+                  {savingAsig ? "Asignando..." : "Asignar"}
                 </button>
               </div>
             </div>
@@ -958,10 +982,11 @@ export default function EditarPlantillaPage() {
 
               <div>
                 <button
-                  className="px-3 py-2 rounded bg-blue-600 text-white w-full"
+                  className="px-3 py-2 rounded bg-blue-600 text-white w-full disabled:opacity-60"
                   onClick={loadPreview}
+                  disabled={loadingPreview}
                 >
-                  Ver plan
+                  {loadingPreview ? "Cargando..." : "Ver plan"}
                 </button>
               </div>
             </div>

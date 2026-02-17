@@ -101,6 +101,7 @@ export default function PlantillasPanel() {
     return DIAS.find((d) => d.n === diaSemanaSel)?.label || "";
   }, [diaSemanaSel]);
   const [copying, setCopying] = useState(false);
+  const [creatingPlantilla, setCreatingPlantilla] = useState(false);
 
   // -----------------------
   // Loads
@@ -239,6 +240,7 @@ export default function PlantillasPanel() {
     const nombre = window.prompt("Nombre de plantilla:");
     if (!nombre?.trim()) return;
 
+    setCreatingPlantilla(true);
     setError(null);
     try {
       const r = await api.post("/admin/plantillas", {
@@ -251,6 +253,8 @@ export default function PlantillasPanel() {
       setSel(r.data);
     } catch (e) {
       setError(apiErrorMessage(e));
+    } finally {
+      setCreatingPlantilla(false);
     }
   }
 
@@ -447,10 +451,11 @@ export default function PlantillasPanel() {
         <div className="flex items-center justify-between">
           <h2 className="font-bold">Plantillas</h2>
           <button
-            className="px-3 py-2 rounded bg-green-600 text-white"
+            className="px-3 py-2 rounded bg-green-600 text-white disabled:opacity-60"
             onClick={crearPlantilla}
+            disabled={creatingPlantilla}
           >
-            + Nueva
+            {creatingPlantilla ? "Creando..." : "+ Nueva"}
           </button>
         </div>
 
