@@ -29,17 +29,17 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell,
+    LineChart,
+    Line,
     Legend
 } from 'recharts'
-import { FileText, Download, Loader2 } from "lucide-react"
+import { FileText, Download, Loader2, PieChart as PieIcon, BarChart3, LineChart as LineIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function InformesPage() {
     const [activeTab, setActiveTab] = useState("iva")
     const [loading, setLoading] = useState(false)
+    const [chartType, setChartType] = useState<'pie' | 'bar' | 'line'>('pie')
 
     // Data States
     const [ivaData, setIvaData] = useState<any>(null)
@@ -219,35 +219,85 @@ export default function InformesPage() {
 
                         {/* Grafico Circular */}
                         <Card>
-                            <CardHeader>
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle>Distribución</CardTitle>
+                                <div className="flex items-center gap-1 border rounded-md p-0.5">
+                                    <Button
+                                        variant={chartType === 'pie' ? 'secondary' : 'ghost'}
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => setChartType('pie')}
+                                    >
+                                        <PieIcon className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant={chartType === 'bar' ? 'secondary' : 'ghost'}
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => setChartType('bar')}
+                                    >
+                                        <BarChart3 className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant={chartType === 'line' ? 'secondary' : 'ghost'}
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => setChartType('line')}
+                                    >
+                                        <LineIcon className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="w-full h-[300px] min-h-[300px]">
                                     {loading && !clientesData.length ? <LoadingState /> : (
                                         <ResponsiveContainer width="100%" height="100%" minHeight={300}>
-                                            <PieChart>
-                                                <Pie
-                                                    data={clientesData.slice(0, 5).map(c => ({
-                                                        ...c,
-                                                        name: c.nombre,
-                                                        total_facturado: Number(c.total_facturado)
-                                                    }))}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={60}
-                                                    outerRadius={80}
-                                                    paddingAngle={5}
-                                                    dataKey="total_facturado"
-                                                    nameKey="name"
-                                                >
-                                                    {clientesData.slice(0, 5).map((entry: any, index: number) => (
-                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip formatter={(val: any) => formatCurrency(val)} />
-                                                <Legend />
-                                            </PieChart>
+                                            {chartType === 'pie' ? (
+                                                <PieChart>
+                                                    <Pie
+                                                        data={clientesData.slice(0, 5).map(c => ({
+                                                            ...c,
+                                                            name: c.nombre,
+                                                            total_facturado: Number(c.total_facturado)
+                                                        }))}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={60}
+                                                        outerRadius={80}
+                                                        paddingAngle={5}
+                                                        dataKey="total_facturado"
+                                                        nameKey="name"
+                                                    >
+                                                        {clientesData.slice(0, 5).map((entry: any, index: number) => (
+                                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip formatter={(val: any) => formatCurrency(val)} />
+                                                    <Legend />
+                                                </PieChart>
+                                            ) : chartType === 'bar' ? (
+                                                <BarChart data={clientesData.slice(0, 8).map(c => ({
+                                                    name: c.nombre.length > 15 ? c.nombre.substring(0, 12) + '...' : c.nombre,
+                                                    total: Number(c.total_facturado)
+                                                }))}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                                    <XAxis dataKey="name" fontSize={10} />
+                                                    <YAxis fontSize={10} tickFormatter={(val) => `${val / 1000}k`} />
+                                                    <Tooltip formatter={(val: any) => formatCurrency(val)} />
+                                                    <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                                </BarChart>
+                                            ) : (
+                                                <LineChart data={clientesData.slice(0, 10).map(c => ({
+                                                    name: c.nombre.length > 15 ? c.nombre.substring(0, 12) + '...' : c.nombre,
+                                                    total: Number(c.total_facturado)
+                                                }))}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                                    <XAxis dataKey="name" fontSize={10} />
+                                                    <YAxis fontSize={10} tickFormatter={(val) => `${val / 1000}k`} />
+                                                    <Tooltip formatter={(val: any) => formatCurrency(val)} />
+                                                    <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} />
+                                                </LineChart>
+                                            )}
                                         </ResponsiveContainer>
                                     )}
                                 </div>
