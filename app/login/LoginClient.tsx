@@ -163,11 +163,11 @@ export default function LoginClient() {
   const blocked = loading || checkingSession;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 relative">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Overlay bloqueante cuando se verifica sesión o se está haciendo login */}
       {blocked && (
-        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-50 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-100/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 bg-white rounded-2xl px-8 py-6 shadow-lg">
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
             <p className="text-sm font-medium text-gray-600">
               {checkingSession ? "Verificando sesión..." : "Iniciando sesión..."}
