@@ -150,10 +150,14 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
     // URL via Proxy Backend para evitar exponer credenciales o requerir env vars en frontend
     const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+
+    // Obtener token para autenticar la petición del proxy
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
+
     const docUrl = rawDocUrl?.startsWith("http")
         ? rawDocUrl
         : rawDocUrl
-            ? `${apiUrl}/admin/purchases/proxy?path=${encodeURIComponent(rawDocUrl)}`
+            ? `${apiUrl}/admin/purchases/proxy?path=${encodeURIComponent(rawDocUrl)}&token=${token}`
             : "";
 
     // Determinar tipo por extensión del archivo original
