@@ -2,9 +2,9 @@
 
 import { FormEvent, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { login, getOrGenerateDeviceHash } from "@/services/auth";
+import { login, getOrGenerateDeviceHash, refreshMe, getUser } from "@/services/auth";
 import { api, setAuthToken } from "@/services/api";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 
@@ -32,18 +32,27 @@ export default function LoginClient() {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
-  // Al montar, verificar si ya hay token → mostrar loading mientras AuthInit decide
+  // Al montar, verificar si hay token → bloquear pantalla mientras se valida
   useEffect(() => {
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-    if (token) {
-      // AuthInit se encargará de redirigir, mientras tanto mostramos loading
-      setCheckingSession(true);
-      // Timeout de seguridad: si tras 5s no se ha redirigido, dejar ver el login
-      const timeout = setTimeout(() => setCheckingSession(false), 5000);
-      return () => clearTimeout(timeout);
-    } else {
+    if (!token) {
       setCheckingSession(false);
+      return;
     }
+
+    // Hay token → validar contra el backend
+    setAuthToken(token);
+    refreshMe()
+      .then(() => {
+        // Token válido → redirigir al dashboard
+        const user = getUser();
+        const dest = user?.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard";
+        window.location.href = dest;
+      })
+      .catch(() => {
+        // Token caducado o inválido → desbloquear pantalla de login
+        setCheckingSession(false);
+      });
   }, []);
 
   // Handle Google credential response
@@ -59,7 +68,6 @@ export default function LoginClient() {
 
       const { token, user, is_new_user } = res.data;
 
-      // Save to localStorage (always remember for Google)
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
       sessionStorage.removeItem("token");
@@ -68,7 +76,6 @@ export default function LoginClient() {
 
       showSuccess(is_new_user ? "Cuenta creada correctamente" : "Inicio de sesión exitoso");
 
-      // No hacer setLoading(false) tras login exitoso — mantener loading hasta que la navegación se complete
       if (is_new_user) {
         window.location.href = "/onboarding";
       } else if (user.role === "admin") {
@@ -83,7 +90,6 @@ export default function LoginClient() {
   }, [router]);
 
   useEffect(() => {
-    // Check for session expired flag
     if (localStorage.getItem("session_expired") === "true") {
       localStorage.removeItem("session_expired");
       setTimeout(() => {
@@ -92,7 +98,7 @@ export default function LoginClient() {
     }
   }, []);
 
-  // Initialize Google Identity Services (solo cuando el formulario es visible)
+  // Initialize Google Identity Services (solo cuando el formulario es interactivo)
   useEffect(() => {
     if (loading || checkingSession) return;
 
@@ -120,7 +126,6 @@ export default function LoginClient() {
       }
     };
 
-    // Retry until script loads
     if (window.google?.accounts?.id) {
       initGoogle();
     } else {
@@ -143,7 +148,6 @@ export default function LoginClient() {
       const result = await login(email, password, undefined, remember);
       showSuccess("Inicio de sesión exitoso");
 
-      // No hacer setLoading(false) tras login exitoso — mantener loading hasta que la navegación se complete
       if (result?.decoded?.role === "admin") {
         window.location.href = "/admin/dashboard";
       } else {
@@ -155,27 +159,23 @@ export default function LoginClient() {
     }
   }
 
-  // Pantalla de carga a pantalla completa
-  if (loading || checkingSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md space-y-6">
-          <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold tracking-tight">CONTENDO GESTIONES</h1>
-            <div className="flex flex-col items-center gap-3 py-8">
-              <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-gray-500">
-                {checkingSession ? "Verificando sesión..." : "Iniciando sesión..."}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Estado bloqueado: pantalla visible pero no interactiva
+  const blocked = loading || checkingSession;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 relative">
+      {/* Overlay bloqueante cuando se verifica sesión o se está haciendo login */}
+      {blocked && (
+        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-sm font-medium text-gray-600">
+              {checkingSession ? "Verificando sesión..." : "Iniciando sesión..."}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">CONTENDO GESTIONES</h1>
@@ -197,6 +197,7 @@ export default function LoginClient() {
               type="button"
               onClick={() => setShowEmailForm(!showEmailForm)}
               className="bg-white px-3 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              disabled={blocked}
             >
               {showEmailForm ? "Ocultar" : "Acceso con email"}
             </button>
@@ -214,7 +215,7 @@ export default function LoginClient() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={loading}
+                disabled={blocked}
               />
             </div>
 
@@ -228,7 +229,7 @@ export default function LoginClient() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={loading}
+                disabled={blocked}
               />
               <button
                 type="button"
@@ -247,7 +248,7 @@ export default function LoginClient() {
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
-                disabled={loading}
+                disabled={blocked}
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 cursor-pointer select-none">
                 Mantener sesión iniciada
@@ -256,7 +257,7 @@ export default function LoginClient() {
 
             <Button
               type="submit"
-              disabled={loading}
+              disabled={blocked}
               className="w-full py-5 text-base font-bold shadow-md hover:shadow-xl transition-all"
             >
               Entrar
