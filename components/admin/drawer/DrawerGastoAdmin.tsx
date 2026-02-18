@@ -137,7 +137,57 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         }
     }, [watchedTotal, watchedIvaPct, setValue, getValues]);
 
+    const [categories, setCategories] = useState<string[]>(["general", "material", "combustible", "herramientas", "oficina"]);
+    const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
+
+    const [paymentMethods, setPaymentMethods] = useState<string[]>(["efectivo", "tarjeta", "transferencia", "domiciliacion"]);
+    const [isNewPaymentMethodOpen, setIsNewPaymentMethodOpen] = useState(false);
+    const [newPaymentMethodName, setNewPaymentMethodName] = useState("");
+
+    const handleCreateCategory = () => {
+        if (!newCategoryName.trim()) return;
+        const normalized = newCategoryName.trim().toLowerCase();
+        if (!categories.includes(normalized)) {
+            setCategories(prev => [...prev, normalized]);
+        }
+        setValue("categoria", normalized);
+        setIsNewCategoryOpen(false);
+        setNewCategoryName("");
+    };
+
+    const handleCreatePaymentMethod = () => {
+        if (!newPaymentMethodName.trim()) return;
+        const normalized = newPaymentMethodName.trim().toLowerCase();
+        if (!paymentMethods.includes(normalized)) {
+            setPaymentMethods(prev => [...prev, normalized]);
+        }
+        setValue("metodo_pago", normalized);
+        setIsNewPaymentMethodOpen(false);
+        setNewPaymentMethodName("");
+    };
+
     useEffect(() => {
+        if (isOpen) {
+            // Cargar categorías existentes
+            api.get("/admin/purchases/values?field=categoria")
+                .then(res => {
+                    const dbValues = res.data?.data || [];
+                    const unique = Array.from(new Set([...categories, ...dbValues]));
+                    setCategories(unique);
+                })
+                .catch(err => console.error("Error cargando categorías", err));
+
+            // Cargar métodos de pago existentes
+            api.get("/admin/purchases/values?field=metodo_pago")
+                .then(res => {
+                    const dbValues = res.data?.data || [];
+                    const unique = Array.from(new Set([...paymentMethods, ...dbValues]));
+                    setPaymentMethods(unique);
+                })
+                .catch(err => console.error("Error cargando métodos pago", err));
+        }
+
         if (editingGasto) {
             reset({
                 proveedor: editingGasto.proveedor || "",
@@ -153,6 +203,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 documento_url: editingGasto.documento_url || "",
             });
             setUploadedFile(null);
+            setSelectedFileObj(null);
         } else {
             reset({
                 categoria: "general",
@@ -168,8 +219,11 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 documento_url: "",
             });
             setUploadedFile(null);
+            setSelectedFileObj(null);
         }
-    }, [editingGasto, reset]);
+    }, [isOpen, editingGasto, reset]);
+
+    const [selectedFileObj, setSelectedFileObj] = useState<File | null>(null);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -183,6 +237,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         }
 
         setUploadedFile({ name: file.name, type: file.type });
+        setSelectedFileObj(file); // Guardar el objeto File para envío posterior
         setIsOcrProcessing(true);
 
         try {
@@ -190,6 +245,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             formData.append("file", file);
 
             // Llamada al endpoint de OCR (asumiendo estructura backend)
+            // Ya NO DEVUELVE documento_url, solo datos
             const res = await api.post("/admin/purchases/ocr", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
@@ -226,7 +282,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             } catch (e) { }
         }
         if (ocrPreviewData.descripcion) setValue("descripcion", ocrPreviewData.descripcion);
-        if (ocrPreviewData.documento_url) setValue("documento_url", ocrPreviewData.documento_url);
+        // NO asignamos documento_url aquí, se asigna tras guardar
         if (ocrPreviewData.anio) setValue("anio", ocrPreviewData.anio);
         if (ocrPreviewData.trimestre) setValue("trimestre", ocrPreviewData.trimestre);
 
@@ -238,11 +294,30 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const onSubmit = async (data: any) => {
         setLoading(true);
         try {
+            // Construir FormData para enviar archivo + datos
+            const formData = new FormData();
+
+            // Añadir todos los campos del formulario al FormData
+            Object.keys(data).forEach(key => {
+                if (data[key] !== undefined && data[key] !== null) {
+                    formData.append(key, data[key]);
+                }
+            });
+
+            // Si hay un archivo nuevo seleccionado, añadirlo
+            if (selectedFileObj) {
+                formData.append("file", selectedFileObj);
+            }
+
             if (editingGasto) {
-                await api.put(`/admin/purchases/${editingGasto.id}`, data);
+                await api.put(`/admin/purchases/${editingGasto.id}`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
                 showSuccess("Gasto actualizado correctamente");
             } else {
-                await api.post("/admin/purchases", data);
+                await api.post("/admin/purchases", formData, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
                 showSuccess("Gasto registrado correctamente");
             }
             onSuccess();
@@ -447,18 +522,26 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                             </Label>
                             <Select
                                 value={watch("categoria")}
-                                onValueChange={(val) => setValue("categoria", val)}
+                                onValueChange={(val) => {
+                                    if (val === "__new__") {
+                                        setIsNewCategoryOpen(true);
+                                    } else {
+                                        setValue("categoria", val);
+                                    }
+                                }}
                             >
                                 <SelectTrigger className="bg-slate-50/10 h-11 rounded-xl">
                                     <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="general">General</SelectItem>
-                                    <SelectItem value="material">Material</SelectItem>
-                                    <SelectItem value="combustible">Combustible</SelectItem>
-                                    <SelectItem value="herramientas">Herramientas</SelectItem>
-                                    <SelectItem value="oficina">Oficina</SelectItem>
-                                    <SelectItem value="otros">Otros</SelectItem>
+                                    {categories.map((cat) => (
+                                        <SelectItem key={cat} value={cat} className="capitalize">
+                                            {cat}
+                                        </SelectItem>
+                                    ))}
+                                    <SelectItem value="__new__" className="text-blue-600 font-bold border-t mt-1">
+                                        + Crear nueva
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -471,27 +554,95 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                             </Label>
                             <Select
                                 value={watch("metodo_pago")}
-                                onValueChange={(val) => setValue("metodo_pago", val)}
+                                onValueChange={(val) => {
+                                    if (val === "__new__") {
+                                        setIsNewPaymentMethodOpen(true);
+                                    } else {
+                                        setValue("metodo_pago", val);
+                                    }
+                                }}
                             >
                                 <SelectTrigger className="bg-slate-50/10 h-11 rounded-xl">
                                     <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="efectivo">Efectivo</SelectItem>
-                                    <SelectItem value="tarjeta">Tarjeta</SelectItem>
-                                    <SelectItem value="transferencia">Transferencia</SelectItem>
-                                    <SelectItem value="domiciliacion">Domiciliación</SelectItem>
+                                    {paymentMethods.map((pm) => (
+                                        <SelectItem key={pm} value={pm} className="capitalize">
+                                            {pm}
+                                        </SelectItem>
+                                    ))}
+                                    <SelectItem value="__new__" className="text-blue-600 font-bold border-t mt-1">
+                                        + Crear nuevo
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
                 </div>
 
+                {/* Dialog Nueva Categoría */}
+                <Dialog open={isNewCategoryOpen} onOpenChange={setIsNewCategoryOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Nueva Categoría</DialogTitle>
+                            <DialogDescription>
+                                Añade una nueva categoría para tus gastos.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="category-name">Nombre</Label>
+                                <Input
+                                    id="category-name"
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    placeholder="Ej: Marketing"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsNewCategoryOpen(false)}>Cancelar</Button>
+                            <Button onClick={handleCreateCategory}>Crear</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Dialog Nuevo Método de Pago */}
+                <Dialog open={isNewPaymentMethodOpen} onOpenChange={setIsNewPaymentMethodOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Nuevo Método de Pago</DialogTitle>
+                            <DialogDescription>
+                                Añade un nuevo método de pago.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="payment-name">Nombre</Label>
+                                <Input
+                                    id="payment-name"
+                                    value={newPaymentMethodName}
+                                    onChange={(e) => setNewPaymentMethodName(e.target.value)}
+                                    placeholder="Ej: American Express"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsNewPaymentMethodOpen(false)}>Cancelar</Button>
+                            <Button onClick={handleCreatePaymentMethod}>Crear</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
                 {/* Link al documento si existe */}
                 {watch("documento_url") && (
                     <div className="pt-2">
                         <a
-                            href={watch("documento_url")}
+                            href={
+                                watch("documento_url")?.startsWith("http")
+                                    ? watch("documento_url")
+                                    : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "")}/${watch("documento_url")?.replace(/^\//, "")}`
+                            }
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center justify-center gap-2 w-full py-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
@@ -683,6 +834,6 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </IOSDrawer>
+        </IOSDrawer >
     );
 }
