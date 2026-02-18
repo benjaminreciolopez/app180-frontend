@@ -2,7 +2,7 @@
 
 import { FormEvent, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { login, getOrGenerateDeviceHash, refreshMe, getUser } from "@/services/auth";
+import { login, getOrGenerateDeviceHash } from "@/services/auth";
 import { api, setAuthToken } from "@/services/api";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
@@ -30,30 +30,6 @@ export default function LoginClient() {
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
-
-  // Al montar, verificar si hay token → bloquear pantalla mientras se valida
-  useEffect(() => {
-    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-    if (!token) {
-      setCheckingSession(false);
-      return;
-    }
-
-    // Hay token → validar contra el backend
-    setAuthToken(token);
-    refreshMe()
-      .then(() => {
-        // Token válido → redirigir al dashboard
-        const user = getUser();
-        const dest = user?.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard";
-        window.location.href = dest;
-      })
-      .catch(() => {
-        // Token caducado o inválido → desbloquear pantalla de login
-        setCheckingSession(false);
-      });
-  }, []);
 
   // Handle Google credential response
   const handleGoogleResponse = useCallback(async (response: any) => {
@@ -98,9 +74,9 @@ export default function LoginClient() {
     }
   }, []);
 
-  // Initialize Google Identity Services (solo cuando el formulario es interactivo)
+  // Initialize Google Identity Services
   useEffect(() => {
-    if (loading || checkingSession) return;
+    if (loading) return;
 
     const initGoogle = () => {
       if (window.google?.accounts?.id) {
@@ -137,7 +113,7 @@ export default function LoginClient() {
       }, 200);
       return () => clearInterval(interval);
     }
-  }, [handleGoogleResponse, loading, checkingSession]);
+  }, [handleGoogleResponse, loading]);
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -159,19 +135,14 @@ export default function LoginClient() {
     }
   }
 
-  // Estado bloqueado: pantalla visible pero no interactiva
-  const blocked = loading || checkingSession;
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Overlay bloqueante cuando se verifica sesión o se está haciendo login */}
-      {blocked && (
+      {/* Overlay cuando se está haciendo login */}
+      {loading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-100/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3 bg-white rounded-2xl px-8 py-6 shadow-lg">
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-            <p className="text-sm font-medium text-gray-600">
-              {checkingSession ? "Verificando sesión..." : "Iniciando sesión..."}
-            </p>
+            <p className="text-sm font-medium text-gray-600">Iniciando sesión...</p>
           </div>
         </div>
       )}
@@ -197,7 +168,6 @@ export default function LoginClient() {
               type="button"
               onClick={() => setShowEmailForm(!showEmailForm)}
               className="bg-white px-3 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-              disabled={blocked}
             >
               {showEmailForm ? "Ocultar" : "Acceso con email"}
             </button>
@@ -215,7 +185,7 @@ export default function LoginClient() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={blocked}
+                disabled={loading}
               />
             </div>
 
@@ -229,7 +199,7 @@ export default function LoginClient() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={blocked}
+                disabled={loading}
               />
               <button
                 type="button"
@@ -248,7 +218,7 @@ export default function LoginClient() {
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
-                disabled={blocked}
+                disabled={loading}
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 cursor-pointer select-none">
                 Mantener sesión iniciada
@@ -257,7 +227,7 @@ export default function LoginClient() {
 
             <Button
               type="submit"
-              disabled={blocked}
+              disabled={loading}
               className="w-full py-5 text-base font-bold shadow-md hover:shadow-xl transition-all"
             >
               Entrar
