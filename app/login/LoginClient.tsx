@@ -30,6 +30,21 @@ export default function LoginClient() {
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // Al montar, verificar si ya hay token → mostrar loading mientras AuthInit decide
+  useEffect(() => {
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+    if (token) {
+      // AuthInit se encargará de redirigir, mientras tanto mostramos loading
+      setCheckingSession(true);
+      // Timeout de seguridad: si tras 5s no se ha redirigido, dejar ver el login
+      const timeout = setTimeout(() => setCheckingSession(false), 5000);
+      return () => clearTimeout(timeout);
+    } else {
+      setCheckingSession(false);
+    }
+  }, []);
 
   // Handle Google credential response
   const handleGoogleResponse = useCallback(async (response: any) => {
@@ -53,16 +68,16 @@ export default function LoginClient() {
 
       showSuccess(is_new_user ? "Cuenta creada correctamente" : "Inicio de sesión exitoso");
 
+      // No hacer setLoading(false) tras login exitoso — mantener loading hasta que la navegación se complete
       if (is_new_user) {
-        router.replace("/onboarding");
+        window.location.href = "/onboarding";
       } else if (user.role === "admin") {
-        router.replace("/admin/dashboard");
+        window.location.href = "/admin/dashboard";
       } else {
-        router.replace("/empleado/dashboard");
+        window.location.href = "/empleado/dashboard";
       }
     } catch (err: any) {
       showError(err?.response?.data?.error || "Error con Google Sign-In");
-    } finally {
       setLoading(false);
     }
   }, [router]);
@@ -71,13 +86,16 @@ export default function LoginClient() {
     // Check for session expired flag
     if (localStorage.getItem("session_expired") === "true") {
       localStorage.removeItem("session_expired");
-      // Use setTimeout to ensure toast library is ready/mounted
       setTimeout(() => {
         showError("Tu sesión ha caducado. Por favor inicia sesión nuevamente.");
       }, 500);
     }
-    
-    // Initialize Google Identity Services
+  }, []);
+
+  // Initialize Google Identity Services (solo cuando el formulario es visible)
+  useEffect(() => {
+    if (loading || checkingSession) return;
+
     const initGoogle = () => {
       if (window.google?.accounts?.id) {
         window.google.accounts.id.initialize({
@@ -114,7 +132,7 @@ export default function LoginClient() {
       }, 200);
       return () => clearInterval(interval);
     }
-  }, [handleGoogleResponse]);
+  }, [handleGoogleResponse, loading, checkingSession]);
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -125,16 +143,35 @@ export default function LoginClient() {
       const result = await login(email, password, undefined, remember);
       showSuccess("Inicio de sesión exitoso");
 
+      // No hacer setLoading(false) tras login exitoso — mantener loading hasta que la navegación se complete
       if (result?.decoded?.role === "admin") {
-        router.replace("/admin/dashboard");
+        window.location.href = "/admin/dashboard";
       } else {
-        router.replace("/empleado/dashboard");
+        window.location.href = "/empleado/dashboard";
       }
     } catch (err: any) {
       showError(err?.response?.data?.error || "Error al iniciar sesión");
-    } finally {
       setLoading(false);
     }
+  }
+
+  // Pantalla de carga a pantalla completa
+  if (loading || checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md space-y-6">
+          <div className="text-center space-y-4">
+            <h1 className="text-2xl font-bold tracking-tight">CONTENDO GESTIONES</h1>
+            <div className="flex flex-col items-center gap-3 py-8">
+              <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-gray-500">
+                {checkingSession ? "Verificando sesión..." : "Iniciando sesión..."}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -149,10 +186,6 @@ export default function LoginClient() {
         <div className="flex justify-center">
           <div id="google-btn" className="w-full flex justify-center" />
         </div>
-
-        {loading && (
-          <div className="text-center text-sm text-gray-500">Conectando...</div>
-        )}
 
         {/* Separator */}
         <div className="relative">
@@ -226,7 +259,7 @@ export default function LoginClient() {
               disabled={loading}
               className="w-full py-5 text-base font-bold shadow-md hover:shadow-xl transition-all"
             >
-              {loading ? "Iniciando sesión..." : "Entrar"}
+              Entrar
             </Button>
           </form>
         )}
