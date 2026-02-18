@@ -148,15 +148,16 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const rawDocUrl = watch("documento_url");
 
-    // Construir URL para visualización (Supabase Storage)
-    // Asume bucket público 'app180-files' o URL firmada si fuera privado (aquí bucket público)
+    // URL via Proxy Backend para evitar exponer credenciales o requerir env vars en frontend
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
     const docUrl = rawDocUrl?.startsWith("http")
         ? rawDocUrl
         : rawDocUrl
-            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/app180-files/${rawDocUrl}`
+            ? `${apiUrl}/admin/purchases/proxy?path=${encodeURIComponent(rawDocUrl)}`
             : "";
 
-    const isPdf = docUrl?.toLowerCase().endsWith(".pdf");
+    // Determinar tipo por extensión del archivo original
+    const isPdf = rawDocUrl?.toLowerCase().endsWith(".pdf");
 
     const handleCreateCategory = () => {
         if (!newCategoryName.trim()) return;
