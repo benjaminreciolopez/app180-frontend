@@ -46,6 +46,8 @@ const gastoSchema = z.object({
     iva_importe: z.number().optional(),
     iva_porcentaje: z.number().optional(),
     document_url: z.string().optional(),
+    anio: z.number().optional(),
+    trimestre: z.number().optional(),
 });
 
 type GastoFormValues = z.infer<typeof gastoSchema>;
@@ -145,6 +147,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 }
                 if (ocrData.descripcion) setValue("descripcion", ocrData.descripcion);
                 if (ocrData.document_url) setValue("document_url", ocrData.document_url);
+                if (ocrData.anio) setValue("anio", ocrData.anio);
+                if (ocrData.trimestre) setValue("trimestre", ocrData.trimestre);
 
                 showSuccess("Datos extraídos correctamente de la factura");
             }
