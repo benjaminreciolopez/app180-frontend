@@ -145,6 +145,19 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const [isNewPaymentMethodOpen, setIsNewPaymentMethodOpen] = useState(false);
     const [newPaymentMethodName, setNewPaymentMethodName] = useState("");
 
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const rawDocUrl = watch("documento_url");
+
+    // Construir URL para visualización (Supabase Storage)
+    // Asume bucket público 'app180-files' o URL firmada si fuera privado (aquí bucket público)
+    const docUrl = rawDocUrl?.startsWith("http")
+        ? rawDocUrl
+        : rawDocUrl
+            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/app180-files/${rawDocUrl}`
+            : "";
+
+    const isPdf = docUrl?.toLowerCase().endsWith(".pdf");
+
     const handleCreateCategory = () => {
         if (!newCategoryName.trim()) return;
         const normalized = newCategoryName.trim().toLowerCase();
@@ -634,24 +647,47 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                     </DialogContent>
                 </Dialog>
 
-                {/* Link al documento si existe */}
+                {/* Botón para ver documento */}
                 {watch("documento_url") && (
                     <div className="pt-2">
-                        <a
-                            href={
-                                watch("documento_url")?.startsWith("http")
-                                    ? watch("documento_url")
-                                    : `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "")}/${watch("documento_url")?.replace(/^\//, "")}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <button
+                            type="button"
+                            onClick={() => setIsPreviewOpen(true)}
                             className="flex items-center justify-center gap-2 w-full py-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
                         >
-                            <ExternalLink size={14} />
+                            <FileText size={14} />
                             VER DOCUMENTO ORIGINAL
-                        </a>
+                        </button>
                     </div>
                 )}
+
+                {/* Modal Visor de Documento */}
+                <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                    <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <FileText size={20} className="text-blue-500" />
+                                Documento Original
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="flex-1 bg-slate-100 rounded-lg overflow-hidden relative">
+                            {isPdf ? (
+                                <iframe
+                                    src={docUrl}
+                                    className="w-full h-full"
+                                    title="Visor PDF"
+                                />
+                            ) : (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                    src={docUrl}
+                                    alt="Documento Gasto"
+                                    className="w-full h-full object-contain"
+                                />
+                            )}
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Footer con botones */}
                 <div className="pt-6 border-t flex gap-3">
