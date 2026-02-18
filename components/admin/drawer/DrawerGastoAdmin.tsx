@@ -34,6 +34,14 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+    DialogDescription,
+} from "@/components/ui/dialog";
 
 const gastoSchema = z.object({
     proveedor: z.string().optional(),
@@ -64,6 +72,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const [loading, setLoading] = useState(false);
     const [isOcrProcessing, setIsOcrProcessing] = useState(false);
     const [uploadedFile, setUploadedFile] = useState<{ name: string; type: string } | null>(null);
+    const [ocrPreviewData, setOcrPreviewData] = useState<any>(null);
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
 
     const {
         register,
@@ -135,22 +145,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
             const ocrData = res.data?.data;
             if (ocrData) {
-                if (ocrData.proveedor) setValue("proveedor", ocrData.proveedor);
-                if (ocrData.total) setValue("total", Number(ocrData.total));
-                if (ocrData.fecha_compra) {
-                    try {
-                        const date = new Date(ocrData.fecha_compra);
-                        if (!isNaN(date.getTime())) {
-                            setValue("fecha_compra", date.toISOString().split("T")[0]);
-                        }
-                    } catch (e) { }
-                }
-                if (ocrData.descripcion) setValue("descripcion", ocrData.descripcion);
-                if (ocrData.document_url) setValue("document_url", ocrData.document_url);
-                if (ocrData.anio) setValue("anio", ocrData.anio);
-                if (ocrData.trimestre) setValue("trimestre", ocrData.trimestre);
-
-                showSuccess("Datos extraídos correctamente de la factura");
+                setOcrPreviewData(ocrData);
+                setShowPreviewModal(true);
             }
         } catch (error: any) {
             console.error("Error OCR:", error);
@@ -158,6 +154,29 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         } finally {
             setIsOcrProcessing(false);
         }
+    };
+
+    const confirmOcrData = () => {
+        if (!ocrPreviewData) return;
+
+        if (ocrPreviewData.proveedor) setValue("proveedor", ocrPreviewData.proveedor);
+        if (ocrPreviewData.total) setValue("total", Number(ocrPreviewData.total));
+        if (ocrPreviewData.fecha_compra) {
+            try {
+                const date = new Date(ocrPreviewData.fecha_compra);
+                if (!isNaN(date.getTime())) {
+                    setValue("fecha_compra", date.toISOString().split("T")[0]);
+                }
+            } catch (e) { }
+        }
+        if (ocrPreviewData.descripcion) setValue("descripcion", ocrPreviewData.descripcion);
+        if (ocrPreviewData.document_url) setValue("document_url", ocrPreviewData.document_url);
+        if (ocrPreviewData.anio) setValue("anio", ocrPreviewData.anio);
+        if (ocrPreviewData.trimestre) setValue("trimestre", ocrPreviewData.trimestre);
+
+        showSuccess("Datos aplicados correctamente");
+        setShowPreviewModal(false);
+        setOcrPreviewData(null);
     };
 
     const onSubmit: SubmitHandler<GastoFormValues> = async (data) => {
@@ -406,6 +425,101 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                     </Button>
                 </div>
             </form>
+
+            {/* Modal de Previsualización OCR */}
+            <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="text-blue-500" size={20} />
+                            Revisar Datos Extraídos
+                        </DialogTitle>
+                        <DialogDescription>
+                            La IA ha detectado los siguientes datos. Puedes modificarlos ahora o después en el formulario.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {ocrPreviewData && (
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-bold text-slate-400 uppercase">Proveedor</Label>
+                                <Input
+                                    value={ocrPreviewData.proveedor || ""}
+                                    onChange={(e) => setOcrPreviewData({ ...ocrPreviewData, proveedor: e.target.value })}
+                                    className="h-10 bg-slate-50 border-slate-200"
+                                    placeholder="No detectado"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Importe Total</Label>
+                                    <div className="relative">
+                                        <Input
+                                            type="number"
+                                            value={ocrPreviewData.total || ""}
+                                            onChange={(e) => setOcrPreviewData({ ...ocrPreviewData, total: e.target.value })}
+                                            className="h-10 bg-slate-50 border-slate-200 pl-7"
+                                            placeholder="0.00"
+                                        />
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-mono">€</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Fecha</Label>
+                                    <Input
+                                        type="date"
+                                        value={ocrPreviewData.fecha_compra || ""}
+                                        onChange={(e) => setOcrPreviewData({ ...ocrPreviewData, fecha_compra: e.target.value })}
+                                        className="h-10 bg-slate-50 border-slate-200"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-bold text-slate-400 uppercase">Descripción / Concepto</Label>
+                                <Input
+                                    value={ocrPreviewData.descripcion || ""}
+                                    onChange={(e) => setOcrPreviewData({ ...ocrPreviewData, descripcion: e.target.value })}
+                                    className="h-10 bg-slate-50 border-slate-200"
+                                    placeholder="No detectado"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2 p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                    <Tag size={14} />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-bold text-blue-700 uppercase">Periodo Contable</p>
+                                    <p className="text-xs text-blue-600 font-medium">
+                                        Año {ocrPreviewData.anio} • Trimestre {ocrPreviewData.trimestre}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-600"
+                            onClick={() => {
+                                setShowPreviewModal(false);
+                                setOcrPreviewData(null);
+                            }}
+                        >
+                            Descartar
+                        </Button>
+                        <Button
+                            className="bg-black text-white hover:bg-slate-800"
+                            onClick={confirmOcrData}
+                        >
+                            Confirmar y Rellenar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </IOSDrawer>
     );
 }
