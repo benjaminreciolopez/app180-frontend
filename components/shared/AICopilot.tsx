@@ -112,6 +112,11 @@ export function AICopilot() {
       }
 
       setMensajes(prev => [...prev, mensajeAsistente])
+
+      // Si CONTENDO ejecutó una acción de escritura, refrescar datos del dashboard
+      if (response.data.accion_realizada) {
+        window.dispatchEvent(new Event("data-updated"))
+      }
     } catch (error: any) {
       console.error("Error al chatear con IA:", error)
 

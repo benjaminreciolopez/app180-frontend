@@ -185,9 +185,16 @@ export default function DashboardPage() {
       loadAll();
     };
 
+    // Refrescar cuando CONTENDO ejecuta una acción de escritura
+    const onDataUpdated = () => {
+      loadAll();
+    };
+
     window.addEventListener("session-updated", onSessionUpdated);
+    window.addEventListener("data-updated", onDataUpdated);
     return () => {
       window.removeEventListener("session-updated", onSessionUpdated);
+      window.removeEventListener("data-updated", onDataUpdated);
     };
   }, []);
 
