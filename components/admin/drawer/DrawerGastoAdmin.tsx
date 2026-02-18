@@ -46,16 +46,17 @@ import {
 const gastoSchema = z.object({
     proveedor: z.string().optional(),
     descripcion: z.string().min(3, "La descripción es obligatoria"),
-    total: z.number().min(0, "El importe debe ser mayor o igual a 0"),
+    total: z.coerce.number().min(0, "El importe debe ser mayor o igual a 0"),
     fecha_compra: z.string().min(10, "La fecha es obligatoria"),
     categoria: z.string().min(1, "La categoría es obligatoria"),
     metodo_pago: z.string().min(1, "El método de pago es obligatorio"),
-    base_imponible: z.number().optional(),
-    iva_importe: z.number().optional(),
-    iva_porcentaje: z.number().optional(),
-    document_url: z.string().optional(),
-    anio: z.number().optional(),
-    trimestre: z.number().optional(),
+    base_imponible: z.coerce.number().optional(),
+    iva_importe: z.coerce.number().optional(),
+    iva_porcentaje: z.coerce.number().optional(),
+    numero_factura: z.string().optional(),
+    documento_url: z.string().optional(),
+    anio: z.coerce.number().optional(),
+    trimestre: z.coerce.number().optional(),
 });
 
 type GastoFormValues = z.infer<typeof gastoSchema>;
@@ -80,16 +81,61 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         handleSubmit,
         reset,
         setValue,
+        getValues,
         watch,
         formState: { errors },
-    } = useForm<GastoFormValues>({
+    } = useForm<any>({
         resolver: zodResolver(gastoSchema),
         defaultValues: {
             categoria: "general",
             metodo_pago: "efectivo",
             fecha_compra: new Date().toISOString().split("T")[0],
+            iva_porcentaje: 21,
+            base_imponible: 0,
+            iva_importe: 0,
+            total: 0
         },
     });
+
+    const watchedBase = watch("base_imponible");
+    const watchedIvaPct = watch("iva_porcentaje");
+    const watchedTotal = watch("total");
+
+    // Lógica de cálculo automático: Base + IVA % -> Total e IVA Importe
+    useEffect(() => {
+        if (typeof watchedBase === 'number' && typeof watchedIvaPct === 'number') {
+            const ivaImp = Number((watchedBase * (watchedIvaPct / 100)).toFixed(2));
+            const newTotal = Number((watchedBase + ivaImp).toFixed(2));
+
+            const currentIvaImp = getValues("iva_importe");
+            const currentTotal = getValues("total");
+
+            if (currentIvaImp !== undefined && Math.abs(currentIvaImp - ivaImp) > 0.01) {
+                setValue("iva_importe", ivaImp);
+            }
+            if (currentTotal !== undefined && Math.abs(currentTotal - newTotal) > 0.01) {
+                setValue("total", newTotal);
+            }
+        }
+    }, [watchedBase, watchedIvaPct, setValue, getValues]);
+
+    // Lógica de cálculo inverso: Total -> Base e IVA Importe
+    useEffect(() => {
+        if (typeof watchedTotal === 'number' && typeof watchedIvaPct === 'number') {
+            const base = Number((watchedTotal / (1 + watchedIvaPct / 100)).toFixed(2));
+            const ivaImp = Number((watchedTotal - base).toFixed(2));
+
+            const currentBase = getValues("base_imponible");
+            const currentIvaImp = getValues("iva_importe");
+
+            if (currentBase !== undefined && Math.abs(currentBase - base) > 0.01) {
+                setValue("base_imponible", base);
+            }
+            if (currentIvaImp !== undefined && Math.abs(currentIvaImp - ivaImp) > 0.01) {
+                setValue("iva_importe", ivaImp);
+            }
+        }
+    }, [watchedTotal, watchedIvaPct, setValue, getValues]);
 
     useEffect(() => {
         if (editingGasto) {
@@ -102,8 +148,9 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 metodo_pago: editingGasto.metodo_pago || "efectivo",
                 base_imponible: Number(editingGasto.base_imponible) || 0,
                 iva_importe: Number(editingGasto.iva_importe) || 0,
-                iva_porcentaje: Number(editingGasto.iva_porcentaje) || 0,
-                document_url: editingGasto.document_url || "",
+                iva_porcentaje: Number(editingGasto.iva_porcentaje) || 21,
+                numero_factura: editingGasto.numero_factura || "",
+                documento_url: editingGasto.documento_url || "",
             });
             setUploadedFile(null);
         } else {
@@ -114,7 +161,11 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 proveedor: "",
                 descripcion: "",
                 total: 0,
-                document_url: "",
+                base_imponible: 0,
+                iva_porcentaje: 21,
+                iva_importe: 0,
+                numero_factura: "",
+                documento_url: "",
             });
             setUploadedFile(null);
         }
@@ -160,7 +211,12 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         if (!ocrPreviewData) return;
 
         if (ocrPreviewData.proveedor) setValue("proveedor", ocrPreviewData.proveedor);
+        if (ocrPreviewData.numero_factura) setValue("numero_factura", ocrPreviewData.numero_factura);
         if (ocrPreviewData.total) setValue("total", Number(ocrPreviewData.total));
+        if (ocrPreviewData.base_imponible) setValue("base_imponible", Number(ocrPreviewData.base_imponible));
+        if (ocrPreviewData.iva_porcentaje) setValue("iva_porcentaje", Number(ocrPreviewData.iva_porcentaje));
+        if (ocrPreviewData.iva_importe) setValue("iva_importe", Number(ocrPreviewData.iva_importe));
+
         if (ocrPreviewData.fecha_compra) {
             try {
                 const date = new Date(ocrPreviewData.fecha_compra);
@@ -170,7 +226,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             } catch (e) { }
         }
         if (ocrPreviewData.descripcion) setValue("descripcion", ocrPreviewData.descripcion);
-        if (ocrPreviewData.document_url) setValue("document_url", ocrPreviewData.document_url);
+        if (ocrPreviewData.documento_url) setValue("documento_url", ocrPreviewData.documento_url);
         if (ocrPreviewData.anio) setValue("anio", ocrPreviewData.anio);
         if (ocrPreviewData.trimestre) setValue("trimestre", ocrPreviewData.trimestre);
 
@@ -179,7 +235,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         setOcrPreviewData(null);
     };
 
-    const onSubmit: SubmitHandler<GastoFormValues> = async (data) => {
+    const onSubmit = async (data: any) => {
         setLoading(true);
         try {
             if (editingGasto) {
@@ -266,18 +322,31 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                         )}
                     </div>
 
-                    {/* Proveedor */}
-                    <div className="space-y-2">
-                        <Label htmlFor="proveedor" className="flex items-center gap-2 text-slate-700 font-semibold">
-                            <Building2 size={14} className="text-slate-400" />
-                            Proveedor
-                        </Label>
-                        <Input
-                            id="proveedor"
-                            placeholder="Ej: Amazon, Repsol, Leroy Merlin..."
-                            {...register("proveedor")}
-                            className="bg-slate-50/10 h-11 rounded-xl"
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="proveedor" className="flex items-center gap-2 text-slate-700 font-semibold">
+                                <Building2 size={14} className="text-slate-400" />
+                                Proveedor
+                            </Label>
+                            <Input
+                                id="proveedor"
+                                placeholder="Amazon, Repsol..."
+                                {...register("proveedor")}
+                                className="bg-slate-50/10 h-11 rounded-xl"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="numero_factura" className="flex items-center gap-2 text-slate-700 font-semibold">
+                                <FileText size={14} className="text-slate-400" />
+                                Nº Factura
+                            </Label>
+                            <Input
+                                id="numero_factura"
+                                placeholder="INV-2024-001"
+                                {...register("numero_factura")}
+                                className="bg-slate-50/10 h-11 rounded-xl font-mono text-sm"
+                            />
+                        </div>
                     </div>
 
                     {/* Descripción */}
@@ -294,16 +363,49 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                             rows={2}
                         />
                         {errors.descripcion && (
-                            <p className="text-xs text-red-500">{errors.descripcion.message}</p>
+                            <p className="text-xs text-red-500">{(errors.descripcion.message as string)}</p>
                         )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
+                        {/* Base Imponible */}
+                        <div className="space-y-2 col-span-2 sm:col-span-1">
+                            <Label htmlFor="base_imponible" className="flex items-center gap-2 text-slate-700 font-semibold">
+                                <Receipt size={14} className="text-slate-400" />
+                                Base Imponible
+                            </Label>
+                            <Input
+                                id="base_imponible"
+                                type="number"
+                                step="0.01"
+                                {...register("base_imponible", { valueAsNumber: true })}
+                                className="bg-slate-50/10 h-11 rounded-xl"
+                            />
+                        </div>
+
+                        {/* IVA % e Importe */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-2">
+                                <Label className="text-slate-700 font-semibold text-xs">IVA %</Label>
+                                <Input
+                                    type="number"
+                                    {...register("iva_porcentaje", { valueAsNumber: true })}
+                                    className="bg-slate-50/10 h-11 rounded-xl"
+                                />
+                            </div>
+                            <div className="space-y-2 text-center">
+                                <Label className="text-slate-400 font-semibold text-[10px] uppercase">IVA (€)</Label>
+                                <div className="h-11 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 font-mono text-sm">
+                                    {watch("iva_importe") || 0}
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Importe Total */}
                         <div className="space-y-2">
                             <Label htmlFor="total" className="flex items-center gap-2 text-slate-700 font-semibold">
-                                <Receipt size={14} className="text-slate-400" />
-                                Importe Total *
+                                <CreditCard size={14} className="text-slate-400" />
+                                Total Factura *
                             </Label>
                             <Input
                                 id="total"
@@ -311,10 +413,10 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                 step="0.01"
                                 placeholder="0.00"
                                 {...register("total", { valueAsNumber: true })}
-                                className="bg-slate-50/10 h-11 rounded-xl font-mono text-lg font-black"
+                                className="bg-blue-50 border-blue-100 h-11 rounded-xl font-mono text-lg font-black text-blue-700 shadow-sm"
                             />
                             {errors.total && (
-                                <p className="text-xs text-red-500">{errors.total.message}</p>
+                                <p className="text-xs text-red-500">{(errors.total.message as string)}</p>
                             )}
                         </div>
 
@@ -331,7 +433,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                 className="bg-slate-50/10 h-11 rounded-xl"
                             />
                             {errors.fecha_compra && (
-                                <p className="text-xs text-red-500">{errors.fecha_compra.message}</p>
+                                <p className="text-xs text-red-500">{(errors.fecha_compra.message as string)}</p>
                             )}
                         </div>
                     </div>
@@ -386,10 +488,10 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 </div>
 
                 {/* Link al documento si existe */}
-                {watch("document_url") && (
+                {watch("documento_url") && (
                     <div className="pt-2">
                         <a
-                            href={watch("document_url")}
+                            href={watch("documento_url")}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center justify-center gap-2 w-full py-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
@@ -441,28 +543,90 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
                     {ocrPreviewData && (
                         <div className="space-y-4 py-4">
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] font-bold text-slate-400 uppercase">Proveedor</Label>
-                                <Input
-                                    value={ocrPreviewData.proveedor || ""}
-                                    onChange={(e) => setOcrPreviewData({ ...ocrPreviewData, proveedor: e.target.value })}
-                                    className="h-10 bg-slate-50 border-slate-200"
-                                    placeholder="No detectado"
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Proveedor</Label>
+                                    <Input
+                                        value={ocrPreviewData.proveedor || ""}
+                                        onChange={(e) => setOcrPreviewData({ ...ocrPreviewData, proveedor: e.target.value })}
+                                        className="h-10 bg-slate-50 border-slate-200"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Nº Factura</Label>
+                                    <Input
+                                        value={ocrPreviewData.numero_factura || ""}
+                                        onChange={(e) => setOcrPreviewData({ ...ocrPreviewData, numero_factura: e.target.value })}
+                                        className="h-10 bg-slate-50 border-slate-200"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Base</Label>
+                                    <Input
+                                        type="number"
+                                        value={ocrPreviewData.base_imponible || ""}
+                                        onChange={(e) => {
+                                            const base = Number(e.target.value);
+                                            const ivaPct = ocrPreviewData.iva_porcentaje || 21;
+                                            const ivaImp = Number((base * (ivaPct / 100)).toFixed(2));
+                                            setOcrPreviewData({
+                                                ...ocrPreviewData,
+                                                base_imponible: base,
+                                                iva_importe: ivaImp,
+                                                total: Number((base + ivaImp).toFixed(2))
+                                            });
+                                        }}
+                                        className="h-10 bg-slate-50 border-slate-200 text-xs"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-bold text-slate-400 uppercase">IVA %</Label>
+                                    <Input
+                                        type="number"
+                                        value={ocrPreviewData.iva_porcentaje || 21}
+                                        onChange={(e) => {
+                                            const ivaPct = Number(e.target.value);
+                                            const base = ocrPreviewData.base_imponible || 0;
+                                            const ivaImp = Number((base * (ivaPct / 100)).toFixed(2));
+                                            setOcrPreviewData({
+                                                ...ocrPreviewData,
+                                                iva_porcentaje: ivaPct,
+                                                iva_importe: ivaImp,
+                                                total: Number((base + ivaImp).toFixed(2))
+                                            });
+                                        }}
+                                        className="h-10 bg-slate-50 border-slate-200 text-xs"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Total</Label>
+                                    <Input
+                                        type="number"
+                                        value={ocrPreviewData.total || ""}
+                                        onChange={(e) => {
+                                            const total = Number(e.target.value);
+                                            const ivaPct = ocrPreviewData.iva_porcentaje || 21;
+                                            const base = Number((total / (1 + ivaPct / 100)).toFixed(2));
+                                            setOcrPreviewData({
+                                                ...ocrPreviewData,
+                                                total: total,
+                                                base_imponible: base,
+                                                iva_importe: Number((total - base).toFixed(2))
+                                            });
+                                        }}
+                                        className="h-10 bg-blue-50 border-blue-100 font-bold text-xs"
+                                    />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Importe Total</Label>
-                                    <div className="relative">
-                                        <Input
-                                            type="number"
-                                            value={ocrPreviewData.total || ""}
-                                            onChange={(e) => setOcrPreviewData({ ...ocrPreviewData, total: e.target.value })}
-                                            className="h-10 bg-slate-50 border-slate-200 pl-7"
-                                            placeholder="0.00"
-                                        />
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-mono">€</span>
+                                <div className="space-y-1.5 text-xs">
+                                    <Label className="text-[10px] font-bold text-slate-400 uppercase">IVA Importe</Label>
+                                    <div className="h-10 flex items-center px-3 bg-slate-100 rounded-lg text-slate-500 font-mono">
+                                        {ocrPreviewData.iva_importe || 0} €
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
@@ -477,12 +641,11 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                             </div>
 
                             <div className="space-y-1.5">
-                                <Label className="text-[10px] font-bold text-slate-400 uppercase">Descripción / Concepto</Label>
+                                <Label className="text-[10px] font-bold text-slate-400 uppercase">Descripción</Label>
                                 <Input
                                     value={ocrPreviewData.descripcion || ""}
                                     onChange={(e) => setOcrPreviewData({ ...ocrPreviewData, descripcion: e.target.value })}
                                     className="h-10 bg-slate-50 border-slate-200"
-                                    placeholder="No detectado"
                                 />
                             </div>
 
