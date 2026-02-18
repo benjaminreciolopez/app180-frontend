@@ -42,31 +42,23 @@ export default function AdminLayout({
   // ============================
   // Cargar sesión (inicial + sync)
   // ============================
-  function loadSession() {
+  async function loadSession(isInitial = false) {
     try {
-      // 🆕 Usar helper que mira ambos storages (sessionStorage y localStorage)
       const user = getUser();
       if (!user) {
         setSession(null);
+        if (isInitial) setChecking(false);
         return;
       }
 
-      // Detectar si estamos en móvil PWA para usar módulos móviles
       const isLargeScreen =
         typeof window !== "undefined" && window.innerWidth >= 1024;
       const isPwaMobile = isMobileDevice() && isStandalone();
-
-      // Solo usar módulos móviles si es PWA móvil Y pantalla pequeña
       const useMobileModules = isPwaMobile && !isLargeScreen;
-
-      // Si tenemos módulos móviles y debemos usarlos, bien.
-      // Si NO, usamos los módulos normales (desktop/web).
       const activeModulos =
         useMobileModules && user.modulos_mobile
           ? user.modulos_mobile
           : user.modulos || {};
-
-
 
       // Lógica de "Curación": Si detectamos pantalla grande pero la sesión parece de móvil o está incompleta.
       const enabledModulesCount = Object.values(user.modulos || {}).filter(v => v === true).length;
@@ -75,34 +67,33 @@ export default function AdminLayout({
       const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted_v5') : null;
 
       if (isLargeScreen && hasMissingModules && !fixAttempted) {
-        console.warn("[AdminLayout] 🚨 Detectada sesión incompleta en escritorio. Limpiando caché y curando V5...");
+        console.warn("[AdminLayout] Detectada sesión incompleta en escritorio. Curando...");
         sessionStorage.setItem('desktop_mode_fix_attempted_v5', 'true');
-
-        // 1. Limpiar rastro de sesión
         sessionStorage.removeItem('user');
 
-        // 2. Desregistrar SW de forma masiva para resetear cabeceras COOP
         if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
           navigator.serviceWorker.getRegistrations().then(regs => {
-            regs.forEach(r => {
-              r.unregister();
-              console.log("[AdminLayout] 🧹 Service Worker eliminado.");
-            });
+            regs.forEach(r => r.unregister());
           });
         }
 
-        // 3. Curar sesión
-        refreshMe().then(() => {
-          console.log("[AdminLayout] ✅ Datos frescos obtenidos. Recargando...");
-          window.location.reload();
-        }).catch(err => {
-          console.error("Error en curación radical:", err);
-          // Si falla, al menos dejamos de bloquear la pantalla tras un re-esfuerzo
-          setSession({
-            nombre: user.nombre || "Administrador",
-            modulos: activeModulos,
-          });
+        // Mientras se cura, mostrar sesión provisional para NO redirigir
+        setSession({
+          nombre: user.nombre || "Administrador",
+          modulos: activeModulos,
         });
+        setUserId(user.id);
+        if (isInitial) setChecking(false);
+
+        // Curar en background y recargar con datos frescos
+        try {
+          await refreshMe();
+          console.log("[AdminLayout] Datos frescos obtenidos. Recargando...");
+          window.location.reload();
+        } catch (err) {
+          console.error("Error en curación:", err);
+          // Sesión provisional ya está puesta, no pasa nada
+        }
         return;
       }
 
@@ -111,17 +102,18 @@ export default function AdminLayout({
         modulos: activeModulos,
       });
       setUserId(user.id);
+      if (isInitial) setChecking(false);
     } catch {
       setSession(null);
+      if (isInitial) setChecking(false);
     }
   }
 
   useEffect(() => {
-    loadSession();
-    setChecking(false);
+    loadSession(true);
 
     function onSessionUpdated() {
-      loadSession();
+      loadSession(false);
     }
 
     window.addEventListener("session-updated", onSessionUpdated);
