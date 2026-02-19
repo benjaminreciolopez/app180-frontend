@@ -152,7 +152,7 @@ export default function DashboardPage() {
   async function saveWidgetsConfig() {
     try {
       setSavingWidgets(true);
-      await api.post("/admin/configuracion/widgets", { widgets });
+      await api.put("/admin/configuracion/widgets", { widgets });
       setEditingWidgets(false);
     } catch (e) {
       console.error("Error guardando widgets", e);
