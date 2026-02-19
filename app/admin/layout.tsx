@@ -195,7 +195,7 @@ export default function AdminLayout({
       "/admin/configuracion": "Configuración",
       "/admin/perfil": "Mi Perfil",
       "/admin/reportes/rentabilidad": "Rentabilidad",
-      "/admin/gastos": "Gastos y Compras",
+      "/admin/gastos": "Compras y Gastos",
     };
 
     // Match most specific path first
