@@ -28,6 +28,7 @@ export interface DashboardData {
         facturado_base: number;
         no_facturado: number;
         gastos_base: number;
+        impuestos_estimados?: number;
         beneficio_neto: number;
         year: number;
     };

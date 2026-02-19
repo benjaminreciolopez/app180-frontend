@@ -273,7 +273,7 @@ export default function AdminLayout({
 
     { path: "/admin/clientes", label: "Clientes", module: null },
     { path: "/admin/facturacion", label: "Facturación", module: "facturacion" },
-    { path: "/admin/gastos", label: "Gastos y Compras", module: "facturacion" },
+    { path: "/admin/gastos", label: "Compras y Gastos", module: "facturacion" },
     { path: "/admin/fiscal", label: "Modelos Fiscales", module: "facturacion" }, // Nuevo
     { path: "/admin/cobros-pagos", label: "Cobros y Pagos", module: "pagos" },
 
