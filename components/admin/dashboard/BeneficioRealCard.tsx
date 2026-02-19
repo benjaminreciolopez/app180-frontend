@@ -162,7 +162,7 @@ export function BeneficioRealCard({ data: initialData }: Props) {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1.5 text-gray-500">
                                     <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-                                    <span>Impuestos (Est.)</span>
+                                    <span>IRPF (Est. Modelo 130)</span>
                                 </div>
                                 <p className="font-bold text-red-500 text-sm">-{f(data.impuestos_estimados || 0)}</p>
                             </div>
