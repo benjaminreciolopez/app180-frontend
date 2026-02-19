@@ -3,12 +3,13 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/services/api";
-import { getUser } from "@/services/auth";
+import { getUser, logout } from "@/services/auth";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import {
   Users, Clock, AlertTriangle, Calendar, UserCheck, Euro, ClipboardList,
-  RefreshCw, Briefcase, LayoutGrid, X, Save, Settings, TrendingUp
+  RefreshCw, Briefcase, LayoutGrid, X, Save, Settings, TrendingUp, LogOut, Cog
 } from "lucide-react";
 import { saveAs } from "file-saver";
 
@@ -190,7 +191,7 @@ export default function DashboardPage() {
             onClick={() => setOpenMenu(!openMenu)}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm transition-all text-sm font-medium text-gray-700"
           >
-            <Settings className="w-4 h-4" /> Personalizar
+            <Cog className="w-4 h-4" /> Opciones
           </button>
 
           {openMenu && (
@@ -217,7 +218,7 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-              <div className="p-3 border-t bg-gray-50">
+              <div className="p-3 border-t bg-gray-50 space-y-3">
                 <button
                   onClick={() => {
                     saveWidgetsConfig();
@@ -227,8 +228,24 @@ export default function DashboardPage() {
                   className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors disabled:opacity-50"
                 >
                   {savingWidgets ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Guardar Cambios
+                  Guardar Widgets
                 </button>
+
+                <div className="pt-2 border-t border-gray-200 space-y-1">
+                  <Link
+                    href="/admin/configuracion"
+                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-100 text-gray-700 transition-colors"
+                  >
+                    <Settings className="w-4 h-4" /> Configuración Sistema
+                  </Link>
+
+                  <button
+                    onClick={() => logout()}
+                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm rounded-md hover:bg-red-50 text-red-600 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" /> Cerrar Sesión
+                  </button>
+                </div>
               </div>
             </div>
           )}
