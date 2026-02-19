@@ -22,6 +22,7 @@ import {
 import { ChartActividad, ChartClientesOrTipos } from "@/components/admin/dashboard/widgets/ChartWidgets";
 import { ListTrabajando, ListFichajes, ListFacturas } from "@/components/admin/dashboard/widgets/ListWidgets";
 import { TrabajosPendientesModal } from "@/components/admin/dashboard/TrabajosPendientesModal";
+import { SkeletonDashboard } from "@/components/ui/skeletons";
 
 // --- Logic ---
 
@@ -171,7 +172,7 @@ export default function DashboardPage() {
     });
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Cargando dashboard...</div>;
+  if (loading) return <SkeletonDashboard />;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!data) return null;
 
