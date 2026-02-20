@@ -23,7 +23,7 @@ export default function ClientFiscalFields({
   onChange,
   readOnly = false,
 }: ClientFiscalFieldsProps) {
-  
+
   // DEBUG: Log what we receive
   React.useEffect(() => {
     console.log("[ClientFiscalFields] data received:", {
@@ -32,7 +32,7 @@ export default function ClientFiscalFields({
       persona_contacto: data.persona_contacto,
     });
   }, [data]);
-  
+
   const handleChange = (field: string, value: any) => {
     console.log(`[ClientFiscalFields] handleChange called:`, {
       field,
@@ -45,8 +45,8 @@ export default function ClientFiscalFields({
     }
   };
 
-  const commonInputClass = readOnly 
-    ? "bg-slate-50 border-slate-200 text-slate-600 cursor-not-allowed" 
+  const commonInputClass = readOnly
+    ? "bg-slate-50 border-slate-200 text-slate-600 cursor-not-allowed"
     : "bg-white border-slate-200";
 
   return (
@@ -54,10 +54,10 @@ export default function ClientFiscalFields({
       {/* 1. Identificación */}
       <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
         <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-           {readOnly && <Lock size={14} className="text-slate-400" />}
-           Identificación Fiscal
+          {readOnly && <Lock size={14} className="text-slate-400" />}
+          Identificación Fiscal
         </h4>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Razón Social</Label>
@@ -79,9 +79,9 @@ export default function ClientFiscalFields({
               className={commonInputClass}
               value={data.nif_cif || data.nif || ""}
               onChange={(e) => {
-                  handleChange("nif_cif", e.target.value);
-                  // Maintain backward compatibility if needed
-                  handleChange("nif", e.target.value);
+                handleChange("nif_cif", e.target.value);
+                // Maintain backward compatibility if needed
+                handleChange("nif", e.target.value);
               }}
             />
           </div>
@@ -161,47 +161,47 @@ export default function ClientFiscalFields({
         </div>
       </div>
 
-       {/* 3. Contacto */}
-       <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
-          <h4 className="text-sm font-semibold flex items-center gap-2 text-slate-700">
-              Datos de Contacto
-          </h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Teléfono Facturación</Label>
-              <Input
-                disabled={readOnly}
-                placeholder={readOnly ? "—" : "+34 600..."}
-                className={commonInputClass}
-                value={data.telefono_factura || ""}
-                onChange={(e) => handleChange("telefono_factura", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Persona de Contacto</Label>
-              <Input
-                disabled={readOnly}
-                placeholder={readOnly ? "—" : "Nombre completo"}
-                className={commonInputClass}
-                maxLength={200}
-                value={data.persona_contacto || ""}
-                onChange={(e) => handleChange("persona_contacto", e.target.value)}
-              />
-            </div>
+      {/* 3. Contacto */}
+      <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+        <h4 className="text-sm font-semibold flex items-center gap-2 text-slate-700">
+          Datos de Contacto
+        </h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Teléfono Facturación</Label>
+            <Input
+              disabled={readOnly}
+              placeholder={readOnly ? "—" : "+34 600..."}
+              className={commonInputClass}
+              value={data.telefono_factura || ""}
+              onChange={(e) => handleChange("telefono_factura", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Persona de Contacto</Label>
+            <Input
+              disabled={readOnly}
+              placeholder={readOnly ? "—" : "Nombre completo"}
+              className={commonInputClass}
+              maxLength={200}
+              value={data.persona_contacto || ""}
+              onChange={(e) => handleChange("persona_contacto", e.target.value)}
+            />
           </div>
         </div>
+      </div>
 
       {/* 4. Facturación */}
       <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
         <h4 className="text-sm font-semibold text-slate-700">Pagos y Facturación</h4>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">IVA por Defecto</Label>
             <Select
               disabled={readOnly}
               value={
-                data.iva_defecto 
+                data.iva_defecto
                   ? String(data.iva_defecto).split('.')[0]  // Convertir "10.00" a "10"
                   : "21"
               }
@@ -239,26 +239,67 @@ export default function ClientFiscalFields({
         </div>
 
         <div>
-           <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">IBAN Cuenta Bancaria</Label>
-           <Input
-              disabled={readOnly}
-              placeholder={readOnly ? "—" : "ES00 0000 0000 0000 0000 0000"}
-              className={`${commonInputClass} font-mono text-sm`}
-              value={data.iban || ""}
-              onChange={(e) => handleChange("iban", e.target.value)}
-            />
+          <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">IBAN Cuenta Bancaria</Label>
+          <Input
+            disabled={readOnly}
+            placeholder={readOnly ? "—" : "ES00 0000 0000 0000 0000 0000"}
+            className={`${commonInputClass} font-mono text-sm`}
+            value={data.iban || ""}
+            onChange={(e) => handleChange("iban", e.target.value)}
+          />
         </div>
 
         <div className="flex items-center gap-2 mt-2">
-            <input 
+          <input
+            type="checkbox"
+            id="exento"
+            disabled={readOnly}
+            checked={data.exento_iva === true}
+            onChange={e => handleChange('exento_iva', e.target.checked)}
+            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <Label htmlFor="exento" className="text-sm font-normal cursor-pointer">Cliente exento de IVA</Label>
+        </div>
+      </div>
+
+      {/* 5. Otros datos fiscales (Retenciones) */}
+      <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
+        <h4 className="text-sm font-semibold text-slate-700">Retenciones (IRPF)</h4>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <input
               type="checkbox"
-              id="exento"
+              id="retencion"
               disabled={readOnly}
-              checked={data.exento_iva === true} 
-              onChange={e => handleChange('exento_iva', e.target.checked)}
+              checked={data.aplicar_retencion === true}
+              onChange={e => handleChange('aplicar_retencion', e.target.checked)}
               className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
-            <Label htmlFor="exento" className="text-sm font-normal cursor-pointer">Cliente exento de IVA</Label>
+            <Label htmlFor="retencion" className="text-sm font-normal cursor-pointer">Aplicar retención (IRPF) en facturas</Label>
+          </div>
+
+          {data.aplicar_retencion && (
+            <div className="max-w-xs">
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Tipo de Retención</Label>
+              <Select
+                disabled={readOnly}
+                value={String(data.retencion_tipo || "0")}
+                onValueChange={(v) => handleChange("retencion_tipo", Number(v))}
+              >
+                <SelectTrigger className={`w-full ${commonInputClass}`}>
+                  <SelectValue placeholder="Seleccionar %" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0% (Sin retención)</SelectItem>
+                  <SelectItem value="1">1% (Módulos/Actividades)</SelectItem>
+                  <SelectItem value="2">2% (Nuevos Profesionales)</SelectItem>
+                  <SelectItem value="7">7% (Nuevos Profesionales, primer año)</SelectItem>
+                  <SelectItem value="15">15% (Profesionales General)</SelectItem>
+                  <SelectItem value="19">19% (Alquileres / General)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,99 +1,79 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/services/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { authenticatedFetch } from "@/utils/api";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { FileText, Calculator, TrendingUp, AlertTriangle } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { FileText, Send, AlertTriangle } from "lucide-react";
 
-type FiscalData = {
-    periodo: {
-        year: string;
-        trimestre: string;
-        startDate: string;
-        endDate: string;
-    };
-    modelo303: {
-        devengado: { base: number; cuota: number };
-        deducible: { base: number; cuota: number };
-        resultado: number;
-    };
-    modelo130: {
-        ingresos: number;
-        gastos: number;
-        rendimiento: number;
-        pago_fraccionado: number;
-        a_ingresar: number;
-    };
-};
-
-export default function FiscalModelsPage() {
+export default function FiscalPage() {
     const [year, setYear] = useState(new Date().getFullYear().toString());
-    const [trimestre, setTrimestre] = useState(getCurrentTrimestre().toString());
-    const [data, setData] = useState<FiscalData | null>(null);
+    const [trimestre, setTrimestre] = useState("1"); // 1T por defecto o calcular actual
     const [loading, setLoading] = useState(false);
+    const [data, setData] = useState<any>(null);
 
-    function getCurrentTrimestre() {
-        const month = new Date().getMonth();
-        return Math.floor(month / 3) + 1;
-    }
+    // Calcular trimestre actual por defecto
+    useEffect(() => {
+        const month = new Date().getMonth() + 1;
+        const currentQ = Math.ceil(month / 3).toString();
+        // setTrimestre(currentQ); // Opcional: auto-seleccionar
+    }, []);
 
-    async function loadData() {
-        if (!year || !trimestre) return;
+    const loadData = async () => {
         setLoading(true);
         try {
-            const res = await api.get(`/admin/fiscal/models?year=${year}&trimestre=${trimestre}`);
-            if (res.data.success) {
-                setData(res.data.data);
+            const res = await authenticatedFetch(`/api/admin/fiscal/models?year=${year}&trimestre=${trimestre}`);
+            if (res.ok) {
+                const json = await res.json();
+                if (json.success) setData(json.data);
             }
         } catch (error) {
-            console.error("Error cargando modelos:", error);
+            console.error("Error loading fiscal data:", error);
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     useEffect(() => {
         loadData();
     }, [year, trimestre]);
 
-    const formatCurrency = (val: number) => {
-        return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(val);
+    const handlePresentar = async (modelo: string) => {
+        if (!confirm(`¿Estás seguro de que quieres presentar el Modelo ${modelo} a la AEAT? Esta acción no se puede deshacer.`)) return;
+
+        try {
+            const res = await authenticatedFetch("/api/admin/fiscal/presentar-303", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ year, trimestre })
+            });
+
+            const json = await res.json();
+            if (json.success) {
+                alert(json.message || "Presentación realizada correctamente");
+            } else {
+                alert("Error: " + json.error);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión al presentar");
+        }
     };
 
-    if (!data && loading) return <LoadingSpinner fullPage />;
-
     return (
-        <div className="p-6 space-y-8 max-w-[1400px] mx-auto">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                        <FileText className="w-8 h-8 text-blue-600" />
-                        Modelos Fiscales
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">
-                        Previsión de impuestos (IVA e IRPF) basada en tu facturación y gastos.
+                    <h1 className="text-3xl font-bold tracking-tight">Modelos Fiscales</h1>
+                    <p className="text-muted-foreground">
+                        Generación y presentación de impuestos (IVA e IRPF).
                     </p>
                 </div>
-
-                <div className="flex items-center gap-3 bg-card p-2 rounded-lg border shadow-sm">
-                    <Select value={year} onValueChange={setYear}>
-                        <SelectTrigger className="w-[100px]">
-                            <SelectValue placeholder="Año" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {[2024, 2025, 2026, 2027].map(y => (
-                                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
+                <div className="flex items-center gap-2">
                     <Select value={trimestre} onValueChange={setTrimestre}>
                         <SelectTrigger className="w-[140px]">
                             <SelectValue placeholder="Trimestre" />
@@ -106,130 +86,107 @@ export default function FiscalModelsPage() {
                         </SelectContent>
                     </Select>
 
-                    <Button variant="outline" size="icon" onClick={loadData} disabled={loading}>
-                        <Calculator className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </Button>
+                    <Select value={year} onValueChange={setYear}>
+                        <SelectTrigger className="w-[100px]">
+                            <SelectValue placeholder="Año" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="2026">2026</SelectItem>
+                            <SelectItem value="2025">2025</SelectItem>
+                            <SelectItem value="2024">2024</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
-            </header>
+            </div>
 
-            {data && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* MODELO 303 (IVA) */}
-                    <Card className="border-l-4 border-l-blue-500 shadow-md">
+            {loading && <LoadingSpinner />}
+
+            {!loading && data && (
+                <div className="grid gap-6 md:grid-cols-2">
+                    {/* Modelo 303 */}
+                    <Card className="border-l-4 border-l-blue-500">
                         <CardHeader>
-                            <CardTitle className="flex justify-between items-center text-xl">
-                                <span>Modelo 303 - IVA</span>
-                                <span className={`text-lg font-bold px-3 py-1 rounded-full ${data.modelo303.resultado > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                    {data.modelo303.resultado > 0 ? "A Pagar" : "A Devolver/Compensar"}
-                                </span>
-                            </CardTitle>
-                            <CardDescription>Liquidación trimestral del Impuesto sobre el Valor Añadido</CardDescription>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle>Modelo 303 (IVA)</CardTitle>
+                                    <CardDescription>Autoliquidación Trimestral</CardDescription>
+                                </div>
+                                <Badge variant="outline">Borrador</Badge>
+                            </div>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <p className="text-sm text-slate-500 font-medium">IVA Repercutido (Ventas)</p>
-                                    <p className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                                        {formatCurrency(data.modelo303.devengado.cuota)}
-                                    </p>
-                                    <p className="text-xs text-slate-400">Base: {formatCurrency(data.modelo303.devengado.base)}</p>
-                                </div>
-                                <div className="space-y-1 text-right">
-                                    <p className="text-sm text-slate-500 font-medium">IVA Soportado (Gastos)</p>
-                                    <p className="text-lg font-semibold text-green-600">
-                                        -{formatCurrency(data.modelo303.deducible.cuota)}
-                                    </p>
-                                    <p className="text-xs text-slate-400">Base: {formatCurrency(data.modelo303.deducible.base)}</p>
-                                </div>
+                        <CardContent className="space-y-4">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">IVA Devengado (Ventas):</span>
+                                <span className="font-medium text-green-600">+{formatCurrency(data.modelo303.devengado.cuota)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">IVA Deducible (Gastos):</span>
+                                <span className="font-medium text-red-600">-{formatCurrency(data.modelo303.deducible.cuota)}</span>
+                            </div>
+                            <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                                <span>Resultado:</span>
+                                <span>{formatCurrency(data.modelo303.resultado)}</span>
                             </div>
 
-                            <Separator />
-
-                            <div className="flex justify-between items-center pt-2 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg">
-                                <span className="font-bold text-slate-700 dark:text-slate-300">Resultado Liquidación</span>
-                                <span className={`text-2xl font-black ${data.modelo303.resultado > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                    {formatCurrency(data.modelo303.resultado)}
-                                </span>
-                            </div>
-
-                            {data.modelo303.resultado > 0 && (
-                                <div className="flex gap-2 items-start p-3 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-sm rounded-md border border-yellow-200 dark:border-yellow-800">
-                                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                                    <p>
-                                        Para reducir este pago, puedes adelantar inversiones o gastos deducibles antes del {new Date(data.periodo.endDate).toLocaleDateString()}.
-                                    </p>
-                                </div>
-                            )}
-
-                        </CardContent>
-                    </Card>
-
-                    {/* MODELO 130 (IRPF) */}
-                    <Card className="border-l-4 border-l-orange-500 shadow-md">
-                        <CardHeader>
-                            <CardTitle className="flex justify-between items-center text-xl">
-                                <span>Modelo 130 - IRPF</span>
-                                <span className="text-sm px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded font-normal text-slate-600 dark:text-slate-400">
-                                    Acumulado Anual
-                                </span>
-                            </CardTitle>
-                            <CardDescription>Pago fraccionado (20%) sobre rendimiento neto acumulado</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <p className="text-sm text-slate-500 font-medium">Ingresos Computables</p>
-                                    <p className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                                        {formatCurrency(data.modelo130.ingresos)}
-                                    </p>
-                                </div>
-                                <div className="space-y-1 text-right">
-                                    <p className="text-sm text-slate-500 font-medium">Gastos Deducibles</p>
-                                    <p className="text-lg font-semibold text-orange-600">
-                                        -{formatCurrency(data.modelo130.gastos)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg flex justify-between items-center">
-                                <span className="text-sm text-slate-600 dark:text-slate-400">Rendimiento Neto</span>
-                                <span className="font-bold">{formatCurrency(data.modelo130.rendimiento)}</span>
-                            </div>
-
-                            <Separator />
-
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span>Cuota 20%</span>
-                                    <span>{formatCurrency(data.modelo130.pago_fraccionado)}</span>
-                                </div>
-                                {/* Aquí irían pagos anteriores si los tuviéramos */}
-                                <div className="flex justify-between items-center pt-2">
-                                    <span className="font-bold text-slate-700 dark:text-slate-300">A Ingresar (Trimestre)</span>
-                                    <span className="text-2xl font-black text-orange-600">
-                                        {formatCurrency(data.modelo130.a_ingresar)}
-                                    </span>
-                                </div>
+                            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-md text-xs text-yellow-800 dark:text-yellow-200 flex gap-2 items-start">
+                                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                                <p>Antes de presentar, revisa que todas las facturas y gastos del periodo {trimestre}T estén contabilizados.</p>
                             </div>
                         </CardContent>
+                        <CardFooter className="flex gap-2">
+                            <Button variant="outline" className="flex-1">
+                                <FileText className="mr-2 h-4 w-4" /> Ver Borrador
+                            </Button>
+                            <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={() => handlePresentar('303')}>
+                                <Send className="mr-2 h-4 w-4" /> Presentar AEAT
+                            </Button>
+                        </CardFooter>
                     </Card>
 
-                    {/* GRÁFICO RESUMEN */}
-                    <Card className="lg:col-span-2 shadow-sm">
+                    {/* Modelo 130 */}
+                    <Card className="border-l-4 border-l-orange-500">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <TrendingUp className="w-5 h-5 text-gray-500" />
-                                Evolución Fiscal {year}
-                            </CardTitle>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle>Modelo 130 (IRPF)</CardTitle>
+                                    <CardDescription>Pago Fraccionado IRPF</CardDescription>
+                                </div>
+                                <Badge variant="outline">Simulación</Badge>
+                            </div>
                         </CardHeader>
-                        <CardContent className="h-[250px]">
-                            {/* Placeholder para gráfico futuro de evolución trimestral */}
-                            <div className="h-full flex items-center justify-center text-muted-foreground bg-slate-50 dark:bg-slate-900/20 rounded-lg border border-dashed text-sm">
-                                Los datos históricos de trimestres anteriores se mostrarán aquí conforme completes el ejercicio.
+                        <CardContent className="space-y-4">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Ingresos Acumulados:</span>
+                                <span className="font-medium">+{formatCurrency(data.modelo130.ingresos)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Gastos Acumulados:</span>
+                                <span className="font-medium">-{formatCurrency(data.modelo130.gastos)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm pl-4 text-xs text-muted-foreground">
+                                <span>(Compras: {formatCurrency(data.modelo130.gastos_detalle.compras)} | Nóminas: {formatCurrency(data.modelo130.gastos_detalle.nominas)})</span>
+                            </div>
+
+                            <div className="border-t pt-2 flex justify-between font-medium">
+                                <span>Rendimiento Neto:</span>
+                                <span>{formatCurrency(data.modelo130.rendimiento)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Pago Fraccionado (20%):</span>
+                                <span className="font-medium">{formatCurrency(data.modelo130.pago_fraccionado)}</span>
+                            </div>
+
+                            <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                                <span>A Ingresar:</span>
+                                <span>{formatCurrency(data.modelo130.a_ingresar)}</span>
                             </div>
                         </CardContent>
+                        <CardFooter>
+                            <Button variant="outline" className="w-full">
+                                <FileText className="mr-2 h-4 w-4" /> Generar PDF
+                            </Button>
+                        </CardFooter>
                     </Card>
-
                 </div>
             )}
         </div>
