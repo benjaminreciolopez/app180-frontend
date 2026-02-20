@@ -17,7 +17,9 @@ import {
     FileText,
     Image as ImageIcon,
     Sparkles,
-    ExternalLink
+    ExternalLink,
+    ChevronRight,
+    RotateCcw
 } from "lucide-react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
@@ -383,6 +385,28 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         }
     };
 
+    const clearAllData = () => {
+        reset({
+            categoria: "general",
+            metodo_pago: "efectivo",
+            fecha_compra: new Date().toISOString().split("T")[0],
+            proveedor: "",
+            descripcion: "",
+            total: 0,
+            base_imponible: 0,
+            iva_porcentaje: 21,
+            iva_importe: 0,
+            numero_factura: "",
+            documento_url: "",
+        });
+        setUploadedFile(null);
+        setSelectedFileObj(null);
+        setInvoicesToReview([]);
+        setCurrentInvoiceIndex(0);
+        setLastSavedDocumentUrl(null);
+        setOcrPreviewData(null);
+    };
+
     const skipInvoice = () => {
         if (invoicesToReview.length > 0 && currentInvoiceIndex < invoicesToReview.length - 1) {
             nextInvoice();
@@ -742,28 +766,41 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 </Dialog>
 
                 {/* Footer con botones */}
-                <div className="pt-6 border-t flex gap-3">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1 rounded-2xl h-12 font-bold"
-                        onClick={onClose}
-                        disabled={loading || isOcrProcessing}
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
-                        type="submit"
-                        className="flex-1 bg-black text-white hover:bg-slate-800 rounded-2xl h-12 gap-2 font-bold shadow-lg"
-                        disabled={loading || isOcrProcessing}
-                    >
-                        {loading ? (
-                            <Loader2 size={18} className="animate-spin" />
-                        ) : (
-                            <Save size={18} />
-                        )}
-                        {editingGasto ? "Guardar Cambios" : "Completar Registro"}
-                    </Button>
+                <div className="pt-6 border-t flex flex-col gap-3">
+                    <div className="flex gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 rounded-2xl h-12 font-bold"
+                            onClick={onClose}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={loading}
+                            className="flex-1 bg-black text-white hover:bg-slate-800 rounded-2xl h-12 font-bold shadow-lg"
+                        >
+                            {loading ? (
+                                <Loader2 className="animate-spin" size={20} />
+                            ) : (
+                                editingGasto ? "Actualizar Gasto" : "Guardar Gasto"
+                            )}
+                        </Button>
+                    </div>
+
+                    {/* Botón Siguiente (Omitir) Solo si estamos en flujo OCR múltiple */}
+                    {invoicesToReview.length > 0 && currentInvoiceIndex < invoicesToReview.length - 1 && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            className="w-full text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center gap-2"
+                            onClick={skipInvoice}
+                        >
+                            Omitir Invoice ACTUAL e ir a la siguiente ({currentInvoiceIndex + 2} de {invoicesToReview.length})
+                            <ChevronRight size={16} />
+                        </Button>
+                    )}
                 </div>
             </form>
 
