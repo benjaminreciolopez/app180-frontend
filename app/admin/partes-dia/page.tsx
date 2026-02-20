@@ -69,7 +69,11 @@ export default function AdminPartesDiaPage() {
   const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasEmployeesModule, setHasEmployeesModule] = useState(true);
+  const [hasEmployeesModule, setHasEmployeesModule] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const u = getUser();
+    return u?.modulos?.empleados !== false;
+  });
 
   // Multiselección
   const [selectedIds, setSelectedIds] = useState<string[]>([]); // Format: "empleado_id|fecha"
@@ -107,9 +111,6 @@ export default function AdminPartesDiaPage() {
       const modulos = user?.modulos || {};
       setHasEmployeesModule(modulos.empleados !== false);
       setClientes(clientsRes.data || []);
-
-      // Carga inicial de partes
-      load();
     } catch (e) {
       console.error("Error inicializando:", e);
     }
@@ -130,6 +131,7 @@ export default function AdminPartesDiaPage() {
   }, []);
 
   useEffect(() => {
+    // Solo cargamos si ya tenemos la info inicial (opcional, pero ayuda a la consistencia)
     load();
   }, [load]);
 
