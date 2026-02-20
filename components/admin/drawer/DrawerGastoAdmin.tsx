@@ -74,6 +74,9 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const [isOcrProcessing, setIsOcrProcessing] = useState(false);
     const [uploadedFile, setUploadedFile] = useState<{ name: string; type: string } | null>(null);
     const [ocrPreviewData, setOcrPreviewData] = useState<any>(null);
+    const [invoicesToReview, setInvoicesToReview] = useState<any[]>([]);
+    const [currentInvoiceIndex, setCurrentInvoiceIndex] = useState(0);
+    const [lastSavedDocumentUrl, setLastSavedDocumentUrl] = useState<string | null>(null);
     const [showPreviewModal, setShowPreviewModal] = useState(false);
 
     const {
@@ -222,6 +225,9 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             });
             setUploadedFile(null);
             setSelectedFileObj(null);
+            setLastSavedDocumentUrl(null);
+            setInvoicesToReview([]);
+            setCurrentInvoiceIndex(0);
         } else {
             reset({
                 categoria: "general",
@@ -238,6 +244,9 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             });
             setUploadedFile(null);
             setSelectedFileObj(null);
+            setLastSavedDocumentUrl(null);
+            setInvoicesToReview([]);
+            setCurrentInvoiceIndex(0);
         }
     }, [isOpen, editingGasto, reset]);
 
@@ -268,9 +277,11 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 headers: { "Content-Type": "multipart/form-data" }
             });
 
-            const ocrData = res.data?.data;
-            if (ocrData) {
-                setOcrPreviewData(ocrData);
+            const invoices = res.data?.data?.invoices;
+            if (invoices && invoices.length > 0) {
+                setInvoicesToReview(invoices);
+                setCurrentInvoiceIndex(0);
+                setOcrPreviewData(invoices[0]);
                 setShowPreviewModal(true);
             }
         } catch (error: any) {
@@ -284,12 +295,13 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const confirmOcrData = () => {
         if (!ocrPreviewData) return;
 
-        if (ocrPreviewData.proveedor) setValue("proveedor", ocrPreviewData.proveedor);
-        if (ocrPreviewData.numero_factura) setValue("numero_factura", ocrPreviewData.numero_factura);
-        if (ocrPreviewData.total) setValue("total", Number(ocrPreviewData.total));
-        if (ocrPreviewData.base_imponible) setValue("base_imponible", Number(ocrPreviewData.base_imponible));
-        if (ocrPreviewData.iva_porcentaje) setValue("iva_porcentaje", Number(ocrPreviewData.iva_porcentaje));
-        if (ocrPreviewData.iva_importe) setValue("iva_importe", Number(ocrPreviewData.iva_importe));
+        // Aplicar datos al formulario
+        setValue("proveedor", ocrPreviewData.proveedor || "");
+        setValue("numero_factura", ocrPreviewData.numero_factura || "");
+        setValue("total", Number(ocrPreviewData.total) || 0);
+        setValue("base_imponible", Number(ocrPreviewData.base_imponible) || 0);
+        setValue("iva_porcentaje", Number(ocrPreviewData.iva_porcentaje) || 21);
+        setValue("iva_importe", Number(ocrPreviewData.iva_importe) || 0);
 
         if (ocrPreviewData.fecha_compra) {
             try {
@@ -299,14 +311,19 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 }
             } catch (e) { }
         }
-        if (ocrPreviewData.descripcion) setValue("descripcion", ocrPreviewData.descripcion);
-        // NO asignamos documento_url aquí, se asigna tras guardar
+        setValue("descripcion", ocrPreviewData.descripcion || "");
         if (ocrPreviewData.anio) setValue("anio", ocrPreviewData.anio);
         if (ocrPreviewData.trimestre) setValue("trimestre", ocrPreviewData.trimestre);
 
-        showSuccess("Datos aplicados correctamente");
         setShowPreviewModal(false);
-        setOcrPreviewData(null);
+    };
+
+    const nextInvoice = () => {
+        if (currentInvoiceIndex < invoicesToReview.length - 1) {
+            const nextIdx = currentInvoiceIndex + 1;
+            setCurrentInvoiceIndex(nextIdx);
+            setOcrPreviewData(invoicesToReview[nextIdx]);
+        }
     };
 
     const onSubmit = async (data: any) => {
@@ -322,9 +339,9 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 }
             });
 
-            // Si hay un archivo nuevo seleccionado, añadirlo
-            if (selectedFileObj) {
-                formData.append("file", selectedFileObj);
+            // Si no hay archivo pero tenemos una URL guardada (OCR múltiple), usarla
+            if (!selectedFileObj && lastSavedDocumentUrl) {
+                formData.append("documento_url", lastSavedDocumentUrl);
             }
 
             if (editingGasto) {
@@ -333,15 +350,32 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 });
                 showSuccess("Gasto actualizado correctamente");
             } else {
-                await api.post("/admin/purchases", formData, {
+                const res = await api.post("/admin/purchases", formData, {
                     headers: { "Content-Type": "multipart/form-data" }
                 });
                 showSuccess("Gasto registrado correctamente");
+
+                // Guardar la URL del documento para las siguientes facturas del mismo lote
+                if (res.data?.documento_url) {
+                    setLastSavedDocumentUrl(res.data.documento_url);
+                }
             }
-            onSuccess();
-            onClose();
+
+            // Si hay más facturas por revisar del OCR, cargamos la siguiente
+            if (invoicesToReview.length > 0 && currentInvoiceIndex < invoicesToReview.length - 1) {
+                nextInvoice();
+                setShowPreviewModal(true);
+                setSelectedFileObj(null); // No volver a enviar el archivo
+            } else {
+                onSuccess();
+                onClose();
+            }
         } catch (error: any) {
-            showError(error.response?.data?.error || "Error al guardar el gasto");
+            if (error.response?.status === 409) {
+                showError(error.response.data.error || "Este gasto ya está registrado.");
+            } else {
+                showError(error.response?.data?.error || "Error al guardar el gasto");
+            }
         } finally {
             setLoading(false);
         }
@@ -724,12 +758,21 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Sparkles className="text-blue-500" size={20} />
-                            Revisar Datos Extraídos
+                        <DialogTitle className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="text-blue-500" size={20} />
+                                Revisar Datos {invoicesToReview.length > 1 ? `(${currentInvoiceIndex + 1} de ${invoicesToReview.length})` : "Extraídos"}
+                            </div>
+                            {invoicesToReview.length > 1 && (
+                                <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-600 border-blue-100">
+                                    OCR Múltiple
+                                </Badge>
+                            )}
                         </DialogTitle>
                         <DialogDescription>
-                            La IA ha detectado los siguientes datos. Puedes modificarlos ahora o después en el formulario.
+                            {invoicesToReview.length > 1
+                                ? "Se han detectado varias facturas. Revisa y confirma cada una secuencialmente."
+                                : "La IA ha detectado los siguientes datos. Puedes modificarlos ahora o después en el formulario."}
                         </DialogDescription>
                     </DialogHeader>
 
