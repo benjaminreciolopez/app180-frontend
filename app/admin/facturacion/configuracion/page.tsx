@@ -15,10 +15,13 @@ import {
   Sparkles,
   Hash,
   Plus,
-  Loader2
+  Loader2,
+  History
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+
+import { AuditoriaTab } from "@/components/admin/AuditoriaTab"
 
 import { api } from "@/services/api"
 import { Button } from "@/components/ui/button"
@@ -448,6 +451,9 @@ export default function ConfiguracionFacturacionPage() {
           </TabsTrigger>
           <TabsTrigger value="verifactu" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700 cursor-pointer">
             <ShieldCheck className="w-4 h-4 mr-2" /> Veri*Factu
+          </TabsTrigger>
+          <TabsTrigger value="auditoria" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700 cursor-pointer">
+            <History className="w-4 h-4 mr-2" /> Auditoría
           </TabsTrigger>
         </TabsList>
 
@@ -1051,7 +1057,10 @@ export default function ConfiguracionFacturacionPage() {
 
             </CardContent>
           </Card>
-        </TabsContent>
+          {/* --- AUDITORIA --- */}
+          <TabsContent value="auditoria">
+            <AuditoriaTab />
+          </TabsContent>
 
       </Tabs>
 
