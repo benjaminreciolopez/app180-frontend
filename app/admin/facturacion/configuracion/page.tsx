@@ -16,12 +16,13 @@ import {
   Hash,
   Plus,
   Loader2,
-  History
+  History as AuditIcon
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 import { AuditoriaTab } from "@/components/admin/AuditoriaTab"
+
 
 import { api } from "@/services/api"
 import { Button } from "@/components/ui/button"
@@ -453,7 +454,7 @@ export default function ConfiguracionFacturacionPage() {
             <ShieldCheck className="w-4 h-4 mr-2" /> Veri*Factu
           </TabsTrigger>
           <TabsTrigger value="auditoria" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700 cursor-pointer">
-            <History className="w-4 h-4 mr-2" /> Auditoría
+            <AuditIcon className="w-4 h-4 mr-2" /> Auditoría
           </TabsTrigger>
         </TabsList>
 
@@ -1057,10 +1058,12 @@ export default function ConfiguracionFacturacionPage() {
 
             </CardContent>
           </Card>
-          {/* --- AUDITORIA --- */}
-          <TabsContent value="auditoria">
-            <AuditoriaTab />
-          </TabsContent>
+        </TabsContent>
+
+        {/* --- AUDITORIA --- */}
+        <TabsContent value="auditoria">
+          <AuditoriaTab />
+        </TabsContent>
 
       </Tabs>
 
