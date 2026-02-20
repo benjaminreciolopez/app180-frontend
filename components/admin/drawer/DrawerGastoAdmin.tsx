@@ -324,59 +324,74 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         if (currentInvoiceIndex < invoicesToReview.length - 1) {
             const nextIdx = currentInvoiceIndex + 1;
             setCurrentInvoiceIndex(nextIdx);
-            setOcrPreviewData(invoicesToReview[nextIdx]);
+            const nextData = invoicesToReview[nextIdx];
+            setOcrPreviewData(nextData);
+
+            // Actualizamos los campos del formulario para la siguiente factura
+            reset({
+                ...nextData,
+                categoria: nextData.categoria || "general",
+                metodo_pago: nextData.metodo_pago || "efectivo",
+                documento_url: lastSavedDocumentUrl || "",
+                // Aseguramos formatos de fecha y números
+                total: Number(nextData.total) || 0,
+                base_imponible: Number(nextData.base_imponible) || 0,
+                iva_porcentaje: Number(nextData.iva_porcentaje) || 21,
+                iva_importe: Number(nextData.iva_importe) || 0,
+                fecha_compra: nextData.fecha_compra ? new Date(nextData.fecha_compra).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
+            });
         }
     };
 
     const onSubmit = async (data: any) => {
         setLoading(true);
         try {
-            // Construir FormData para enviar archivo + datos
             const formData = new FormData();
-
-            // Añadir todos los campos del formulario al FormData
             Object.keys(data).forEach(key => {
                 if (data[key] !== undefined && data[key] !== null) {
                     formData.append(key, data[key]);
                 }
             });
 
-            // Si no hay archivo pero tenemos una URL guardada (OCR múltiple), usarla
             if (!selectedFileObj && lastSavedDocumentUrl) {
                 formData.append("documento_url", lastSavedDocumentUrl);
             }
 
+            let res;
             if (editingGasto) {
                 await api.put(`/admin/purchases/${editingGasto.id}`, formData, {
                     headers: { "Content-Type": "multipart/form-data" }
                 });
                 showSuccess("Gasto actualizado correctamente");
             } else {
-                const res = await api.post("/admin/purchases", formData, {
+                res = await api.post("/admin/purchases", formData, {
                     headers: { "Content-Type": "multipart/form-data" }
                 });
                 showSuccess("Gasto registrado correctamente");
 
-                // Guardar la URL del documento para las siguientes facturas del mismo lote
                 if (res.data?.documento_url) {
                     setLastSavedDocumentUrl(res.data.documento_url);
                 }
             }
 
-            // Si hay más facturas por revisar del OCR, cargamos la siguiente
+            // Si llegamos aquí, el guardado fue EXITOSO
             if (invoicesToReview.length > 0 && currentInvoiceIndex < invoicesToReview.length - 1) {
+                // Pasamos a la siguiente factura
                 nextInvoice();
-                setShowPreviewModal(true);
-                setSelectedFileObj(null); // No volver a enviar el archivo
-            } else {
-                onSuccess();
-                onClose();
+                setShowPreviewModal(true); // Mostramos el modal de revisión para la siguiente
+                setSelectedFileObj(null);
+                setLoading(false);
+                return; // IMPORTANTE: No llamar a onClose ni onSuccess total aún
             }
+
+            // Si es la última factura o un gasto individual exitoso
+            onSuccess();
+            onClose();
         } catch (error: any) {
+            console.error("Error al guardar:", error);
             if (error.response?.status === 409) {
-                showError(error.response.data.error || "Este gasto ya está registrado.");
-                // Si es un duplicado y hay más facturas, NO cerramos el modal principal
-                // pero permitimos al usuario decidir qué hacer en el modal de revisión
+                showError(error.response.data.error || "Este gasto ya está registrado (Duplicado).");
+                // Mantenemos el Drawer abierto para que el usuario pueda "Omitir" o corregir.
             } else {
                 showError(error.response?.data?.error || "Error al guardar el gasto");
             }
