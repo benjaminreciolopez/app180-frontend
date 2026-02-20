@@ -86,7 +86,7 @@ export default function AdminPartesDiaPage() {
       if (fechaInicio) params.fecha_inicio = fechaInicio;
       if (fechaFin) params.fecha_fin = fechaFin;
 
-      const res = await api.get("/admin/partes-dia", { params });
+      const res = await api.get("/api/admin/partes-dia", { params });
       setItems(Array.isArray(res.data?.items) ? res.data.items : []);
     } catch (e) {
       console.error(e);
@@ -163,7 +163,7 @@ export default function AdminPartesDiaPage() {
         return { empleado_id, fecha };
       });
 
-      await api.patch("/admin/partes-dia/validar-masivo", {
+      await api.patch("/api/admin/partes-dia/validar-masivo", {
         seleccionados,
         validado,
         nota_admin: nota || null,
@@ -193,7 +193,7 @@ export default function AdminPartesDiaPage() {
     try {
       setSaving(true);
 
-      await api.patch("/admin/partes-dia/validar", {
+      await api.patch("/api/admin/partes-dia/validar", {
         empleado_id: selected.empleado_id,
         fecha: selected.fecha,
         validado,

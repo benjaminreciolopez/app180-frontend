@@ -54,7 +54,7 @@ export const UniversalExportButton = ({
             });
 
             console.log('📤 Parámetros de exportación:', params);
-            const response = await api.get(`/admin/export/${module}`, {
+            const response = await api.get(`/api/admin/export/${module}`, {
                 params,
                 responseType: 'blob'
             });
@@ -63,19 +63,19 @@ export const UniversalExportButton = ({
 
             // Verificar si el blob es un JSON de error antes de intentar descargarlo
             if (response.headers['content-type']?.includes('application/json')) {
-                 const text = await response.data.text();
-                 try {
-                     const jsonError = JSON.parse(text);
-                     throw new Error(jsonError.error || "Error desconocido del servidor");
-                 } catch (e) {
-                     // Si no es JSON válido, continuar (aunque sería raro con content-type json)
-                 }
+                const text = await response.data.text();
+                try {
+                    const jsonError = JSON.parse(text);
+                    throw new Error(jsonError.error || "Error desconocido del servidor");
+                } catch (e) {
+                    // Si no es JSON válido, continuar (aunque sería raro con content-type json)
+                }
             }
 
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            
+
             let filename = `export-${module}.${format}`;
             const contentDisposition = response.headers['content-disposition'];
             if (contentDisposition) {
@@ -83,19 +83,19 @@ export const UniversalExportButton = ({
                 if (fileNameMatch && fileNameMatch.length === 2)
                     filename = fileNameMatch[1];
             }
-            
+
             link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-            
+
             showSuccess(`Exportación ${format.toUpperCase()} completada`);
-            
+
         } catch (err: any) {
             console.error("❌ Error en exportación:", err);
             // Si el backend es Render y está despertando o fallando, aquí lo veremos
-            const errorMsg = err.response?.status === 404 
+            const errorMsg = err.response?.status === 404
                 ? "Función de exportación no encontrada en el servidor. Verifica que el backend esté actualizado."
                 : "No se pudo descargar el archivo. Comprueba la consola.";
             showError(errorMsg);
