@@ -15,6 +15,7 @@ type Modulos = Record<string, boolean>;
 
 type Session = {
   nombre: string;
+  avatar_url?: string | null;
   modulos: Modulos;
 };
 
@@ -99,6 +100,7 @@ export default function AdminLayout({
 
       setSession({
         nombre: user.nombre || "Administrador",
+        avatar_url: user.avatar_url || null,
         modulos: activeModulos,
       });
       setUserId(user.id);
@@ -342,9 +344,20 @@ export default function AdminLayout({
           transform transition-transform
           ${menuOpen ? "translate-x-0" : "-translate-x-full"}
           md:static md:translate-x-0
-          flex flex-col
+          flex flex-col relative overflow-hidden
         `}
       >
+        {/* Marca de agua - Avatar de fondo sutil */}
+        {session.avatar_url && (
+          <div
+            className="absolute -top-10 -left-10 w-64 h-64 opacity-[0.03] grayscale pointer-events-none"
+            style={{
+              backgroundImage: `url(${session.avatar_url})`,
+              backgroundSize: 'cover',
+              filter: 'blur(40px)'
+            }}
+          />
+        )}
         {/* Mobile close */}
         <div className="md:hidden mb-4">
           <button
@@ -355,7 +368,10 @@ export default function AdminLayout({
           </button>
         </div>
 
-        <h2 className="text-xl font-bold tracking-wide">CONTENDO GESTIONES</h2>
+        <div className="relative z-10">
+          <h2 className="text-xl font-bold tracking-wide">CONTENDO</h2>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] -mt-1">Gestiones</p>
+        </div>
 
         {/* Links */}
         <ul className="mt-8 space-y-2 flex-1 overflow-y-auto">
@@ -403,10 +419,49 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 bg-background h-[100svh] flex flex-col">
+      {/* Main Container */}
+      <main className="flex-1 bg-background h-[100svh] flex flex-col relative">
+
+        {/* Header Premium Central */}
+        <header className="hidden md:flex items-center justify-between h-16 px-8 border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-20">
+          <div className="w-10" /> {/* Spacer */}
+
+          <div className="flex-1 flex justify-center">
+            <h1 className="text-sm font-bold tracking-[0.3em] text-foreground/80 uppercase">
+              CONTENDO GESTIONES
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden lg:block">
+              <p className="text-sm font-semibold leading-none">{session.nombre}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-tighter mt-1">Sesión Administrativa</p>
+            </div>
+
+            <button
+              onClick={() => setSelfConfigOpen(true)}
+              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300"
+            >
+              <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-background bg-muted">
+                {session.avatar_url ? (
+                  <img
+                    src={session.avatar_url}
+                    alt={session.nombre}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-sm font-bold">
+                    {session.nombre.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <div className="absolute inset-0 rounded-full shadow-[0_0_15px_rgba(var(--primary),0.2)] group-hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all" />
+            </button>
+          </div>
+        </header>
+
         {/* Header móvil */}
-        <div className="md:hidden sticky top-0 z-30 bg-background border-b flex items-center h-12 px-3 shrink-0">
+        <div className="md:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b flex items-center justify-between h-14 px-4 shrink-0">
           <button
             aria-label="Abrir menú"
             onClick={() => setMenuOpen(true)}

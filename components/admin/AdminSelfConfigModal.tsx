@@ -42,7 +42,7 @@ export default function AdminSelfConfigModal({
 
       const employees = empRes.data || [];
       const me = employees.find((e: any) => String(e.user_id) === String(adminId));
-      
+
       setAdminData(me);
       setSelectedPlantilla(me?.plantilla_id || "");
       setPlantillas(plantRes.data || []);
@@ -66,7 +66,7 @@ export default function AdminSelfConfigModal({
           fecha_inicio: new Date().toISOString().split('T')[0]
         });
       }
-      
+
       showSuccess("Configuración actualizada correctamente");
       loadData();
     } catch (err) {
@@ -107,8 +107,18 @@ export default function AdminSelfConfigModal({
           {/* Header */}
           <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                <User size={20} />
+              <div className="relative group w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 bg-muted">
+                {adminData?.avatar_url ? (
+                  <img
+                    src={adminData.avatar_url}
+                    alt={adminData.nombre}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-blue-600 text-white">
+                    <User size={24} />
+                  </div>
+                )}
               </div>
               <div>
                 <h2 className="text-xl font-bold">Configuración de {adminData?.nombre || "Administrador"}</h2>
@@ -167,13 +177,13 @@ export default function AdminSelfConfigModal({
                           {adminData?.device_hash ? 'Instalación activa vinculada' : 'Sin instalación detectada'}
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {adminData?.device_hash 
-                            ? 'Ya tienes un dispositivo vinculado. Puedes reenviarte la invitación si vas a usar uno nuevo.' 
+                          {adminData?.device_hash
+                            ? 'Ya tienes un dispositivo vinculado. Puedes reenviarte la invitación si vas a usar uno nuevo.'
                             : 'Invítate a ti mismo para instalar el acceso directo en tu pantalla de inicio móvil.'}
                         </p>
                       </div>
                     </div>
-                    
+
                     <button
                       onClick={handleGenerateInvite}
                       disabled={loadingInvite}

@@ -7,6 +7,7 @@ export interface AppJwtPayload extends JwtPayload {
   email: string;
   role: "admin" | "empleado";
   nombre: string;
+  avatar_url?: string | null;
   empleado_id?: string | null;
   device_hash?: string | null;
   password_forced?: boolean;
@@ -225,6 +226,7 @@ export function getUserFromToken(token: string) {
     email: decoded.email,
     role: decoded.role,
     nombre: decoded.nombre,
+    avatar_url: decoded.avatar_url || null,
     empleadoId: decoded.empleado_id || null,
   };
 }
