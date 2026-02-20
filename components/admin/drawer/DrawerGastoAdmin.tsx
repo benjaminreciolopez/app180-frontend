@@ -163,7 +163,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const docUrl = rawDocUrl?.startsWith("http")
         ? rawDocUrl
         : rawDocUrl
-            ? `${apiUrl}/admin/purchases/proxy?path=${encodeURIComponent(rawDocUrl)}&token=${token}`
+            ? `${apiUrl}/api/admin/purchases/proxy?path=${encodeURIComponent(rawDocUrl)}&token=${token}`
             : "";
 
     // Determinar tipo por extensión del archivo original
@@ -194,7 +194,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     useEffect(() => {
         if (isOpen) {
             // Cargar categorías existentes
-            api.get("/admin/purchases/values?field=categoria")
+            api.get("/api/admin/purchases/values?field=categoria")
                 .then(res => {
                     const dbValues = res.data?.data || [];
                     const unique = Array.from(new Set([...categories, ...dbValues]));
@@ -203,7 +203,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 .catch(err => console.error("Error cargando categorías", err));
 
             // Cargar métodos de pago existentes
-            api.get("/admin/purchases/values?field=metodo_pago")
+            api.get("/api/admin/purchases/values?field=metodo_pago")
                 .then(res => {
                     const dbValues = res.data?.data || [];
                     const unique = Array.from(new Set([...paymentMethods, ...dbValues]));
@@ -276,7 +276,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
             // Llamada al endpoint de OCR (asumiendo estructura backend)
             // Ya NO DEVUELVE documento_url, solo datos
-            const res = await api.post("/admin/purchases/ocr", formData, {
+            const res = await api.post("/api/admin/purchases/ocr", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
 
@@ -370,12 +370,12 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
             let res;
             if (editingGasto) {
-                await api.put(`/admin/purchases/${editingGasto.id}`, formData, {
+                await api.put(`/api/admin/purchases/${editingGasto.id}`, formData, {
                     headers: { "Content-Type": "multipart/form-data" }
                 });
                 showSuccess("Gasto actualizado correctamente");
             } else {
-                res = await api.post("/admin/purchases", formData, {
+                res = await api.post("/api/admin/purchases", formData, {
                     headers: { "Content-Type": "multipart/form-data" }
                 });
                 showSuccess("Gasto registrado correctamente");

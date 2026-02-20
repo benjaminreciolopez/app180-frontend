@@ -87,7 +87,7 @@ export default function GastosPage() {
     const loadGastos = async () => {
         setLoading(true);
         try {
-            const res = await api.get("/admin/purchases", {
+            const res = await api.get("/api/admin/purchases", {
                 params: {
                     fecha_inicio: fechaDesde || undefined,
                     fecha_fin: fechaHasta || undefined,
@@ -157,7 +157,7 @@ export default function GastosPage() {
         if (!ok) return;
 
         try {
-            await api.delete(`/admin/purchases/${id}`);
+            await api.delete(`/api/admin/purchases/${id}`);
             showSuccess("Gasto eliminado");
             loadGastos();
         } catch (error) {
