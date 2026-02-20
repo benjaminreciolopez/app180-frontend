@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User, LogOut } from "lucide-react";
 import { getUser, refreshMe } from "@/services/auth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { AICopilot } from "@/components/shared/AICopilot";
@@ -390,33 +390,8 @@ export default function AdminLayout({
             </li>
           ))}
 
-          {/* Sección Administrador si el módulo de empleados está desactivado */}
-          {!hasModule(session.modulos, "empleados") && (
-            <li className="mt-4 pt-4 border-t border-border">
-              <button
-                onClick={() => {
-                  setSelfConfigOpen(true);
-                  setMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition flex items-center gap-3 group"
-              >
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-sm group-hover:scale-110 transition-transform text-xs">
-                  A
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Administrador</p>
-                  <p className="text-sm font-semibold truncate">{session.nombre}</p>
-                </div>
-              </button>
-            </li>
-          )}
         </ul>
 
-        {/* Footer */}
-        <div className="border-t border-border pt-4">
-          <p className="text-xs text-muted-foreground mb-1">Sesión iniciada:</p>
-          <p className="font-semibold">{session.nombre}</p>
-        </div>
       </aside>
 
       {/* Main Container */}
@@ -442,7 +417,7 @@ export default function AdminLayout({
               onClick={() => setSelfConfigOpen(true)}
               className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300"
             >
-              <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-background bg-muted">
+              <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-background bg-muted">
                 {session.avatar_url ? (
                   <img
                     src={session.avatar_url}
@@ -450,12 +425,20 @@ export default function AdminLayout({
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-sm font-bold">
+                  <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-lg font-bold">
                     {session.nombre.charAt(0)}
                   </div>
                 )}
               </div>
               <div className="absolute inset-0 rounded-full shadow-[0_0_15px_rgba(var(--primary),0.2)] group-hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all" />
+            </button>
+
+            <button
+              onClick={logout}
+              title="Cerrar sesión"
+              className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full transition-colors ml-2"
+            >
+              <LogOut size={20} />
             </button>
           </div>
         </header>
