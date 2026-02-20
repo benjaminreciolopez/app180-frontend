@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  HardDrive, 
-  Folder, 
-  FileText, 
-  Download, 
-  Trash2, 
-  Upload, 
+import {
+  HardDrive,
+  Folder,
+  FileText,
+  Download,
+  Trash2,
+  Upload,
   Search,
   ChevronRight,
   MoreVertical,
@@ -61,7 +61,7 @@ interface StorageStats {
 }
 
 // Tipo unificado para mostrar en el grid
-type GridItem = 
+type GridItem =
   | { type: 'folder', name: string, fullPath: string }
   | { type: 'file', data: FileInfo }
 
@@ -69,12 +69,12 @@ export default function AlmacenamientoPage() {
   const confirm = useConfirm()
   const [loadingFiles, setLoadingFiles] = useState(false)
   const [loadingFolders, setLoadingFolders] = useState(true)
-  
+
   // Estado real de los datos
   const [allDefinedPaths, setAllDefinedPaths] = useState<string[]>([])
   const [currentFiles, setCurrentFiles] = useState<FileInfo[]>([])
   const [stats, setStats] = useState<StorageStats | null>(null)
-  
+
   // Estado de navegación
   const [currentPath, setCurrentPath] = useState<string>("") // "" es Root
   const [searchTerm, setSearchTerm] = useState("")
@@ -90,30 +90,30 @@ export default function AlmacenamientoPage() {
 
   // 1. Cargar la estructura de carpetas
   const fetchStructure = async () => {
-      try {
-          setLoadingFolders(true)
-          const res = await api.get('/admin/storage/folders')
-          if (res.data.success) {
-              const paths = res.data.data || []
-              if (paths.length === 0) {
-                 setAllDefinedPaths(["Facturas emitidas"])
-              } else {
-                 setAllDefinedPaths(paths)
-              }
-          }
-      } catch (err) {
-          console.error("Error fetching folders", err)
+    try {
+      setLoadingFolders(true)
+      const res = await api.get('/api/admin/storage/folders')
+      if (res.data.success) {
+        const paths = res.data.data || []
+        if (paths.length === 0) {
           setAllDefinedPaths(["Facturas emitidas"])
-      } finally {
-          setLoadingFolders(false)
+        } else {
+          setAllDefinedPaths(paths)
+        }
       }
+    } catch (err) {
+      console.error("Error fetching folders", err)
+      setAllDefinedPaths(["Facturas emitidas"])
+    } finally {
+      setLoadingFolders(false)
+    }
   }
 
   // 2. Cargar archivos de la carpeta actual
   const fetchFiles = async () => {
     try {
       setLoadingFiles(true)
-      const res = await api.get(`/admin/storage/files?folder=${currentPath}`)
+      const res = await api.get(`/api/admin/storage/files?folder=${currentPath}`)
       if (res.data.success) {
         setCurrentFiles(res.data.data)
         setStats(res.data.stats)
@@ -141,7 +141,7 @@ export default function AlmacenamientoPage() {
     if (loadingFolders) return []
     const subs = new Set<string>()
     const prefix = currentPath ? `${currentPath}/` : ""
-    
+
     // Sort folders based on user direction
     const folderList = Array.from(allDefinedPaths.reduce((acc, path) => {
       if (path.startsWith(prefix)) {
@@ -155,21 +155,21 @@ export default function AlmacenamientoPage() {
     }, new Set<string>()))
 
     return folderList.sort((a, b) => {
-        return sortDirection === 'asc' ? a.localeCompare(b) : b.localeCompare(a)
+      return sortDirection === 'asc' ? a.localeCompare(b) : b.localeCompare(a)
     })
   }, [allDefinedPaths, currentPath, loadingFolders, sortDirection])
 
   // 4. Items combinados para el Grid
   const gridItems: GridItem[] = useMemo(() => {
     let items: GridItem[] = []
-    
+
     // Agregar carpetas
     items = items.concat(subFolders.map(name => ({
       type: 'folder',
       name,
       fullPath: currentPath ? `${currentPath}/${name}` : name
     })))
-    
+
     // Agregar archivos
     items = items.concat(currentFiles.map(file => ({
       type: 'file',
@@ -192,25 +192,25 @@ export default function AlmacenamientoPage() {
     // Note: Folders use the memoized 'subFolders' which is already sorted.
     // Files need sorting here.
     fileItems.sort((a, b) => {
-        const nameA = a.data.nombre
-        const nameB = b.data.nombre
-        return sortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
+      const nameA = a.data.nombre
+      const nameB = b.data.nombre
+      return sortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
     })
 
     // Reconstruct: Folders first (already sorted), then Files (sorted)
     return [...folderItems, ...fileItems]
-    
+
   }, [subFolders, currentFiles, searchTerm, currentPath, sortDirection])
 
   // Acciones
   const handleNavigate = (path: string) => {
     if (isDownloading) return // Bloqueo si hay descarga
-    setSearchTerm("") 
+    setSearchTerm("")
     setCurrentPath(path)
   }
 
   const handleNavigateUp = () => {
-    if (isDownloading) return 
+    if (isDownloading) return
     if (!currentPath) return
     const parts = currentPath.split('/')
     parts.pop()
@@ -221,18 +221,18 @@ export default function AlmacenamientoPage() {
      Protección de Backup
      ========================= */
   const isProtectedItem = (id: string) => {
-      const file = currentFiles.find(f => f.id === id)
-      if (!file) return false
-      // Protegemos el backup automático
-      return file.nombre === 'backup_auto.json' || file.folder.includes('system_backups')
+    const file = currentFiles.find(f => f.id === id)
+    if (!file) return false
+    // Protegemos el backup automático
+    return file.nombre === 'backup_auto.json' || file.folder.includes('system_backups')
   }
 
   const handleDelete = async (id: string) => {
     if (isDownloading || deletingId) return
-    
+
     if (isProtectedItem(id)) {
-        toast.error("Este archivo de sistema está protegido y no se puede eliminar.")
-        return
+      toast.error("Este archivo de sistema está protegido y no se puede eliminar.")
+      return
     }
 
     const ok = await confirm({
@@ -244,10 +244,10 @@ export default function AlmacenamientoPage() {
     if (!ok) return
     setDeletingId(id)
     try {
-      await api.delete(`/admin/storage/files/${id}`)
+      await api.delete(`/api/admin/storage/files/${id}`)
       toast.success("Archivo eliminado")
       fetchFiles()
-      fetchStructure() 
+      fetchStructure()
     } catch (err) {
       toast.error("Error al eliminar")
     } finally {
@@ -257,12 +257,12 @@ export default function AlmacenamientoPage() {
 
   const handleDeleteBulk = async () => {
     if (isDownloading || isDeletingBulk) return
-    
+
     // Verificar protegidos
     const protectedIds = Array.from(selectedItems).filter(id => isProtectedItem(id))
     if (protectedIds.length > 0) {
-        toast.error(`Hay ${protectedIds.length} archivo(s) protegidos seleccionados que no se pueden eliminar.`)
-        return
+      toast.error(`Hay ${protectedIds.length} archivo(s) protegidos seleccionados que no se pueden eliminar.`)
+      return
     }
 
     const okBulk = await confirm({
@@ -272,19 +272,19 @@ export default function AlmacenamientoPage() {
       variant: "destructive",
     })
     if (!okBulk) return
-    
+
     setIsDeletingBulk(true)
     try {
-        const promises = Array.from(selectedItems).map(id => api.delete(`/admin/storage/files/${id}`))
-        await Promise.all(promises)
-        toast.success(`${selectedItems.size} archivos eliminados`)
-        setSelectedItems(new Set())
-        fetchFiles()
-        fetchStructure()
-    } catch(err) {
-        toast.error("Error eliminando algunos archivos")
+      const promises = Array.from(selectedItems).map(id => api.delete(`/api/admin/storage/files/${id}`))
+      await Promise.all(promises)
+      toast.success(`${selectedItems.size} archivos eliminados`)
+      setSelectedItems(new Set())
+      fetchFiles()
+      fetchStructure()
+    } catch (err) {
+      toast.error("Error eliminando algunos archivos")
     } finally {
-        setIsDeletingBulk(false)
+      setIsDeletingBulk(false)
     }
   }
 
@@ -292,17 +292,17 @@ export default function AlmacenamientoPage() {
     if (isDownloading) return
     try {
       setIsDownloading(true)
-      const response = await api.get(`/admin/storage/files/${id}/download`, {
+      const response = await api.get(`/api/admin/storage/files/${id}/download`, {
         responseType: 'blob',
       })
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
       link.setAttribute('download', nombre)
       document.body.appendChild(link)
       link.click()
-      
+
       link.remove()
       window.URL.revokeObjectURL(url)
     } catch (err) {
@@ -314,54 +314,54 @@ export default function AlmacenamientoPage() {
   }
 
   const handleBulkDownload = async () => {
-      if (selectedItems.size === 0) return
-      if (isDownloading) return
+    if (selectedItems.size === 0) return
+    if (isDownloading) return
 
-      try {
-          setIsDownloading(true)
-          toast.info("Iniciando descarga y compresión...")
+    try {
+      setIsDownloading(true)
+      toast.info("Iniciando descarga y compresión...")
 
-          const zip = new JSZip()
-          
-          // Filtrar items seleccionados que sean archivos (no soportamos bajar carpetas en bulk aun)
-          const filesToDownload = currentFiles.filter(f => selectedItems.has(f.id))
-          
-          let processed = 0
-          
-          const promises = filesToDownload.map(async (file) => {
-              try {
-                  const res = await api.get(`/admin/storage/files/${file.id}/download`, {
-                      responseType: 'blob'
-                  })
-                  zip.file(file.nombre, res.data)
-                  processed++
-              } catch (err) {
-                  console.error(`Error bajando ${file.nombre}`, err)
-              }
+      const zip = new JSZip()
+
+      // Filtrar items seleccionados que sean archivos (no soportamos bajar carpetas en bulk aun)
+      const filesToDownload = currentFiles.filter(f => selectedItems.has(f.id))
+
+      let processed = 0
+
+      const promises = filesToDownload.map(async (file) => {
+        try {
+          const res = await api.get(`/api/admin/storage/files/${file.id}/download`, {
+            responseType: 'blob'
           })
+          zip.file(file.nombre, res.data)
+          processed++
+        } catch (err) {
+          console.error(`Error bajando ${file.nombre}`, err)
+        }
+      })
 
-          await Promise.all(promises)
+      await Promise.all(promises)
 
-          if (processed === 0) {
-              toast.error("Error al procesar archivos")
-              return
-          }
-
-          toast.info("Generando ZIP...")
-          const content = await zip.generateAsync({ type: "blob" })
-          
-          const zipName = `archivos_${currentPath.replace(/\//g, '_') || 'root'}_${format(new Date(), 'yyyyMMdd')}.zip`
-          saveAs(content, zipName)
-
-          toast.success("Descarga completada")
-          setSelectedItems(new Set()) // Opcional: limpiar selección
-
-      } catch (err) {
-          console.error("Error bulk download", err)
-          toast.error("Error al generar el archivo ZIP")
-      } finally {
-          setIsDownloading(false)
+      if (processed === 0) {
+        toast.error("Error al procesar archivos")
+        return
       }
+
+      toast.info("Generando ZIP...")
+      const content = await zip.generateAsync({ type: "blob" })
+
+      const zipName = `archivos_${currentPath.replace(/\//g, '_') || 'root'}_${format(new Date(), 'yyyyMMdd')}.zip`
+      saveAs(content, zipName)
+
+      toast.success("Descarga completada")
+      setSelectedItems(new Set()) // Opcional: limpiar selección
+
+    } catch (err) {
+      console.error("Error bulk download", err)
+      toast.error("Error al generar el archivo ZIP")
+    } finally {
+      setIsDownloading(false)
+    }
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -377,7 +377,7 @@ export default function AlmacenamientoPage() {
     formData.append('folder', targetFolder)
 
     try {
-      await api.post('/admin/storage/files/upload', formData, {
+      await api.post('/api/admin/storage/files/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       toast.success("Archivo subido correctamente")
@@ -386,28 +386,28 @@ export default function AlmacenamientoPage() {
     } catch (err) {
       toast.error("Error al subir archivo")
     } finally {
-        e.target.value = "" 
-        setUploading(false)
+      e.target.value = ""
+      setUploading(false)
     }
   }
 
   const toggleSelection = (id: string) => {
-      if (isDownloading) return
-      const newSet = new Set(selectedItems)
-      if (newSet.has(id)) newSet.delete(id)
-      else newSet.add(id)
-      setSelectedItems(newSet)
+    if (isDownloading) return
+    const newSet = new Set(selectedItems)
+    if (newSet.has(id)) newSet.delete(id)
+    else newSet.add(id)
+    setSelectedItems(newSet)
   }
 
   const toggleSelectAll = () => {
-      if (isDownloading) return
-      if (selectedItems.size === currentFiles.length && currentFiles.length > 0) {
-          setSelectedItems(new Set())
-      } else {
-          // Solo seleccionamos archivos, no carpetas de momento para simplificar
-          const allIds = new Set(currentFiles.map(f => f.id))
-          setSelectedItems(allIds)
-      }
+    if (isDownloading) return
+    if (selectedItems.size === currentFiles.length && currentFiles.length > 0) {
+      setSelectedItems(new Set())
+    } else {
+      // Solo seleccionamos archivos, no carpetas de momento para simplificar
+      const allIds = new Set(currentFiles.map(f => f.id))
+      setSelectedItems(allIds)
+    }
   }
 
   const formatSize = (bytes: number) => {
@@ -424,7 +424,7 @@ export default function AlmacenamientoPage() {
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto h-[calc(100vh-80px)] flex flex-col relative">
-      
+
 
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
@@ -435,388 +435,388 @@ export default function AlmacenamientoPage() {
           </h1>
           <p className="text-slate-500">Explorador de archivos corporativos.</p>
         </div>
-        
-        <div className="flex items-center gap-3">
-             <div className="text-right hidden md:block">
-                 <div className="text-sm font-medium text-slate-700">Espacio Usado</div>
-                 <div className="text-xs text-slate-500">
-                     {formatSize(stats?.used_bytes || 0)} / {formatSize(stats?.total_limit_bytes || 0)}
-                 </div>
-             </div>
-             
-             <div className="h-8 w-[1px] bg-slate-200 mx-2 hidden md:block"></div>
 
-           <label className="cursor-pointer">
-              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading || isDownloading} />
-              <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm" disabled={uploading || isDownloading}>
-                <Plus className="w-4 h-4 mr-2" />
-                Subir Archivo
-              </Button>
-           </label>
+        <div className="flex items-center gap-3">
+          <div className="text-right hidden md:block">
+            <div className="text-sm font-medium text-slate-700">Espacio Usado</div>
+            <div className="text-xs text-slate-500">
+              {formatSize(stats?.used_bytes || 0)} / {formatSize(stats?.total_limit_bytes || 0)}
+            </div>
+          </div>
+
+          <div className="h-8 w-[1px] bg-slate-200 mx-2 hidden md:block"></div>
+
+          <label className="cursor-pointer">
+            <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading || isDownloading} />
+            <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm" disabled={uploading || isDownloading}>
+              <Plus className="w-4 h-4 mr-2" />
+              Subir Archivo
+            </Button>
+          </label>
         </div>
       </div>
 
       {/* Toolbar & Breadcrumbs */}
       <div className="bg-white p-3 border rounded-xl shadow-sm flex flex-col gap-3 flex-shrink-0">
-         <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleNavigateUp}
-                disabled={!currentPath || isDownloading}
-                className="mr-2 text-slate-500 hover:text-slate-900"
-            >
-                <ArrowLeft className="w-4 h-4" />
-            </Button>
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNavigateUp}
+            disabled={!currentPath || isDownloading}
+            className="mr-2 text-slate-500 hover:text-slate-900"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
 
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink 
-                    onClick={() => handleNavigate("")}
-                    className={cn("cursor-pointer flex items-center gap-1", !currentPath ? "font-semibold text-slate-900" : "text-slate-500")}
-                  >
-                    <HardDrive className="w-4 h-4" />
-                    Inicio
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                
-                {breadcrumbSegments.map((segment, index) => {
-                    const path = breadcrumbSegments.slice(0, index + 1).join('/')
-                    const isLast = index === breadcrumbSegments.length - 1
-                    
-                    return (
-                        <div key={path} className="flex items-center">
-                            <BreadcrumbSeparator />
-                            <BreadcrumbItem>
-                                {isLast ? (
-                                    <BreadcrumbPage className="font-semibold text-slate-900">{segment}</BreadcrumbPage>
-                                ) : (
-                                    <BreadcrumbLink 
-                                        onClick={() => handleNavigate(path)}
-                                        className="cursor-pointer text-slate-500 hover:text-slate-900"
-                                    >
-                                        {segment}
-                                    </BreadcrumbLink>
-                                )}
-                            </BreadcrumbItem>
-                        </div>
-                    )
-                })}
-              </BreadcrumbList>
-            </Breadcrumb>
-         </div>
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink
+                  onClick={() => handleNavigate("")}
+                  className={cn("cursor-pointer flex items-center gap-1", !currentPath ? "font-semibold text-slate-900" : "text-slate-500")}
+                >
+                  <HardDrive className="w-4 h-4" />
+                  Inicio
+                </BreadcrumbLink>
+              </BreadcrumbItem>
 
-         <div className="flex justify-between items-center gap-3 flex-wrap">
-             {/* Acciones de Selección */}
-             <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-100">
-                <div className="flex items-center gap-2 px-2">
-                    <Checkbox 
-                        id="select-all" 
-                        checked={currentFiles.length > 0 && selectedItems.size === currentFiles.length}
-                        onCheckedChange={toggleSelectAll}
-                        disabled={currentFiles.length === 0 || isDownloading}
-                    />
-                    <label htmlFor="select-all" className="text-sm font-medium text-slate-600 cursor-pointer select-none">
-                        Todos
-                    </label>
-                </div>
-                
-                {selectedItems.size > 0 && (
-                    <>
-                        <div className="h-4 w-[1px] bg-slate-300 mx-1"></div>
-                        
-                        {selectedItems.size === 1 ? (
-                            <>
-                                <Button 
-                                    size="sm" 
-                                    variant="secondary" 
-                                    className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
-                                    onClick={async () => {
-                                        const id = Array.from(selectedItems)[0]
-                                        const file = currentFiles.find(f => f.id === id)
-                                        if (!file) return
-                                        
-                                        try {
-                                            const res = await api.get(`/admin/storage/files/${id}/download`, { responseType: 'blob' })
-                                            const url = window.URL.createObjectURL(new Blob([res.data], { type: file.mime_type || 'application/pdf' }))
-                                            window.open(url, '_blank')
-                                        } catch (e) {
-                                            toast.error("Error al abrir archivo")
-                                        }
-                                    }}
-                                    disabled={isDownloading}
-                                >
-                                    <Eye className="w-3.5 h-3.5 mr-1.5 text-slate-600" />
-                                    Visualizar
-                                </Button>
-                                <Button 
-                                    size="sm" 
-                                    variant="secondary" 
-                                    className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
-                                    onClick={() => {
-                                        const id = Array.from(selectedItems)[0]
-                                        const file = currentFiles.find(f => f.id === id)
-                                        if (file) handleDownload(file.id, file.nombre)
-                                    }}
-                                    disabled={isDownloading}
-                                >
-                                    <Download className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
-                                    Descargar
-                                </Button>
-                            </>
-                        ) : (
-                            <Button 
-                                size="sm" 
-                                variant="secondary" 
-                                className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
-                                onClick={handleBulkDownload}
-                                disabled={isDownloading}
-                            >
-                                <Package className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
-                                Descargar ZIP ({selectedItems.size})
-                            </Button>
-                        )}
+              {breadcrumbSegments.map((segment, index) => {
+                const path = breadcrumbSegments.slice(0, index + 1).join('/')
+                const isLast = index === breadcrumbSegments.length - 1
 
-                        <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                            onClick={handleDeleteBulk}
-                            disabled={isDownloading || isDeletingBulk || Array.from(selectedItems).some(isProtectedItem)}
+                return (
+                  <div key={path} className="flex items-center">
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      {isLast ? (
+                        <BreadcrumbPage className="font-semibold text-slate-900">{segment}</BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink
+                          onClick={() => handleNavigate(path)}
+                          className="cursor-pointer text-slate-500 hover:text-slate-900"
                         >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                            Eliminar ({selectedItems.size})
-                        </Button>
-                    </>
-                )}
-             </div>
+                          {segment}
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                  </div>
+                )
+              })}
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
 
-             <div className="flex gap-3 ml-auto">
-                 <div className="relative w-48 md:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input 
-                    placeholder="Buscar..." 
-                    className="pl-10 h-9 border-slate-200 bg-slate-50 focus:bg-white transition-colors"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+        <div className="flex justify-between items-center gap-3 flex-wrap">
+          {/* Acciones de Selección */}
+          <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-100">
+            <div className="flex items-center gap-2 px-2">
+              <Checkbox
+                id="select-all"
+                checked={currentFiles.length > 0 && selectedItems.size === currentFiles.length}
+                onCheckedChange={toggleSelectAll}
+                disabled={currentFiles.length === 0 || isDownloading}
+              />
+              <label htmlFor="select-all" className="text-sm font-medium text-slate-600 cursor-pointer select-none">
+                Todos
+              </label>
+            </div>
+
+            {selectedItems.size > 0 && (
+              <>
+                <div className="h-4 w-[1px] bg-slate-300 mx-1"></div>
+
+                {selectedItems.size === 1 ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
+                      onClick={async () => {
+                        const id = Array.from(selectedItems)[0]
+                        const file = currentFiles.find(f => f.id === id)
+                        if (!file) return
+
+                        try {
+                          const res = await api.get(`/api/admin/storage/files/${id}/download`, { responseType: 'blob' })
+                          const url = window.URL.createObjectURL(new Blob([res.data], { type: file.mime_type || 'application/pdf' }))
+                          window.open(url, '_blank')
+                        } catch (e) {
+                          toast.error("Error al abrir archivo")
+                        }
+                      }}
+                      disabled={isDownloading}
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1.5 text-slate-600" />
+                      Visualizar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
+                      onClick={() => {
+                        const id = Array.from(selectedItems)[0]
+                        const file = currentFiles.find(f => f.id === id)
+                        if (file) handleDownload(file.id, file.nombre)
+                      }}
+                      disabled={isDownloading}
+                    >
+                      <Download className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+                      Descargar
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50"
+                    onClick={handleBulkDownload}
                     disabled={isDownloading}
-                  />
-                </div>
-                
-                <div className="flex border rounded-lg overflow-hidden bg-slate-50 p-1 shrink-0">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className={cn("h-7 w-7", viewMode === 'grid' && "bg-white shadow-sm text-blue-600")}
-                        onClick={() => setViewMode('grid')}
-                        disabled={isDownloading}
-                      >
-                        <LayoutGrid className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className={cn("h-7 w-7", viewMode === 'list' && "bg-white shadow-sm text-blue-600")}
-                        onClick={() => setViewMode('list')}
-                        disabled={isDownloading}
-                      >
-                        <List className="w-4 h-4" />
-                      </Button>
-                </div>
-             </div>
-         </div>
+                  >
+                    <Package className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+                    Descargar ZIP ({selectedItems.size})
+                  </Button>
+                )}
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                  onClick={handleDeleteBulk}
+                  disabled={isDownloading || isDeletingBulk || Array.from(selectedItems).some(isProtectedItem)}
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                  Eliminar ({selectedItems.size})
+                </Button>
+              </>
+            )}
+          </div>
+
+          <div className="flex gap-3 ml-auto">
+            <div className="relative w-48 md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Buscar..."
+                className="pl-10 h-9 border-slate-200 bg-slate-50 focus:bg-white transition-colors"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={isDownloading}
+              />
+            </div>
+
+            <div className="flex border rounded-lg overflow-hidden bg-slate-50 p-1 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-7 w-7", viewMode === 'grid' && "bg-white shadow-sm text-blue-600")}
+                onClick={() => setViewMode('grid')}
+                disabled={isDownloading}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-7 w-7", viewMode === 'list' && "bg-white shadow-sm text-blue-600")}
+                onClick={() => setViewMode('list')}
+                disabled={isDownloading}
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1 bg-white border rounded-xl overflow-hidden shadow-sm relative min-h-[400px]">
-          {/* Action Overlay */}
-          <AnimatePresence>
-            {(isDownloading || uploading || isDeletingBulk) && (
-                <motion.div 
-                   initial={{ opacity: 0 }}
-                   animate={{ opacity: 1 }}
-                   exit={{ opacity: 0 }}
-                   className="absolute inset-0 bg-white/80 backdrop-blur-[2px] z-50 flex flex-col items-center justify-center"
-                >
-                    <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-3" />
-                    <h3 className="font-semibold text-slate-800">
-                        {isDownloading ? "Procesando descarga..." : uploading ? "Subiendo archivo..." : "Eliminando..."}
-                    </h3>
-                    <p className="text-sm text-slate-500">Puedes navegar, pero la lista se actualizará al terminar.</p>
-                </motion.div>
-            )}
-          </AnimatePresence>
-          {loadingFiles || loadingFolders ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
-                  <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-              </div>
-          ) : null}
-
-          {gridItems.length === 0 && !loadingFiles && !loadingFolders ? (
-             <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                <FolderOpen className="w-16 h-16 mb-4 text-slate-200" />
-                <p className="text-lg font-medium text-slate-600">Carpeta vacía</p>
-                <p className="text-sm">No hay elementos en esta ubicación.</p>
-                <Button variant="link" onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()} className="mt-2 text-blue-600">
-                    Subir un archivo aquí
-                </Button>
-             </div>
-          ) : (
-            <div className="h-full overflow-y-auto p-4">
-                 {viewMode === 'grid' ? (
-                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                         {gridItems.map((item, idx) => (
-                             <motion.div
-                                key={item.type === 'folder' ? item.fullPath : item.data.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: idx * 0.03 }}
-                                className={cn(
-                                    "group relative flex flex-col items-center p-4 rounded-xl border border-transparent hover:bg-blue-50/50 hover:border-blue-100 transition-all cursor-pointer",
-                                    "active:scale-95 duration-100",
-                                    item.type === 'file' && selectedItems.has(item.data.id) && "bg-blue-50 border-blue-200 ring-1 ring-blue-300"
-                                )}
-                                onClick={() => {
-                                    if (item.type === 'folder') handleNavigate(item.fullPath)
-                                    else if (item.type === 'file') toggleSelection(item.data.id)
-                                }}
-                             >
-                                 {/* Checkbox Overlay para selección */}
-                                 {item.type === 'file' && (
-                                     <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
-                                         <Checkbox 
-                                            checked={selectedItems.has(item.data.id)}
-                                            onCheckedChange={() => toggleSelection(item.data.id)}
-                                            className={cn("bg-white/80 border-slate-300", 
-                                                selectedItems.has(item.data.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                                            )}
-                                         />
-                                     </div>
-                                 )}
-
-                                 <div className="w-16 h-16 mb-3 flex items-center justify-center transition-transform group-hover:-translate-y-1">
-                                     {item.type === 'folder' ? (
-                                         <Folder className="w-14 h-14 text-yellow-400 drop-shadow-sm fill-yellow-400/20" />
-                                     ) : (
-                                         <FileText className={cn("w-12 h-12 drop-shadow-sm transition-colors", 
-                                            selectedItems.has(item.data.id) ? "text-blue-600" : "text-blue-500"
-                                         )} />
-                                     )}
-                                 </div>
-                                 <span className="text-sm font-medium text-slate-700 text-center line-clamp-2 w-full break-words select-none">
-                                     {item.type === 'folder' ? item.name : item.data.nombre}
-                                 </span>
-                                 
-                                 {item.type === 'file' && (
-                                     <span className="text-[10px] text-slate-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                         {formatSize(item.data.size_bytes)}
-                                     </span>
-                                 )}
-                             </motion.div>
-                         ))}
-                     </div>
-                 ) : (
-                   <div className="min-w-full inline-block align-middle">
-                        <table className="min-w-full divide-y divide-slate-100">
-                             <thead>
-                                 <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
-                                     <th className="px-4 py-3 w-10">
-                                         {/* Header Checkbox */}
-                                     </th>
-                                     <th 
-                                        className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors select-none group/header"
-                                        onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
-                                     >
-                                        <div className="flex items-center gap-1">
-                                            Nombre
-                                            {sortDirection === 'asc' ? (
-                                                <ChevronRight className="w-3 h-3 rotate-90 text-blue-600 transition-transform" />
-                                            ) : (
-                                                <ChevronRight className="w-3 h-3 -rotate-90 text-blue-600 transition-transform" />
-                                            )}
-                                        </div>
-                                     </th>
-                                     <th className="px-4 py-3">Tipo</th>
-                                     <th className="px-4 py-3">Tamaño</th>
-                                     <th className="px-4 py-3">Fecha</th>
-                                     <th className="px-4 py-3 text-right">Acciones</th>
-                                 </tr>
-                             </thead>
-                             <tbody className="divide-y divide-slate-100 bg-white">
-                                 {gridItems.map((item) => (
-                                     <tr 
-                                        key={item.type === 'folder' ? item.fullPath : item.data.id}
-                                        className={cn(
-                                            "hover:bg-slate-50 transition-colors cursor-pointer group select-none",
-                                            item.type === 'file' && selectedItems.has(item.data.id) && "bg-blue-50/60 hover:bg-blue-50"
-                                        )}
-                                        onClick={() => {
-                                            if (item.type === 'folder') handleNavigate(item.fullPath)
-                                            else if (item.type === 'file') toggleSelection(item.data.id)
-                                        }}
-                                     >
-                                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                                             {item.type === 'file' && (
-                                                 <Checkbox 
-                                                    checked={selectedItems.has(item.data.id)}
-                                                    onCheckedChange={() => toggleSelection(item.data.id)}
-                                                 />
-                                             )}
-                                         </td>
-                                         <td className="px-4 py-3 whitespace-nowrap">
-                                             <div className="flex items-center gap-3">
-                                                 {item.type === 'folder' ? (
-                                                     <Folder className="w-5 h-5 text-yellow-400 fill-yellow-400/20" />
-                                                 ) : (
-                                                     <FileText className="w-5 h-5 text-blue-500" />
-                                                 )}
-                                                 <span className="font-medium text-slate-700">
-                                                     {item.type === 'folder' ? item.name : item.data.nombre}
-                                                 </span>
-                                             </div>
-                                         </td>
-                                         <td className="px-4 py-3 text-sm text-slate-500">
-                                             {item.type === 'folder' ? 'Carpeta' : item.data.mime_type.split('/')[1] || 'Archivo'}
-                                         </td>
-                                         <td className="px-4 py-3 text-sm text-slate-500">
-                                             {item.type === 'folder' ? '-' : formatSize(item.data.size_bytes)}
-                                         </td>
-                                         <td className="px-4 py-3 text-sm text-slate-500">
-                                             {item.type === 'folder' ? '-' : format(new Date(item.data.created_at), "dd/MM/yyyy", { locale: es })}
-                                         </td>
-                                         <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                                             {item.type === 'file' && (
-                                                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                      <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={() => handleDownload(item.data.id, item.data.nombre)}>
-                                                         <Download className="w-4 h-4" />
-                                                      </Button>
-                                                      <Button 
-                                                          size="icon" 
-                                                          variant="ghost" 
-                                                          className={cn("h-8 w-8 text-red-500", isProtectedItem(item.data.id) && "opacity-30 cursor-not-allowed text-stone-400")} 
-                                                          onClick={(e) => {
-                                                              if (isProtectedItem(item.data.id)) {
-                                                                  e.stopPropagation()
-                                                                  toast.error("Archivo protegido del sistema")
-                                                                  return
-                                                              }
-                                                              handleDelete(item.data.id)
-                                                          }}
-                                                      >
-                                                         <Trash2 className="w-4 h-4" />
-                                                      </Button>
-                                                  </div>
-                                             )}
-                                         </td>
-                                     </tr>
-                                 ))}
-                             </tbody>
-                        </table>
-                   </div>
-                 )}
-            </div>
+        {/* Action Overlay */}
+        <AnimatePresence>
+          {(isDownloading || uploading || isDeletingBulk) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-white/80 backdrop-blur-[2px] z-50 flex flex-col items-center justify-center"
+            >
+              <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-3" />
+              <h3 className="font-semibold text-slate-800">
+                {isDownloading ? "Procesando descarga..." : uploading ? "Subiendo archivo..." : "Eliminando..."}
+              </h3>
+              <p className="text-sm text-slate-500">Puedes navegar, pero la lista se actualizará al terminar.</p>
+            </motion.div>
           )}
+        </AnimatePresence>
+        {loadingFiles || loadingFolders ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+          </div>
+        ) : null}
+
+        {gridItems.length === 0 && !loadingFiles && !loadingFolders ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-400">
+            <FolderOpen className="w-16 h-16 mb-4 text-slate-200" />
+            <p className="text-lg font-medium text-slate-600">Carpeta vacía</p>
+            <p className="text-sm">No hay elementos en esta ubicación.</p>
+            <Button variant="link" onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()} className="mt-2 text-blue-600">
+              Subir un archivo aquí
+            </Button>
+          </div>
+        ) : (
+          <div className="h-full overflow-y-auto p-4">
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {gridItems.map((item, idx) => (
+                  <motion.div
+                    key={item.type === 'folder' ? item.fullPath : item.data.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.03 }}
+                    className={cn(
+                      "group relative flex flex-col items-center p-4 rounded-xl border border-transparent hover:bg-blue-50/50 hover:border-blue-100 transition-all cursor-pointer",
+                      "active:scale-95 duration-100",
+                      item.type === 'file' && selectedItems.has(item.data.id) && "bg-blue-50 border-blue-200 ring-1 ring-blue-300"
+                    )}
+                    onClick={() => {
+                      if (item.type === 'folder') handleNavigate(item.fullPath)
+                      else if (item.type === 'file') toggleSelection(item.data.id)
+                    }}
+                  >
+                    {/* Checkbox Overlay para selección */}
+                    {item.type === 'file' && (
+                      <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedItems.has(item.data.id)}
+                          onCheckedChange={() => toggleSelection(item.data.id)}
+                          className={cn("bg-white/80 border-slate-300",
+                            selectedItems.has(item.data.id) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                          )}
+                        />
+                      </div>
+                    )}
+
+                    <div className="w-16 h-16 mb-3 flex items-center justify-center transition-transform group-hover:-translate-y-1">
+                      {item.type === 'folder' ? (
+                        <Folder className="w-14 h-14 text-yellow-400 drop-shadow-sm fill-yellow-400/20" />
+                      ) : (
+                        <FileText className={cn("w-12 h-12 drop-shadow-sm transition-colors",
+                          selectedItems.has(item.data.id) ? "text-blue-600" : "text-blue-500"
+                        )} />
+                      )}
+                    </div>
+                    <span className="text-sm font-medium text-slate-700 text-center line-clamp-2 w-full break-words select-none">
+                      {item.type === 'folder' ? item.name : item.data.nombre}
+                    </span>
+
+                    {item.type === 'file' && (
+                      <span className="text-[10px] text-slate-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {formatSize(item.data.size_bytes)}
+                      </span>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="min-w-full inline-block align-middle">
+                <table className="min-w-full divide-y divide-slate-100">
+                  <thead>
+                    <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                      <th className="px-4 py-3 w-10">
+                        {/* Header Checkbox */}
+                      </th>
+                      <th
+                        className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors select-none group/header"
+                        onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Nombre
+                          {sortDirection === 'asc' ? (
+                            <ChevronRight className="w-3 h-3 rotate-90 text-blue-600 transition-transform" />
+                          ) : (
+                            <ChevronRight className="w-3 h-3 -rotate-90 text-blue-600 transition-transform" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="px-4 py-3">Tipo</th>
+                      <th className="px-4 py-3">Tamaño</th>
+                      <th className="px-4 py-3">Fecha</th>
+                      <th className="px-4 py-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {gridItems.map((item) => (
+                      <tr
+                        key={item.type === 'folder' ? item.fullPath : item.data.id}
+                        className={cn(
+                          "hover:bg-slate-50 transition-colors cursor-pointer group select-none",
+                          item.type === 'file' && selectedItems.has(item.data.id) && "bg-blue-50/60 hover:bg-blue-50"
+                        )}
+                        onClick={() => {
+                          if (item.type === 'folder') handleNavigate(item.fullPath)
+                          else if (item.type === 'file') toggleSelection(item.data.id)
+                        }}
+                      >
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          {item.type === 'file' && (
+                            <Checkbox
+                              checked={selectedItems.has(item.data.id)}
+                              onCheckedChange={() => toggleSelection(item.data.id)}
+                            />
+                          )}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            {item.type === 'folder' ? (
+                              <Folder className="w-5 h-5 text-yellow-400 fill-yellow-400/20" />
+                            ) : (
+                              <FileText className="w-5 h-5 text-blue-500" />
+                            )}
+                            <span className="font-medium text-slate-700">
+                              {item.type === 'folder' ? item.name : item.data.nombre}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-500">
+                          {item.type === 'folder' ? 'Carpeta' : item.data.mime_type.split('/')[1] || 'Archivo'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-500">
+                          {item.type === 'folder' ? '-' : formatSize(item.data.size_bytes)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-500">
+                          {item.type === 'folder' ? '-' : format(new Date(item.data.created_at), "dd/MM/yyyy", { locale: es })}
+                        </td>
+                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          {item.type === 'file' && (
+                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={() => handleDownload(item.data.id, item.data.nombre)}>
+                                <Download className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className={cn("h-8 w-8 text-red-500", isProtectedItem(item.data.id) && "opacity-30 cursor-not-allowed text-stone-400")}
+                                onClick={(e) => {
+                                  if (isProtectedItem(item.data.id)) {
+                                    e.stopPropagation()
+                                    toast.error("Archivo protegido del sistema")
+                                    return
+                                  }
+                                  handleDelete(item.data.id)
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
