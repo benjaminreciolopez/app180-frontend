@@ -373,11 +373,24 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         } catch (error: any) {
             if (error.response?.status === 409) {
                 showError(error.response.data.error || "Este gasto ya está registrado.");
+                // Si es un duplicado y hay más facturas, NO cerramos el modal principal
+                // pero permitimos al usuario decidir qué hacer en el modal de revisión
             } else {
                 showError(error.response?.data?.error || "Error al guardar el gasto");
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const skipInvoice = () => {
+        if (invoicesToReview.length > 0 && currentInvoiceIndex < invoicesToReview.length - 1) {
+            nextInvoice();
+            // Mantenemos el modal abierto con la siguiente factura
+        } else {
+            setShowPreviewModal(false);
+            onSuccess();
+            onClose();
         }
     };
 
@@ -899,22 +912,37 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                     )}
 
                     <DialogFooter className="gap-2 sm:gap-0">
-                        <Button
-                            variant="ghost"
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-600"
-                            onClick={() => {
-                                setShowPreviewModal(false);
-                                setOcrPreviewData(null);
-                            }}
-                        >
-                            Descartar
-                        </Button>
-                        <Button
-                            className="bg-black text-white hover:bg-slate-800"
-                            onClick={confirmOcrData}
-                        >
-                            Confirmar y Rellenar
-                        </Button>
+                        <div className="flex w-full justify-between items-center gap-2">
+                            <Button
+                                variant="ghost"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-600"
+                                onClick={() => {
+                                    setShowPreviewModal(false);
+                                    setInvoicesToReview([]);
+                                    setUploadedFile(null);
+                                    setSelectedFileObj(null);
+                                }}
+                            >
+                                Cancelar Todo
+                            </Button>
+                            <div className="flex gap-2">
+                                {invoicesToReview.length > 1 && (
+                                    <Button
+                                        variant="outline"
+                                        className="border-slate-200 text-slate-600"
+                                        onClick={skipInvoice}
+                                    >
+                                        Omitir
+                                    </Button>
+                                )}
+                                <Button
+                                    className="bg-black text-white hover:bg-slate-800"
+                                    onClick={confirmOcrData}
+                                >
+                                    Confirmar y Rellenar
+                                </Button>
+                            </div>
+                        </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
