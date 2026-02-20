@@ -19,7 +19,8 @@ import {
     Sparkles,
     ExternalLink,
     ChevronRight,
-    RotateCcw
+    RotateCcw,
+    AlertTriangle
 } from "lucide-react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
@@ -427,9 +428,11 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             nextInvoice();
             // Mantenemos el modal abierto con la siguiente factura
         } else {
+            // Si es la última o única, simplemente cerramos el modal de previsualización
+            // No llamamos a onClose() para que el Drawer principal permanezca abierto
             setShowPreviewModal(false);
-            onSuccess();
-            onClose();
+            setInvoicesToReview([]);
+            setCurrentInvoiceIndex(0);
         }
     };
 
@@ -854,6 +857,20 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                         </DialogDescription>
                     </DialogHeader>
 
+                    {ocrPreviewData?.es_duplicado && (
+                        <div className="mx-6 mb-2 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 text-amber-800 animate-in fade-in zoom-in duration-300">
+                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                                <AlertTriangle size={16} className="text-amber-600" />
+                            </div>
+                            <div>
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Gasto Duplicado Detectado</p>
+                                <p className="text-[11px] leading-tight opacity-90">
+                                    Este documento ya parece estar registrado. Pulsa <span className="font-bold">"Omitir"</span> para saltarlo.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {ocrPreviewData && (
                         <div className="space-y-4 py-4">
                             <div className="grid grid-cols-2 gap-4">
@@ -991,10 +1008,10 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                 Cancelar Todo
                             </Button>
                             <div className="flex gap-2">
-                                {invoicesToReview.length > 1 && (
+                                {(invoicesToReview.length > 1 || ocrPreviewData?.es_duplicado) && (
                                     <Button
                                         variant="outline"
-                                        className="border-slate-200 text-slate-600"
+                                        className={`border-slate-200 ${ocrPreviewData?.es_duplicado ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'text-slate-600'}`}
                                         onClick={skipInvoice}
                                     >
                                         Omitir
