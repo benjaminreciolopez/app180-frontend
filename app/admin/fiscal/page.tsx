@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { formatCurrency } from "@/lib/utils";
 import { FileText, Send, AlertTriangle } from "lucide-react";
-import { VerifactuEventosPanel } from "@/components/admin/VerifactuEventosPanel";
 
 export default function FiscalPage() {
     const [year, setYear] = useState(new Date().getFullYear().toString());
@@ -226,7 +225,6 @@ export default function FiscalPage() {
                 </div>
             )}
 
-            <VerifactuEventosPanel />
         </div>
     );
 }
