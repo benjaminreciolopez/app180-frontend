@@ -86,8 +86,6 @@ export default function LibroGastosTable({ year }: { year: string }) {
                         <TableCell colSpan={2} className="text-right">TOTALES</TableCell>
                         <TableCell className="text-right">{formatCurrency(totalBase)}</TableCell>
                         <TableCell className="text-center">-</TableCell>
-                        <TableCell className="text-right">{formatCurrency(totalBase)}</TableCell>
-                        <TableCell className="text-center">-</TableCell>
                         <TableCell className="text-right">{formatCurrency(totalCuota)}</TableCell>
                         <TableCell className="text-right text-red-600">
                             {totalRetencion > 0 ? `-${formatCurrency(totalRetencion)}` : '-'}

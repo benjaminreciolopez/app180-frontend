@@ -42,25 +42,19 @@ export default function FiscalPage() {
         loadData();
     }, [year, trimestre]);
 
-    const handlePresentar = async (modelo: string) => {
-        if (!confirm(`¿Estás seguro de que quieres presentar el Modelo ${modelo} a la AEAT? Esta acción no se puede deshacer.`)) return;
-
+    const handleDownload = async (modelo: string) => {
         try {
-            const res = await authenticatedFetch("/api/admin/fiscal/presentar-303", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ year, trimestre })
-            });
-
-            const json = await res.json();
-            if (json.success) {
-                alert(json.message || "Presentación realizada correctamente");
-            } else {
-                alert("Error: " + json.error);
-            }
+            const url = `/api/admin/fiscal/download-boe?year=${year}&trimestre=${trimestre}&modelo=${modelo}`;
+            // Simular clic en link para descarga directa
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Modelo_${modelo}_${year}_T${trimestre}.txt`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
         } catch (e) {
             console.error(e);
-            alert("Error de conexión al presentar");
+            alert("Error al descargar el fichero");
         }
     };
 
@@ -134,11 +128,8 @@ export default function FiscalPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="flex gap-2">
-                            <Button variant="outline" className="flex-1">
-                                <FileText className="mr-2 h-4 w-4" /> Ver Borrador
-                            </Button>
-                            <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={() => handlePresentar('303')}>
-                                <Send className="mr-2 h-4 w-4" /> Presentar AEAT
+                            <Button variant="outline" className="flex-1" onClick={() => handleDownload('303')}>
+                                <FileText className="mr-2 h-4 w-4" /> Descargar BOE
                             </Button>
                         </CardFooter>
                     </Card>
@@ -182,8 +173,48 @@ export default function FiscalPage() {
                             </div>
                         </CardContent>
                         <CardFooter>
-                            <Button variant="outline" className="w-full">
-                                <FileText className="mr-2 h-4 w-4" /> Generar PDF
+                            <Button variant="outline" className="w-full" onClick={() => handleDownload('130')}>
+                                <FileText className="mr-2 h-4 w-4" /> Descargar BOE
+                            </Button>
+                        </CardFooter>
+                    </Card>
+
+                    {/* Modelo 111 */}
+                    <Card className="border-l-4 border-l-purple-500">
+                        <CardHeader>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle>Modelo 111 (Retenciones)</CardTitle>
+                                    <CardDescription>Retenciones trabajadores y profesionales</CardDescription>
+                                </div>
+                                <Badge variant="outline">Simulación</Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Rendimientos Trabajo:</span>
+                                <span className="font-medium">{formatCurrency(data.modelo111.trabajo.rendimientos || 0)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm pl-4 text-xs text-muted-foreground">
+                                <span>({data.modelo111.trabajo.perceptores} perceptores - Retención: {formatCurrency(data.modelo111.trabajo.retenciones)})</span>
+                            </div>
+
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Actividades Económicas:</span>
+                                <span className="font-medium">{formatCurrency(data.modelo111.actividades.rendimientos || 0)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm pl-4 text-xs text-muted-foreground">
+                                <span>({data.modelo111.actividades.perceptores} perceptores - Retención: {formatCurrency(data.modelo111.actividades.retenciones)})</span>
+                            </div>
+
+                            <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                                <span>Total Retenciones:</span>
+                                <span>{formatCurrency(data.modelo111.total_retenciones)}</span>
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button variant="outline" className="w-full" onClick={() => handleDownload('111')}>
+                                <FileText className="mr-2 h-4 w-4" /> Descargar BOE
                             </Button>
                         </CardFooter>
                     </Card>
