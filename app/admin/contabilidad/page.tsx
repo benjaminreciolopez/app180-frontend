@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import LibroVentasTable from "@/components/admin/contabilidad/LibroVentasTable";
 import LibroGastosTable from "@/components/admin/contabilidad/LibroGastosTable";
