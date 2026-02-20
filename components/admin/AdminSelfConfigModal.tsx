@@ -107,7 +107,7 @@ export default function AdminSelfConfigModal({
           {/* Header */}
           <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
             <div className="flex items-center gap-3">
-              <div className="relative group w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 bg-muted">
+              <div className="relative group w-16 h-16 rounded-full overflow-hidden border-2 border-primary/20 bg-muted">
                 {adminData?.avatar_url ? (
                   <img
                     src={adminData.avatar_url}
