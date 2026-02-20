@@ -60,7 +60,7 @@ export function BeneficioRealCard({ data: initialData }: Props) {
                 params = { period: 'month', year: y, month: m };
             }
 
-            const res = await api.get("/admin/dashboard/beneficio", { params });
+            const res = await api.get("/api/admin/dashboard/beneficio", { params });
             if (res.data) {
                 setData(res.data);
             }

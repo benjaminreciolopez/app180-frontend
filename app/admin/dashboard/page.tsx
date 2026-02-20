@@ -104,7 +104,7 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       const [dashRes, widgetRes] = await Promise.all([
-        api.get("/admin/dashboard"),
+        api.get("/api/admin/dashboard"),
         api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } })),
       ]);
 

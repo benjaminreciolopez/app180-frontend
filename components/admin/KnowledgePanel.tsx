@@ -29,7 +29,7 @@ export default function KnowledgePanel() {
 
   async function load() {
     try {
-      const r = await api.get("/admin/conocimiento")
+      const r = await api.get("/api/admin/conocimiento")
       setItems(r.data)
     } catch {
       showError("Error cargando conocimiento")
@@ -50,7 +50,7 @@ export default function KnowledgePanel() {
     }
   }
 
-  useEffect(() => { 
+  useEffect(() => {
     load()
     loadConfig()
   }, [])
@@ -69,10 +69,10 @@ export default function KnowledgePanel() {
 
     try {
       if (editingId) {
-        await api.patch(`/admin/conocimiento/${editingId}`, form)
+        await api.patch(`/api/admin/conocimiento/${editingId}`, form)
         showSuccess("Actualizado correctamente")
       } else {
-        await api.post("/admin/conocimiento", form)
+        await api.post("/api/admin/conocimiento", form)
         showSuccess("Conocimiento creado")
       }
       resetForm()
@@ -86,7 +86,7 @@ export default function KnowledgePanel() {
     const ok = await confirm({ title: "Eliminar conocimiento", description: "Este conocimiento se eliminará permanentemente.", confirmLabel: "Eliminar", variant: "destructive" })
     if (!ok) return
     try {
-      await api.delete(`/admin/conocimiento/${id}`)
+      await api.delete(`/api/admin/conocimiento/${id}`)
       showSuccess("Eliminado")
       load()
     } catch {
@@ -96,7 +96,7 @@ export default function KnowledgePanel() {
 
   async function handleToggleActive(item: Knowledge) {
     try {
-      await api.patch(`/admin/conocimiento/${item.id}`, { activo: !item.activo })
+      await api.patch(`/api/admin/conocimiento/${item.id}`, { activo: !item.activo })
       load()
     } catch {
       showError("Error al cambiar estado")
@@ -118,7 +118,7 @@ export default function KnowledgePanel() {
     const ok = await confirm({ title: "Actualizar conocimiento base", description: "Esto añadirá o actualizará las respuestas de ayuda por defecto sobre las funciones de la App.", confirmLabel: "Continuar" })
     if (!ok) return
     try {
-      await api.post("/admin/conocimiento/seed")
+      await api.post("/api/admin/conocimiento/seed")
       showSuccess("Base de conocimiento actualizada")
       load()
     } catch {

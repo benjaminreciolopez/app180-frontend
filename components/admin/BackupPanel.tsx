@@ -67,7 +67,7 @@ export default function BackupPanel() {
     if (loading) return;
     setLoading(true);
 
-    const promise = api.post("/admin/backup/force");
+    const promise = api.post("/api/admin/backup/force");
 
     showPromise(promise, {
       loading: "Generando copia de seguridad...",
@@ -213,7 +213,7 @@ export default function BackupPanel() {
 
     const promise = (async () => {
       const token = localStorage.getItem('token')
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/restore-upload`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/backup/restore-upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -246,7 +246,7 @@ export default function BackupPanel() {
     if (loading) return;
     setLoading(true);
 
-    const promise = api.post("/admin/backup/restore");
+    const promise = api.post("/api/admin/backup/restore");
 
     showPromise(promise, {
       loading: "Restaurando sistema... esto puede tardar unos segundos.",

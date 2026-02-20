@@ -28,7 +28,7 @@ export default function CalendarSyncHistory({ refreshTrigger }: { refreshTrigger
   async function loadHistory() {
     try {
       setLoading(true);
-      const res = await api.get("/admin/calendar-sync/history?limit=10");
+      const res = await api.get("/api/admin/calendar-sync/history?limit=10");
       setHistory(res.data);
     } catch (err) {
       console.error("Error cargando historial:", err);
@@ -100,7 +100,7 @@ export default function CalendarSyncHistory({ refreshTrigger }: { refreshTrigger
 
   return (
     <div className="card !p-0 overflow-hidden">
-      <div 
+      <div
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setIsMainExpanded(!isMainExpanded)}
       >
@@ -127,10 +127,10 @@ export default function CalendarSyncHistory({ refreshTrigger }: { refreshTrigger
             <div className="space-y-3 mt-4">
               {history.map((log) => {
                 const isExpanded = expandedId === log.id;
-                
+
                 return (
-                  <div 
-                    key={log.id} 
+                  <div
+                    key={log.id}
                     className={`p-3 border rounded-lg transition-all cursor-pointer ${isExpanded ? 'bg-gray-50 ring-1 ring-blue-200' : 'hover:bg-gray-50'}`}
                     onClick={(e) => {
                       e.stopPropagation();

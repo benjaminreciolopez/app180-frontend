@@ -46,7 +46,7 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
 
   async function loadConfig() {
     try {
-      const res = await api.get("/admin/calendar-config");
+      const res = await api.get("/api/admin/calendar-config");
       setConfig(res.data);
 
       if (res.data.configured) {
@@ -69,7 +69,7 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
   async function handleConnect() {
     setConnecting(true);
     try {
-      const res = await api.post("/admin/calendar-config/oauth2/start", {
+      const res = await api.post("/api/admin/calendar-config/oauth2/start", {
         provider: "google"
       });
 
@@ -111,7 +111,7 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
 
     setDisconnecting(true);
     try {
-      await api.post("/admin/calendar-config/oauth2/disconnect");
+      await api.post("/api/admin/calendar-config/oauth2/disconnect");
       showSuccess("Google Calendar desconectado");
       loadConfig();
       onSyncComplete?.();
@@ -126,7 +126,7 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
   async function handleSync() {
     setSyncing(true);
     try {
-      const res = await api.post("/admin/calendar-sync/bidirectional");
+      const res = await api.post("/api/admin/calendar-sync/bidirectional");
       showSuccess(res.data.message);
       loadConfig(); // Actualizar last_sync_at
       onSyncComplete?.();
@@ -142,7 +142,7 @@ export default function CalendarConfigPanel({ onSyncComplete }: { onSyncComplete
     if (savingSettings) return;
     setSavingSettings(true);
     try {
-      await api.put("/admin/calendar-config/settings", {
+      await api.put("/api/admin/calendar-config/settings", {
         sync_enabled: syncEnabled,
         sync_direction: syncDirection,
         sync_types: syncTypes
