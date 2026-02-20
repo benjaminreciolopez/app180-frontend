@@ -102,7 +102,7 @@ export default function AutoBackupSync() {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/backup/download`, {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

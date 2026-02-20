@@ -44,17 +44,21 @@ export default function FiscalPage() {
 
     const handleDownload = async (modelo: string) => {
         try {
-            const url = `/api/admin/fiscal/download-boe?year=${year}&trimestre=${trimestre}&modelo=${modelo}`;
-            // Simular clic en link para descarga directa
+            const res = await authenticatedFetch(`/api/admin/fiscal/download-boe?year=${year}&trimestre=${trimestre}&modelo=${modelo}`);
+            if (!res.ok) throw new Error("Error en la descarga");
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `Modelo_${modelo}_${year}_T${trimestre}.txt`);
             document.body.appendChild(link);
             link.click();
             link.remove();
+            window.URL.revokeObjectURL(url);
         } catch (e) {
             console.error(e);
-            alert("Error al descargar el fichero");
+            alert("Error al descargar el fichero BOE");
         }
     };
 

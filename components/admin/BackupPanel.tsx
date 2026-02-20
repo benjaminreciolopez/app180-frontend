@@ -136,7 +136,7 @@ export default function BackupPanel() {
 
         // Descargar datos
         const token = localStorage.getItem('token')
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/backup/download`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         })
@@ -163,7 +163,7 @@ export default function BackupPanel() {
     // Fallback: Descarga Normal (blob url)
     const promise = (async () => {
       const token = localStorage.getItem('token')
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/backup/download`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/backup/download`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
