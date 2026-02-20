@@ -49,13 +49,13 @@ import {
 const gastoSchema = z.object({
     proveedor: z.string().optional(),
     descripcion: z.string().min(3, "La descripción es obligatoria"),
-    total: z.coerce.number().min(0, "El importe debe ser mayor o igual a 0"),
+    total: z.coerce.number().min(0.01, "El importe debe ser mayor a 0"),
     fecha_compra: z.string().min(10, "La fecha es obligatoria"),
     categoria: z.string().min(1, "La categoría es obligatoria"),
     metodo_pago: z.string().min(1, "El método de pago es obligatorio"),
-    base_imponible: z.coerce.number().optional(),
-    iva_importe: z.coerce.number().optional(),
-    iva_porcentaje: z.coerce.number().optional(),
+    base_imponible: z.coerce.number().min(0.01, "La Base Imponible es obligatoria para fiscalidad"),
+    iva_importe: z.coerce.number().min(0, "La Cuota de IVA es obligatoria"),
+    iva_porcentaje: z.coerce.number().min(0, "El porcentaje de IVA es obligatorio"),
     numero_factura: z.string().optional(),
     documento_url: z.string().optional(),
     anio: z.coerce.number().optional(),
@@ -297,6 +297,16 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
     const confirmOcrData = () => {
         if (!ocrPreviewData) return;
+
+        // Validación estricta antes de volcar al formulario
+        if (!ocrPreviewData.base_imponible || ocrPreviewData.base_imponible <= 0) {
+            showError("La Base Imponible no puede estar vacía o ser 0.");
+            return;
+        }
+        if (ocrPreviewData.iva_importe === undefined || ocrPreviewData.iva_importe === null) {
+            showError("La Cuota de IVA es obligatoria.");
+            return;
+        }
 
         // Aplicar datos al formulario
         setValue("proveedor", ocrPreviewData.proveedor || "");
@@ -912,8 +922,11 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                                 total: Number((base + ivaImp).toFixed(2))
                                             });
                                         }}
-                                        className="h-10 bg-slate-50 border-slate-200 text-xs"
+                                        className={`h-10 text-xs ${(!ocrPreviewData.base_imponible || ocrPreviewData.base_imponible <= 0) ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-200'}`}
                                     />
+                                    {(!ocrPreviewData.base_imponible || ocrPreviewData.base_imponible <= 0) && (
+                                        <p className="text-[9px] text-red-500 font-bold">REQUERIDO</p>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-bold text-slate-400 uppercase">IVA %</Label>
@@ -958,9 +971,12 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5 text-xs">
                                     <Label className="text-[10px] font-bold text-slate-400 uppercase">IVA Importe</Label>
-                                    <div className="h-10 flex items-center px-3 bg-slate-100 rounded-lg text-slate-500 font-mono">
-                                        {ocrPreviewData.iva_importe || 0} €
+                                    <div className={`h-10 flex items-center px-3 rounded-lg font-mono ${(ocrPreviewData.iva_importe === undefined || ocrPreviewData.iva_importe === null) ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-slate-100 text-slate-500'}`}>
+                                        {ocrPreviewData.iva_importe ?? "?"} €
                                     </div>
+                                    {(ocrPreviewData.iva_importe === undefined || ocrPreviewData.iva_importe === null) && (
+                                        <p className="text-[9px] text-red-500 font-bold">REQUERIDO</p>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-bold text-slate-400 uppercase">Fecha</Label>
