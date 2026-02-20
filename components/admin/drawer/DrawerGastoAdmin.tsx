@@ -478,12 +478,25 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 <div className="space-y-4 pt-2">
                     <div className="flex items-center justify-between">
                         <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Datos del Gasto</Label>
-                        {!editingGasto && !isOcrProcessing && (
-                            <div className="flex items-center gap-1.5 text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full">
-                                <Sparkles size={10} />
-                                AUTORRELLENO IA ACTIVO
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {(uploadedFile || invoicesToReview.length > 0) && !isOcrProcessing && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={clearAllData}
+                                    className="h-7 px-2 text-[10px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 uppercase tracking-wider gap-1.5"
+                                >
+                                    <RotateCcw size={12} />
+                                    Limpiar
+                                </Button>
+                            )}
+                            {!editingGasto && !isOcrProcessing && (
+                                <div className="flex items-center gap-1.5 text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full">
+                                    <Sparkles size={10} />
+                                    AUTORRELLENO IA ACTIVO
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
