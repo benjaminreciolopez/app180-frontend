@@ -377,12 +377,15 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
             // Si llegamos aquí, el guardado fue EXITOSO
             if (invoicesToReview.length > 0 && currentInvoiceIndex < invoicesToReview.length - 1) {
+                // Notificar éxito al padre para que refresque la lista en segundo plano
+                onSuccess();
+
                 // Pasamos a la siguiente factura
                 nextInvoice();
                 setShowPreviewModal(true); // Mostramos el modal de revisión para la siguiente
                 setSelectedFileObj(null);
                 setLoading(false);
-                return; // IMPORTANTE: No llamar a onClose ni onSuccess total aún
+                return; // IMPORTANTE: No llamar a onClose total aún
             }
 
             // Si es la última factura o un gasto individual exitoso
