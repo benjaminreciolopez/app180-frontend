@@ -155,6 +155,21 @@ export function getUser(): any | null {
 export function logout() {
   if (typeof window === "undefined") return;
 
+  // 🔒 Registro Veri*Factu: Logout explícito
+  const token = getToken();
+  if (token) {
+    try {
+      // Intentamos registrar el evento antes de limpiar el token
+      // Usamos fetch directo o un helper si es posible para asegurar que se envía
+      api.post("/admin/facturacion/configuracion/verifactu/eventos", {
+        tipoEvento: 'CIERRE_SESION',
+        descripcion: 'Cierre de sesión voluntario del usuario'
+      }).catch(() => { /* ignore silent fail */ });
+    } catch (e) {
+      console.error("Error registrando log de salida", e);
+    }
+  }
+
   // Limpieza local
   localStorage.removeItem("token");
   localStorage.removeItem("user");
@@ -167,6 +182,39 @@ export function logout() {
   setAuthToken(null);
   window.dispatchEvent(new Event("session-updated"));
   window.location.href = "/";
+}
+
+/**
+ * Registra el cierre de la aplicación (ventana/pestaña)
+ * Se llama desde AuthInit o RootLayout
+ */
+export function registerAppClose() {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return;
+
+  const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/facturacion/configuracion/verifactu/eventos`;
+  const token = getToken();
+
+  if (!token) return;
+
+  const data = JSON.stringify({
+    tipoEvento: 'CIERRE_APP',
+    descripcion: 'Cierre de la ventana/pestaña de la aplicación'
+  });
+
+  // Usamos sendBeacon para asegurar que la petición se envíe incluso al cerrar la pestaña
+  // Nota: sendBeacon no soporta headers personalizados (como Authorization) fácilmente
+  // pero podemos pasar el token en la URL o usar fetch con keepalive
+  try {
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: data,
+      keepalive: true
+    }).catch(() => { });
+  } catch (e) { }
 }
 
 export function getUserFromToken(token: string) {

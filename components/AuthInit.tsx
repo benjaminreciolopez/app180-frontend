@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { setAuthToken } from "@/services/api";
-import { getToken, getUser, logout, refreshMe } from "@/services/auth";
+import { getToken, getUser, logout, refreshMe, registerAppClose } from "@/services/auth";
 import { Loader2 } from "lucide-react";
 
 function isPublicPath(path: string) {
@@ -122,7 +122,7 @@ export default function AuthInit() {
     init();
 
     return () => {
-      window.removeEventListener("password-forced", () => {});
+      window.removeEventListener("password-forced", () => { });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
