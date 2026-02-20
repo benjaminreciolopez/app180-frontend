@@ -51,49 +51,51 @@ export default function LibroGastosTable({ year }: { year: string }) {
     const totalTotal = data.reduce((acc, curr) => acc + parseFloat(curr.total), 0);
 
     return (
-        <div className="rounded-md border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Proveedor / Concepto</TableHead>
-                        <TableHead className="text-right">Base Imp.</TableHead>
-                        <TableHead className="text-center">% IVA</TableHead>
-                        <TableHead className="text-right">Cuota IVA</TableHead>
-                        <TableHead className="text-right font-medium text-red-600">Retención</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {data.map((row, idx) => (
-                        <TableRow key={idx}>
-                            <TableCell>{new Date(row.fecha).toLocaleDateString()}</TableCell>
-                            <TableCell>
-                                <div className="font-medium">{row.descripcion}</div>
-                                <div className="text-xs text-muted-foreground">{row.proveedor || '-'}</div>
-                            </TableCell>
-                            <TableCell className="text-right">{formatCurrency(parseFloat(row.base))}</TableCell>
-                            <TableCell className="text-center">{row.tipo}%</TableCell>
-                            <TableCell className="text-right">{formatCurrency(parseFloat(row.cuota))}</TableCell>
-                            <TableCell className="text-right text-red-600">
-                                {parseFloat(row.retencion) > 0 ? `-${formatCurrency(parseFloat(row.retencion))}` : '-'}
-                            </TableCell>
-                            <TableCell className="text-right font-bold">{formatCurrency(parseFloat(row.total))}</TableCell>
+        <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="min-w-[800px]">
+                <Table>
+                    <TableHeader className="bg-slate-50/50">
+                        <TableRow>
+                            <TableHead className="w-[100px]">Fecha</TableHead>
+                            <TableHead>Proveedor / Concepto</TableHead>
+                            <TableHead className="text-right w-[110px]">Base Imp.</TableHead>
+                            <TableHead className="text-center w-[80px]">% IVA</TableHead>
+                            <TableHead className="text-right w-[110px]">Cuota IVA</TableHead>
+                            <TableHead className="text-right w-[110px] font-medium text-red-600">Retención</TableHead>
+                            <TableHead className="text-right w-[120px]">Total</TableHead>
                         </TableRow>
-                    ))}
-                    {/* Totales */}
-                    <TableRow className="bg-muted/50 font-bold">
-                        <TableCell colSpan={2} className="text-right">TOTALES</TableCell>
-                        <TableCell className="text-right">{formatCurrency(totalBase)}</TableCell>
-                        <TableCell className="text-center">-</TableCell>
-                        <TableCell className="text-right">{formatCurrency(totalCuota)}</TableCell>
-                        <TableCell className="text-right text-red-600">
-                            {totalRetencion > 0 ? `-${formatCurrency(totalRetencion)}` : '-'}
-                        </TableCell>
-                        <TableCell className="text-right">{formatCurrency(totalTotal)}</TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {data.map((row, idx) => (
+                            <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                <TableCell className="whitespace-nowrap text-xs">{new Date(row.fecha).toLocaleDateString()}</TableCell>
+                                <TableCell className="max-w-[250px]">
+                                    <div className="font-medium text-xs truncate" title={row.descripcion}>{row.descripcion}</div>
+                                    <div className="text-[10px] text-muted-foreground truncate uppercase">{row.proveedor || '-'}</div>
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs">{formatCurrency(parseFloat(row.base))}</TableCell>
+                                <TableCell className="text-center text-xs">{row.tipo}%</TableCell>
+                                <TableCell className="text-right font-mono text-xs">{formatCurrency(parseFloat(row.cuota))}</TableCell>
+                                <TableCell className="text-right font-mono text-xs text-red-600">
+                                    {parseFloat(row.retencion) > 0 ? `-${formatCurrency(parseFloat(row.retencion))}` : '-'}
+                                </TableCell>
+                                <TableCell className="text-right font-bold font-mono text-xs">{formatCurrency(parseFloat(row.total))}</TableCell>
+                            </TableRow>
+                        ))}
+                        {/* Totales */}
+                        <TableRow className="bg-slate-50/80 font-bold border-t-2 border-slate-100">
+                            <TableCell colSpan={2} className="text-right text-xs uppercase tracking-wider text-slate-500">Total Ejercicio</TableCell>
+                            <TableCell className="text-right font-mono text-xs">{formatCurrency(totalBase)}</TableCell>
+                            <TableCell className="text-center">-</TableCell>
+                            <TableCell className="text-right font-mono text-xs">{formatCurrency(totalCuota)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs text-red-600">
+                                {totalRetencion > 0 ? `-${formatCurrency(totalRetencion)}` : '-'}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-sm text-blue-700 bg-blue-50/30">{formatCurrency(totalTotal)}</TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     );
 }
