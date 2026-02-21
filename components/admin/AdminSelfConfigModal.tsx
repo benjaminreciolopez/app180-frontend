@@ -147,25 +147,31 @@ export default function AdminSelfConfigModal({
       // Configuración Facturación (catch silenciar si 403 por modulo off)
       setFacturacionData(sistemaFactRes.status === 200 ? sistemaFactRes.data.data : {});
 
-      // Configuración Global Sistema
-      // Extraemos solo los módulos conocidos para no mezclar con metadatos (id, user_id, etc)
-      const ALL_MODULE_KEYS = ['empleados', 'fichajes', 'calendario', 'clientes', 'facturacion', 'fiscal', 'pagos', 'worklogs'];
-
       const config = globalConfigRes.data || {};
       const rawModulos = config.modulos || config || {};
       const modulos_mobile = config.modulos_mobile || {};
 
-      const filteredModulos: Record<string, boolean> = {};
-      const filteredModulosMobile: Record<string, boolean> = {};
-
-      ALL_MODULE_KEYS.forEach(key => {
-        filteredModulos[key] = !!rawModulos[key];
-        filteredModulosMobile[key] = !!modulos_mobile[key];
-      });
-
       setSistemaConfig({
-        modulos: filteredModulos,
-        modulos_mobile: filteredModulosMobile,
+        modulos: {
+          empleados: !!rawModulos.empleados,
+          fichajes: !!rawModulos.fichajes,
+          calendario: !!rawModulos.calendario,
+          clientes: !!rawModulos.clientes,
+          facturacion: !!rawModulos.facturacion,
+          fiscal: !!rawModulos.fiscal,
+          pagos: !!rawModulos.pagos,
+          worklogs: !!rawModulos.worklogs,
+        },
+        modulos_mobile: {
+          empleados: !!modulos_mobile.empleados,
+          fichajes: !!modulos_mobile.fichajes,
+          calendario: !!modulos_mobile.calendario,
+          clientes: !!modulos_mobile.clientes,
+          facturacion: !!modulos_mobile.facturacion,
+          fiscal: !!modulos_mobile.fiscal,
+          pagos: !!modulos_mobile.pagos,
+          worklogs: !!modulos_mobile.worklogs,
+        },
         mobileEnabled: !!config.modulos_mobile,
         backup_local_path: config.backup_local_path || ""
       });
@@ -728,143 +734,82 @@ export default function AdminSelfConfigModal({
                           {/* --- TABS CONTENT: SISTEMA --- */}
                           <TabsContent value="sistema" className="m-0 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              {/* Columna Módulos */}
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2 text-primary">
-                                    <Sparkles size={18} />
-                                    <h3 className="font-bold uppercase tracking-wider text-xs">Módulos Activos</h3>
-                                  </div>
-
-                                  {/* Selector de Perfil para Módulos */}
-                                  <div className="flex bg-primary/5 rounded-lg p-1 gap-1 border border-primary/20 shadow-inner">
-                                    <Button
-                                      size="sm"
-                                      variant={activeWidgetProfile === 'desktop' ? 'default' : 'ghost'}
-                                      className={cn(
-                                        "h-7 text-[10px] px-3 font-bold transition-all",
-                                        activeWidgetProfile === 'desktop' ? "shadow-sm" : "text-muted-foreground hover:text-primary"
-                                      )}
-                                      onClick={() => setActiveWidgetProfile('desktop')}
-                                    >
-                                      🖥️ ESCRITORIO
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant={activeWidgetProfile === 'mobile' ? 'default' : 'ghost'}
-                                      className={cn(
-                                        "h-7 text-[10px] px-3 font-bold transition-all",
-                                        activeWidgetProfile === 'mobile' ? "shadow-sm" : "text-muted-foreground hover:text-primary"
-                                      )}
-                                      onClick={() => {
-                                        setActiveWidgetProfile('mobile');
-                                        if (!sistemaConfig.mobileEnabled) {
-                                          setSistemaConfig({ ...sistemaConfig, mobileEnabled: true });
-                                        }
-                                      }}
-                                    >
-                                      📱 MÓVIL (PWA)
-                                    </Button>
-                                  </div>
-                                </div>
-
-                                <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-3">
-                                  <div className="flex items-center justify-between pb-2 border-b border-border/50">
-                                    <div className="space-y-0.5">
-                                      <Label className="text-[10px] font-bold uppercase">Activar Modo Móvil (PWA)</Label>
-                                      <p className="text-[9px] text-muted-foreground leading-tight">Habilita acceso específico para smartphones</p>
-                                    </div>
+                              {Object.entries(activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : sistemaConfig.modulos_mobile)
+                                .map(([key, active]: [string, any]) => (
+                                  <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
+                                    <Label className="capitalize text-xs font-semibold">{key.replace('_', ' ')}</Label>
                                     <Switch
-                                      checked={sistemaConfig.mobileEnabled}
-                                      onCheckedChange={(v) => setSistemaConfig({ ...sistemaConfig, mobileEnabled: v })}
+                                      checked={!!active}
+                                      onCheckedChange={(checked) => {
+                                        const field = activeWidgetProfile === 'desktop' ? 'modulos' : 'modulos_mobile';
+                                        setSistemaConfig({
+                                          ...sistemaConfig,
+                                          [field]: { ...sistemaConfig[field], [key]: checked }
+                                        });
+                                      }}
                                       className="scale-75 origin-right"
+                                      disabled={activeWidgetProfile === 'mobile' && !sistemaConfig.mobileEnabled}
                                     />
                                   </div>
+                                ))}
+                            </div>
 
-                                  {Object.entries(activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : sistemaConfig.modulos_mobile)
-                                    .map(([key, active]: [string, any]) => (
-                                      <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
-                                        <Label className="capitalize text-xs font-semibold">{key.replace('_', ' ')}</Label>
-                                        <Switch
-                                          checked={!!active}
-                                          onCheckedChange={(checked) => {
-                                            const field = activeWidgetProfile === 'desktop' ? 'modulos' : 'modulos_mobile';
-                                            setSistemaConfig({
-                                              ...sistemaConfig,
-                                              [field]: { ...sistemaConfig[field], [key]: checked }
-                                            });
-                                          }}
-                                          className="scale-75 origin-right"
-                                          disabled={activeWidgetProfile === 'mobile' && !sistemaConfig.mobileEnabled}
-                                        />
-                                      </div>
-                                    ))}
-
-                                  {activeWidgetProfile === 'mobile' && !sistemaConfig.mobileEnabled && (
-                                    <p className="text-[10px] text-amber-600 bg-amber-50 p-2 rounded-md font-medium text-center italic">
-                                      Activa el modo móvil para personalizar estos módulos.
-                                    </p>
-                                  )}
+                            {/* Columna Backup y Google */}
+                            <div className="space-y-6 mt-6">
+                              {/* Backup Section */}
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-amber-600">
+                                  <Database size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Autorespaldo (PC Local)</h3>
+                                </div>
+                                <div className={cn(
+                                  "border rounded-xl p-4 transition-all",
+                                  directoryHandle ? "bg-green-500/5 border-green-500/20" : "bg-amber-500/5 border-amber-500/20"
+                                )}>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <FolderCog size={16} className={directoryHandle ? "text-green-600" : "text-amber-600"} />
+                                      <span className="text-[11px] font-bold uppercase">{directoryHandle ? "Vinculado" : "Desvinculado"}</span>
+                                    </div>
+                                    <Button size="sm" variant="secondary" onClick={handleConfigureFolder} className="h-7 text-[10px]">
+                                      {directoryHandle ? "Cambiar" : "Vincular PC"}
+                                    </Button>
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                                    {directoryHandle ? "Este PC recibe copias automáticas al iniciar sesión." : "Vincula una carpeta para recibir backups físicos automáticamente."}
+                                  </p>
                                 </div>
                               </div>
 
-                              {/* Columna Backup y Google */}
-                              <div className="space-y-6">
-                                {/* Backup Section */}
-                                <div className="space-y-4">
-                                  <div className="flex items-center gap-2 text-amber-600">
-                                    <Database size={18} />
-                                    <h3 className="font-bold uppercase tracking-wider text-xs">Autorespaldo (PC Local)</h3>
-                                  </div>
-                                  <div className={cn(
-                                    "border rounded-xl p-4 transition-all",
-                                    directoryHandle ? "bg-green-500/5 border-green-500/20" : "bg-amber-500/5 border-amber-500/20"
-                                  )}>
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-2">
-                                        <FolderCog size={16} className={directoryHandle ? "text-green-600" : "text-amber-600"} />
-                                        <span className="text-[11px] font-bold uppercase">{directoryHandle ? "Vinculado" : "Desvinculado"}</span>
-                                      </div>
-                                      <Button size="sm" variant="secondary" onClick={handleConfigureFolder} className="h-7 text-[10px]">
-                                        {directoryHandle ? "Cambiar" : "Vincular PC"}
-                                      </Button>
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
-                                      {directoryHandle ? "Este PC recibe copias automáticas al iniciar sesión." : "Vincula una carpeta para recibir backups físicos automáticamente."}
-                                    </p>
-                                  </div>
+                              {/* Google Calendar Section */}
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-blue-600">
+                                  <CalendarIcon size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Google Calendar</h3>
                                 </div>
-
-                                {/* Google Calendar Section */}
-                                <div className="space-y-4">
-                                  <div className="flex items-center gap-2 text-blue-600">
-                                    <CalendarIcon size={18} />
-                                    <h3 className="font-bold uppercase tracking-wider text-xs">Google Calendar</h3>
-                                  </div>
-                                  <div className={cn(
-                                    "border rounded-xl p-4 transition-all",
-                                    googleCalendarConfig?.configured ? "bg-blue-500/5 border-blue-500/20" : "bg-muted border-border"
-                                  )}>
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-2">
-                                        <CheckCircle2 size={16} className={googleCalendarConfig?.configured ? "text-blue-600" : "text-muted-foreground"} />
-                                        <span className="text-[11px] font-bold uppercase">{googleCalendarConfig?.configured ? "Conectado" : "Desconectado"}</span>
-                                      </div>
-                                      <Button
-                                        size="sm"
-                                        onClick={googleCalendarConfig?.configured ? handleSyncCalendar : handleConnectCalendar}
-                                        disabled={connectingCalendar || syncingCalendar}
-                                        className="h-7 text-[10px]"
-                                      >
-                                        {connectingCalendar || syncingCalendar ? <Loader2 size={12} className="animate-spin" /> : (googleCalendarConfig?.configured ? "Sincronizar" : "Conectar")}
-                                      </Button>
+                                <div className={cn(
+                                  "border rounded-xl p-4 transition-all",
+                                  googleCalendarConfig?.configured ? "bg-blue-500/5 border-blue-500/20" : "bg-muted border-border"
+                                )}>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <CheckCircle2 size={16} className={googleCalendarConfig?.configured ? "text-blue-600" : "text-muted-foreground"} />
+                                      <span className="text-[11px] font-bold uppercase">{googleCalendarConfig?.configured ? "Conectado" : "Desconectado"}</span>
                                     </div>
-                                    {googleCalendarConfig?.configured && (
-                                      <p className="text-[10px] text-blue-600/80 font-medium mt-2 truncate">
-                                        📧 {googleCalendarConfig.oauth2_email}
-                                      </p>
-                                    )}
+                                    <Button
+                                      size="sm"
+                                      onClick={googleCalendarConfig?.configured ? handleSyncCalendar : handleConnectCalendar}
+                                      disabled={connectingCalendar || syncingCalendar}
+                                      className="h-7 text-[10px]"
+                                    >
+                                      {connectingCalendar || syncingCalendar ? <Loader2 size={12} className="animate-spin" /> : (googleCalendarConfig?.configured ? "Sincronizar" : "Conectar")}
+                                    </Button>
                                   </div>
+                                  {googleCalendarConfig?.configured && (
+                                    <p className="text-[10px] text-blue-600/80 font-medium mt-2 truncate">
+                                      📧 {googleCalendarConfig.oauth2_email}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1266,56 +1211,46 @@ export default function AdminSelfConfigModal({
                                 </div>
                               </div>
 
-                              <p className="text-xs text-muted-foreground leading-tight italic">
-                                {activeWidgetProfile === 'desktop'
-                                  ? "Personaliza los widgets para la versión de escritorio de alta densidad."
-                                  : "Optimiza la vista para dispositivos móviles y modo PWA."}
-                              </p>
-
                               <div className="bg-muted/20 border border-border rounded-xl p-2 grid grid-cols-1 md:grid-cols-2 gap-1 min-h-[200px]">
-                                {ALL_DASHBOARD_WIDGETS.map((wd) => {
-                                  const configList = activeWidgetProfile === 'desktop' ? dashboardWidgets : dashboardWidgetsMobile;
-                                  const savedWidget = configList.find((sw: any) => sw.id === wd.id);
-                                  const isVisible = savedWidget ? savedWidget.visible : false;
-                                  const Icon = wd.icon;
+                                {ALL_DASHBOARD_WIDGETS
+                                  .filter(wd => !wd.module || (activeWidgetProfile === 'desktop' ? sistemaConfig.modulos[wd.module] : sistemaConfig.modulos_mobile[wd.module]))
+                                  .map((wd) => {
+                                    const configList = activeWidgetProfile === 'desktop' ? dashboardWidgets : dashboardWidgetsMobile;
+                                    const savedWidget = configList.find((sw: any) => sw.id === wd.id);
+                                    const isVisible = savedWidget ? savedWidget.visible : false;
+                                    const Icon = wd.icon;
 
-                                  return (
-                                    <div key={wd.id} className="flex items-center justify-between p-3 hover:bg-background rounded-lg transition-all group border border-transparent hover:border-border hover:shadow-sm">
-                                      <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-background border rounded-md text-muted-foreground group-hover:text-primary transition-colors">
-                                          <Icon size={14} />
+                                    return (
+                                      <div key={wd.id} className="flex items-center justify-between p-3 hover:bg-background rounded-lg transition-all group border border-transparent hover:border-border hover:shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                          <div className="p-2 bg-background border rounded-md text-muted-foreground group-hover:text-primary transition-colors">
+                                            <Icon size={14} />
+                                          </div>
+                                          <div className="flex flex-col">
+                                            <span className="text-xs font-bold leading-none">{wd.label}</span>
+                                            <p className="text-[9px] text-muted-foreground leading-tight mt-1">{wd.description}</p>
+                                          </div>
                                         </div>
-                                        <div className="flex flex-col">
-                                          <span className="text-xs font-bold leading-none">{wd.label}</span>
-                                          <p className="text-[9px] text-muted-foreground leading-tight mt-1">{wd.description}</p>
-                                        </div>
+                                        <Switch
+                                          checked={isVisible}
+                                          onCheckedChange={(checked) => {
+                                            const updateFn = activeWidgetProfile === 'desktop' ? setDashboardWidgets : setDashboardWidgetsMobile;
+                                            updateFn(prev => {
+                                              const existing = prev.find((item: any) => item.id === wd.id);
+                                              if (existing) {
+                                                return prev.map((item: any) =>
+                                                  item.id === wd.id ? { ...item, visible: checked } : item
+                                                );
+                                              } else {
+                                                return [...prev, { id: wd.id, visible: checked, order: prev.length }];
+                                              }
+                                            });
+                                          }}
+                                          className="scale-75 origin-right"
+                                        />
                                       </div>
-                                      <Switch
-                                        checked={isVisible}
-                                        onCheckedChange={(checked) => {
-                                          const updateFn = activeWidgetProfile === 'desktop' ? setDashboardWidgets : setDashboardWidgetsMobile;
-                                          updateFn(prev => {
-                                            const existing = prev.find((item: any) => item.id === wd.id);
-                                            if (existing) {
-                                              return prev.map((item: any) =>
-                                                item.id === wd.id ? { ...item, visible: checked } : item
-                                              );
-                                            } else {
-                                              return [...prev, { id: wd.id, visible: checked, order: prev.length }];
-                                            }
-                                          });
-                                        }}
-                                        className="scale-75 origin-right"
-                                      />
-                                    </div>
-                                  );
-                                })}
-                                {ALL_DASHBOARD_WIDGETS.length === 0 && (
-                                  <div className="col-span-full py-10 text-center space-y-2">
-                                    <AlertCircle className="mx-auto text-muted-foreground" size={24} />
-                                    <p className="text-xs text-muted-foreground font-medium">No hay widgets disponibles.</p>
-                                  </div>
-                                )}
+                                    );
+                                  })}
                               </div>
                             </div>
                           </TabsContent>
@@ -1323,42 +1258,40 @@ export default function AdminSelfConfigModal({
                       )}
                     </div>
                   </div>
-                </Tabs>
-              </div>
 
-              {/* Footer */}
-              <div className="p-6 border-t border-border flex justify-end gap-3 bg-muted/10">
-                <button
-                  onClick={onClose}
-                  className="px-6 py-2.5 font-bold text-muted-foreground hover:bg-muted rounded-xl transition"
-                  disabled={saving}
-                >
-                  Cerrar
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving || loading}
-                  className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50"
-                >
-                  {saving ? 'Guardando...' : <><Save size={18} /> Guardar cambios</>}
-                </button>
+                  {/* Footer */}
+                  <div className="p-6 border-t border-border flex justify-end gap-3 bg-muted/10">
+                    <button
+                      onClick={onClose}
+                      className="px-6 py-2.5 font-bold text-muted-foreground hover:bg-muted rounded-xl transition"
+                      disabled={saving}
+                    >
+                      Cerrar
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={saving || loading}
+                      className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {saving ? 'Guardando...' : <><Save size={18} /> Guardar cambios</>}
+                    </button>
+                  </div>
+                </Tabs>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {
-        showShareModal && inviteData && adminData && (
-          <ShareInviteLinkModal
-            isOpen={showShareModal}
-            onClose={() => setShowShareModal(false)}
-            inviteData={inviteData}
-            empleadoId={adminData.id}
-            tipo="nuevo"
-          />
-        )
-      }
+      {showShareModal && inviteData && adminData && (
+        <ShareInviteLinkModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          inviteData={inviteData}
+          empleadoId={adminData.id}
+          tipo="nuevo"
+        />
+      )}
 
       <Dialog open={passModalOpen} onOpenChange={setPassModalOpen}>
         <DialogContent className="sm:max-w-md">

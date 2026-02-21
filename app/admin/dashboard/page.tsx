@@ -131,12 +131,14 @@ export default function DashboardPage() {
   };
 
   const handleTouchEnd = () => {
-    if (pullProgress > 0.5 && !refreshing) {
+    if (pullProgress > 0.4 && !refreshing) {
       setRefreshing(true);
+      // Forzamos skeleton al recargar manualmente si no hay datos o por UX
+      setLoading(true);
       loadAll();
-    } else {
-      setPullProgress(0);
     }
+    // IMPORTANTE: Resetear progreso inmediatamente para que desaparezca la flecha
+    setPullProgress(0);
     setStartY(0);
   };
 
