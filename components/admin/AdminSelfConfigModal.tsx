@@ -237,7 +237,8 @@ export default function AdminSelfConfigModal({
       // 4. Guardar Configuración Global Sistema (crítico, sin catch para que falle visible)
       promises.push(api.put("/admin/configuracion", {
         modulos: sistemaConfig.modulos,
-        modulos_mobile: sistemaConfig.mobileEnabled ? sistemaConfig.modulos_mobile : null
+        modulos_mobile: sistemaConfig.mobileEnabled ? sistemaConfig.modulos_mobile : null,
+        backup_local_path: sistemaConfig.backup_local_path || null
       }));
 
       // 5. Guardar Widgets Dashboard
