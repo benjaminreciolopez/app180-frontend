@@ -24,6 +24,7 @@ import { ChartActividad, ChartClientesOrTipos } from "@/components/admin/dashboa
 import { ListTrabajando, ListFichajes, ListFacturas } from "@/components/admin/dashboard/widgets/ListWidgets";
 import { TrabajosPendientesModal } from "@/components/admin/dashboard/TrabajosPendientesModal";
 import { SkeletonDashboard } from "@/components/ui/skeletons";
+import { ALL_DASHBOARD_WIDGETS } from "@/lib/dashboard-widgets";
 
 // --- Logic ---
 
@@ -33,22 +34,8 @@ interface WidgetConfig {
   order: number;
 }
 
-const ALL_WIDGETS = [
-  { id: "kpi_beneficio", label: "KPI: Beneficio Real", module: "facturacion", icon: TrendingUp },
-  { id: "kpi_empleados", label: "KPI: Empleados activos", module: "empleados", icon: Users },
-  { id: "kpi_fichajes", label: "KPI: Fichajes hoy", module: "fichajes", icon: Clock },
-  { id: "kpi_sospechosos", label: "KPI: Sospechosos", module: "fichajes", icon: AlertTriangle },
-  { id: "kpi_calendario", label: "KPI: Calendario", module: "calendario", icon: Calendar },
-  { id: "kpi_clientes", label: "KPI: Clientes", module: "clientes", icon: UserCheck },
-  { id: "kpi_facturacion", label: "KPI: Facturación", module: "facturacion", icon: Euro },
-  { id: "kpi_trabajos", label: "KPI: Trabajos Pendientes", module: "partes_dia", icon: ClipboardList },
-  { id: "kpi_gcal_sync", label: "Google Calendar", module: "calendario", icon: RefreshCw },
-  { id: "chart_actividad", label: "Actividad semanal", module: "fichajes", icon: LayoutGrid },
-  { id: "chart_clientes", label: "Top clientes / Distribución", module: null, icon: LayoutGrid },
-  { id: "list_trabajando", label: "Trabajando ahora", module: "fichajes", icon: Briefcase },
-  { id: "list_fichajes", label: "Últimos fichajes", module: "fichajes", icon: Clock },
-  { id: "list_facturas", label: "Facturas pendientes", module: "facturacion", icon: Euro },
-];
+// La lista maestra ahora se importa de @/lib/dashboard-widgets
+const ALL_WIDGETS = ALL_DASHBOARD_WIDGETS;
 
 export default function DashboardPage() {
   const router = useRouter();

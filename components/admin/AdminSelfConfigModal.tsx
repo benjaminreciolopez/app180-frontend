@@ -14,8 +14,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { get, set } from 'idb-keyval';
-import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
+import { ALL_DASHBOARD_WIDGETS } from "@/lib/dashboard-widgets";
+import { cn } from "@/lib/utils";
 
 interface AdminSelfConfigModalProps {
   isOpen: boolean;
@@ -704,24 +705,74 @@ export default function AdminSelfConfigModal({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               {/* Columna Módulos */}
                               <div className="space-y-4">
-                                <div className="flex items-center gap-2 text-primary">
-                                  <Sparkles size={18} />
-                                  <h3 className="font-bold uppercase tracking-wider text-xs">Módulos Activos</h3>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2 text-primary">
+                                    <Sparkles size={18} />
+                                    <h3 className="font-bold uppercase tracking-wider text-xs">Módulos Activos</h3>
+                                  </div>
+
+                                  {/* Selector de Perfil para Módulos */}
+                                  <div className="flex bg-muted rounded-lg p-0.5 gap-0.5">
+                                    <Button
+                                      size="sm"
+                                      variant={activeWidgetProfile === 'desktop' ? 'secondary' : 'ghost'}
+                                      className="h-6 text-[9px] px-2 font-bold"
+                                      onClick={() => setActiveWidgetProfile('desktop')}
+                                    >
+                                      DESK
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant={activeWidgetProfile === 'mobile' ? 'secondary' : 'ghost'}
+                                      className="h-6 text-[9px] px-2 font-bold"
+                                      onClick={() => {
+                                        setActiveWidgetProfile('mobile');
+                                        if (!sistemaConfig.mobileEnabled) {
+                                          setSistemaConfig({ ...sistemaConfig, mobileEnabled: true });
+                                        }
+                                      }}
+                                    >
+                                      MÓVIL
+                                    </Button>
+                                  </div>
                                 </div>
+
                                 <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-3">
-                                  {Object.entries(sistemaConfig.modulos).map(([key, active]: [string, any]) => (
+                                  <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-[10px] font-bold uppercase">Activar Modo Móvil (PWA)</Label>
+                                      <p className="text-[9px] text-muted-foreground leading-tight">Habilita acceso específico para smartphones</p>
+                                    </div>
+                                    <Switch
+                                      checked={sistemaConfig.mobileEnabled}
+                                      onCheckedChange={(v) => setSistemaConfig({ ...sistemaConfig, mobileEnabled: v })}
+                                      className="scale-75 origin-right"
+                                    />
+                                  </div>
+
+                                  {Object.entries(activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : (sistemaConfig.modulos_mobile || {})).map(([key, active]: [string, any]) => (
                                     <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
                                       <Label className="capitalize text-xs font-semibold">{key.replace('_', ' ')}</Label>
                                       <Switch
                                         checked={!!active}
-                                        onCheckedChange={(checked) => setSistemaConfig({
-                                          ...sistemaConfig,
-                                          modulos: { ...sistemaConfig.modulos, [key]: checked }
-                                        })}
+                                        onCheckedChange={(checked) => {
+                                          const field = activeWidgetProfile === 'desktop' ? 'modulos' : 'modulos_mobile';
+                                          setSistemaConfig({
+                                            ...sistemaConfig,
+                                            [field]: { ...sistemaConfig[field], [key]: checked }
+                                          });
+                                        }}
                                         className="scale-75 origin-right"
+                                        disabled={activeWidgetProfile === 'mobile' && !sistemaConfig.mobileEnabled}
                                       />
                                     </div>
                                   ))}
+
+                                  {activeWidgetProfile === 'mobile' && !sistemaConfig.mobileEnabled && (
+                                    <p className="text-[10px] text-amber-600 bg-amber-50 p-2 rounded-md font-medium text-center italic">
+                                      Activa el modo móvil para personalizar estos módulos.
+                                    </p>
+                                  )}
                                 </div>
                               </div>
 
@@ -914,9 +965,8 @@ export default function AdminSelfConfigModal({
                                       <span className="text-[9px] text-muted-foreground italic">Próxima factura</span>
                                     </div>
                                     <p className="font-mono text-xs font-bold text-blue-700">
-                                      {facturacionData.serie || ''}
-                                      {facturacionData.numeracion_tipo === 'STANDARD' ? 'F-' : ''}
-                                      {facturacionData.numeracion_tipo === 'BY_YEAR' ? `F-${new Date().getFullYear()}-` : ''}
+                                      {facturacionData.numeracion_tipo === 'STANDARD' ? `${facturacionData.serie || 'F'}-` : ''}
+                                      {facturacionData.numeracion_tipo === 'BY_YEAR' ? `${facturacionData.serie || 'F'}-${new Date().getFullYear()}-` : ''}
                                       {facturacionData.numeracion_tipo === 'PREFIXED' ?
                                         (facturacionData.numeracion_formato || '')
                                           .replace('{YEAR}', new Date().getFullYear().toString())
@@ -1031,22 +1081,34 @@ export default function AdminSelfConfigModal({
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="space-y-1">
-                                    <Label className="text-[10px] uppercase font-bold">ID Serie Actual</Label>
+                                    <div className="flex items-center justify-between">
+                                      <Label className="text-[10px] uppercase font-bold">ID Serie Actual</Label>
+                                      {!facturacionData.migracion_last_pdf && !facturacionData.numeracion_locked && (
+                                        <span className="text-[8px] text-amber-600 font-bold uppercase">Sube factura para editar</span>
+                                      )}
+                                    </div>
                                     <Input
                                       className="h-8 text-xs font-mono bg-background"
                                       value={facturacionData.serie}
                                       onChange={(e) => setFacturacionData({ ...facturacionData, serie: e.target.value })}
-                                      disabled={facturacionData.numeracion_locked}
+                                      disabled={facturacionData.numeracion_locked || (!facturacionData.migracion_last_pdf && !facturacionData.serie)}
+                                      placeholder={facturacionData.numeracion_locked ? "" : "Esperando OCR..."}
                                     />
                                   </div>
                                   <div className="space-y-1">
-                                    <Label className="text-[10px] uppercase font-bold">Próximo Número</Label>
+                                    <div className="flex items-center justify-between">
+                                      <Label className="text-[10px] uppercase font-bold">Próximo Número</Label>
+                                      {!facturacionData.migracion_last_pdf && !facturacionData.numeracion_locked && (
+                                        <span className="text-[8px] text-amber-600 font-bold uppercase">Requiere evidencia</span>
+                                      )}
+                                    </div>
                                     <Input
                                       type="number"
                                       className="h-8 text-xs font-mono bg-background"
                                       value={facturacionData.siguiente_numero}
                                       onChange={(e) => setFacturacionData({ ...facturacionData, siguiente_numero: parseInt(e.target.value) || 0 })}
-                                      disabled={facturacionData.numeracion_locked}
+                                      disabled={facturacionData.numeracion_locked || !facturacionData.migracion_last_pdf}
+                                      placeholder={facturacionData.numeracion_locked ? "" : "Subir PDF"}
                                     />
                                   </div>
                                 </div>
@@ -1173,30 +1235,43 @@ export default function AdminSelfConfigModal({
                               </p>
 
                               <div className="bg-muted/20 border border-border rounded-xl p-2 grid grid-cols-1 md:grid-cols-2 gap-1">
-                                {(activeWidgetProfile === 'desktop' ? dashboardWidgets : dashboardWidgetsMobile).map((w: any) => (
-                                  <div key={w.id} className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-lg transition-colors group border border-transparent hover:border-border">
-                                    <div className="flex items-center gap-3">
-                                      <div className="p-2 bg-background border rounded-md text-muted-foreground group-hover:text-primary transition-colors">
-                                        {w.id.includes('list') ? <FileText size={14} /> : (w.id.includes('chart') ? <TrendingUp size={14} /> : <LayoutGrid size={14} />)}
+                                {ALL_DASHBOARD_WIDGETS.map((wd) => {
+                                  const configList = activeWidgetProfile === 'desktop' ? dashboardWidgets : dashboardWidgetsMobile;
+                                  const savedWidget = configList.find((sw: any) => sw.id === wd.id);
+                                  const isVisible = savedWidget ? savedWidget.visible : false;
+                                  const Icon = wd.icon;
+
+                                  return (
+                                    <div key={wd.id} className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-lg transition-colors group border border-transparent hover:border-border">
+                                      <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-background border rounded-md text-muted-foreground group-hover:text-primary transition-colors">
+                                          <Icon size={14} />
+                                        </div>
+                                        <div className="flex flex-col">
+                                          <span className="text-xs font-bold leading-none">{wd.label}</span>
+                                          <p className="text-[9px] text-muted-foreground leading-tight mt-1">{wd.description}</p>
+                                        </div>
                                       </div>
-                                      <div className="flex flex-col">
-                                        <span className="text-xs font-bold leading-none">{w.id.replace(/_/g, ' ').replace('kpi', 'KPI:').toUpperCase()}</span>
-                                        {w.id === 'kpi_beneficio' && <span className="text-[10px] text-green-600 font-medium">Beneficio Real</span>}
-                                        {w.id === 'list_facturas' && <span className="text-[10px] text-amber-600 font-medium">Facturas Pendientes</span>}
-                                      </div>
+                                      <Switch
+                                        checked={isVisible}
+                                        onCheckedChange={(checked) => {
+                                          const updateFn = activeWidgetProfile === 'desktop' ? setDashboardWidgets : setDashboardWidgetsMobile;
+                                          updateFn(prev => {
+                                            const existing = prev.find((item: any) => item.id === wd.id);
+                                            if (existing) {
+                                              return prev.map((item: any) =>
+                                                item.id === wd.id ? { ...item, visible: checked } : item
+                                              );
+                                            } else {
+                                              return [...prev, { id: wd.id, visible: checked, order: prev.length }];
+                                            }
+                                          });
+                                        }}
+                                        className="scale-75 origin-right"
+                                      />
                                     </div>
-                                    <Switch
-                                      checked={w.visible}
-                                      onCheckedChange={(checked) => {
-                                        const updateFn = activeWidgetProfile === 'desktop' ? setDashboardWidgets : setDashboardWidgetsMobile;
-                                        updateFn(prev => prev.map((item: any) =>
-                                          item.id === w.id ? { ...item, visible: checked } : item
-                                        ));
-                                      }}
-                                      className="scale-75 origin-right"
-                                    />
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </div>
                           </TabsContent>
