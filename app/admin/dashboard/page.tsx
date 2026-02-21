@@ -40,7 +40,7 @@ const ALL_WIDGETS = ALL_DASHBOARD_WIDGETS;
 export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
-  const [modulos, setModulos] = useState<Record<string, boolean>>({});
+  const [modulos, setModulos] = useState<Record<string, boolean> | null>(null);
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
   const [widgetsLoaded, setWidgetsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -73,7 +73,8 @@ export default function DashboardPage() {
   };
 
   function hasModule(name: string) {
-    return modulos[name] !== false;
+    if (!modulos) return false; // Bloqueo preventivo si no hay datos
+    return modulos[name] === true;
   }
 
   function isWidgetVisible(id: string) {
@@ -95,22 +96,21 @@ export default function DashboardPage() {
         api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } })),
       ]);
 
-      const dashboardData = dashRes.data as DashboardData; // Type assertion
-
+      const dashboardData = dashRes.data as DashboardData;
       setData(dashboardData);
-      let w = widgetRes.data?.widgets || [];
 
-      // Cargar módulos actualizados de la sesión
-      const user = getUser();
-      if (user) {
-        const isLargeScreen = typeof window !== "undefined" && window.innerWidth >= 1024;
-        const isPwaMobile = isMobileDevice() && isStandalone();
-        const useMobileModules = isPwaMobile && !isLargeScreen;
-        const mods = await api.get(useMobileModules ? "/auth/me/modules?mobile=true" : "/auth/me/modules");
-        setModulos(mods.data || {});
-      }
+      const isLargeScreen = typeof window !== "undefined" && window.innerWidth >= 1024;
+      const isPwaMobile = isMobileDevice() && isStandalone();
+      const useMobileProfile = isPwaMobile && !isLargeScreen;
 
-      // Si no hay configuración guardada, inicializamos con todos visibles
+      // Cargar módulos primero para filtrar widgets
+      const mods = await api.get(useMobileProfile ? "/auth/me/modules?mobile=true" : "/auth/me/modules");
+      setModulos(mods.data || {});
+
+      // Usar perfil de widgets correcto
+      let w = useMobileProfile ? (widgetRes.data?.widgets_mobile || []) : (widgetRes.data?.widgets || []);
+
+      // Si no hay configuración guardada, inicializamos con todos los widgets del sistema filtrados
       if (w.length === 0) {
         w = ALL_WIDGETS.map((wd, index) => ({ id: wd.id, visible: true, order: index }));
       }
@@ -215,7 +215,7 @@ export default function DashboardPage() {
       )}
 
       {/* Widget Grid Layout */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {shouldShowWidget("kpi_beneficio", "facturacion") && data.beneficioReal && (
           <div className="col-span-2 lg:col-span-1 row-span-2 lg:row-span-1 h-full">
             <BeneficioRealCard data={data.beneficioReal} />
