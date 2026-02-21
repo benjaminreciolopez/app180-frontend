@@ -20,7 +20,6 @@ export default function DynamicAuthor() {
 
         // Actualizar contenido con el nombre del empleado/usuario
         meta.setAttribute('content', user.nombre);
-        console.log("DynamicAuthor: Updated author to", user.nombre);
       }
     } catch (err) {
       console.warn("DynamicAuthor: Failed to update author", err);

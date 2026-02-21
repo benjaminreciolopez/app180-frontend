@@ -24,22 +24,7 @@ export default function ClientFiscalFields({
   readOnly = false,
 }: ClientFiscalFieldsProps) {
 
-  // DEBUG: Log what we receive
-  React.useEffect(() => {
-    console.log("[ClientFiscalFields] data received:", {
-      razon_social: data.razon_social,
-      nombre: data.nombre,
-      persona_contacto: data.persona_contacto,
-    });
-  }, [data]);
-
   const handleChange = (field: string, value: any) => {
-    console.log(`[ClientFiscalFields] handleChange called:`, {
-      field,
-      value,
-      valueLength: typeof value === 'string' ? value.length : 'N/A',
-      valueType: typeof value,
-    });
     if (onChange && !readOnly) {
       onChange(field, value);
     }

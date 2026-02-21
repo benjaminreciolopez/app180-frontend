@@ -107,41 +107,40 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const watchedIvaPct = watch("iva_porcentaje");
     const watchedTotal = watch("total");
 
+    // Flag para evitar loop infinito entre los dos useEffects
+    const calcDirection = useRef<"from_base" | "from_total" | null>(null);
+
     // Lógica de cálculo automático: Base + IVA % -> Total e IVA Importe
     useEffect(() => {
+        if (calcDirection.current === "from_total") {
+            calcDirection.current = null;
+            return;
+        }
         if (typeof watchedBase === 'number' && typeof watchedIvaPct === 'number') {
             const ivaImp = Number((watchedBase * (watchedIvaPct / 100)).toFixed(2));
             const newTotal = Number((watchedBase + ivaImp).toFixed(2));
 
-            const currentIvaImp = getValues("iva_importe");
-            const currentTotal = getValues("total");
-
-            if (currentIvaImp !== undefined && Math.abs(currentIvaImp - ivaImp) > 0.01) {
-                setValue("iva_importe", ivaImp);
-            }
-            if (currentTotal !== undefined && Math.abs(currentTotal - newTotal) > 0.01) {
-                setValue("total", newTotal);
-            }
+            calcDirection.current = "from_base";
+            setValue("iva_importe", ivaImp);
+            setValue("total", newTotal);
         }
-    }, [watchedBase, watchedIvaPct, setValue, getValues]);
+    }, [watchedBase, watchedIvaPct, setValue]);
 
     // Lógica de cálculo inverso: Total -> Base e IVA Importe
     useEffect(() => {
-        if (typeof watchedTotal === 'number' && typeof watchedIvaPct === 'number') {
+        if (calcDirection.current === "from_base") {
+            calcDirection.current = null;
+            return;
+        }
+        if (typeof watchedTotal === 'number' && typeof watchedIvaPct === 'number' && watchedTotal > 0) {
             const base = Number((watchedTotal / (1 + watchedIvaPct / 100)).toFixed(2));
             const ivaImp = Number((watchedTotal - base).toFixed(2));
 
-            const currentBase = getValues("base_imponible");
-            const currentIvaImp = getValues("iva_importe");
-
-            if (currentBase !== undefined && Math.abs(currentBase - base) > 0.01) {
-                setValue("base_imponible", base);
-            }
-            if (currentIvaImp !== undefined && Math.abs(currentIvaImp - ivaImp) > 0.01) {
-                setValue("iva_importe", ivaImp);
-            }
+            calcDirection.current = "from_total";
+            setValue("base_imponible", base);
+            setValue("iva_importe", ivaImp);
         }
-    }, [watchedTotal, watchedIvaPct, setValue, getValues]);
+    }, [watchedTotal, setValue]);
 
     const [categories, setCategories] = useState<string[]>(["general", "material", "combustible", "herramientas", "oficina"]);
     const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
