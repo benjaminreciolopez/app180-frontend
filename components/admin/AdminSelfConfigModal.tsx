@@ -914,6 +914,7 @@ export default function AdminSelfConfigModal({
                                       <span className="text-[9px] text-muted-foreground italic">Próxima factura</span>
                                     </div>
                                     <p className="font-mono text-xs font-bold text-blue-700">
+                                      {facturacionData.serie || ''}
                                       {facturacionData.numeracion_tipo === 'STANDARD' ? 'F-' : ''}
                                       {facturacionData.numeracion_tipo === 'BY_YEAR' ? `F-${new Date().getFullYear()}-` : ''}
                                       {facturacionData.numeracion_tipo === 'PREFIXED' ?
