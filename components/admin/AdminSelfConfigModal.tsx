@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import ShareInviteLinkModal from "./ShareInviteLinkModal";
-import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon } from "lucide-react";
+import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon, LayoutGrid, Hash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
@@ -43,11 +43,18 @@ export default function AdminSelfConfigModal({
   });
 
   const [facturacionData, setFacturacionData] = useState<any>({
-    terminos_legales: "", texto_pie: "", texto_exento: "", texto_rectificativa: "",
+    terminos_legales: "", texto_pie: "", texto_exento: "", texto_rectificativa: "", mensaje_iva: "",
     verifactu_activo: false, verifactu_modo: "TEST",
     numeracion_tipo: "STANDARD", numeracion_formato: "FAC-{YEAR}-", numeracion_locked: false,
-    correlativo_inicial: 0
+    correlativo_inicial: 0,
+    facturas_inmutables: true, prohibir_borrado_facturas: true, bloquear_fechas_pasadas: true,
+    auditoria_activa: true, nivel_auditoria: "BASICA",
+    modo_numeracion: "BASICO", serie: "", siguiente_numero: 1
   });
+
+  // Configuración de Dashboard (Widgets)
+  const [dashboardWidgets, setDashboardWidgets] = useState<any[]>([]);
+  const [savingWidgets, setSavingWidgets] = useState(false);
 
   // Configuración de Sistema (Módulos)
   const [sistemaConfig, setSistemaConfig] = useState<any>({
@@ -92,14 +99,15 @@ export default function AdminSelfConfigModal({
   async function loadData() {
     setLoading(true);
     try {
-      const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes] = await Promise.all([
+      const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes] = await Promise.all([
         api.get("/employees"),
         api.get("/admin/plantillas"),
         api.get("/admin/facturacion/configuracion/emisor"),
         api.get("/admin/facturacion/configuracion/sistema"),
         api.get("/admin/configuracion"),
         api.get("/api/admin/calendar-config"),
-        api.get("/admin/email-config")
+        api.get("/admin/email-config"),
+        api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } }))
       ]);
 
       const employees = empRes.data || [];
@@ -126,6 +134,7 @@ export default function AdminSelfConfigModal({
 
       setGoogleCalendarConfig(calendarRes.data);
       setEmailConfig(emailRes.data);
+      setDashboardWidgets(widgetRes.data?.widgets || []);
 
       // Cargar handle de backup de IndexedDB
       get('backup_directory_handle').then(handle => setDirectoryHandle(handle));
@@ -166,6 +175,9 @@ export default function AdminSelfConfigModal({
         modulos: sistemaConfig.modulos,
         modulos_mobile: sistemaConfig.mobileEnabled ? sistemaConfig.modulos_mobile : null
       }));
+
+      // 5. Guardar Widgets Dashboard
+      promises.push(api.put("/admin/configuracion/widgets", { widgets: dashboardWidgets }));
 
       await Promise.all(promises);
 
@@ -415,17 +427,20 @@ export default function AdminSelfConfigModal({
                       <User size={16} /> Perfil
                     </TabsTrigger>
                   )}
-                  <TabsTrigger value="empresa" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2">
+                  <TabsTrigger value="empresa" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
                     <Building2 size={16} /> Empresa
                   </TabsTrigger>
-                  <TabsTrigger value="sistema" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2">
+                  <TabsTrigger value="sistema" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
                     <Settings size={16} /> Sistema
                   </TabsTrigger>
                   {sistemaConfig.modulos?.facturacion && (
-                    <TabsTrigger value="facturacion" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2">
+                    <TabsTrigger value="facturacion" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
                       <FileText size={16} /> Facturación
                     </TabsTrigger>
                   )}
+                  <TabsTrigger value="escritorio" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
+                    <LayoutGrid size={16} /> Escritorio
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -730,34 +745,157 @@ export default function AdminSelfConfigModal({
                       </TabsContent>
 
                       {/* --- TABS CONTENT: FACTURACIÓN --- */}
-                      <TabsContent value="facturacion" className="m-0 space-y-6">
-                        <div className="bg-muted/30 border p-4 rounded-xl space-y-4">
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck className="text-green-600" size={18} />
-                            <h4 className="font-bold text-sm">Ley Antifraude (Veri*Factu)</h4>
+                      <TabsContent value="facturacion" className="m-0 space-y-6 pb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-green-600">
+                              <ShieldCheck size={18} />
+                              <h3 className="font-bold uppercase tracking-wider text-xs">Cumplimiento y Seguridad</h3>
+                            </div>
+                            <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <Label className="text-xs font-bold">Modo Veri*Factu</Label>
+                                  <p className="text-[10px] text-muted-foreground">Envío automático a la AEAT</p>
+                                </div>
+                                <Switch
+                                  checked={facturacionData.verifactu_activo}
+                                  onCheckedChange={(c) => setFacturacionData({ ...facturacionData, verifactu_activo: c })}
+                                />
+                              </div>
+                              <Separator />
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <Label className="text-xs font-bold">Facturas Inmutables</Label>
+                                  <p className="text-[10px] text-muted-foreground">No permitir editar tras validar</p>
+                                </div>
+                                <Switch
+                                  checked={facturacionData.facturas_inmutables}
+                                  onCheckedChange={(c) => setFacturacionData({ ...facturacionData, facturas_inmutables: c })}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <Label className="text-xs font-bold">Prohibir Borrado</Label>
+                                  <p className="text-[10px] text-muted-foreground">Seguridad contable total</p>
+                                </div>
+                                <Switch
+                                  checked={facturacionData.prohibir_borrado_facturas}
+                                  onCheckedChange={(c) => setFacturacionData({ ...facturacionData, prohibir_borrado_facturas: c })}
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <Label>Modo Verifactu Activo</Label>
-                            <Switch
-                              checked={facturacionData.verifactu_activo}
-                              onCheckedChange={(c) => setFacturacionData({ ...facturacionData, verifactu_activo: c })}
-                            />
+
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-blue-600">
+                              <Hash size={18} />
+                              <h3 className="font-bold uppercase tracking-wider text-xs">Numeración y Series</h3>
+                            </div>
+                            <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-[10px]">Serie</Label>
+                                  <Input
+                                    className="h-8 text-xs"
+                                    value={facturacionData.serie}
+                                    onChange={(e) => setFacturacionData({ ...facturacionData, serie: e.target.value })}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10px]">Próximo Nº</Label>
+                                  <Input
+                                    type="number"
+                                    className="h-8 text-xs"
+                                    value={facturacionData.siguiente_numero}
+                                    onChange={(e) => setFacturacionData({ ...facturacionData, siguiente_numero: parseInt(e.target.value) })}
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[10px]">IBAN para cobros</Label>
+                                <Input
+                                  className="h-8 text-xs"
+                                  value={empresaData.iban}
+                                  onChange={(e) => setEmpresaData({ ...empresaData, iban: e.target.value })}
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label>Iban para Pagos</Label>
-                          <Input value={empresaData.iban} onChange={(e) => setEmpresaData({ ...empresaData, iban: e.target.value })} placeholder="ES00 0000..." />
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-primary">
+                            <FileText size={18} />
+                            <h3 className="font-bold uppercase tracking-wider text-xs">Textos Legales Avanzados</h3>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs">Pie de Factura (General)</Label>
+                              <Textarea
+                                className="text-xs min-h-[80px]"
+                                value={facturacionData.texto_pie}
+                                onChange={(e) => setFacturacionData({ ...facturacionData, texto_pie: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Texto Exención IVA</Label>
+                              <Textarea
+                                className="text-xs min-h-[80px]"
+                                value={facturacionData.texto_exento}
+                                onChange={(e) => setFacturacionData({ ...facturacionData, texto_exento: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Texto Rectificativas</Label>
+                              <Textarea
+                                className="text-xs min-h-[80px]"
+                                value={facturacionData.texto_rectificativa}
+                                onChange={(e) => setFacturacionData({ ...facturacionData, texto_rectificativa: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Nota Informativa IVA</Label>
+                              <Textarea
+                                className="text-xs min-h-[80px]"
+                                value={facturacionData.mensaje_iva}
+                                onChange={(e) => setFacturacionData({ ...facturacionData, mensaje_iva: e.target.value })}
+                              />
+                            </div>
+                          </div>
                         </div>
+                      </TabsContent>
 
-                        <div className="space-y-2">
-                          <Label>Pie de Página / Textos Legales</Label>
-                          <Textarea
-                            value={facturacionData.texto_pie}
-                            onChange={(e) => setFacturacionData({ ...facturacionData, texto_pie: e.target.value })}
-                            placeholder="Ej: Inscrita en el R.M de Madrid..."
-                            rows={3}
-                          />
+                      {/* --- TABS CONTENT: ESCRITORIO --- */}
+                      <TabsContent value="escritorio" className="m-0 space-y-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-primary">
+                            <LayoutGrid size={18} />
+                            <h3 className="font-bold uppercase tracking-wider text-xs">Configuración del Dashboard</h3>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Personaliza qué widgets deseas ver en tu pantalla principal.</p>
+
+                          <div className="bg-muted/20 border border-border rounded-xl p-2 grid grid-cols-1 md:grid-cols-2 gap-1">
+                            {dashboardWidgets.map((w: any) => (
+                              <div key={w.id} className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-lg transition-colors group">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-background border rounded-md text-muted-foreground group-hover:text-primary transition-colors">
+                                    <LayoutGrid size={14} />
+                                  </div>
+                                  <span className="text-xs font-medium">{w.id.replace(/_/g, ' ').replace('kpi', 'KPI:').toUpperCase()}</span>
+                                </div>
+                                <Switch
+                                  checked={w.visible}
+                                  onCheckedChange={(checked) => {
+                                    setDashboardWidgets(prev => prev.map(item =>
+                                      item.id === w.id ? { ...item, visible: checked } : item
+                                    ));
+                                  }}
+                                  className="scale-75 origin-right"
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </TabsContent>
                     </>
