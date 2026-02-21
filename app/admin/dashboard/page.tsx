@@ -3,13 +3,10 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { api } from "@/services/api";
-import { getUser, logout } from "@/services/auth";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import {
-  Users, Clock, AlertTriangle, Calendar, UserCheck, Euro, ClipboardList,
-  RefreshCw, Briefcase, LayoutGrid, X, Save, Settings, TrendingUp, LogOut, Cog
+  RefreshCw, Euro, X
 } from "lucide-react";
 import { saveAs } from "file-saver";
 
@@ -27,15 +24,12 @@ import { SkeletonDashboard } from "@/components/ui/skeletons";
 import { ALL_DASHBOARD_WIDGETS } from "@/lib/dashboard-widgets";
 import { cn } from "@/lib/utils";
 
-// --- Logic ---
-
 interface WidgetConfig {
   id: string;
   visible: boolean;
   order: number;
 }
 
-// La lista maestra ahora se importa de @/lib/dashboard-widgets
 const ALL_WIDGETS = ALL_DASHBOARD_WIDGETS;
 
 export default function DashboardPage() {
@@ -46,15 +40,9 @@ export default function DashboardPage() {
   const [widgetsLoaded, setWidgetsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openMenu, setOpenMenu] = useState(false);
-  const [editingWidgets, setEditingWidgets] = useState(false);
-  const [savingWidgets, setSavingWidgets] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
-  // Pull-to-refresh states
-  const [startY, setStartY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [pullProgress, setPullProgress] = useState(0);
+  const [startY, setStartY] = useState(0);
 
   // Estados para previsualización PDF
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -78,24 +66,21 @@ export default function DashboardPage() {
     }
   };
 
-  function hasModule(name: string) {
-    if (!modulos) return false; // Bloqueo preventivo si no hay datos
+  const hasModule = (name: string) => {
+    if (!modulos) return false;
     return modulos[name] === true;
-  }
+  };
 
-  function isWidgetVisible(id: string) {
-    if (!widgetsLoaded) return true; // Si aún no se cargó configuración, mostrar todos por defecto
+  const isWidgetVisible = (id: string) => {
+    if (!widgetsLoaded) return true;
     const w = widgets.find((w) => w.id === id);
     return w ? w.visible : true;
-  }
+  };
 
-  function shouldShowWidget(id: string, module: string | null) {
-    // Si el módulo no está activo, el widget se oculta SIEMPRE, ignore config
+  const shouldShowWidget = (id: string, module: string | null) => {
     if (module && !hasModule(module)) return false;
-
-    // Si el módulo es null (global) o está activo, respetamos la visibilidad configurada
     return isWidgetVisible(id);
-  }
+  };
 
   async function loadAll() {
     try {
@@ -105,24 +90,17 @@ export default function DashboardPage() {
         api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } })),
       ]);
 
-      const dashboardData = dashRes.data as DashboardData;
-      setData(dashboardData);
+      setData(dashRes.data as DashboardData);
 
       const isLargeScreen = typeof window !== "undefined" && window.innerWidth >= 1024;
       const isPwaMobile = isMobileDevice() && isStandalone();
       const useMobileProfile = isPwaMobile && !isLargeScreen;
 
-      // Resetear módulos antes de cargar para evitar "fantasmas"
       setModulos(null);
-
-      // Cargar módulos primero para filtrar widgets
       const mods = await api.get(useMobileProfile ? "/auth/me/modules?mobile=true" : "/auth/me/modules");
       setModulos(mods.data || {});
 
-      // Usar perfil de widgets correcto
       let w = useMobileProfile ? (widgetRes.data?.widgets_mobile || []) : (widgetRes.data?.widgets || []);
-
-      // Si no hay configuración guardada, inicializamos con todos los widgets del sistema filtrados
       if (w.length === 0) {
         w = ALL_WIDGETS.map((wd, index) => ({ id: wd.id, visible: true, order: index }));
       }
@@ -138,7 +116,7 @@ export default function DashboardPage() {
     }
   }
 
-  // --- Pull to Refresh Logic ---
+  // Pull to Refresh
   const handleTouchStart = (e: React.TouchEvent) => {
     if (window.scrollY === 0) setStartY(e.touches[0].pageY);
   };
@@ -148,13 +126,11 @@ export default function DashboardPage() {
     const y = e.touches[0].pageY;
     const diff = y - startY;
     if (diff > 0 && window.scrollY === 0) {
-      const progress = Math.min(diff / 150, 1);
-      setPullProgress(progress);
+      setPullProgress(Math.min(diff / 150, 1));
     }
   };
 
   const handleTouchEnd = () => {
-    // Reducimos el umbral de 0.8 a 0.5 (aprox 75px) para que sea más fácil activarlo
     if (pullProgress > 0.5 && !refreshing) {
       setRefreshing(true);
       loadAll();
@@ -166,49 +142,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadAll();
-
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpenMenu(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-
-    // Escuchar actualizaciones de configuración para recargar datos
     const handleRefresh = () => loadAll();
     window.addEventListener("session-updated", handleRefresh);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("session-updated", handleRefresh);
-    };
+    return () => window.removeEventListener("session-updated", handleRefresh);
   }, []);
 
-  async function saveWidgetsConfig() {
-    try {
-      setSavingWidgets(true);
-      await api.put("/admin/configuracion/widgets", { widgets });
-      setEditingWidgets(false);
-    } catch (e) {
-      console.error("Error guardando widgets", e);
-      alert("Error al guardar la configuración");
-    } finally {
-      setSavingWidgets(false);
-    }
-  }
-
-  function toggleWidget(id: string) {
-    setWidgets((prev) => {
-      const existing = prev.find((w) => w.id === id);
-      if (existing) {
-        return prev.map((w) => (w.id === id ? { ...w, visible: !w.visible } : w));
-      } else {
-        return [...prev, { id, visible: false, order: prev.length }];
-      }
-    });
-  }
-
-  if (loading) return <SkeletonDashboard />;
+  if ((loading || refreshing) && !data) return <SkeletonDashboard />;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!data) return null;
 
@@ -219,7 +158,7 @@ export default function DashboardPage() {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Overlay de carga durante refresco forzado */}
+      {/* Overlay de carga */}
       {(loading || refreshing) && !pullProgress && (
         <div className="fixed inset-0 z-[100] bg-background/40 backdrop-blur-[2px] flex items-center justify-center transition-all">
           <div className="bg-card/80 p-6 rounded-2xl shadow-xl border flex flex-col items-center gap-4">
@@ -229,7 +168,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Indicador Pull to Refresh */}
+      {/* Indicador Pull */}
       {pullProgress > 0 && (
         <div
           className="absolute top-0 left-0 w-full flex justify-center py-2 pointer-events-none transition-opacity"
@@ -240,12 +179,11 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 mt-1">Visión general y métricas clave.</p>
-        </div>
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+        <p className="text-gray-500 mt-1">Visión general y métricas clave.</p>
       </div>
 
       {isPreviewOpen && (
@@ -257,18 +195,13 @@ export default function DashboardPage() {
               </h3>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
-                    if (previewUrl) saveAs(previewUrl, `Factura_${previewFacturaNum}.pdf`);
-                  }}
+                  onClick={() => previewUrl && saveAs(previewUrl, `Factura_${previewFacturaNum}.pdf`)}
                   className="text-sm text-blue-600 hover:underline px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
                 >
                   Descargar
                 </button>
                 <button
-                  onClick={() => {
-                    setPreviewUrl(null);
-                    setIsPreviewOpen(false);
-                  }}
+                  onClick={() => { setPreviewUrl(null); setIsPreviewOpen(false); }}
                   className="p-2 hover:bg-gray-200 rounded-full transition-colors"
                 >
                   <X className="w-5 h-5 text-gray-500" />
@@ -288,7 +221,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Widget Grid Layout */}
+      {/* Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {shouldShowWidget("kpi_beneficio", "facturacion") && data.beneficioReal && (
           <div className="col-span-2 lg:col-span-1 row-span-2 lg:row-span-1 h-full">
@@ -316,19 +249,16 @@ export default function DashboardPage() {
         {shouldShowWidget("kpi_trabajos", "partes_dia") && (
           <div className="col-span-1 h-full"><KpiTrabajos pendientes={data.trabajosPendientes} onOpenModal={() => setIsTrabajosModalOpen(true)} /></div>
         )}
-        {
-          shouldShowWidget("kpi_gcal_sync", "calendario") && data.calendarioSyncStatus && data.calendarioSyncStatus.enabled && (
-            <div className="col-span-1 h-full"><KpiGCal status={data.calendarioSyncStatus} /></div>
-          )
-        }
+        {shouldShowWidget("kpi_gcal_sync", "calendario") && data.calendarioSyncStatus?.enabled && (
+          <div className="col-span-1 h-full"><KpiGCal status={data.calendarioSyncStatus} /></div>
+        )}
       </div>
 
-      {/* Charts & Lists Grid */}
+      {/* Charts & Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
         {shouldShowWidget("chart_actividad", "fichajes") && data.stats?.fichajesUltimosDias && (
           <ChartActividad data={data.stats.fichajesUltimosDias} />
         )}
-
         {shouldShowWidget("chart_clientes", "clientes") && (
           <ChartClientesOrTipos
             topClientes={data.stats?.topClientesSemana}
@@ -338,15 +268,12 @@ export default function DashboardPage() {
             forceHideClientKpis={!hasModule("clientes")}
           />
         )}
-
         {shouldShowWidget("list_trabajando", "fichajes") && (
           <ListTrabajando data={data.trabajandoAhora} />
         )}
-
         {shouldShowWidget("list_fichajes", "fichajes") && (
           <ListFichajes data={data.ultimosFichajes} />
         )}
-
         {shouldShowWidget("list_facturas", "facturacion") && data.facturasPendientesList && (
           <ListFacturas
             data={data.facturasPendientesList}

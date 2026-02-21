@@ -37,7 +37,8 @@ export default function AdminLayout({
   // ============================
   function hasModule(modules: Modulos | undefined, key: string | null) {
     if (!key) return true;
-    return modules?.[key] !== false; // por defecto ON si no existe
+    // Visibilidad estricta: Solo si existe el módulo y es explícitamente true
+    return modules?.[key] === true;
   }
 
   // ============================

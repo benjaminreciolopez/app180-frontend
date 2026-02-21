@@ -141,20 +141,35 @@ export default function AdminSelfConfigModal({
       setSelectedPlantilla(me?.plantilla_id || "");
       setPlantillas(plantRes.data || []);
 
-      // Datos de Empresa
-      setEmpresaData(emisorRes.data.data || {});
+      // Datos de Empresa (catch silenciar si 403 por modulo off)
+      setEmpresaData(emisorRes.status === 200 ? emisorRes.data.data : {});
 
-      // Configuración Facturación
-      setFacturacionData(sistemaFactRes.data.data || {});
+      // Configuración Facturación (catch silenciar si 403 por modulo off)
+      setFacturacionData(sistemaFactRes.status === 200 ? sistemaFactRes.data.data : {});
 
       // Configuración Global Sistema
-      const { modulos_mobile, ...rest } = globalConfigRes.data;
-      setSistemaConfig({
-        modulos: rest,
-        modulos_mobile: modulos_mobile || {},
-        mobileEnabled: !!modulos_mobile,
-        backup_local_path: sistemaFactRes.data.data?.backup_local_path || ""
+      // Extraemos solo los módulos conocidos para no mezclar con metadatos (id, user_id, etc)
+      const ALL_MODULE_KEYS = ['empleados', 'fichajes', 'calendario', 'clientes', 'facturacion', 'fiscal', 'pagos', 'worklogs'];
+
+      const config = globalConfigRes.data || {};
+      const rawModulos = config.modulos || config || {};
+      const modulos_mobile = config.modulos_mobile || {};
+
+      const filteredModulos: Record<string, boolean> = {};
+      const filteredModulosMobile: Record<string, boolean> = {};
+
+      ALL_MODULE_KEYS.forEach(key => {
+        filteredModulos[key] = !!rawModulos[key];
+        filteredModulosMobile[key] = !!modulos_mobile[key];
       });
+
+      setSistemaConfig({
+        modulos: filteredModulos,
+        modulos_mobile: filteredModulosMobile,
+        mobileEnabled: !!config.modulos_mobile,
+        backup_local_path: config.backup_local_path || ""
+      });
+
 
       setGoogleCalendarConfig(calendarRes.data);
       setEmailConfig(emailRes.data);
@@ -766,8 +781,7 @@ export default function AdminSelfConfigModal({
                                     />
                                   </div>
 
-                                  {Object.entries(activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : (sistemaConfig.modulos_mobile || {}))
-                                    .filter(([key]) => !['ai_tokens', 'es_creador'].includes(key))
+                                  {Object.entries(activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : sistemaConfig.modulos_mobile)
                                     .map(([key, active]: [string, any]) => (
                                       <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
                                         <Label className="capitalize text-xs font-semibold">{key.replace('_', ' ')}</Label>

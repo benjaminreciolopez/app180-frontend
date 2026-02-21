@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { get } from 'idb-keyval';
+import { get, set } from 'idb-keyval';
 import { api } from "@/services/api";
 import { toast } from "sonner";
-
+import { getUser } from "@/services/auth";
 import { isMobileDevice } from "@/utils/pwaDetection";
 
 /**
@@ -22,7 +22,6 @@ export default function AutoBackupSync() {
                 return;
             }
             const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
-            const { set } = await import('idb-keyval');
             await set('backup_directory_handle', handle);
             toast.success("Carpeta vinculada. Sincronizando...");
             // Ejecutar sync inmediatamente tras vincular
@@ -41,17 +40,21 @@ export default function AutoBackupSync() {
         if (isMobileDevice() || syncDone.current) return;
 
         try {
-            // 1. Obtener configuración del servidor
+            // 1. Obtener configuración del servidor (solo si hay sesión y el módulo está activo)
             let serverPath = null;
-            try {
-                const res = await api.get("/admin/facturacion/configuracion/sistema");
-                serverPath = res.data?.data?.backup_local_path;
-            } catch (e) {
-                console.error("[AutoBackupSync] Error obteniendo config del servidor");
+            const user = getUser();
+
+            // Solo intentamos obtener config si facturacion está activado
+            if (user && user.modulos?.facturacion === true) {
+                try {
+                    const res = await api.get("/admin/facturacion/configuracion/sistema");
+                    serverPath = res.data?.data?.backup_local_path;
+                } catch (e) {
+                    // Si el módulo está OFF o da error por permisos, ignoramos silenciosamente
+                }
             }
 
             // 2. Obtener el handle de la carpeta guardado en IndexedDB
-            const { get } = await import('idb-keyval');
             const directoryHandle = await get('backup_directory_handle');
 
             if (!directoryHandle) {
