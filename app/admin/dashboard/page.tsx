@@ -173,7 +173,7 @@ export default function DashboardPage() {
   if (!data) return null;
 
   return (
-    <div className="p-4 md:p-8 w-full mx-auto space-y-6 md:space-y-8 pb-24 md:pb-8">
+    <div className="p-2 md:p-8 w-full space-y-4 md:space-y-8 pb-20 md:pb-8 min-w-0 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

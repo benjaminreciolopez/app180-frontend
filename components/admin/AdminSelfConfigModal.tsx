@@ -712,19 +712,25 @@ export default function AdminSelfConfigModal({
                                   </div>
 
                                   {/* Selector de Perfil para Módulos */}
-                                  <div className="flex bg-muted rounded-lg p-0.5 gap-0.5">
+                                  <div className="flex bg-primary/5 rounded-lg p-1 gap-1 border border-primary/20 shadow-inner">
                                     <Button
                                       size="sm"
-                                      variant={activeWidgetProfile === 'desktop' ? 'secondary' : 'ghost'}
-                                      className="h-6 text-[9px] px-2 font-bold"
+                                      variant={activeWidgetProfile === 'desktop' ? 'default' : 'ghost'}
+                                      className={cn(
+                                        "h-7 text-[10px] px-3 font-bold transition-all",
+                                        activeWidgetProfile === 'desktop' ? "shadow-sm" : "text-muted-foreground hover:text-primary"
+                                      )}
                                       onClick={() => setActiveWidgetProfile('desktop')}
                                     >
-                                      DESK
+                                      🖥️ ESCRITORIO
                                     </Button>
                                     <Button
                                       size="sm"
-                                      variant={activeWidgetProfile === 'mobile' ? 'secondary' : 'ghost'}
-                                      className="h-6 text-[9px] px-2 font-bold"
+                                      variant={activeWidgetProfile === 'mobile' ? 'default' : 'ghost'}
+                                      className={cn(
+                                        "h-7 text-[10px] px-3 font-bold transition-all",
+                                        activeWidgetProfile === 'mobile' ? "shadow-sm" : "text-muted-foreground hover:text-primary"
+                                      )}
                                       onClick={() => {
                                         setActiveWidgetProfile('mobile');
                                         if (!sistemaConfig.mobileEnabled) {
@@ -732,7 +738,7 @@ export default function AdminSelfConfigModal({
                                         }
                                       }}
                                     >
-                                      MÓVIL
+                                      📱 MÓVIL (PWA)
                                     </Button>
                                   </div>
                                 </div>
@@ -1210,22 +1216,28 @@ export default function AdminSelfConfigModal({
                                 </div>
 
                                 {/* Selector de Perfil Dual */}
-                                <div className="flex bg-muted rounded-lg p-1 gap-1">
+                                <div className="flex bg-primary/5 rounded-lg p-1 gap-1 border border-primary/20 shadow-inner">
                                   <Button
                                     size="sm"
-                                    variant={activeWidgetProfile === 'desktop' ? 'secondary' : 'ghost'}
-                                    className="h-7 text-[10px] px-3 font-bold"
+                                    variant={activeWidgetProfile === 'desktop' ? 'default' : 'ghost'}
+                                    className={cn(
+                                      "h-7 text-[10px] px-4 font-black transition-all",
+                                      activeWidgetProfile === 'desktop' ? "bg-primary text-primary-foreground shadow-md scale-105" : "text-muted-foreground hover:text-primary"
+                                    )}
                                     onClick={() => setActiveWidgetProfile('desktop')}
                                   >
-                                    <Settings size={12} className="mr-1.5" /> ESCRITORIO
+                                    <Settings size={14} className="mr-2" /> ESCRITORIO
                                   </Button>
                                   <Button
                                     size="sm"
-                                    variant={activeWidgetProfile === 'mobile' ? 'secondary' : 'ghost'}
-                                    className="h-7 text-[10px] px-3 font-bold"
+                                    variant={activeWidgetProfile === 'mobile' ? 'default' : 'ghost'}
+                                    className={cn(
+                                      "h-7 text-[10px] px-4 font-black transition-all",
+                                      activeWidgetProfile === 'mobile' ? "bg-primary text-primary-foreground shadow-md scale-105" : "text-muted-foreground hover:text-primary"
+                                    )}
                                     onClick={() => setActiveWidgetProfile('mobile')}
                                   >
-                                    <Smartphone size={12} className="mr-1.5" /> PWA MÓVIL
+                                    <Smartphone size={14} className="mr-2" /> MÓVIL PWA
                                   </Button>
                                 </div>
                               </div>
@@ -1236,15 +1248,19 @@ export default function AdminSelfConfigModal({
                                   : "Optimiza la vista para dispositivos móviles y modo PWA."}
                               </p>
 
-                              <div className="bg-muted/20 border border-border rounded-xl p-2 grid grid-cols-1 md:grid-cols-2 gap-1">
-                                {ALL_DASHBOARD_WIDGETS.map((wd) => {
+                              <div className="bg-muted/20 border border-border rounded-xl p-2 grid grid-cols-1 md:grid-cols-2 gap-1 min-h-[200px]">
+                                {ALL_DASHBOARD_WIDGETS.filter(wd => {
+                                  if (!wd.module) return true;
+                                  const modsActive = activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : sistemaConfig.modulos_mobile;
+                                  return modsActive && modsActive[wd.module] === true;
+                                }).map((wd) => {
                                   const configList = activeWidgetProfile === 'desktop' ? dashboardWidgets : dashboardWidgetsMobile;
                                   const savedWidget = configList.find((sw: any) => sw.id === wd.id);
                                   const isVisible = savedWidget ? savedWidget.visible : false;
                                   const Icon = wd.icon;
 
                                   return (
-                                    <div key={wd.id} className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-lg transition-colors group border border-transparent hover:border-border">
+                                    <div key={wd.id} className="flex items-center justify-between p-3 hover:bg-background rounded-lg transition-all group border border-transparent hover:border-border hover:shadow-sm">
                                       <div className="flex items-center gap-3">
                                         <div className="p-2 bg-background border rounded-md text-muted-foreground group-hover:text-primary transition-colors">
                                           <Icon size={14} />
@@ -1274,6 +1290,16 @@ export default function AdminSelfConfigModal({
                                     </div>
                                   );
                                 })}
+                                {ALL_DASHBOARD_WIDGETS.filter(wd => {
+                                  if (!wd.module) return true;
+                                  const modsActive = activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : sistemaConfig.modulos_mobile;
+                                  return modsActive && modsActive[wd.module] === true;
+                                }).length === 0 && (
+                                    <div className="col-span-full py-10 text-center space-y-2">
+                                      <AlertCircle className="mx-auto text-muted-foreground" size={24} />
+                                      <p className="text-xs text-muted-foreground font-medium">No hay widgets disponibles para los módulos activos en este perfil.</p>
+                                    </div>
+                                  )}
                               </div>
                             </div>
                           </TabsContent>
