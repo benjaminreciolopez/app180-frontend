@@ -3,7 +3,7 @@ import { api } from "@/services/api";
 import { refreshMe } from "@/services/auth";
 import { showSuccess, showError } from "@/lib/toast";
 import ShareInviteLinkModal from "./ShareInviteLinkModal";
-import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon, LayoutGrid, Hash, AlertCircle, TrendingUp, GripHorizontal } from "lucide-react";
+import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon, LayoutGrid, Hash, AlertCircle, TrendingUp, GripHorizontal, Users, Calculator, CreditCard, Briefcase, Contact2, Wallet, HardHat, LandPlot } from "lucide-react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -77,10 +77,15 @@ export default function AdminSelfConfigModal({
   const [activeWidgetProfile, setActiveWidgetProfile] = useState<"desktop" | "mobile">("desktop");
   const [savingWidgets, setSavingWidgets] = useState(false);
 
-  // Configuración de Sistema (Módulos)
   const [sistemaConfig, setSistemaConfig] = useState<any>({
-    modulos: {},
-    modulos_mobile: {},
+    modulos: {
+      empleados: false, fichajes: false, calendario: false, clientes: false,
+      facturacion: false, fiscal: false, pagos: false, worklogs: false
+    },
+    modulos_mobile: {
+      empleados: false, fichajes: false, calendario: false, clientes: false,
+      facturacion: false, fiscal: false, pagos: false, worklogs: false
+    },
     mobileEnabled: false,
     backup_local_path: ""
   });
@@ -124,14 +129,14 @@ export default function AdminSelfConfigModal({
     setLoading(true);
     try {
       const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes] = await Promise.all([
-        api.get("/employees"),
-        api.get("/admin/plantillas"),
-        api.get("/admin/facturacion/configuracion/emisor"),
-        api.get("/admin/facturacion/configuracion/sistema"),
-        api.get("/admin/configuracion"),
-        api.get("/api/admin/calendar-config"),
-        api.get("/admin/email-config"),
-        api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } }))
+        api.get("/employees").catch(err => { console.warn("403/Error employees:", err); return { data: [] }; }),
+        api.get("/admin/plantillas").catch(err => { console.warn("403/Error plantillas:", err); return { data: [] }; }),
+        api.get("/admin/facturacion/configuracion/emisor").catch(err => { console.warn("403/Error emisor:", err); return { status: 403, data: { data: {} } }; }),
+        api.get("/admin/facturacion/configuracion/sistema").catch(err => { console.warn("403/Error sistema fact:", err); return { status: 403, data: { data: {} } }; }),
+        api.get("/admin/configuracion").catch(err => { console.warn("403/Error global config:", err); return { data: {} }; }),
+        api.get("/api/admin/calendar-config").catch(err => { console.warn("403/Error calendar config:", err); return { data: {} }; }),
+        api.get("/admin/email-config").catch(err => { console.warn("403/Error email config:", err); return { data: {} }; }),
+        api.get("/admin/configuracion/widgets").catch(err => { console.warn("403/Error widgets:", err); return { data: { widgets: [], widgets_mobile: [] } }; })
       ]);
 
       const employees = empRes.data || [];
@@ -733,25 +738,83 @@ export default function AdminSelfConfigModal({
 
                           {/* --- TABS CONTENT: SISTEMA --- */}
                           <TabsContent value="sistema" className="m-0 space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              {Object.entries(activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : sistemaConfig.modulos_mobile)
-                                .map(([key, active]: [string, any]) => (
-                                  <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
-                                    <Label className="capitalize text-xs font-semibold">{key.replace('_', ' ')}</Label>
-                                    <Switch
-                                      checked={!!active}
-                                      onCheckedChange={(checked) => {
-                                        const field = activeWidgetProfile === 'desktop' ? 'modulos' : 'modulos_mobile';
-                                        setSistemaConfig({
-                                          ...sistemaConfig,
-                                          [field]: { ...sistemaConfig[field], [key]: checked }
-                                        });
-                                      }}
-                                      className="scale-75 origin-right"
-                                      disabled={activeWidgetProfile === 'mobile' && !sistemaConfig.mobileEnabled}
-                                    />
-                                  </div>
-                                ))}
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-primary">
+                                  <Settings size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Activación de Módulos</h3>
+                                </div>
+
+                                {/* Selector de Perfil Dual (Mismo que en Escritorio para coherencia) */}
+                                <div className="flex bg-primary/5 rounded-lg p-1 gap-1 border border-primary/20 shadow-inner">
+                                  <Button
+                                    size="sm"
+                                    variant={activeWidgetProfile === 'desktop' ? 'default' : 'ghost'}
+                                    className={cn(
+                                      "h-7 text-[10px] px-4 font-black transition-all",
+                                      activeWidgetProfile === 'desktop' ? "bg-primary text-primary-foreground shadow-sm scale-105" : "text-muted-foreground hover:text-primary"
+                                    )}
+                                    onClick={() => setActiveWidgetProfile('desktop')}
+                                  >
+                                    <Globe size={14} className="mr-2" /> ESCRITORIO
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant={activeWidgetProfile === 'mobile' ? 'default' : 'ghost'}
+                                    className={cn(
+                                      "h-7 text-[10px] px-4 font-black transition-all",
+                                      activeWidgetProfile === 'mobile' ? "bg-primary text-primary-foreground shadow-md scale-105" : "text-muted-foreground hover:text-primary"
+                                    )}
+                                    onClick={() => setActiveWidgetProfile('mobile')}
+                                  >
+                                    <Smartphone size={14} className="mr-2" /> MÓVIL PWA
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="bg-muted/20 border border-border rounded-xl p-2 grid grid-cols-1 md:grid-cols-2 gap-1">
+                                {Object.entries(activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : sistemaConfig.modulos_mobile)
+                                  .map(([key, active]: [string, any]) => {
+                                    const MODULE_MAP: Record<string, { label: string, icon: any, desc: string, color: string }> = {
+                                      empleados: { label: "Personal y RRHH", icon: Users, desc: "Fichas, perfiles y contratos", color: "text-blue-500" },
+                                      fichajes: { label: "Control Horario", icon: Clock, desc: "Entradas, salidas y excesos", color: "text-amber-500" },
+                                      calendario: { label: "Calendario Global", icon: CalendarIcon, desc: "Eventos, bajas y festivos", color: "text-emerald-500" },
+                                      clientes: { label: "Gestión CRM", icon: Contact2, desc: "Contactos y fidelización", color: "text-indigo-500" },
+                                      facturacion: { label: "Facturación", icon: Wallet, desc: "Ventas y presupuestos", color: "text-rose-500" },
+                                      fiscal: { label: "Contabilidad/Fiscal", icon: Calculator, desc: "Libros de IVA e impuestos", color: "text-purple-500" },
+                                      pagos: { label: "Cobros y Pagos", icon: CreditCard, desc: "Tesorería y conciliación", color: "text-green-500" },
+                                      worklogs: { label: "Obras y Partes", icon: Briefcase, desc: "Control de costes y proyectos", color: "text-cyan-500" }
+                                    };
+                                    const info = MODULE_MAP[key] || { label: key, icon: Settings, desc: "Módulo del sistema", color: "text-muted-foreground" };
+                                    const Icon = info.icon;
+
+                                    return (
+                                      <div key={key} className="flex items-center justify-between p-3 hover:bg-background rounded-lg transition-all group border border-transparent hover:border-border">
+                                        <div className="flex items-center gap-3">
+                                          <div className={cn("p-2 bg-background border rounded-md transition-colors", active ? info.color : "text-muted-foreground")}>
+                                            <Icon size={14} />
+                                          </div>
+                                          <div className="flex flex-col">
+                                            <span className="text-xs font-bold leading-none">{info.label}</span>
+                                            <p className="text-[9px] text-muted-foreground leading-tight mt-1">{info.desc}</p>
+                                          </div>
+                                        </div>
+                                        <Switch
+                                          checked={!!active}
+                                          onCheckedChange={(checked) => {
+                                            const field = activeWidgetProfile === 'desktop' ? 'modulos' : 'modulos_mobile';
+                                            setSistemaConfig({
+                                              ...sistemaConfig,
+                                              [field]: { ...sistemaConfig[field], [key]: checked }
+                                            });
+                                          }}
+                                          className="scale-75 origin-right"
+                                          disabled={activeWidgetProfile === 'mobile' && !sistemaConfig.mobileEnabled}
+                                        />
+                                      </div>
+                                    );
+                                  })}
+                              </div>
                             </div>
 
                             {/* Columna Backup y Google */}
