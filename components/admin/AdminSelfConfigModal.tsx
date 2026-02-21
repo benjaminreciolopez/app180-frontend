@@ -125,6 +125,13 @@ export default function AdminSelfConfigModal({
     }
   }, [isOpen, adminId]);
 
+  // Si el módulo de facturación se desactiva, redirigir fuera de esa tab
+  useEffect(() => {
+    if (activeTab === 'facturacion' && !sistemaConfig.modulos?.facturacion) {
+      setActiveTab('sistema');
+    }
+  }, [sistemaConfig.modulos?.facturacion]);
+
   async function loadData() {
     setLoading(true);
     try {
@@ -218,21 +225,17 @@ export default function AdminSelfConfigModal({
         );
       }
 
-      // 2. Guardar Empresa (solo si Facturación está activo para evitar 403)
-      if (sistemaConfig.modulos.facturacion) {
-        promises.push(
-          api.put("/admin/facturacion/configuracion/emisor", empresaData)
-            .catch(err => console.warn("403/Error guardando emisor (módulo off?):", err))
-        );
-      }
+      // 2. Guardar Empresa (datos del emisor — siempre, para que los textos legales no se pierdan)
+      promises.push(
+        api.put("/admin/facturacion/configuracion/emisor", empresaData)
+          .catch(err => console.warn("403/Error guardando emisor (módulo off?):", err))
+      );
 
-      // 3. Guardar Facturación (si el módulo está activo)
-      if (sistemaConfig.modulos.facturacion) {
-        promises.push(
-          api.put("/admin/facturacion/configuracion/sistema", facturacionData)
-            .catch(err => console.warn("403/Error guardando sistema fact (módulo off?):", err))
-        );
-      }
+      // 3. Guardar Facturación (siempre — los textos legales viven aquí aunque el módulo esté off)
+      promises.push(
+        api.put("/admin/facturacion/configuracion/sistema", facturacionData)
+          .catch(err => console.warn("403/Error guardando sistema fact (módulo off?):", err))
+      );
 
       // 4. Guardar Configuración Global Sistema (crítico, sin catch para que falle visible)
       promises.push(api.put("/admin/configuracion", {
@@ -890,364 +893,366 @@ export default function AdminSelfConfigModal({
                           </TabsContent>
 
                           {/* --- TABS CONTENT: FACTURACIÓN --- */}
-                          <TabsContent value="facturacion" className="m-0 space-y-6 pb-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div className="space-y-4">
-                                <div className="flex items-center gap-2 text-green-600">
-                                  <ShieldCheck size={18} />
-                                  <h3 className="font-bold uppercase tracking-wider text-xs">Cumplimiento y Seguridad</h3>
-                                </div>
-                                <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label className="text-xs font-bold">Modo Veri*Factu</Label>
-                                      <p className="text-[10px] text-muted-foreground leading-tight">Envío automático a la AEAT según Ley Antifraude</p>
+                          {sistemaConfig.modulos?.facturacion && (
+                            <TabsContent value="facturacion" className="m-0 space-y-6 pb-6">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2 text-green-600">
+                                    <ShieldCheck size={18} />
+                                    <h3 className="font-bold uppercase tracking-wider text-xs">Cumplimiento y Seguridad</h3>
+                                  </div>
+                                  <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                      <div className="space-y-0.5">
+                                        <Label className="text-xs font-bold">Modo Veri*Factu</Label>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Envío automático a la AEAT según Ley Antifraude</p>
+                                      </div>
+                                      <Switch
+                                        checked={facturacionData.verifactu_activo}
+                                        onCheckedChange={(c) => setFacturacionData({ ...facturacionData, verifactu_activo: c })}
+                                      />
                                     </div>
-                                    <Switch
-                                      checked={facturacionData.verifactu_activo}
-                                      onCheckedChange={(c) => setFacturacionData({ ...facturacionData, verifactu_activo: c })}
+
+                                    {facturacionData.verifactu_activo && (
+                                      <div className="grid grid-cols-2 gap-2 pt-2">
+                                        <Button
+                                          size="sm"
+                                          variant={facturacionData.verifactu_modo === 'TEST' ? 'default' : 'outline'}
+                                          className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'TEST' && "bg-blue-600 hover:bg-blue-700")}
+                                          onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'TEST' })}
+                                        >
+                                          ENTORNO TEST
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant={facturacionData.verifactu_modo === 'PROD' ? 'default' : 'outline'}
+                                          className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'PROD' && "bg-red-600 hover:bg-red-700")}
+                                          onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'PROD' })}
+                                        >
+                                          PRODUCCIÓN
+                                        </Button>
+                                        {facturacionData.verifactu_modo === 'PROD' && (
+                                          <p className="col-span-2 text-[9px] text-red-600 font-bold flex items-center gap-1">
+                                            <AlertCircle size={10} /> ¡Atención! El modo producción envía datos reales a Hacienda.
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    <Separator />
+
+                                    <div className="flex items-center justify-between opacity-80">
+                                      <div className="space-y-0.5">
+                                        <Label className="text-xs font-bold">Facturas Inmutables</Label>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Bloqueo de edición tras validación</p>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-bold text-green-600 uppercase">Activo por Ley</span>
+                                        <Switch checked={true} disabled />
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between opacity-80">
+                                      <div className="space-y-0.5">
+                                        <Label className="text-xs font-bold">Prohibir Borrado</Label>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Trazabilidad contable total</p>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-bold text-green-600 uppercase">Activo por Ley</span>
+                                        <Switch checked={true} disabled />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2 text-blue-600">
+                                    <Hash size={18} />
+                                    <h3 className="font-bold uppercase tracking-wider text-xs">Numeración Inteligente</h3>
+                                  </div>
+                                  <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
+                                    <div className="space-y-1.5">
+                                      <Label className="text-[10px] uppercase text-muted-foreground font-bold">Tipo de Serie</Label>
+                                      <select
+                                        className="w-full h-9 border rounded-md px-3 text-xs bg-background"
+                                        value={facturacionData.numeracion_tipo}
+                                        onChange={(e) => setFacturacionData({ ...facturacionData, numeracion_tipo: e.target.value })}
+                                        disabled={facturacionData.numeracion_locked}
+                                      >
+                                        <option value="STANDARD">Continua (F-001)</option>
+                                        <option value="BY_YEAR">Por Año (F-2026-001)</option>
+                                        <option value="PREFIXED">Personalizada (SERIE-001)</option>
+                                      </select>
+                                    </div>
+
+                                    {facturacionData.numeracion_tipo === 'PREFIXED' && (
+                                      <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">Formato del Prefijo</Label>
+                                        <div className="flex gap-2">
+                                          <Input
+                                            className="h-8 text-xs"
+                                            value={facturacionData.numeracion_formato}
+                                            onChange={(e) => setFacturacionData({ ...facturacionData, numeracion_formato: e.target.value })}
+                                            placeholder="Ej: FAC-{YEAR}-"
+                                            disabled={facturacionData.numeracion_locked}
+                                          />
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {['{YEAR}', '{MONTH}', '{DAY}'].map(tag => (
+                                            <Button
+                                              key={tag}
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-6 text-[9px] px-2"
+                                              disabled={facturacionData.numeracion_locked}
+                                              onClick={() => setFacturacionData({ ...facturacionData, numeracion_formato: facturacionData.numeracion_formato + tag })}
+                                            >
+                                              + {tag.replace('{', '').replace('}', '')}
+                                            </Button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
+                                      <div className="flex justify-between items-center mb-1">
+                                        <span className="text-[9px] font-bold text-blue-600 uppercase">Previsualización</span>
+                                        <span className="text-[9px] text-muted-foreground italic">Próxima factura</span>
+                                      </div>
+                                      <p className="font-mono text-xs font-bold text-blue-700">
+                                        {facturacionData.numeracion_tipo === 'STANDARD' ? `${facturacionData.serie || 'F'}-` : ''}
+                                        {facturacionData.numeracion_tipo === 'BY_YEAR' ? `${facturacionData.serie || 'F'}-${new Date().getFullYear()}-` : ''}
+                                        {facturacionData.numeracion_tipo === 'PREFIXED' ?
+                                          (facturacionData.numeracion_formato || '')
+                                            .replace('{YEAR}', new Date().getFullYear().toString())
+                                            .replace('{MONTH}', (new Date().getMonth() + 1).toString().padStart(2, '0'))
+                                            .replace('{DAY}', new Date().getDate().toString().padStart(2, '0'))
+                                          : ''
+                                        }
+                                        {(facturacionData.siguiente_numero || 1).toString().padStart(4, '0')}
+                                      </p>
+                                    </div>
+
+                                    {facturacionData.numeracion_locked && (
+                                      <p className="text-[9px] text-amber-600 font-medium flex items-center gap-1">
+                                        <AlertCircle size={10} /> Numeración bloqueada por facturas emitidas.
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* --- Asistente de Migración Fiscal (OCR) --- */}
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-amber-600">
+                                  <Sparkles size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Asistente de Migración Fiscal</h3>
+                                </div>
+                                <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-4">
+                                  <p className="text-[11px] text-muted-foreground leading-tight">
+                                    {facturacionData.numeracion_locked
+                                      ? "La migración está bloqueada porque ya existen facturas emitidas este año. Para cambiar la numeración, contacta con soporte."
+                                      : "Sube tu última factura emitida para configurar automáticamente la numeración y series mediante IA."}
+                                  </p>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                      <Label className="text-[10px] uppercase font-bold">Evidencia de Cierre (PDF/Imagen)</Label>
+                                      <input
+                                        type="file"
+                                        ref={migracionInputRef}
+                                        className="hidden"
+                                        accept="application/pdf,image/*"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (!file) return;
+
+                                          const reader = new FileReader();
+                                          reader.onload = async () => {
+                                            const base64 = reader.result?.toString().split(',')[1];
+                                            if (!base64) return;
+
+                                            setGeneratingAiField('migracion');
+                                            toast.promise(
+                                              api.post("/admin/facturacion/configuracion/emisor/ocr-migracion", { file: base64 }),
+                                              {
+                                                loading: 'Analizando factura con OCR inteligente...',
+                                                success: (res: any) => {
+                                                  const ext = res.data.data;
+                                                  setFacturacionData((prev: any) => ({
+                                                    ...prev,
+                                                    correlativo_inicial: ext.numeracion.ultimo_numero,
+                                                    migracion_last_serie: ext.numeracion.serie,
+                                                    migracion_last_subtotal: ext.economicos.subtotal,
+                                                    migracion_last_total: ext.economicos.total,
+                                                    migracion_last_pdf: file.name
+                                                  }));
+                                                  setOcrConfidence({
+                                                    numeracion: ext.numeracion.confidence,
+                                                    identidad: ext.identidad.confidence,
+                                                    economicos: ext.economicos.confidence
+                                                  });
+                                                  setGeneratingAiField(null);
+                                                  return `Factura analizada. Fiabilidad: ${(ext.numeracion.confidence * 100).toFixed(0)}%`;
+                                                },
+                                                error: (err) => {
+                                                  setGeneratingAiField(null);
+                                                  return 'No se pudo extraer información. Por favor, rellena manualmente.';
+                                                }
+                                              }
+                                            );
+                                          };
+                                          reader.readAsDataURL(file);
+                                        }}
+                                      />
+                                      <Button
+                                        variant="outline"
+                                        className="w-full flex justify-between h-9 px-3 font-normal text-xs"
+                                        onClick={() => migracionInputRef.current?.click()}
+                                        disabled={generatingAiField === 'migracion' || facturacionData.numeracion_locked}
+                                      >
+                                        <span className="truncate">
+                                          {facturacionData.numeracion_locked ? "🔒 Bloqueado por facturación activa" : (facturacionData.migracion_last_pdf ? "✓ Factura subida" : "Seleccionar archivo...")}
+                                        </span>
+                                        {generatingAiField === 'migracion' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} className="text-muted-foreground" />}
+                                      </Button>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                      <div className="flex items-start gap-3 p-3 rounded-lg border bg-background/50">
+                                        <Switch
+                                          checked={facturacionData.migracion_legal_aceptado}
+                                          onCheckedChange={v => setFacturacionData({ ...facturacionData, migracion_legal_aceptado: v, migracion_fecha_aceptacion: v ? new Date().toISOString() : null })}
+                                        />
+                                        <div className="space-y-1">
+                                          <Label className="text-[10px] font-bold leading-none uppercase">Responsabilidad Legal</Label>
+                                          <p className="text-[9px] text-muted-foreground leading-tight">
+                                            Confirmo que el número inicial coincide con mi contabilidad previa. Eximo a la plataforma de cualquier responsabilidad por saltos en la serie.
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <div className="flex items-center justify-between">
+                                        <Label className="text-[10px] uppercase font-bold">ID Serie Actual</Label>
+                                        {!facturacionData.migracion_last_pdf && !facturacionData.numeracion_locked && (
+                                          <span className="text-[8px] text-amber-600 font-bold uppercase">Sube factura para editar</span>
+                                        )}
+                                      </div>
+                                      <Input
+                                        className="h-8 text-xs font-mono bg-background"
+                                        value={facturacionData.serie}
+                                        onChange={(e) => setFacturacionData({ ...facturacionData, serie: e.target.value })}
+                                        disabled={facturacionData.numeracion_locked || (!facturacionData.migracion_last_pdf && !facturacionData.serie)}
+                                        placeholder={facturacionData.numeracion_locked ? "" : "Esperando OCR..."}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <div className="flex items-center justify-between">
+                                        <Label className="text-[10px] uppercase font-bold">Próximo Número</Label>
+                                        {!facturacionData.migracion_last_pdf && !facturacionData.numeracion_locked && (
+                                          <span className="text-[8px] text-amber-600 font-bold uppercase">Requiere evidencia</span>
+                                        )}
+                                      </div>
+                                      <Input
+                                        type="number"
+                                        className="h-8 text-xs font-mono bg-background"
+                                        value={facturacionData.siguiente_numero}
+                                        onChange={(e) => setFacturacionData({ ...facturacionData, siguiente_numero: parseInt(e.target.value) || 0 })}
+                                        disabled={facturacionData.numeracion_locked || !facturacionData.migracion_last_pdf}
+                                        placeholder={facturacionData.numeracion_locked ? "" : "Subir PDF"}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {ocrConfidence.numeracion > 0 && (
+                                    <div className="flex gap-4 p-2 bg-muted/30 rounded-lg justify-center">
+                                      <div className="flex flex-col items-center">
+                                        <span className="text-[8px] uppercase text-muted-foreground">Numeración</span>
+                                        <span className={cn("text-[10px] font-bold", ocrConfidence.numeracion > 0.8 ? "text-green-600" : "text-amber-500")}>{(ocrConfidence.numeracion * 100).toFixed(0)}%</span>
+                                      </div>
+                                      <div className="flex flex-col items-center">
+                                        <span className="text-[8px] uppercase text-muted-foreground">Económicos</span>
+                                        <span className={cn("text-[10px] font-bold", ocrConfidence.economicos > 0.8 ? "text-green-600" : "text-amber-500")}>{(ocrConfidence.economicos * 100).toFixed(0)}%</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="space-y-4 pt-4">
+                                <div className="flex items-center gap-2 text-primary">
+                                  <FileText size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Ajustes Adicionales y Textos Legales</h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] uppercase font-bold">IBAN (Aparece en Factura)</Label>
+                                    <Input
+                                      className="h-8 text-xs font-mono"
+                                      value={empresaData.iban}
+                                      onChange={(e) => setEmpresaData({ ...empresaData, iban: e.target.value })}
                                     />
                                   </div>
-
-                                  {facturacionData.verifactu_activo && (
-                                    <div className="grid grid-cols-2 gap-2 pt-2">
-                                      <Button
-                                        size="sm"
-                                        variant={facturacionData.verifactu_modo === 'TEST' ? 'default' : 'outline'}
-                                        className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'TEST' && "bg-blue-600 hover:bg-blue-700")}
-                                        onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'TEST' })}
-                                      >
-                                        ENTORNO TEST
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant={facturacionData.verifactu_modo === 'PROD' ? 'default' : 'outline'}
-                                        className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'PROD' && "bg-red-600 hover:bg-red-700")}
-                                        onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'PROD' })}
-                                      >
-                                        PRODUCCIÓN
-                                      </Button>
-                                      {facturacionData.verifactu_modo === 'PROD' && (
-                                        <p className="col-span-2 text-[9px] text-red-600 font-bold flex items-center gap-1">
-                                          <AlertCircle size={10} /> ¡Atención! El modo producción envía datos reales a Hacienda.
-                                        </p>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  <Separator />
-
-                                  <div className="flex items-center justify-between opacity-80">
-                                    <div className="space-y-0.5">
-                                      <Label className="text-xs font-bold">Facturas Inmutables</Label>
-                                      <p className="text-[10px] text-muted-foreground leading-tight">Bloqueo de edición tras validación</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[9px] font-bold text-green-600 uppercase">Activo por Ley</span>
-                                      <Switch checked={true} disabled />
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center justify-between opacity-80">
-                                    <div className="space-y-0.5">
-                                      <Label className="text-xs font-bold">Prohibir Borrado</Label>
-                                      <p className="text-[10px] text-muted-foreground leading-tight">Trazabilidad contable total</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[9px] font-bold text-green-600 uppercase">Activo por Ley</span>
-                                      <Switch checked={true} disabled />
-                                    </div>
-                                  </div>
                                 </div>
-                              </div>
-
-                              <div className="space-y-4">
-                                <div className="flex items-center gap-2 text-blue-600">
-                                  <Hash size={18} />
-                                  <h3 className="font-bold uppercase tracking-wider text-xs">Numeración Inteligente</h3>
-                                </div>
-                                <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
-                                  <div className="space-y-1.5">
-                                    <Label className="text-[10px] uppercase text-muted-foreground font-bold">Tipo de Serie</Label>
-                                    <select
-                                      className="w-full h-9 border rounded-md px-3 text-xs bg-background"
-                                      value={facturacionData.numeracion_tipo}
-                                      onChange={(e) => setFacturacionData({ ...facturacionData, numeracion_tipo: e.target.value })}
-                                      disabled={facturacionData.numeracion_locked}
-                                    >
-                                      <option value="STANDARD">Continua (F-001)</option>
-                                      <option value="BY_YEAR">Por Año (F-2026-001)</option>
-                                      <option value="PREFIXED">Personalizada (SERIE-001)</option>
-                                    </select>
-                                  </div>
-
-                                  {facturacionData.numeracion_tipo === 'PREFIXED' && (
-                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                                      <Label className="text-[10px] uppercase text-muted-foreground font-bold">Formato del Prefijo</Label>
-                                      <div className="flex gap-2">
-                                        <Input
-                                          className="h-8 text-xs"
-                                          value={facturacionData.numeracion_formato}
-                                          onChange={(e) => setFacturacionData({ ...facturacionData, numeracion_formato: e.target.value })}
-                                          placeholder="Ej: FAC-{YEAR}-"
-                                          disabled={facturacionData.numeracion_locked}
-                                        />
-                                      </div>
-                                      <div className="flex flex-wrap gap-1">
-                                        {['{YEAR}', '{MONTH}', '{DAY}'].map(tag => (
-                                          <Button
-                                            key={tag}
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-6 text-[9px] px-2"
-                                            disabled={facturacionData.numeracion_locked}
-                                            onClick={() => setFacturacionData({ ...facturacionData, numeracion_formato: facturacionData.numeracion_formato + tag })}
-                                          >
-                                            + {tag.replace('{', '').replace('}', '')}
-                                          </Button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
-                                    <div className="flex justify-between items-center mb-1">
-                                      <span className="text-[9px] font-bold text-blue-600 uppercase">Previsualización</span>
-                                      <span className="text-[9px] text-muted-foreground italic">Próxima factura</span>
-                                    </div>
-                                    <p className="font-mono text-xs font-bold text-blue-700">
-                                      {facturacionData.numeracion_tipo === 'STANDARD' ? `${facturacionData.serie || 'F'}-` : ''}
-                                      {facturacionData.numeracion_tipo === 'BY_YEAR' ? `${facturacionData.serie || 'F'}-${new Date().getFullYear()}-` : ''}
-                                      {facturacionData.numeracion_tipo === 'PREFIXED' ?
-                                        (facturacionData.numeracion_formato || '')
-                                          .replace('{YEAR}', new Date().getFullYear().toString())
-                                          .replace('{MONTH}', (new Date().getMonth() + 1).toString().padStart(2, '0'))
-                                          .replace('{DAY}', new Date().getDate().toString().padStart(2, '0'))
-                                        : ''
-                                      }
-                                      {(facturacionData.siguiente_numero || 1).toString().padStart(4, '0')}
-                                    </p>
-                                  </div>
-
-                                  {facturacionData.numeracion_locked && (
-                                    <p className="text-[9px] text-amber-600 font-medium flex items-center gap-1">
-                                      <AlertCircle size={10} /> Numeración bloqueada por facturas emitidas.
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* --- Asistente de Migración Fiscal (OCR) --- */}
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-2 text-amber-600">
-                                <Sparkles size={18} />
-                                <h3 className="font-bold uppercase tracking-wider text-xs">Asistente de Migración Fiscal</h3>
-                              </div>
-                              <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-4">
-                                <p className="text-[11px] text-muted-foreground leading-tight">
-                                  {facturacionData.numeracion_locked
-                                    ? "La migración está bloqueada porque ya existen facturas emitidas este año. Para cambiar la numeración, contacta con soporte."
-                                    : "Sube tu última factura emitida para configurar automáticamente la numeración y series mediante IA."}
-                                </p>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="space-y-2">
-                                    <Label className="text-[10px] uppercase font-bold">Evidencia de Cierre (PDF/Imagen)</Label>
-                                    <input
-                                      type="file"
-                                      ref={migracionInputRef}
-                                      className="hidden"
-                                      accept="application/pdf,image/*"
-                                      onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file) return;
-
-                                        const reader = new FileReader();
-                                        reader.onload = async () => {
-                                          const base64 = reader.result?.toString().split(',')[1];
-                                          if (!base64) return;
-
-                                          setGeneratingAiField('migracion');
-                                          toast.promise(
-                                            api.post("/admin/facturacion/configuracion/emisor/ocr-migracion", { file: base64 }),
-                                            {
-                                              loading: 'Analizando factura con OCR inteligente...',
-                                              success: (res: any) => {
-                                                const ext = res.data.data;
-                                                setFacturacionData((prev: any) => ({
-                                                  ...prev,
-                                                  correlativo_inicial: ext.numeracion.ultimo_numero,
-                                                  migracion_last_serie: ext.numeracion.serie,
-                                                  migracion_last_subtotal: ext.economicos.subtotal,
-                                                  migracion_last_total: ext.economicos.total,
-                                                  migracion_last_pdf: file.name
-                                                }));
-                                                setOcrConfidence({
-                                                  numeracion: ext.numeracion.confidence,
-                                                  identidad: ext.identidad.confidence,
-                                                  economicos: ext.economicos.confidence
-                                                });
-                                                setGeneratingAiField(null);
-                                                return `Factura analizada. Fiabilidad: ${(ext.numeracion.confidence * 100).toFixed(0)}%`;
-                                              },
-                                              error: (err) => {
-                                                setGeneratingAiField(null);
-                                                return 'No se pudo extraer información. Por favor, rellena manualmente.';
-                                              }
-                                            }
-                                          );
-                                        };
-                                        reader.readAsDataURL(file);
-                                      }}
-                                    />
-                                    <Button
-                                      variant="outline"
-                                      className="w-full flex justify-between h-9 px-3 font-normal text-xs"
-                                      onClick={() => migracionInputRef.current?.click()}
-                                      disabled={generatingAiField === 'migracion' || facturacionData.numeracion_locked}
-                                    >
-                                      <span className="truncate">
-                                        {facturacionData.numeracion_locked ? "🔒 Bloqueado por facturación activa" : (facturacionData.migracion_last_pdf ? "✓ Factura subida" : "Seleccionar archivo...")}
-                                      </span>
-                                      {generatingAiField === 'migracion' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} className="text-muted-foreground" />}
-                                    </Button>
-                                  </div>
-
-                                  <div className="space-y-3">
-                                    <div className="flex items-start gap-3 p-3 rounded-lg border bg-background/50">
-                                      <Switch
-                                        checked={facturacionData.migracion_legal_aceptado}
-                                        onCheckedChange={v => setFacturacionData({ ...facturacionData, migracion_legal_aceptado: v, migracion_fecha_aceptacion: v ? new Date().toISOString() : null })}
-                                      />
-                                      <div className="space-y-1">
-                                        <Label className="text-[10px] font-bold leading-none uppercase">Responsabilidad Legal</Label>
-                                        <p className="text-[9px] text-muted-foreground leading-tight">
-                                          Confirmo que el número inicial coincide con mi contabilidad previa. Eximo a la plataforma de cualquier responsabilidad por saltos en la serie.
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div className="space-y-1">
                                     <div className="flex items-center justify-between">
-                                      <Label className="text-[10px] uppercase font-bold">ID Serie Actual</Label>
-                                      {!facturacionData.migracion_last_pdf && !facturacionData.numeracion_locked && (
-                                        <span className="text-[8px] text-amber-600 font-bold uppercase">Sube factura para editar</span>
-                                      )}
+                                      <Label className="text-xs">Pie de Factura (General)</Label>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 text-[9px] gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                        onClick={async () => {
+                                          try {
+                                            const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type: 'pie' });
+                                            setFacturacionData({ ...facturacionData, texto_pie: res.data.text });
+                                            toast.success("Texto legal generado");
+                                          } catch (e) { toast.error("Error al generar texto"); }
+                                        }}
+                                      >
+                                        <Sparkles size={10} /> AUTO-GENERAR
+                                      </Button>
                                     </div>
-                                    <Input
-                                      className="h-8 text-xs font-mono bg-background"
-                                      value={facturacionData.serie}
-                                      onChange={(e) => setFacturacionData({ ...facturacionData, serie: e.target.value })}
-                                      disabled={facturacionData.numeracion_locked || (!facturacionData.migracion_last_pdf && !facturacionData.serie)}
-                                      placeholder={facturacionData.numeracion_locked ? "" : "Esperando OCR..."}
+                                    <Textarea
+                                      className="text-xs min-h-[60px]"
+                                      value={facturacionData.texto_pie}
+                                      onChange={(e) => setFacturacionData({ ...facturacionData, texto_pie: e.target.value })}
                                     />
                                   </div>
-                                  <div className="space-y-1">
+                                  <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                      <Label className="text-[10px] uppercase font-bold">Próximo Número</Label>
-                                      {!facturacionData.migracion_last_pdf && !facturacionData.numeracion_locked && (
-                                        <span className="text-[8px] text-amber-600 font-bold uppercase">Requiere evidencia</span>
-                                      )}
+                                      <Label className="text-xs">Texto Exención IVA (si aplica)</Label>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 text-[9px] gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                        onClick={async () => {
+                                          try {
+                                            const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type: 'exento' });
+                                            setFacturacionData({ ...facturacionData, texto_exento: res.data.text });
+                                            toast.success("Texto exención generado");
+                                          } catch (e) { toast.error("Error al generar texto"); }
+                                        }}
+                                      >
+                                        <Sparkles size={10} /> AUTO-GENERAR
+                                      </Button>
                                     </div>
-                                    <Input
-                                      type="number"
-                                      className="h-8 text-xs font-mono bg-background"
-                                      value={facturacionData.siguiente_numero}
-                                      onChange={(e) => setFacturacionData({ ...facturacionData, siguiente_numero: parseInt(e.target.value) || 0 })}
-                                      disabled={facturacionData.numeracion_locked || !facturacionData.migracion_last_pdf}
-                                      placeholder={facturacionData.numeracion_locked ? "" : "Subir PDF"}
+                                    <Textarea
+                                      className="text-xs min-h-[60px]"
+                                      value={facturacionData.texto_exento}
+                                      onChange={(e) => setFacturacionData({ ...facturacionData, texto_exento: e.target.value })}
                                     />
                                   </div>
                                 </div>
-
-                                {ocrConfidence.numeracion > 0 && (
-                                  <div className="flex gap-4 p-2 bg-muted/30 rounded-lg justify-center">
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-[8px] uppercase text-muted-foreground">Numeración</span>
-                                      <span className={cn("text-[10px] font-bold", ocrConfidence.numeracion > 0.8 ? "text-green-600" : "text-amber-500")}>{(ocrConfidence.numeracion * 100).toFixed(0)}%</span>
-                                    </div>
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-[8px] uppercase text-muted-foreground">Económicos</span>
-                                      <span className={cn("text-[10px] font-bold", ocrConfidence.economicos > 0.8 ? "text-green-600" : "text-amber-500")}>{(ocrConfidence.economicos * 100).toFixed(0)}%</span>
-                                    </div>
-                                  </div>
-                                )}
                               </div>
-                            </div>
-
-                            <div className="space-y-4 pt-4">
-                              <div className="flex items-center gap-2 text-primary">
-                                <FileText size={18} />
-                                <h3 className="font-bold uppercase tracking-wider text-xs">Ajustes Adicionales y Textos Legales</h3>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="space-y-1">
-                                  <Label className="text-[10px] uppercase font-bold">IBAN (Aparece en Factura)</Label>
-                                  <Input
-                                    className="h-8 text-xs font-mono"
-                                    value={empresaData.iban}
-                                    onChange={(e) => setEmpresaData({ ...empresaData, iban: e.target.value })}
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <Label className="text-xs">Pie de Factura (General)</Label>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-6 text-[9px] gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                                      onClick={async () => {
-                                        try {
-                                          const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type: 'pie' });
-                                          setFacturacionData({ ...facturacionData, texto_pie: res.data.text });
-                                          toast.success("Texto legal generado");
-                                        } catch (e) { toast.error("Error al generar texto"); }
-                                      }}
-                                    >
-                                      <Sparkles size={10} /> AUTO-GENERAR
-                                    </Button>
-                                  </div>
-                                  <Textarea
-                                    className="text-xs min-h-[60px]"
-                                    value={facturacionData.texto_pie}
-                                    onChange={(e) => setFacturacionData({ ...facturacionData, texto_pie: e.target.value })}
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <Label className="text-xs">Texto Exención IVA (si aplica)</Label>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-6 text-[9px] gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                                      onClick={async () => {
-                                        try {
-                                          const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type: 'exento' });
-                                          setFacturacionData({ ...facturacionData, texto_exento: res.data.text });
-                                          toast.success("Texto exención generado");
-                                        } catch (e) { toast.error("Error al generar texto"); }
-                                      }}
-                                    >
-                                      <Sparkles size={10} /> AUTO-GENERAR
-                                    </Button>
-                                  </div>
-                                  <Textarea
-                                    className="text-xs min-h-[60px]"
-                                    value={facturacionData.texto_exento}
-                                    onChange={(e) => setFacturacionData({ ...facturacionData, texto_exento: e.target.value })}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </TabsContent>
+                            </TabsContent>
+                          )}
 
                           {/* --- TABS CONTENT: ESCRITORIO --- */}
                           <TabsContent value="escritorio" className="m-0 space-y-6">
