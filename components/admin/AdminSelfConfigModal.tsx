@@ -1,18 +1,20 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import ShareInviteLinkModal from "./ShareInviteLinkModal";
-import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Hash, Upload, Trash2, AlertCircle } from "lucide-react";
+import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { get, set } from 'idb-keyval';
+import { cn } from "@/lib/utils";
+import { useConfirm } from "@/components/shared/ConfirmDialog";
 
 interface AdminSelfConfigModalProps {
   isOpen: boolean;
@@ -25,6 +27,7 @@ export default function AdminSelfConfigModal({
   onClose,
   adminId,
 }: AdminSelfConfigModalProps) {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState("perfil");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -50,8 +53,23 @@ export default function AdminSelfConfigModal({
   const [sistemaConfig, setSistemaConfig] = useState<any>({
     modulos: {},
     modulos_mobile: {},
-    mobileEnabled: false
+    mobileEnabled: false,
+    backup_local_path: ""
   });
+
+  // --- NUEVOS ESTADOS INTEGRADOS ---
+  // Backup Local
+  const [directoryHandle, setDirectoryHandle] = useState<any>(null);
+
+  // Google Calendar
+  const [googleCalendarConfig, setGoogleCalendarConfig] = useState<any>(null);
+  const [connectingCalendar, setConnectingCalendar] = useState(false);
+  const [syncingCalendar, setSyncingCalendar] = useState(false);
+
+  // Email Config
+  const [emailConfig, setEmailConfig] = useState<any>(null);
+  const [connectingEmail, setConnectingEmail] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   // Estado para invitaciones
   const [showShareModal, setShowShareModal] = useState(false);
@@ -74,12 +92,14 @@ export default function AdminSelfConfigModal({
   async function loadData() {
     setLoading(true);
     try {
-      const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes] = await Promise.all([
+      const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes] = await Promise.all([
         api.get("/employees"),
         api.get("/admin/plantillas"),
         api.get("/admin/facturacion/configuracion/emisor"),
         api.get("/admin/facturacion/configuracion/sistema"),
-        api.get("/admin/configuracion")
+        api.get("/admin/configuracion"),
+        api.get("/api/admin/calendar-config"),
+        api.get("/admin/email-config")
       ]);
 
       const employees = empRes.data || [];
@@ -100,14 +120,15 @@ export default function AdminSelfConfigModal({
       setSistemaConfig({
         modulos: rest,
         modulos_mobile: modulos_mobile || {},
-        mobileEnabled: !!modulos_mobile
+        mobileEnabled: !!modulos_mobile,
+        backup_local_path: sistemaFactRes.data.data?.backup_local_path || ""
       });
 
-      // Lógica de pestaña inicial: si hay empleados, saltar perfil si se desea
-      // O simplemente dejar 'perfil' como default pero ocultar el trigger
-      if (rest.empleados && activeTab === "perfil") {
-        setActiveTab("empresa");
-      }
+      setGoogleCalendarConfig(calendarRes.data);
+      setEmailConfig(emailRes.data);
+
+      // Cargar handle de backup de IndexedDB
+      get('backup_directory_handle').then(handle => setDirectoryHandle(handle));
 
     } catch (err) {
       console.error("Error loading admin center config", err);
@@ -132,7 +153,7 @@ export default function AdminSelfConfigModal({
         }));
       }
 
-      // 2. Guardar Empresa
+      // 2. Guardar Empresa (Incluyendo nuevos campos)
       promises.push(api.put("/admin/facturacion/configuracion/emisor", empresaData));
 
       // 3. Guardar Facturación (si el módulo está activo)
@@ -158,6 +179,86 @@ export default function AdminSelfConfigModal({
       toast.error("Error al guardar algunos cambios");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // --- HANDLERS: BACKUP LOCAL ---
+  const handleConfigureFolder = async () => {
+    try {
+      if (!('showDirectoryPicker' in window)) {
+        toast.error("Tu navegador no soporta la selección de carpetas avanzada.");
+        return;
+      }
+      const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+      await set('backup_directory_handle', handle);
+      setDirectoryHandle(handle);
+      toast.success("Carpeta de backups vinculada en este PC.");
+    } catch (err: any) {
+      if (err.name !== 'AbortError') toast.error("Error al vincular carpeta.");
+    }
+  };
+
+  // --- HANDLERS: GOOGLE CALENDAR ---
+  const handleConnectCalendar = async () => {
+    setConnectingCalendar(true);
+    try {
+      const res = await api.post("/api/admin/calendar-config/oauth2/start", { provider: "google" });
+      const popup = window.open(res.data.authUrl, "Google Calendar OAuth", "width=600,height=700");
+      const interval = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(interval);
+          setConnectingCalendar(false);
+          loadData();
+          toast.success("Google Calendar conectado");
+        }
+      }, 500);
+    } catch (err) {
+      toast.error("Error al conectar Calendario");
+      setConnectingCalendar(false);
+    }
+  };
+
+  const handleSyncCalendar = async () => {
+    setSyncingCalendar(true);
+    try {
+      await api.post("/api/admin/calendar-sync/bidirectional");
+      toast.success("Calendario sincronizado");
+    } catch (err) {
+      toast.error("Error al sincronizar");
+    } finally {
+      setSyncingCalendar(false);
+    }
+  };
+
+  // --- HANDLERS: EMAIL ---
+  const handleConnectGmail = async () => {
+    setConnectingEmail(true);
+    try {
+      const res = await api.post('/admin/email-config/oauth2/start', { provider: 'gmail' });
+      const popup = window.open(res.data.authUrl, 'Google Email OAuth', 'width=500,height=600');
+      const interval = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(interval);
+          setConnectingEmail(false);
+          loadData();
+          toast.success("Gmail conectado");
+        }
+      }, 500);
+    } catch (err) {
+      toast.error("Error al conectar Gmail");
+      setConnectingEmail(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    setSendingTestEmail(true);
+    try {
+      await api.post('/admin/email-config/test');
+      toast.success("Email de prueba enviado");
+    } catch (err) {
+      toast.error("Error al enviar prueba");
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -339,24 +440,45 @@ export default function AdminSelfConfigModal({
                     <>
                       {/* --- TABS CONTENT: PERFIL --- */}
                       <TabsContent value="perfil" className="m-0 space-y-6">
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2 text-primary">
-                            <Clock size={18} />
-                            <h3 className="font-bold uppercase tracking-wider text-xs">Jornada Laboral</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-primary">
+                              <Clock size={18} />
+                              <h3 className="font-bold uppercase tracking-wider text-xs">Jornada Laboral</h3>
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>Plantilla de Horario</Label>
+                              <select
+                                className="w-full border rounded-lg px-4 py-3 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                value={selectedPlantilla}
+                                onChange={(e) => setSelectedPlantilla(e.target.value)}
+                              >
+                                <option value="">Sin plantilla (No laborable)</option>
+                                {plantillas.map((p: any) => (
+                                  <option key={p.id} value={p.id}>{p.nombre}</option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
-                          <div className="grid gap-2">
-                            <Label>Plantilla de Horario</Label>
-                            <select
-                              className="w-full border rounded-lg px-4 py-3 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 outline-none transition"
-                              value={selectedPlantilla}
-                              onChange={(e) => setSelectedPlantilla(e.target.value)}
-                            >
-                              <option value="">Sin plantilla (No laborable)</option>
-                              {plantillas.map((p: any) => (
-                                <option key={p.id} value={p.id}>{p.nombre}</option>
-                              ))}
-                            </select>
-                            <p className="text-xs text-muted-foreground italic">Define tu presencia en el calendario y reportes.</p>
+
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-primary">
+                              <Smartphone size={18} />
+                              <h3 className="font-bold uppercase tracking-wider text-xs">Acceso Móvil (PWA)</h3>
+                            </div>
+                            <div className="bg-muted/30 border border-border rounded-xl p-4 flex flex-col justify-between h-[calc(100%-2rem)]">
+                              <p className="text-sm font-medium">
+                                {adminData?.device_hash ? '✓ Dispositivo vinculado' : '⚠ Sin vincular'}
+                              </p>
+                              <button
+                                onClick={handleGenerateInvite}
+                                disabled={loadingInvite}
+                                className="w-full mt-2 flex items-center justify-center gap-2 py-2 bg-background border border-primary text-primary font-semibold rounded-lg hover:bg-primary hover:text-primary-foreground transition-all disabled:opacity-50 text-xs"
+                              >
+                                {loadingInvite ? 'Generando...' : 'Obtener invitación'}
+                                <Send size={12} />
+                              </button>
+                            </div>
                           </div>
                         </div>
 
@@ -364,21 +486,33 @@ export default function AdminSelfConfigModal({
 
                         <div className="space-y-4">
                           <div className="flex items-center gap-2 text-primary">
-                            <Smartphone size={18} />
-                            <h3 className="font-bold uppercase tracking-wider text-xs">Acceso Móvil (PWA)</h3>
+                            <Mail size={18} />
+                            <h3 className="font-bold uppercase tracking-wider text-xs">Configuración de Email</h3>
                           </div>
-                          <div className="bg-muted/30 border border-border rounded-xl p-4 space-y-4">
-                            <p className="text-sm">
-                              {adminData?.device_hash ? '✓ Dispositivo vinculado' : '⚠ Sin vincular'}
-                            </p>
-                            <button
-                              onClick={handleGenerateInvite}
-                              disabled={loadingInvite}
-                              className="w-full flex items-center justify-center gap-2 py-2 bg-background border border-primary text-primary font-semibold rounded-lg hover:bg-primary hover:text-primary-foreground transition-all disabled:opacity-50"
-                            >
-                              {loadingInvite ? 'Generando...' : 'Obtener invitación'}
-                              <Send size={14} />
-                            </button>
+
+                          <div className="bg-muted/10 border p-4 rounded-xl space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${emailConfig?.modo === 'oauth2' ? 'bg-green-500/10 text-green-600' : 'bg-muted text-muted-foreground'}`}>
+                                  <Mail size={20} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-bold">{emailConfig?.modo === 'oauth2' ? 'Gmail Conectado' : 'Sin vincular'}</p>
+                                  <p className="text-[10px] text-muted-foreground">{emailConfig?.oauth2_email || 'Usa tu Gmail para enviar invitaciones'}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                {emailConfig?.modo === 'oauth2' ? (
+                                  <Button size="sm" variant="outline" onClick={handleSendTestEmail} disabled={sendingTestEmail} className="h-8 text-[10px]">
+                                    {sendingTestEmail ? 'Enviando...' : 'Test'}
+                                  </Button>
+                                ) : (
+                                  <Button size="sm" onClick={handleConnectGmail} disabled={connectingEmail} className="h-8 text-[10px]">
+                                    {connectingEmail ? 'Conectando...' : 'Conectar Gmail'}
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </TabsContent>
@@ -509,41 +643,88 @@ export default function AdminSelfConfigModal({
 
                       {/* --- TABS CONTENT: SISTEMA --- */}
                       <TabsContent value="sistema" className="m-0 space-y-6">
-                        <Card className="border-primary/20 bg-primary/5">
-                          <CardHeader className="py-4">
-                            <CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4" /> Gestión de Módulos</CardTitle>
-                            <CardDescription>Activa o desactiva las funcionalidades globales de tu negocio.</CardDescription>
-                          </CardHeader>
-                          <CardContent className="grid gap-4 py-2">
-                            {Object.entries(sistemaConfig.modulos).map(([key, active]: [string, any]) => (
-                              <div key={key} className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                  <Label className="capitalize">{key.replace('_', ' ')}</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Columna Módulos */}
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-primary">
+                              <Sparkles size={18} />
+                              <h3 className="font-bold uppercase tracking-wider text-xs">Módulos Activos</h3>
+                            </div>
+                            <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-3">
+                              {Object.entries(sistemaConfig.modulos).map(([key, active]: [string, any]) => (
+                                <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
+                                  <Label className="capitalize text-xs font-semibold">{key.replace('_', ' ')}</Label>
+                                  <Switch
+                                    checked={!!active}
+                                    onCheckedChange={(checked) => setSistemaConfig({
+                                      ...sistemaConfig,
+                                      modulos: { ...sistemaConfig.modulos, [key]: checked }
+                                    })}
+                                    className="scale-75 origin-right"
+                                  />
                                 </div>
-                                <Switch
-                                  checked={!!active}
-                                  onCheckedChange={(checked) => setSistemaConfig({
-                                    ...sistemaConfig,
-                                    modulos: { ...sistemaConfig.modulos, [key]: checked }
-                                  })}
-                                />
-                              </div>
-                            ))}
-                          </CardContent>
-                        </Card>
-
-                        <div className="space-y-4 pt-2">
-                          <div className="flex items-center gap-2 text-amber-600">
-                            <Database size={18} />
-                            <h3 className="font-bold uppercase tracking-wider text-xs">Backups y Seguridad</h3>
+                              ))}
+                            </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <button className="flex items-center gap-2 p-3 border rounded-xl hover:bg-muted transition text-sm font-medium">
-                              <History size={16} /> Ver historial
-                            </button>
-                            <button className="flex items-center gap-2 p-3 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition text-sm font-bold">
-                              <Save size={16} /> Crear Backup
-                            </button>
+
+                          {/* Columna Backup y Google */}
+                          <div className="space-y-6">
+                            {/* Backup Section */}
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2 text-amber-600">
+                                <Database size={18} />
+                                <h3 className="font-bold uppercase tracking-wider text-xs">Autorespaldo (PC Local)</h3>
+                              </div>
+                              <div className={cn(
+                                "border rounded-xl p-4 transition-all",
+                                directoryHandle ? "bg-green-500/5 border-green-500/20" : "bg-amber-500/5 border-amber-500/20"
+                              )}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <FolderCog size={16} className={directoryHandle ? "text-green-600" : "text-amber-600"} />
+                                    <span className="text-[11px] font-bold uppercase">{directoryHandle ? "Vinculado" : "Desvinculado"}</span>
+                                  </div>
+                                  <Button size="sm" variant="secondary" onClick={handleConfigureFolder} className="h-7 text-[10px]">
+                                    {directoryHandle ? "Cambiar" : "Vincular PC"}
+                                  </Button>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                                  {directoryHandle ? "Este PC recibe copias automáticas al iniciar sesión." : "Vincula una carpeta para recibir backups físicos automáticamente."}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Google Calendar Section */}
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2 text-blue-600">
+                                <CalendarIcon size={18} />
+                                <h3 className="font-bold uppercase tracking-wider text-xs">Google Calendar</h3>
+                              </div>
+                              <div className={cn(
+                                "border rounded-xl p-4 transition-all",
+                                googleCalendarConfig?.configured ? "bg-blue-500/5 border-blue-500/20" : "bg-muted border-border"
+                              )}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle2 size={16} className={googleCalendarConfig?.configured ? "text-blue-600" : "text-muted-foreground"} />
+                                    <span className="text-[11px] font-bold uppercase">{googleCalendarConfig?.configured ? "Conectado" : "Desconectado"}</span>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={googleCalendarConfig?.configured ? handleSyncCalendar : handleConnectCalendar}
+                                    disabled={connectingCalendar || syncingCalendar}
+                                    className="h-7 text-[10px]"
+                                  >
+                                    {connectingCalendar || syncingCalendar ? <Loader2 size={12} className="animate-spin" /> : (googleCalendarConfig?.configured ? "Sincronizar" : "Conectar")}
+                                  </Button>
+                                </div>
+                                {googleCalendarConfig?.configured && (
+                                  <p className="text-[10px] text-blue-600/80 font-medium mt-2 truncate">
+                                    📧 {googleCalendarConfig.oauth2_email}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </TabsContent>
