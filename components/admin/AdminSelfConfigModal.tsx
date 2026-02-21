@@ -945,7 +945,9 @@ export default function AdminSelfConfigModal({
                               </div>
                               <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-4">
                                 <p className="text-[11px] text-muted-foreground leading-tight">
-                                  Sube tu última factura emitida para configurar automáticamente la numeración y series mediante IA.
+                                  {facturacionData.numeracion_locked
+                                    ? "La migración está bloqueada porque ya existen facturas emitidas este año. Para cambiar la numeración, contacta con soporte."
+                                    : "Sube tu última factura emitida para configurar automáticamente la numeración y series mediante IA."}
                                 </p>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1002,9 +1004,11 @@ export default function AdminSelfConfigModal({
                                       variant="outline"
                                       className="w-full flex justify-between h-9 px-3 font-normal text-xs"
                                       onClick={() => migracionInputRef.current?.click()}
-                                      disabled={generatingAiField === 'migracion'}
+                                      disabled={generatingAiField === 'migracion' || facturacionData.numeracion_locked}
                                     >
-                                      <span className="truncate">{facturacionData.migracion_last_pdf ? "✓ Factura subida" : "Seleccionar archivo..."}</span>
+                                      <span className="truncate">
+                                        {facturacionData.numeracion_locked ? "🔒 Bloqueado por facturación activa" : (facturacionData.migracion_last_pdf ? "✓ Factura subida" : "Seleccionar archivo...")}
+                                      </span>
                                       {generatingAiField === 'migracion' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} className="text-muted-foreground" />}
                                     </Button>
                                   </div>
@@ -1022,6 +1026,28 @@ export default function AdminSelfConfigModal({
                                         </p>
                                       </div>
                                     </div>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] uppercase font-bold">ID Serie Actual</Label>
+                                    <Input
+                                      className="h-8 text-xs font-mono bg-background"
+                                      value={facturacionData.serie}
+                                      onChange={(e) => setFacturacionData({ ...facturacionData, serie: e.target.value })}
+                                      disabled={facturacionData.numeracion_locked}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] uppercase font-bold">Próximo Número</Label>
+                                    <Input
+                                      type="number"
+                                      className="h-8 text-xs font-mono bg-background"
+                                      value={facturacionData.siguiente_numero}
+                                      onChange={(e) => setFacturacionData({ ...facturacionData, siguiente_numero: parseInt(e.target.value) || 0 })}
+                                      disabled={facturacionData.numeracion_locked}
+                                    />
                                   </div>
                                 </div>
 
@@ -1048,23 +1074,6 @@ export default function AdminSelfConfigModal({
 
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-1">
-                                  <Label className="text-[10px] uppercase font-bold">ID Serie Actual</Label>
-                                  <Input
-                                    className="h-8 text-xs font-mono"
-                                    value={facturacionData.serie}
-                                    onChange={(e) => setFacturacionData({ ...facturacionData, serie: e.target.value })}
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-[10px] uppercase font-bold">Próximo Número</Label>
-                                  <Input
-                                    type="number"
-                                    className="h-8 text-xs font-mono"
-                                    value={facturacionData.siguiente_numero}
-                                    onChange={(e) => setFacturacionData({ ...facturacionData, siguiente_numero: parseInt(e.target.value) || 0 })}
-                                  />
-                                </div>
-                                <div className="space-y-1">
                                   <Label className="text-[10px] uppercase font-bold">IBAN (Aparece en Factura)</Label>
                                   <Input
                                     className="h-8 text-xs font-mono"
@@ -1076,7 +1085,23 @@ export default function AdminSelfConfigModal({
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                  <Label className="text-xs">Pie de Factura (General)</Label>
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Pie de Factura (General)</Label>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 text-[9px] gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                      onClick={async () => {
+                                        try {
+                                          const res = await api.post("/admin/facturacion/generar-texto", { type: 'pie' });
+                                          setFacturacionData({ ...facturacionData, texto_pie: res.data.text });
+                                          toast.success("Texto legal generado");
+                                        } catch (e) { toast.error("Error al generar texto"); }
+                                      }}
+                                    >
+                                      <Sparkles size={10} /> AUTO-GENERAR
+                                    </Button>
+                                  </div>
                                   <Textarea
                                     className="text-xs min-h-[60px]"
                                     value={facturacionData.texto_pie}
@@ -1084,7 +1109,23 @@ export default function AdminSelfConfigModal({
                                   />
                                 </div>
                                 <div className="space-y-2">
-                                  <Label className="text-xs">Texto Exención IVA (si aplica)</Label>
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Texto Exención IVA (si aplica)</Label>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 text-[9px] gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                      onClick={async () => {
+                                        try {
+                                          const res = await api.post("/admin/facturacion/generar-texto", { type: 'exento' });
+                                          setFacturacionData({ ...facturacionData, texto_exento: res.data.text });
+                                          toast.success("Texto exención generado");
+                                        } catch (e) { toast.error("Error al generar texto"); }
+                                      }}
+                                    >
+                                      <Sparkles size={10} /> AUTO-GENERAR
+                                    </Button>
+                                  </div>
                                   <Textarea
                                     className="text-xs min-h-[60px]"
                                     value={facturacionData.texto_exento}
