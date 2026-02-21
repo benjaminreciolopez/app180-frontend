@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User, LogOut, Settings } from "lucide-react";
 import { getUser, refreshMe } from "@/services/auth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { AICopilot } from "@/components/shared/AICopilot";
@@ -390,6 +390,18 @@ export default function AdminLayout({
             </li>
           ))}
 
+          <li className="mt-auto pt-4 border-t border-border/50">
+            <button
+              onClick={() => {
+                setSelfConfigOpen(true);
+                setMenuOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md transition hover:bg-muted text-foreground/80 hover:text-foreground font-medium"
+            >
+              <Settings size={18} />
+              Configuración
+            </button>
+          </li>
         </ul>
 
       </aside>

@@ -2,12 +2,12 @@
 
 import { usePathname, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { 
-  CreditCard, 
-  BarChart3, 
-  FileText, 
-  Settings, 
-  PlusCircle, 
+import {
+  CreditCard,
+  BarChart3,
+  FileText,
+  Settings,
+  PlusCircle,
   PieChart,
   Tag,
   BookOpen,
@@ -57,12 +57,6 @@ export default function FacturacionLayout({
       active: pathname.includes("/auditoria"),
     },
     {
-      label: "Configuración",
-      icon: Settings,
-      href: "/admin/facturacion/configuracion",
-      active: pathname.includes("/configuracion"),
-    },
-    {
       label: "Almacenamiento",
       icon: HardDrive,
       href: "/admin/facturacion/almacenamiento",
@@ -85,13 +79,13 @@ export default function FacturacionLayout({
         </div>
 
         <div className="flex items-center gap-2">
-            <Button 
-              onClick={() => router.push("/admin/facturacion/crear")}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all hover:scale-105 active:scale-95"
-            >
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Nueva Factura
-            </Button>
+          <Button
+            onClick={() => router.push("/admin/facturacion/crear")}
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all hover:scale-105 active:scale-95"
+          >
+            <PlusCircle className="w-4 h-4 mr-2" />
+            Nueva Factura
+          </Button>
         </div>
       </header>
 
@@ -122,11 +116,11 @@ export default function FacturacionLayout({
       {/* Área de contenido */}
       <main className="flex-1 p-6 overflow-y-auto">
         <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
         >
-            {children}
+          {children}
         </motion.div>
       </main>
     </div>
