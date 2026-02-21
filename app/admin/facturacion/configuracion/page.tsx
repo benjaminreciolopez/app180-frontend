@@ -453,9 +453,6 @@ export default function ConfiguracionFacturacionPage() {
           <TabsTrigger value="verifactu" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700 cursor-pointer">
             <ShieldCheck className="w-4 h-4 mr-2" /> Veri*Factu
           </TabsTrigger>
-          <TabsTrigger value="auditoria" className="data-[state=active]:bg-slate-100 data-[state=active]:text-blue-700 cursor-pointer">
-            <AuditIcon className="w-4 h-4 mr-2" /> Auditoría
-          </TabsTrigger>
         </TabsList>
 
         {/* --- DATOS EMPRESA --- */}
@@ -1060,10 +1057,6 @@ export default function ConfiguracionFacturacionPage() {
           </Card>
         </TabsContent>
 
-        {/* --- AUDITORIA --- */}
-        <TabsContent value="auditoria">
-          <AuditoriaTab />
-        </TabsContent>
 
       </Tabs>
 
