@@ -750,23 +750,25 @@ export default function AdminSelfConfigModal({
                                     />
                                   </div>
 
-                                  {Object.entries(activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : (sistemaConfig.modulos_mobile || {})).map(([key, active]: [string, any]) => (
-                                    <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
-                                      <Label className="capitalize text-xs font-semibold">{key.replace('_', ' ')}</Label>
-                                      <Switch
-                                        checked={!!active}
-                                        onCheckedChange={(checked) => {
-                                          const field = activeWidgetProfile === 'desktop' ? 'modulos' : 'modulos_mobile';
-                                          setSistemaConfig({
-                                            ...sistemaConfig,
-                                            [field]: { ...sistemaConfig[field], [key]: checked }
-                                          });
-                                        }}
-                                        className="scale-75 origin-right"
-                                        disabled={activeWidgetProfile === 'mobile' && !sistemaConfig.mobileEnabled}
-                                      />
-                                    </div>
-                                  ))}
+                                  {Object.entries(activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : (sistemaConfig.modulos_mobile || {}))
+                                    .filter(([key]) => !['ai_tokens', 'es_creador'].includes(key))
+                                    .map(([key, active]: [string, any]) => (
+                                      <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
+                                        <Label className="capitalize text-xs font-semibold">{key.replace('_', ' ')}</Label>
+                                        <Switch
+                                          checked={!!active}
+                                          onCheckedChange={(checked) => {
+                                            const field = activeWidgetProfile === 'desktop' ? 'modulos' : 'modulos_mobile';
+                                            setSistemaConfig({
+                                              ...sistemaConfig,
+                                              [field]: { ...sistemaConfig[field], [key]: checked }
+                                            });
+                                          }}
+                                          className="scale-75 origin-right"
+                                          disabled={activeWidgetProfile === 'mobile' && !sistemaConfig.mobileEnabled}
+                                        />
+                                      </div>
+                                    ))}
 
                                   {activeWidgetProfile === 'mobile' && !sistemaConfig.mobileEnabled && (
                                     <p className="text-[10px] text-amber-600 bg-amber-50 p-2 rounded-md font-medium text-center italic">
@@ -1155,7 +1157,7 @@ export default function AdminSelfConfigModal({
                                       className="h-6 text-[9px] gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                       onClick={async () => {
                                         try {
-                                          const res = await api.post("/admin/facturacion/generar-texto", { type: 'pie' });
+                                          const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type: 'pie' });
                                           setFacturacionData({ ...facturacionData, texto_pie: res.data.text });
                                           toast.success("Texto legal generado");
                                         } catch (e) { toast.error("Error al generar texto"); }
@@ -1179,7 +1181,7 @@ export default function AdminSelfConfigModal({
                                       className="h-6 text-[9px] gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                       onClick={async () => {
                                         try {
-                                          const res = await api.post("/admin/facturacion/generar-texto", { type: 'exento' });
+                                          const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type: 'exento' });
                                           setFacturacionData({ ...facturacionData, texto_exento: res.data.text });
                                           toast.success("Texto exención generado");
                                         } catch (e) { toast.error("Error al generar texto"); }

@@ -133,7 +133,15 @@ export default function DashboardPage() {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    // Escuchar actualizaciones de configuración para recargar datos
+    const handleRefresh = () => loadAll();
+    window.addEventListener("session-updated", handleRefresh);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("session-updated", handleRefresh);
+    };
   }, []);
 
   async function saveWidgetsConfig() {
@@ -165,7 +173,7 @@ export default function DashboardPage() {
   if (!data) return null;
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-24 md:pb-8">
+    <div className="p-4 md:p-8 w-full mx-auto space-y-6 md:space-y-8 pb-24 md:pb-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
