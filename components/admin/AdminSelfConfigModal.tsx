@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/services/api";
+import { refreshMe } from "@/services/auth";
 import { showSuccess, showError } from "@/lib/toast";
 import ShareInviteLinkModal from "./ShareInviteLinkModal";
 import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon, LayoutGrid, Hash, AlertCircle, TrendingUp, GripHorizontal } from "lucide-react";
@@ -210,6 +211,13 @@ export default function AdminSelfConfigModal({
       }));
 
       await Promise.all(promises);
+
+      // Actualizar datos de sesión local
+      try {
+        await refreshMe();
+      } catch (err) {
+        console.warn("Fallo refresh opcional:", err);
+      }
 
       // Refrescar sesión si cambiaron los módulos
       window.dispatchEvent(new Event("session-updated"));
@@ -1249,11 +1257,7 @@ export default function AdminSelfConfigModal({
                               </p>
 
                               <div className="bg-muted/20 border border-border rounded-xl p-2 grid grid-cols-1 md:grid-cols-2 gap-1 min-h-[200px]">
-                                {ALL_DASHBOARD_WIDGETS.filter(wd => {
-                                  if (!wd.module) return true;
-                                  const modsActive = activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : sistemaConfig.modulos_mobile;
-                                  return modsActive && modsActive[wd.module] === true;
-                                }).map((wd) => {
+                                {ALL_DASHBOARD_WIDGETS.map((wd) => {
                                   const configList = activeWidgetProfile === 'desktop' ? dashboardWidgets : dashboardWidgetsMobile;
                                   const savedWidget = configList.find((sw: any) => sw.id === wd.id);
                                   const isVisible = savedWidget ? savedWidget.visible : false;
@@ -1290,16 +1294,12 @@ export default function AdminSelfConfigModal({
                                     </div>
                                   );
                                 })}
-                                {ALL_DASHBOARD_WIDGETS.filter(wd => {
-                                  if (!wd.module) return true;
-                                  const modsActive = activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : sistemaConfig.modulos_mobile;
-                                  return modsActive && modsActive[wd.module] === true;
-                                }).length === 0 && (
-                                    <div className="col-span-full py-10 text-center space-y-2">
-                                      <AlertCircle className="mx-auto text-muted-foreground" size={24} />
-                                      <p className="text-xs text-muted-foreground font-medium">No hay widgets disponibles para los módulos activos en este perfil.</p>
-                                    </div>
-                                  )}
+                                {ALL_DASHBOARD_WIDGETS.length === 0 && (
+                                  <div className="col-span-full py-10 text-center space-y-2">
+                                    <AlertCircle className="mx-auto text-muted-foreground" size={24} />
+                                    <p className="text-xs text-muted-foreground font-medium">No hay widgets disponibles.</p>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </TabsContent>

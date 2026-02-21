@@ -341,10 +341,11 @@ export default function AdminLayout({
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border p-5
-          transform transition-transform
+          transform transition-all duration-300 ease-in-out
           ${menuOpen ? "translate-x-0" : "-translate-x-full"}
-          md:static md:translate-x-0
-          flex flex-col relative overflow-hidden
+          md:static md:translate-x-0 md:flex md:flex-col
+          flex flex-col overflow-hidden
+          ${!menuOpen ? "pointer-events-none opacity-0 md:opacity-100 md:pointer-events-auto" : "pointer-events-auto opacity-100"}
         `}
       >
         {/* Marca de agua - Avatar de fondo sutil */}
@@ -395,7 +396,7 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Container */}
-      <main className="flex-1 bg-background h-[100svh] flex flex-col relative min-w-0">
+      <main className="flex-1 bg-background h-[100svh] flex flex-col relative min-w-0 w-full md:w-auto overflow-x-hidden">
 
         {/* Header Premium Central */}
         <header className="hidden md:flex items-center justify-between h-16 px-8 border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-20">
