@@ -327,7 +327,7 @@ export default function AdminLayout({
   // Render
   // ============================
   return (
-    <div className="flex h-[100svh] w-screen">
+    <div className="flex h-[100svh] w-full overflow-hidden">
       <AutoBackupSync />
       {/* Overlay móvil */}
       {menuOpen && (
@@ -395,7 +395,7 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Container */}
-      <main className="flex-1 bg-background h-[100svh] flex flex-col relative">
+      <main className="flex-1 bg-background h-[100svh] flex flex-col relative min-w-0">
 
         {/* Header Premium Central */}
         <header className="hidden md:flex items-center justify-between h-16 px-8 border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-20">
