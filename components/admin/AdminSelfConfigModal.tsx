@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { api } from "@/services/api";
 import { showSuccess, showError } from "@/lib/toast";
 import ShareInviteLinkModal from "./ShareInviteLinkModal";
-import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon, LayoutGrid, Hash, AlertCircle } from "lucide-react";
+import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon, LayoutGrid, Hash, AlertCircle, TrendingUp, GripHorizontal } from "lucide-react";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
@@ -108,6 +109,8 @@ export default function AdminSelfConfigModal({
   const logoInputRef = useRef<HTMLInputElement>(null);
   const certInputRef = useRef<HTMLInputElement>(null);
   const migracionInputRef = useRef<HTMLInputElement>(null);
+
+  const dragControls = useDragControls();
 
   useEffect(() => {
     if (isOpen) {
@@ -416,763 +419,784 @@ export default function AdminSelfConfigModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-card w-full max-w-2xl rounded-xl shadow-2xl border border-border flex flex-col max-h-[90vh]">
-          {/* Header */}
-          <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
-            <div className="flex items-center gap-3">
-              <div className="relative group w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 bg-muted">
-                {adminData?.avatar_url ? (
-                  <img
-                    src={adminData.avatar_url}
-                    alt={adminData.nombre}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground">
-                    <User size={20} />
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[100] transition-opacity flex items-center justify-center p-4">
+            <motion.div
+              drag
+              dragControls={dragControls}
+              dragListener={false}
+              dragMomentum={false}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-background w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden relative"
+            >
+              {/* Header con Drag Handle */}
+              <div className="p-6 border-b border-border bg-muted/30 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                    <Settings size={24} />
                   </div>
-                )}
-              </div>
-              <div>
-                <h2 className="text-lg font-bold">Centro de Configuración</h2>
-                <p className="text-xs text-muted-foreground">Empresa, Sistema y Perfil de {adminData?.nombre || "Administrador"}</p>
-              </div>
-            </div>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-muted transition">
-              <X size={20} />
-            </button>
-          </div>
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight">Centro de Administración</h2>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Gestión Global de {adminData?.nombre || "Plataforma"}</p>
+                  </div>
+                </div>
 
-          <div className="flex-1 overflow-hidden flex flex-col">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-6 border-b border-border bg-muted/20">
-                <TabsList className="h-12 w-full justify-start gap-4 bg-transparent p-0">
-                  {(!sistemaConfig.modulos?.empleados || activeTab === 'perfil') && (
-                    <TabsTrigger value="perfil" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2">
-                      <User size={16} /> Perfil
-                    </TabsTrigger>
-                  )}
-                  <TabsTrigger value="empresa" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
-                    <Building2 size={16} /> Empresa
-                  </TabsTrigger>
-                  <TabsTrigger value="sistema" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
-                    <Settings size={16} /> Sistema
-                  </TabsTrigger>
-                  {sistemaConfig.modulos?.facturacion && (
-                    <TabsTrigger value="facturacion" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
-                      <FileText size={16} /> Facturación
-                    </TabsTrigger>
-                  )}
-                  <TabsTrigger value="escritorio" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
-                    <LayoutGrid size={16} /> Escritorio
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <div className="flex-1 overflow-y-auto">
-                <div className="p-6">
-                  {loading ? (
-                    <div className="py-20 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                      <Loader2 className="animate-spin" size={32} />
-                      <p>Cargando configuración global...</p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* --- TABS CONTENT: PERFIL --- */}
-                      <TabsContent value="perfil" className="m-0 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-primary">
-                              <Clock size={18} />
-                              <h3 className="font-bold uppercase tracking-wider text-xs">Jornada Laboral</h3>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label>Plantilla de Horario</Label>
-                              <select
-                                className="w-full border rounded-lg px-4 py-3 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 outline-none transition"
-                                value={selectedPlantilla}
-                                onChange={(e) => setSelectedPlantilla(e.target.value)}
-                              >
-                                <option value="">Sin plantilla (No laborable)</option>
-                                {plantillas.map((p: any) => (
-                                  <option key={p.id} value={p.id}>{p.nombre}</option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-primary">
-                              <Smartphone size={18} />
-                              <h3 className="font-bold uppercase tracking-wider text-xs">Acceso Móvil (PWA)</h3>
-                            </div>
-                            <div className="bg-muted/30 border border-border rounded-xl p-4 flex flex-col justify-between h-[calc(100%-2rem)]">
-                              <p className="text-sm font-medium">
-                                {adminData?.device_hash ? '✓ Dispositivo vinculado' : '⚠ Sin vincular'}
-                              </p>
-                              <button
-                                onClick={handleGenerateInvite}
-                                disabled={loadingInvite}
-                                className="w-full mt-2 flex items-center justify-center gap-2 py-2 bg-background border border-primary text-primary font-semibold rounded-lg hover:bg-primary hover:text-primary-foreground transition-all disabled:opacity-50 text-xs"
-                              >
-                                {loadingInvite ? 'Generando...' : 'Obtener invitación'}
-                                <Send size={12} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2 text-primary">
-                            <Mail size={18} />
-                            <h3 className="font-bold uppercase tracking-wider text-xs">Configuración de Email</h3>
-                          </div>
-
-                          <div className="bg-muted/10 border p-4 rounded-xl space-y-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-lg ${emailConfig?.modo === 'oauth2' ? 'bg-green-500/10 text-green-600' : 'bg-muted text-muted-foreground'}`}>
-                                  <Mail size={20} />
-                                </div>
-                                <div>
-                                  <p className="text-sm font-bold">{emailConfig?.modo === 'oauth2' ? 'Gmail Conectado' : 'Sin vincular'}</p>
-                                  <p className="text-[10px] text-muted-foreground">{emailConfig?.oauth2_email || 'Usa tu Gmail para enviar invitaciones'}</p>
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                {emailConfig?.modo === 'oauth2' ? (
-                                  <Button size="sm" variant="outline" onClick={handleSendTestEmail} disabled={sendingTestEmail} className="h-8 text-[10px]">
-                                    {sendingTestEmail ? 'Enviando...' : 'Test'}
-                                  </Button>
-                                ) : (
-                                  <Button size="sm" onClick={handleConnectGmail} disabled={connectingEmail} className="h-8 text-[10px]">
-                                    {connectingEmail ? 'Conectando...' : 'Conectar Gmail'}
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </TabsContent>
-
-                      {/* --- TABS CONTENT: EMPRESA --- */}
-                      <TabsContent value="empresa" className="m-0 space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-4">
-                            <Label className="text-sm font-medium">Logotipo de Empresa</Label>
-                            <input
-                              type="file"
-                              ref={logoInputRef}
-                              className="hidden"
-                              accept="image/*"
-                              onChange={(e) => handleFileChange(e, 'logo')}
-                            />
-                            <div
-                              className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2 hover:bg-muted/50 transition-colors cursor-pointer aspect-video bg-muted/20"
-                              onClick={() => handleFileUploadTrigger('logo')}
-                            >
-                              {empresaData.logo_path ? (
-                                <img
-                                  src={empresaData.logo_path.startsWith('data:') ? empresaData.logo_path : `/api/uploads/${empresaData.logo_path}`}
-                                  alt="Logo"
-                                  className="max-h-full object-contain"
-                                />
-                              ) : (
-                                <>
-                                  <Upload className="w-8 h-8 text-muted-foreground" />
-                                  <p className="text-xs text-muted-foreground font-medium">Subir Logo</p>
-                                  <p className="text-[10px] text-muted-foreground/60">Recomendado: 400x200px</p>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <Label className="text-sm font-medium">Certificado Digital (.p12 / .pfx)</Label>
-                            <input
-                              type="file"
-                              ref={certInputRef}
-                              className="hidden"
-                              accept=".pfx,.p12"
-                              onChange={(e) => handleFileChange(e, 'certificado')}
-                            />
-                            <div className="border border-border rounded-xl p-4 bg-muted/30 h-[calc(100%-2rem)] flex flex-col justify-between">
-                              <div className="flex items-start gap-3">
-                                <div className={`p-2 rounded-lg ${empresaData.certificado_path ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}>
-                                  <ShieldCheck size={20} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-bold truncate">
-                                    {empresaData.certificado_path ? "Certificado Activo" : "No configurado"}
-                                  </p>
-                                  {empresaData.certificado_info ? (
-                                    <div className="space-y-1 mt-1">
-                                      <p className="text-[10px] text-muted-foreground truncate" title={empresaData.certificado_info.subject}>
-                                        {empresaData.certificado_info.subject}
-                                      </p>
-                                      <p className="text-[10px] font-medium text-green-600">
-                                        Vence: {new Date(empresaData.certificado_info.validTo).toLocaleDateString()}
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    <p className="text-[10px] text-muted-foreground mt-1">Necesario para firma de facturas</p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-2 mt-2">
-                                {empresaData.certificado_path && (
-                                  <Button size="sm" variant="ghost" onClick={handleRemoveCertificate} className="h-8 text-[10px] text-red-500 hover:text-red-600 hover:bg-red-50">
-                                    <Trash2 size={12} className="mr-1" /> Eliminar
-                                  </Button>
-                                )}
-                                <Button size="sm" variant="outline" onClick={() => handleFileUploadTrigger('certificado')} className="h-8 text-[10px] bg-background">
-                                  {empresaData.certificado_path ? "Sustituir" : "Subir archivo"}
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>NIF / CIF</Label>
-                            <Input value={empresaData.nif} onChange={(e) => setEmpresaData({ ...empresaData, nif: e.target.value })} placeholder="X0000000X" />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Razón Social</Label>
-                            <Input value={empresaData.nombre} onChange={(e) => setEmpresaData({ ...empresaData, nombre: e.target.value })} placeholder="Empresa S.L." />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Nombre Comercial</Label>
-                          <Input value={empresaData.nombre_comercial} onChange={(e) => setEmpresaData({ ...empresaData, nombre_comercial: e.target.value })} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label><Phone className="inline w-3 h-3 mr-1" /> Teléfono</Label>
-                            <Input value={empresaData.telefono} onChange={(e) => setEmpresaData({ ...empresaData, telefono: e.target.value })} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label><Globe className="inline w-3 h-3 mr-1" /> Web</Label>
-                            <Input value={empresaData.web} onChange={(e) => setEmpresaData({ ...empresaData, web: e.target.value })} />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Dirección</Label>
-                          <Input value={empresaData.direccion} onChange={(e) => setEmpresaData({ ...empresaData, direccion: e.target.value })} />
-                        </div>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <Label>CP</Label>
-                            <Input value={empresaData.cp} onChange={(e) => setEmpresaData({ ...empresaData, cp: e.target.value })} />
-                          </div>
-                          <div className="space-y-2 col-span-2">
-                            <Label>Población</Label>
-                            <Input value={empresaData.poblacion} onChange={(e) => setEmpresaData({ ...empresaData, poblacion: e.target.value })} />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Registro Mercantil / Otros Datos</Label>
-                          <Textarea value={empresaData.registro_mercantil} onChange={(e) => setEmpresaData({ ...empresaData, registro_mercantil: e.target.value })} rows={2} />
-                        </div>
-                      </TabsContent>
-
-                      {/* --- TABS CONTENT: SISTEMA --- */}
-                      <TabsContent value="sistema" className="m-0 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Columna Módulos */}
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-primary">
-                              <Sparkles size={18} />
-                              <h3 className="font-bold uppercase tracking-wider text-xs">Módulos Activos</h3>
-                            </div>
-                            <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-3">
-                              {Object.entries(sistemaConfig.modulos).map(([key, active]: [string, any]) => (
-                                <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
-                                  <Label className="capitalize text-xs font-semibold">{key.replace('_', ' ')}</Label>
-                                  <Switch
-                                    checked={!!active}
-                                    onCheckedChange={(checked) => setSistemaConfig({
-                                      ...sistemaConfig,
-                                      modulos: { ...sistemaConfig.modulos, [key]: checked }
-                                    })}
-                                    className="scale-75 origin-right"
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Columna Backup y Google */}
-                          <div className="space-y-6">
-                            {/* Backup Section */}
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-2 text-amber-600">
-                                <Database size={18} />
-                                <h3 className="font-bold uppercase tracking-wider text-xs">Autorespaldo (PC Local)</h3>
-                              </div>
-                              <div className={cn(
-                                "border rounded-xl p-4 transition-all",
-                                directoryHandle ? "bg-green-500/5 border-green-500/20" : "bg-amber-500/5 border-amber-500/20"
-                              )}>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <FolderCog size={16} className={directoryHandle ? "text-green-600" : "text-amber-600"} />
-                                    <span className="text-[11px] font-bold uppercase">{directoryHandle ? "Vinculado" : "Desvinculado"}</span>
-                                  </div>
-                                  <Button size="sm" variant="secondary" onClick={handleConfigureFolder} className="h-7 text-[10px]">
-                                    {directoryHandle ? "Cambiar" : "Vincular PC"}
-                                  </Button>
-                                </div>
-                                <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
-                                  {directoryHandle ? "Este PC recibe copias automáticas al iniciar sesión." : "Vincula una carpeta para recibir backups físicos automáticamente."}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Google Calendar Section */}
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-2 text-blue-600">
-                                <CalendarIcon size={18} />
-                                <h3 className="font-bold uppercase tracking-wider text-xs">Google Calendar</h3>
-                              </div>
-                              <div className={cn(
-                                "border rounded-xl p-4 transition-all",
-                                googleCalendarConfig?.configured ? "bg-blue-500/5 border-blue-500/20" : "bg-muted border-border"
-                              )}>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <CheckCircle2 size={16} className={googleCalendarConfig?.configured ? "text-blue-600" : "text-muted-foreground"} />
-                                    <span className="text-[11px] font-bold uppercase">{googleCalendarConfig?.configured ? "Conectado" : "Desconectado"}</span>
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    onClick={googleCalendarConfig?.configured ? handleSyncCalendar : handleConnectCalendar}
-                                    disabled={connectingCalendar || syncingCalendar}
-                                    className="h-7 text-[10px]"
-                                  >
-                                    {connectingCalendar || syncingCalendar ? <Loader2 size={12} className="animate-spin" /> : (googleCalendarConfig?.configured ? "Sincronizar" : "Conectar")}
-                                  </Button>
-                                </div>
-                                {googleCalendarConfig?.configured && (
-                                  <p className="text-[10px] text-blue-600/80 font-medium mt-2 truncate">
-                                    📧 {googleCalendarConfig.oauth2_email}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </TabsContent>
-
-                      {/* --- TABS CONTENT: FACTURACIÓN --- */}
-                      <TabsContent value="facturacion" className="m-0 space-y-6 pb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-green-600">
-                              <ShieldCheck size={18} />
-                              <h3 className="font-bold uppercase tracking-wider text-xs">Cumplimiento y Seguridad</h3>
-                            </div>
-                            <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
-                              <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                  <Label className="text-xs font-bold">Modo Veri*Factu</Label>
-                                  <p className="text-[10px] text-muted-foreground leading-tight">Envío automático a la AEAT según Ley Antifraude</p>
-                                </div>
-                                <Switch
-                                  checked={facturacionData.verifactu_activo}
-                                  onCheckedChange={(c) => setFacturacionData({ ...facturacionData, verifactu_activo: c })}
-                                />
-                              </div>
-
-                              {facturacionData.verifactu_activo && (
-                                <div className="grid grid-cols-2 gap-2 pt-2">
-                                  <Button
-                                    size="sm"
-                                    variant={facturacionData.verifactu_modo === 'TEST' ? 'default' : 'outline'}
-                                    className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'TEST' && "bg-blue-600 hover:bg-blue-700")}
-                                    onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'TEST' })}
-                                  >
-                                    ENTORNO TEST
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant={facturacionData.verifactu_modo === 'PROD' ? 'default' : 'outline'}
-                                    className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'PROD' && "bg-red-600 hover:bg-red-700")}
-                                    onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'PROD' })}
-                                  >
-                                    PRODUCCIÓN
-                                  </Button>
-                                  {facturacionData.verifactu_modo === 'PROD' && (
-                                    <p className="col-span-2 text-[9px] text-red-600 font-bold flex items-center gap-1">
-                                      <AlertCircle size={10} /> ¡Atención! El modo producción envía datos reales a Hacienda.
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-
-                              <Separator />
-
-                              <div className="flex items-center justify-between opacity-80">
-                                <div className="space-y-0.5">
-                                  <Label className="text-xs font-bold">Facturas Inmutables</Label>
-                                  <p className="text-[10px] text-muted-foreground leading-tight">Bloqueo de edición tras validación</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[9px] font-bold text-green-600 uppercase">Activo por Ley</span>
-                                  <Switch checked={true} disabled />
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between opacity-80">
-                                <div className="space-y-0.5">
-                                  <Label className="text-xs font-bold">Prohibir Borrado</Label>
-                                  <p className="text-[10px] text-muted-foreground leading-tight">Trazabilidad contable total</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[9px] font-bold text-green-600 uppercase">Activo por Ley</span>
-                                  <Switch checked={true} disabled />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-blue-600">
-                              <Hash size={18} />
-                              <h3 className="font-bold uppercase tracking-wider text-xs">Numeración Inteligente</h3>
-                            </div>
-                            <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
-                              <div className="space-y-1.5">
-                                <Label className="text-[10px] uppercase text-muted-foreground font-bold">Tipo de Serie</Label>
-                                <select
-                                  className="w-full h-9 border rounded-md px-3 text-xs bg-background"
-                                  value={facturacionData.numeracion_tipo}
-                                  onChange={(e) => setFacturacionData({ ...facturacionData, numeracion_tipo: e.target.value })}
-                                  disabled={facturacionData.numeracion_locked}
-                                >
-                                  <option value="STANDARD">Continua (F-001)</option>
-                                  <option value="BY_YEAR">Por Año (F-2026-001)</option>
-                                  <option value="PREFIXED">Personalizada (SERIE-001)</option>
-                                </select>
-                              </div>
-
-                              {facturacionData.numeracion_tipo === 'PREFIXED' && (
-                                <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                                  <Label className="text-[10px] uppercase text-muted-foreground font-bold">Formato del Prefijo</Label>
-                                  <div className="flex gap-2">
-                                    <Input
-                                      className="h-8 text-xs"
-                                      value={facturacionData.numeracion_formato}
-                                      onChange={(e) => setFacturacionData({ ...facturacionData, numeracion_formato: e.target.value })}
-                                      placeholder="Ej: FAC-{YEAR}-"
-                                      disabled={facturacionData.numeracion_locked}
-                                    />
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {['{YEAR}', '{MONTH}', '{DAY}'].map(tag => (
-                                      <Button
-                                        key={tag}
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-6 text-[9px] px-2"
-                                        disabled={facturacionData.numeracion_locked}
-                                        onClick={() => setFacturacionData({ ...facturacionData, numeracion_formato: facturacionData.numeracion_formato + tag })}
-                                      >
-                                        + {tag.replace('{', '').replace('}', '')}
-                                      </Button>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
-                                <div className="flex justify-between items-center mb-1">
-                                  <span className="text-[9px] font-bold text-blue-600 uppercase">Previsualización</span>
-                                  <span className="text-[9px] text-muted-foreground italic">Próxima factura</span>
-                                </div>
-                                <p className="font-mono text-xs font-bold text-blue-700">
-                                  {facturacionData.numeracion_tipo === 'STANDARD' ? 'F-' : ''}
-                                  {facturacionData.numeracion_tipo === 'BY_YEAR' ? `F-${new Date().getFullYear()}-` : ''}
-                                  {facturacionData.numeracion_tipo === 'PREFIXED' ?
-                                    (facturacionData.numeracion_formato || '')
-                                      .replace('{YEAR}', new Date().getFullYear().toString())
-                                      .replace('{MONTH}', (new Date().getMonth() + 1).toString().padStart(2, '0'))
-                                      .replace('{DAY}', new Date().getDate().toString().padStart(2, '0'))
-                                    : ''
-                                  }
-                                  {(facturacionData.correlativo_inicial + 1).toString().padStart(4, '0')}
-                                </p>
-                              </div>
-
-                              {facturacionData.numeracion_locked && (
-                                <p className="text-[9px] text-amber-600 font-medium flex items-center gap-1">
-                                  <AlertCircle size={10} /> Numeración bloqueada por facturas emitidas.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* --- Asistente de Migración Fiscal (OCR) --- */}
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2 text-amber-600">
-                            <Sparkles size={18} />
-                            <h3 className="font-bold uppercase tracking-wider text-xs">Asistente de Migración Fiscal</h3>
-                          </div>
-                          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-4">
-                            <p className="text-[11px] text-muted-foreground leading-tight">
-                              Sube tu última factura emitida para configurar automáticamente la numeración y series mediante IA.
-                            </p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label className="text-[10px] uppercase font-bold">Evidencia de Cierre (PDF/Imagen)</Label>
-                                <input
-                                  type="file"
-                                  ref={migracionInputRef}
-                                  className="hidden"
-                                  accept="application/pdf,image/*"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-
-                                    const reader = new FileReader();
-                                    reader.onload = async () => {
-                                      const base64 = reader.result?.toString().split(',')[1];
-                                      if (!base64) return;
-
-                                      setGeneratingAiField('migracion');
-                                      toast.promise(
-                                        api.post("/admin/facturacion/configuracion/emisor/ocr-migracion", { file: base64 }),
-                                        {
-                                          loading: 'Analizando factura con OCR inteligente...',
-                                          success: (res: any) => {
-                                            const ext = res.data.data;
-                                            setFacturacionData((prev: any) => ({
-                                              ...prev,
-                                              correlativo_inicial: ext.numeracion.ultimo_numero,
-                                              migracion_last_serie: ext.numeracion.serie,
-                                              migracion_last_subtotal: ext.economicos.subtotal,
-                                              migracion_last_total: ext.economicos.total,
-                                              migracion_last_pdf: file.name
-                                            }));
-                                            setOcrConfidence({
-                                              numeracion: ext.numeracion.confidence,
-                                              identidad: ext.identidad.confidence,
-                                              economicos: ext.economicos.confidence
-                                            });
-                                            setGeneratingAiField(null);
-                                            return `Factura analizada. Fiabilidad: ${(ext.numeracion.confidence * 100).toFixed(0)}%`;
-                                          },
-                                          error: (err) => {
-                                            setGeneratingAiField(null);
-                                            return 'No se pudo extraer información. Por favor, rellena manualmente.';
-                                          }
-                                        }
-                                      );
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }}
-                                />
-                                <Button
-                                  variant="outline"
-                                  className="w-full flex justify-between h-9 px-3 font-normal text-xs"
-                                  onClick={() => migracionInputRef.current?.click()}
-                                  disabled={generatingAiField === 'migracion'}
-                                >
-                                  <span className="truncate">{facturacionData.migracion_last_pdf ? "✓ Factura subida" : "Seleccionar archivo..."}</span>
-                                  {generatingAiField === 'migracion' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} className="text-muted-foreground" />}
-                                </Button>
-                              </div>
-
-                              <div className="space-y-3">
-                                <div className="flex items-start gap-3 p-3 rounded-lg border bg-background/50">
-                                  <Switch
-                                    checked={facturacionData.migracion_legal_aceptado}
-                                    onCheckedChange={v => setFacturacionData({ ...facturacionData, migracion_legal_aceptado: v, migracion_fecha_aceptacion: v ? new Date().toISOString() : null })}
-                                  />
-                                  <div className="space-y-1">
-                                    <Label className="text-[10px] font-bold leading-none uppercase">Responsabilidad Legal</Label>
-                                    <p className="text-[9px] text-muted-foreground leading-tight">
-                                      Confirmo que el número inicial coincide con mi contabilidad previa. Eximo a la plataforma de cualquier responsabilidad por saltos en la serie.
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {ocrConfidence.numeracion > 0 && (
-                              <div className="flex gap-4 p-2 bg-muted/30 rounded-lg justify-center">
-                                <div className="flex flex-col items-center">
-                                  <span className="text-[8px] uppercase text-muted-foreground">Numeración</span>
-                                  <span className={cn("text-[10px] font-bold", ocrConfidence.numeracion > 0.8 ? "text-green-600" : "text-amber-500")}>{(ocrConfidence.numeracion * 100).toFixed(0)}%</span>
-                                </div>
-                                <div className="flex flex-col items-center">
-                                  <span className="text-[8px] uppercase text-muted-foreground">Económicos</span>
-                                  <span className={cn("text-[10px] font-bold", ocrConfidence.economicos > 0.8 ? "text-green-600" : "text-amber-500")}>{(ocrConfidence.economicos * 100).toFixed(0)}%</span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-4 pt-4">
-                          <div className="flex items-center gap-2 text-primary">
-                            <FileText size={18} />
-                            <h3 className="font-bold uppercase tracking-wider text-xs">Ajustes Adicionales y Textos Legales</h3>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-1">
-                              <Label className="text-[10px] uppercase font-bold">ID Serie Actual</Label>
-                              <Input
-                                className="h-8 text-xs font-mono"
-                                value={facturacionData.serie}
-                                onChange={(e) => setFacturacionData({ ...facturacionData, serie: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-[10px] uppercase font-bold">Próximo Número</Label>
-                              <Input
-                                type="number"
-                                className="h-8 text-xs font-mono"
-                                value={facturacionData.siguiente_numero}
-                                onChange={(e) => setFacturacionData({ ...facturacionData, siguiente_numero: parseInt(e.target.value) || 0 })}
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-[10px] uppercase font-bold">IBAN (Aparece en Factura)</Label>
-                              <Input
-                                className="h-8 text-xs font-mono"
-                                value={empresaData.iban}
-                                onChange={(e) => setEmpresaData({ ...empresaData, iban: e.target.value })}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label className="text-xs">Pie de Factura (General)</Label>
-                              <Textarea
-                                className="text-xs min-h-[60px]"
-                                value={facturacionData.texto_pie}
-                                onChange={(e) => setFacturacionData({ ...facturacionData, texto_pie: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-xs">Texto Exención IVA (si aplica)</Label>
-                              <Textarea
-                                className="text-xs min-h-[60px]"
-                                value={facturacionData.texto_exento}
-                                onChange={(e) => setFacturacionData({ ...facturacionData, texto_exento: e.target.value })}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </TabsContent>
-
-                      {/* --- TABS CONTENT: ESCRITORIO --- */}
-                      <TabsContent value="escritorio" className="m-0 space-y-6">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-primary">
-                              <LayoutGrid size={18} />
-                              <h3 className="font-bold uppercase tracking-wider text-xs">Configuración del Dashboard</h3>
-                            </div>
-
-                            {/* Selector de Perfil Dual */}
-                            <div className="flex bg-muted rounded-lg p-1 gap-1">
-                              <Button
-                                size="sm"
-                                variant={activeWidgetProfile === 'desktop' ? 'secondary' : 'ghost'}
-                                className="h-7 text-[10px] px-3 font-bold"
-                                onClick={() => setActiveWidgetProfile('desktop')}
-                              >
-                                <Settings size={12} className="mr-1.5" /> ESCRITORIO
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant={activeWidgetProfile === 'mobile' ? 'secondary' : 'ghost'}
-                                className="h-7 text-[10px] px-3 font-bold"
-                                onClick={() => setActiveWidgetProfile('mobile')}
-                              >
-                                <Smartphone size={12} className="mr-1.5" /> PWA MÓVIL
-                              </Button>
-                            </div>
-                          </div>
-
-                          <p className="text-xs text-muted-foreground leading-tight italic">
-                            {activeWidgetProfile === 'desktop'
-                              ? "Personaliza los widgets para la versión de escritorio de alta densidad."
-                              : "Optimiza la vista para dispositivos móviles y modo PWA."}
-                          </p>
-
-                          <div className="bg-muted/20 border border-border rounded-xl p-2 grid grid-cols-1 md:grid-cols-2 gap-1">
-                            {(activeWidgetProfile === 'desktop' ? dashboardWidgets : dashboardWidgetsMobile).map((w: any) => (
-                              <div key={w.id} className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-lg transition-colors group">
-                                <div className="flex items-center gap-3">
-                                  <div className="p-2 bg-background border rounded-md text-muted-foreground group-hover:text-primary transition-colors">
-                                    <LayoutGrid size={14} />
-                                  </div>
-                                  <span className="text-xs font-medium">{w.id.replace(/_/g, ' ').replace('kpi', 'KPI:').toUpperCase()}</span>
-                                </div>
-                                <Switch
-                                  checked={w.visible}
-                                  onCheckedChange={(checked) => {
-                                    const updateFn = activeWidgetProfile === 'desktop' ? setDashboardWidgets : setDashboardWidgetsMobile;
-                                    updateFn(prev => prev.map(item =>
-                                      item.id === w.id ? { ...item, visible: checked } : item
-                                    ));
-                                  }}
-                                  className="scale-75 origin-right"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </TabsContent>
-                    </>
-                  )}
+                <div className="flex items-center gap-2">
+                  <div
+                    className="cursor-move p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground mr-2"
+                    onPointerDown={(e) => dragControls.start(e)}
+                    style={{ touchAction: 'none' }}
+                  >
+                    <GripHorizontal size={20} />
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all"
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
               </div>
-            </Tabs>
+
+              <div className="flex-1 overflow-hidden flex flex-col">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+                  <div className="px-6 border-b border-border bg-muted/20">
+                    <TabsList className="h-12 w-full justify-start gap-4 bg-transparent p-0">
+                      {(!sistemaConfig.modulos?.empleados || activeTab === 'perfil') && (
+                        <TabsTrigger value="perfil" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2">
+                          <User size={16} /> Perfil
+                        </TabsTrigger>
+                      )}
+                      <TabsTrigger value="empresa" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
+                        <Building2 size={16} /> Empresa
+                      </TabsTrigger>
+                      <TabsTrigger value="sistema" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
+                        <Settings size={16} /> Sistema
+                      </TabsTrigger>
+                      {sistemaConfig.modulos?.facturacion && (
+                        <TabsTrigger value="facturacion" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
+                          <FileText size={16} /> Facturación
+                        </TabsTrigger>
+                      )}
+                      <TabsTrigger value="escritorio" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none h-full px-2 gap-2 text-xs md:text-sm">
+                        <LayoutGrid size={16} /> Escritorio
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="p-6">
+                      {loading ? (
+                        <div className="py-20 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                          <Loader2 className="animate-spin" size={32} />
+                          <p className="font-medium">Cargando configuración...</p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* --- TABS CONTENT: PERFIL --- */}
+                          <TabsContent value="perfil" className="m-0 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-primary">
+                                  <Clock size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Jornada Laboral</h3>
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Plantilla de Horario</Label>
+                                  <select
+                                    className="w-full border rounded-lg px-4 py-3 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                    value={selectedPlantilla}
+                                    onChange={(e) => setSelectedPlantilla(e.target.value)}
+                                  >
+                                    <option value="">Sin plantilla (No laborable)</option>
+                                    {plantillas.map((p: any) => (
+                                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-primary">
+                                  <Smartphone size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Acceso Móvil (PWA)</h3>
+                                </div>
+                                <div className="bg-muted/30 border border-border rounded-xl p-4 flex flex-col justify-between h-[calc(100%-2rem)]">
+                                  <p className="text-sm font-medium">
+                                    {adminData?.device_hash ? '✓ Dispositivo vinculado' : '⚠ Sin vincular'}
+                                  </p>
+                                  <button
+                                    onClick={handleGenerateInvite}
+                                    disabled={loadingInvite}
+                                    className="w-full mt-2 flex items-center justify-center gap-2 py-2 bg-background border border-primary text-primary font-semibold rounded-lg hover:bg-primary hover:text-primary-foreground transition-all disabled:opacity-50 text-xs"
+                                  >
+                                    {loadingInvite ? 'Generando...' : 'Obtener invitación'}
+                                    <Send size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2 text-primary">
+                                <Mail size={18} />
+                                <h3 className="font-bold uppercase tracking-wider text-xs">Configuración de Email</h3>
+                              </div>
+
+                              <div className="bg-muted/10 border p-4 rounded-xl space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${emailConfig?.modo === 'oauth2' ? 'bg-green-500/10 text-green-600' : 'bg-muted text-muted-foreground'}`}>
+                                      <Mail size={20} />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-bold">{emailConfig?.modo === 'oauth2' ? 'Gmail Conectado' : 'Sin vincular'}</p>
+                                      <p className="text-[10px] text-muted-foreground">{emailConfig?.oauth2_email || 'Usa tu Gmail para enviar invitaciones'}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    {emailConfig?.modo === 'oauth2' ? (
+                                      <Button size="sm" variant="outline" onClick={handleSendTestEmail} disabled={sendingTestEmail} className="h-8 text-[10px]">
+                                        {sendingTestEmail ? 'Enviando...' : 'Test'}
+                                      </Button>
+                                    ) : (
+                                      <Button size="sm" onClick={handleConnectGmail} disabled={connectingEmail} className="h-8 text-[10px]">
+                                        {connectingEmail ? 'Conectando...' : 'Conectar Gmail'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </TabsContent>
+
+                          {/* --- TABS CONTENT: EMPRESA --- */}
+                          <TabsContent value="empresa" className="m-0 space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-4">
+                                <Label className="text-sm font-medium">Logotipo de Empresa</Label>
+                                <input
+                                  type="file"
+                                  ref={logoInputRef}
+                                  className="hidden"
+                                  accept="image/*"
+                                  onChange={(e) => handleFileChange(e, 'logo')}
+                                />
+                                <div
+                                  className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2 hover:bg-muted/50 transition-colors cursor-pointer aspect-video bg-muted/20"
+                                  onClick={() => handleFileUploadTrigger('logo')}
+                                >
+                                  {empresaData.logo_path ? (
+                                    <img
+                                      src={empresaData.logo_path.startsWith('data:') ? empresaData.logo_path : `/api/uploads/${empresaData.logo_path}`}
+                                      alt="Logo"
+                                      className="max-h-full object-contain"
+                                    />
+                                  ) : (
+                                    <>
+                                      <Upload className="w-8 h-8 text-muted-foreground" />
+                                      <p className="text-xs text-muted-foreground font-medium">Subir Logo</p>
+                                      <p className="text-[10px] text-muted-foreground/60">Recomendado: 400x200px</p>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <Label className="text-sm font-medium">Certificado Digital (.p12 / .pfx)</Label>
+                                <input
+                                  type="file"
+                                  ref={certInputRef}
+                                  className="hidden"
+                                  accept=".pfx,.p12"
+                                  onChange={(e) => handleFileChange(e, 'certificado')}
+                                />
+                                <div className="border border-border rounded-xl p-4 bg-muted/30 h-[calc(100%-2rem)] flex flex-col justify-between">
+                                  <div className="flex items-start gap-3">
+                                    <div className={`p-2 rounded-lg ${empresaData.certificado_path ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}>
+                                      <ShieldCheck size={20} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-bold truncate">
+                                        {empresaData.certificado_path ? "Certificado Activo" : "No configurado"}
+                                      </p>
+                                      {empresaData.certificado_info ? (
+                                        <div className="space-y-1 mt-1">
+                                          <p className="text-[10px] text-muted-foreground truncate" title={empresaData.certificado_info.subject}>
+                                            {empresaData.certificado_info.subject}
+                                          </p>
+                                          <p className="text-[10px] font-medium text-green-600">
+                                            Vence: {new Date(empresaData.certificado_info.validTo).toLocaleDateString()}
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <p className="text-[10px] text-muted-foreground mt-1">Necesario para firma de facturas</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2 mt-2">
+                                    {empresaData.certificado_path && (
+                                      <Button size="sm" variant="ghost" onClick={handleRemoveCertificate} className="h-8 text-[10px] text-red-500 hover:text-red-600 hover:bg-red-50">
+                                        <Trash2 size={12} className="mr-1" /> Eliminar
+                                      </Button>
+                                    )}
+                                    <Button size="sm" variant="outline" onClick={() => handleFileUploadTrigger('certificado')} className="h-8 text-[10px] bg-background">
+                                      {empresaData.certificado_path ? "Sustituir" : "Subir archivo"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>NIF / CIF</Label>
+                                <Input value={empresaData.nif} onChange={(e) => setEmpresaData({ ...empresaData, nif: e.target.value })} placeholder="X0000000X" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Razón Social</Label>
+                                <Input value={empresaData.nombre} onChange={(e) => setEmpresaData({ ...empresaData, nombre: e.target.value })} placeholder="Empresa S.L." />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Nombre Comercial</Label>
+                              <Input value={empresaData.nombre_comercial} onChange={(e) => setEmpresaData({ ...empresaData, nombre_comercial: e.target.value })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label><Phone className="inline w-3 h-3 mr-1" /> Teléfono</Label>
+                                <Input value={empresaData.telefono} onChange={(e) => setEmpresaData({ ...empresaData, telefono: e.target.value })} />
+                              </div>
+                              <div className="space-y-2">
+                                <Label><Globe className="inline w-3 h-3 mr-1" /> Web</Label>
+                                <Input value={empresaData.web} onChange={(e) => setEmpresaData({ ...empresaData, web: e.target.value })} />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Dirección</Label>
+                              <Input value={empresaData.direccion} onChange={(e) => setEmpresaData({ ...empresaData, direccion: e.target.value })} />
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                              <div className="space-y-2">
+                                <Label>CP</Label>
+                                <Input value={empresaData.cp} onChange={(e) => setEmpresaData({ ...empresaData, cp: e.target.value })} />
+                              </div>
+                              <div className="space-y-2 col-span-2">
+                                <Label>Población</Label>
+                                <Input value={empresaData.poblacion} onChange={(e) => setEmpresaData({ ...empresaData, poblacion: e.target.value })} />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Registro Mercantil / Otros Datos</Label>
+                              <Textarea value={empresaData.registro_mercantil} onChange={(e) => setEmpresaData({ ...empresaData, registro_mercantil: e.target.value })} rows={2} />
+                            </div>
+                          </TabsContent>
+
+                          {/* --- TABS CONTENT: SISTEMA --- */}
+                          <TabsContent value="sistema" className="m-0 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Columna Módulos */}
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-primary">
+                                  <Sparkles size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Módulos Activos</h3>
+                                </div>
+                                <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-3">
+                                  {Object.entries(sistemaConfig.modulos).map(([key, active]: [string, any]) => (
+                                    <div key={key} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
+                                      <Label className="capitalize text-xs font-semibold">{key.replace('_', ' ')}</Label>
+                                      <Switch
+                                        checked={!!active}
+                                        onCheckedChange={(checked) => setSistemaConfig({
+                                          ...sistemaConfig,
+                                          modulos: { ...sistemaConfig.modulos, [key]: checked }
+                                        })}
+                                        className="scale-75 origin-right"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Columna Backup y Google */}
+                              <div className="space-y-6">
+                                {/* Backup Section */}
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2 text-amber-600">
+                                    <Database size={18} />
+                                    <h3 className="font-bold uppercase tracking-wider text-xs">Autorespaldo (PC Local)</h3>
+                                  </div>
+                                  <div className={cn(
+                                    "border rounded-xl p-4 transition-all",
+                                    directoryHandle ? "bg-green-500/5 border-green-500/20" : "bg-amber-500/5 border-amber-500/20"
+                                  )}>
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <FolderCog size={16} className={directoryHandle ? "text-green-600" : "text-amber-600"} />
+                                        <span className="text-[11px] font-bold uppercase">{directoryHandle ? "Vinculado" : "Desvinculado"}</span>
+                                      </div>
+                                      <Button size="sm" variant="secondary" onClick={handleConfigureFolder} className="h-7 text-[10px]">
+                                        {directoryHandle ? "Cambiar" : "Vincular PC"}
+                                      </Button>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                                      {directoryHandle ? "Este PC recibe copias automáticas al iniciar sesión." : "Vincula una carpeta para recibir backups físicos automáticamente."}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Google Calendar Section */}
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2 text-blue-600">
+                                    <CalendarIcon size={18} />
+                                    <h3 className="font-bold uppercase tracking-wider text-xs">Google Calendar</h3>
+                                  </div>
+                                  <div className={cn(
+                                    "border rounded-xl p-4 transition-all",
+                                    googleCalendarConfig?.configured ? "bg-blue-500/5 border-blue-500/20" : "bg-muted border-border"
+                                  )}>
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <CheckCircle2 size={16} className={googleCalendarConfig?.configured ? "text-blue-600" : "text-muted-foreground"} />
+                                        <span className="text-[11px] font-bold uppercase">{googleCalendarConfig?.configured ? "Conectado" : "Desconectado"}</span>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        onClick={googleCalendarConfig?.configured ? handleSyncCalendar : handleConnectCalendar}
+                                        disabled={connectingCalendar || syncingCalendar}
+                                        className="h-7 text-[10px]"
+                                      >
+                                        {connectingCalendar || syncingCalendar ? <Loader2 size={12} className="animate-spin" /> : (googleCalendarConfig?.configured ? "Sincronizar" : "Conectar")}
+                                      </Button>
+                                    </div>
+                                    {googleCalendarConfig?.configured && (
+                                      <p className="text-[10px] text-blue-600/80 font-medium mt-2 truncate">
+                                        📧 {googleCalendarConfig.oauth2_email}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </TabsContent>
+
+                          {/* --- TABS CONTENT: FACTURACIÓN --- */}
+                          <TabsContent value="facturacion" className="m-0 space-y-6 pb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-green-600">
+                                  <ShieldCheck size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Cumplimiento y Seguridad</h3>
+                                </div>
+                                <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-xs font-bold">Modo Veri*Factu</Label>
+                                      <p className="text-[10px] text-muted-foreground leading-tight">Envío automático a la AEAT según Ley Antifraude</p>
+                                    </div>
+                                    <Switch
+                                      checked={facturacionData.verifactu_activo}
+                                      onCheckedChange={(c) => setFacturacionData({ ...facturacionData, verifactu_activo: c })}
+                                    />
+                                  </div>
+
+                                  {facturacionData.verifactu_activo && (
+                                    <div className="grid grid-cols-2 gap-2 pt-2">
+                                      <Button
+                                        size="sm"
+                                        variant={facturacionData.verifactu_modo === 'TEST' ? 'default' : 'outline'}
+                                        className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'TEST' && "bg-blue-600 hover:bg-blue-700")}
+                                        onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'TEST' })}
+                                      >
+                                        ENTORNO TEST
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant={facturacionData.verifactu_modo === 'PROD' ? 'default' : 'outline'}
+                                        className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'PROD' && "bg-red-600 hover:bg-red-700")}
+                                        onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'PROD' })}
+                                      >
+                                        PRODUCCIÓN
+                                      </Button>
+                                      {facturacionData.verifactu_modo === 'PROD' && (
+                                        <p className="col-span-2 text-[9px] text-red-600 font-bold flex items-center gap-1">
+                                          <AlertCircle size={10} /> ¡Atención! El modo producción envía datos reales a Hacienda.
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  <Separator />
+
+                                  <div className="flex items-center justify-between opacity-80">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-xs font-bold">Facturas Inmutables</Label>
+                                      <p className="text-[10px] text-muted-foreground leading-tight">Bloqueo de edición tras validación</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[9px] font-bold text-green-600 uppercase">Activo por Ley</span>
+                                      <Switch checked={true} disabled />
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center justify-between opacity-80">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-xs font-bold">Prohibir Borrado</Label>
+                                      <p className="text-[10px] text-muted-foreground leading-tight">Trazabilidad contable total</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[9px] font-bold text-green-600 uppercase">Activo por Ley</span>
+                                      <Switch checked={true} disabled />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-blue-600">
+                                  <Hash size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Numeración Inteligente</h3>
+                                </div>
+                                <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
+                                  <div className="space-y-1.5">
+                                    <Label className="text-[10px] uppercase text-muted-foreground font-bold">Tipo de Serie</Label>
+                                    <select
+                                      className="w-full h-9 border rounded-md px-3 text-xs bg-background"
+                                      value={facturacionData.numeracion_tipo}
+                                      onChange={(e) => setFacturacionData({ ...facturacionData, numeracion_tipo: e.target.value })}
+                                      disabled={facturacionData.numeracion_locked}
+                                    >
+                                      <option value="STANDARD">Continua (F-001)</option>
+                                      <option value="BY_YEAR">Por Año (F-2026-001)</option>
+                                      <option value="PREFIXED">Personalizada (SERIE-001)</option>
+                                    </select>
+                                  </div>
+
+                                  {facturacionData.numeracion_tipo === 'PREFIXED' && (
+                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                                      <Label className="text-[10px] uppercase text-muted-foreground font-bold">Formato del Prefijo</Label>
+                                      <div className="flex gap-2">
+                                        <Input
+                                          className="h-8 text-xs"
+                                          value={facturacionData.numeracion_formato}
+                                          onChange={(e) => setFacturacionData({ ...facturacionData, numeracion_formato: e.target.value })}
+                                          placeholder="Ej: FAC-{YEAR}-"
+                                          disabled={facturacionData.numeracion_locked}
+                                        />
+                                      </div>
+                                      <div className="flex flex-wrap gap-1">
+                                        {['{YEAR}', '{MONTH}', '{DAY}'].map(tag => (
+                                          <Button
+                                            key={tag}
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 text-[9px] px-2"
+                                            disabled={facturacionData.numeracion_locked}
+                                            onClick={() => setFacturacionData({ ...facturacionData, numeracion_formato: facturacionData.numeracion_formato + tag })}
+                                          >
+                                            + {tag.replace('{', '').replace('}', '')}
+                                          </Button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <span className="text-[9px] font-bold text-blue-600 uppercase">Previsualización</span>
+                                      <span className="text-[9px] text-muted-foreground italic">Próxima factura</span>
+                                    </div>
+                                    <p className="font-mono text-xs font-bold text-blue-700">
+                                      {facturacionData.numeracion_tipo === 'STANDARD' ? 'F-' : ''}
+                                      {facturacionData.numeracion_tipo === 'BY_YEAR' ? `F-${new Date().getFullYear()}-` : ''}
+                                      {facturacionData.numeracion_tipo === 'PREFIXED' ?
+                                        (facturacionData.numeracion_formato || '')
+                                          .replace('{YEAR}', new Date().getFullYear().toString())
+                                          .replace('{MONTH}', (new Date().getMonth() + 1).toString().padStart(2, '0'))
+                                          .replace('{DAY}', new Date().getDate().toString().padStart(2, '0'))
+                                        : ''
+                                      }
+                                      {(facturacionData.siguiente_numero || 1).toString().padStart(4, '0')}
+                                    </p>
+                                  </div>
+
+                                  {facturacionData.numeracion_locked && (
+                                    <p className="text-[9px] text-amber-600 font-medium flex items-center gap-1">
+                                      <AlertCircle size={10} /> Numeración bloqueada por facturas emitidas.
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* --- Asistente de Migración Fiscal (OCR) --- */}
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2 text-amber-600">
+                                <Sparkles size={18} />
+                                <h3 className="font-bold uppercase tracking-wider text-xs">Asistente de Migración Fiscal</h3>
+                              </div>
+                              <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-4">
+                                <p className="text-[11px] text-muted-foreground leading-tight">
+                                  Sube tu última factura emitida para configurar automáticamente la numeración y series mediante IA.
+                                </p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase font-bold">Evidencia de Cierre (PDF/Imagen)</Label>
+                                    <input
+                                      type="file"
+                                      ref={migracionInputRef}
+                                      className="hidden"
+                                      accept="application/pdf,image/*"
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+
+                                        const reader = new FileReader();
+                                        reader.onload = async () => {
+                                          const base64 = reader.result?.toString().split(',')[1];
+                                          if (!base64) return;
+
+                                          setGeneratingAiField('migracion');
+                                          toast.promise(
+                                            api.post("/admin/facturacion/configuracion/emisor/ocr-migracion", { file: base64 }),
+                                            {
+                                              loading: 'Analizando factura con OCR inteligente...',
+                                              success: (res: any) => {
+                                                const ext = res.data.data;
+                                                setFacturacionData((prev: any) => ({
+                                                  ...prev,
+                                                  correlativo_inicial: ext.numeracion.ultimo_numero,
+                                                  migracion_last_serie: ext.numeracion.serie,
+                                                  migracion_last_subtotal: ext.economicos.subtotal,
+                                                  migracion_last_total: ext.economicos.total,
+                                                  migracion_last_pdf: file.name
+                                                }));
+                                                setOcrConfidence({
+                                                  numeracion: ext.numeracion.confidence,
+                                                  identidad: ext.identidad.confidence,
+                                                  economicos: ext.economicos.confidence
+                                                });
+                                                setGeneratingAiField(null);
+                                                return `Factura analizada. Fiabilidad: ${(ext.numeracion.confidence * 100).toFixed(0)}%`;
+                                              },
+                                              error: (err) => {
+                                                setGeneratingAiField(null);
+                                                return 'No se pudo extraer información. Por favor, rellena manualmente.';
+                                              }
+                                            }
+                                          );
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }}
+                                    />
+                                    <Button
+                                      variant="outline"
+                                      className="w-full flex justify-between h-9 px-3 font-normal text-xs"
+                                      onClick={() => migracionInputRef.current?.click()}
+                                      disabled={generatingAiField === 'migracion'}
+                                    >
+                                      <span className="truncate">{facturacionData.migracion_last_pdf ? "✓ Factura subida" : "Seleccionar archivo..."}</span>
+                                      {generatingAiField === 'migracion' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} className="text-muted-foreground" />}
+                                    </Button>
+                                  </div>
+
+                                  <div className="space-y-3">
+                                    <div className="flex items-start gap-3 p-3 rounded-lg border bg-background/50">
+                                      <Switch
+                                        checked={facturacionData.migracion_legal_aceptado}
+                                        onCheckedChange={v => setFacturacionData({ ...facturacionData, migracion_legal_aceptado: v, migracion_fecha_aceptacion: v ? new Date().toISOString() : null })}
+                                      />
+                                      <div className="space-y-1">
+                                        <Label className="text-[10px] font-bold leading-none uppercase">Responsabilidad Legal</Label>
+                                        <p className="text-[9px] text-muted-foreground leading-tight">
+                                          Confirmo que el número inicial coincide con mi contabilidad previa. Eximo a la plataforma de cualquier responsabilidad por saltos en la serie.
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {ocrConfidence.numeracion > 0 && (
+                                  <div className="flex gap-4 p-2 bg-muted/30 rounded-lg justify-center">
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[8px] uppercase text-muted-foreground">Numeración</span>
+                                      <span className={cn("text-[10px] font-bold", ocrConfidence.numeracion > 0.8 ? "text-green-600" : "text-amber-500")}>{(ocrConfidence.numeracion * 100).toFixed(0)}%</span>
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[8px] uppercase text-muted-foreground">Económicos</span>
+                                      <span className={cn("text-[10px] font-bold", ocrConfidence.economicos > 0.8 ? "text-green-600" : "text-amber-500")}>{(ocrConfidence.economicos * 100).toFixed(0)}%</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4">
+                              <div className="flex items-center gap-2 text-primary">
+                                <FileText size={18} />
+                                <h3 className="font-bold uppercase tracking-wider text-xs">Ajustes Adicionales y Textos Legales</h3>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] uppercase font-bold">ID Serie Actual</Label>
+                                  <Input
+                                    className="h-8 text-xs font-mono"
+                                    value={facturacionData.serie}
+                                    onChange={(e) => setFacturacionData({ ...facturacionData, serie: e.target.value })}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] uppercase font-bold">Próximo Número</Label>
+                                  <Input
+                                    type="number"
+                                    className="h-8 text-xs font-mono"
+                                    value={facturacionData.siguiente_numero}
+                                    onChange={(e) => setFacturacionData({ ...facturacionData, siguiente_numero: parseInt(e.target.value) || 0 })}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] uppercase font-bold">IBAN (Aparece en Factura)</Label>
+                                  <Input
+                                    className="h-8 text-xs font-mono"
+                                    value={empresaData.iban}
+                                    onChange={(e) => setEmpresaData({ ...empresaData, iban: e.target.value })}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label className="text-xs">Pie de Factura (General)</Label>
+                                  <Textarea
+                                    className="text-xs min-h-[60px]"
+                                    value={facturacionData.texto_pie}
+                                    onChange={(e) => setFacturacionData({ ...facturacionData, texto_pie: e.target.value })}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-xs">Texto Exención IVA (si aplica)</Label>
+                                  <Textarea
+                                    className="text-xs min-h-[60px]"
+                                    value={facturacionData.texto_exento}
+                                    onChange={(e) => setFacturacionData({ ...facturacionData, texto_exento: e.target.value })}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </TabsContent>
+
+                          {/* --- TABS CONTENT: ESCRITORIO --- */}
+                          <TabsContent value="escritorio" className="m-0 space-y-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-primary">
+                                  <LayoutGrid size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Configuración del Dashboard</h3>
+                                </div>
+
+                                {/* Selector de Perfil Dual */}
+                                <div className="flex bg-muted rounded-lg p-1 gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant={activeWidgetProfile === 'desktop' ? 'secondary' : 'ghost'}
+                                    className="h-7 text-[10px] px-3 font-bold"
+                                    onClick={() => setActiveWidgetProfile('desktop')}
+                                  >
+                                    <Settings size={12} className="mr-1.5" /> ESCRITORIO
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant={activeWidgetProfile === 'mobile' ? 'secondary' : 'ghost'}
+                                    className="h-7 text-[10px] px-3 font-bold"
+                                    onClick={() => setActiveWidgetProfile('mobile')}
+                                  >
+                                    <Smartphone size={12} className="mr-1.5" /> PWA MÓVIL
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <p className="text-xs text-muted-foreground leading-tight italic">
+                                {activeWidgetProfile === 'desktop'
+                                  ? "Personaliza los widgets para la versión de escritorio de alta densidad."
+                                  : "Optimiza la vista para dispositivos móviles y modo PWA."}
+                              </p>
+
+                              <div className="bg-muted/20 border border-border rounded-xl p-2 grid grid-cols-1 md:grid-cols-2 gap-1">
+                                {(activeWidgetProfile === 'desktop' ? dashboardWidgets : dashboardWidgetsMobile).map((w: any) => (
+                                  <div key={w.id} className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-lg transition-colors group border border-transparent hover:border-border">
+                                    <div className="flex items-center gap-3">
+                                      <div className="p-2 bg-background border rounded-md text-muted-foreground group-hover:text-primary transition-colors">
+                                        {w.id.includes('list') ? <FileText size={14} /> : (w.id.includes('chart') ? <TrendingUp size={14} /> : <LayoutGrid size={14} />)}
+                                      </div>
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-bold leading-none">{w.id.replace(/_/g, ' ').replace('kpi', 'KPI:').toUpperCase()}</span>
+                                        {w.id === 'kpi_beneficio' && <span className="text-[10px] text-green-600 font-medium">Beneficio Real</span>}
+                                        {w.id === 'list_facturas' && <span className="text-[10px] text-amber-600 font-medium">Facturas Pendientes</span>}
+                                      </div>
+                                    </div>
+                                    <Switch
+                                      checked={w.visible}
+                                      onCheckedChange={(checked) => {
+                                        const updateFn = activeWidgetProfile === 'desktop' ? setDashboardWidgets : setDashboardWidgetsMobile;
+                                        updateFn(prev => prev.map((item: any) =>
+                                          item.id === w.id ? { ...item, visible: checked } : item
+                                        ));
+                                      }}
+                                      className="scale-75 origin-right"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </TabsContent>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </Tabs>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-border flex justify-end gap-3 bg-muted/10">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2.5 font-bold text-muted-foreground hover:bg-muted rounded-xl transition"
+                  disabled={saving}
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving || loading}
+                  className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {saving ? 'Guardando...' : <><Save size={18} /> Guardar cambios</>}
+                </button>
+              </div>
+            </motion.div>
           </div>
+        )}
+      </AnimatePresence>
 
-          {/* Footer */}
-          <div className="p-6 border-t border-border flex justify-end gap-3 bg-muted/10">
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 font-bold text-muted-foreground hover:bg-muted rounded-xl transition"
-              disabled={saving}
-            >
-              Cerrar
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving || loading}
-              className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50"
-            >
-              {saving ? 'Guardando...' : <><Save size={18} /> Guardar cambios</>}
-            </button>
-          </div >
-        </div >
-      </div >
-
-      {showShareModal && inviteData && adminData && (
-        <ShareInviteLinkModal
-          isOpen={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          inviteData={inviteData}
-          empleadoId={adminData.id}
-          tipo="nuevo"
-        />
-      )
+      {
+        showShareModal && inviteData && adminData && (
+          <ShareInviteLinkModal
+            isOpen={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            inviteData={inviteData}
+            empleadoId={adminData.id}
+            tipo="nuevo"
+          />
+        )
       }
 
       <Dialog open={passModalOpen} onOpenChange={setPassModalOpen}>
