@@ -42,9 +42,10 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pullProgress, setPullProgress] = useState(0);
-  // useRef para evitar stale closure en los handlers de touch
-  const startYRef = useRef(0);
+  // Refs necesarios para pull-to-refresh con listeners nativos
   const pullProgressRef = useRef(0);
+  const refreshingRef = useRef(false);
+  const loadAllRef = useRef<() => void>(() => { });
 
   // Estados para previsualización PDF
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -118,44 +119,68 @@ export default function DashboardPage() {
     }
   }
 
-  // Pull to Refresh — usamos refs para evitar stale closure en los handlers de touch
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (window.scrollY === 0) {
-      startYRef.current = e.touches[0].pageY;
-    } else {
-      startYRef.current = 0;
-    }
-  };
+  // Mantener loadAllRef actualizado en cada render
+  useEffect(() => { loadAllRef.current = loadAll; });
+  // Mantener refreshingRef sincronizado
+  useEffect(() => { refreshingRef.current = refreshing; }, [refreshing]);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (startYRef.current === 0) return;
-    const y = e.touches[0].pageY;
-    const diff = y - startYRef.current;
-    if (diff > 0 && window.scrollY === 0) {
-      const progress = Math.min(diff / 150, 1);
-      pullProgressRef.current = progress;
-      setPullProgress(progress);
-    } else {
+  // Pull-to-Refresh con listeners nativos (evita problemas de eventos sintéticos de React)
+  useEffect(() => {
+    let startY = 0;
+    let pulling = false;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (window.scrollY === 0) {
+        startY = e.touches[0].pageY;
+        pulling = true;
+      } else {
+        startY = 0;
+        pulling = false;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!pulling || startY === 0) return;
+      const diff = e.touches[0].pageY - startY;
+      if (diff > 0 && window.scrollY === 0) {
+        // Prevenir scroll nativo del navegador durante el arrastre
+        e.preventDefault();
+        const progress = Math.min(diff / 160, 1);
+        pullProgressRef.current = progress;
+        setPullProgress(progress);
+      } else {
+        pulling = false;
+        pullProgressRef.current = 0;
+        setPullProgress(0);
+      }
+    };
+
+    const onTouchEnd = () => {
+      if (pullProgressRef.current > 0.4 && !refreshingRef.current) {
+        refreshingRef.current = true;
+        setRefreshing(true);
+        loadAllRef.current();
+      }
       pullProgressRef.current = 0;
+      startY = 0;
+      pulling = false;
       setPullProgress(0);
-    }
-  };
+    };
 
-  const handleTouchEnd = () => {
-    if (pullProgressRef.current > 0.4 && !refreshing) {
-      setRefreshing(true);
-      setLoading(true);
-      loadAll();
-    }
-    // Resetear refs y estado visual inmediatamente
-    pullProgressRef.current = 0;
-    startYRef.current = 0;
-    setPullProgress(0);
-  };
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
 
   useEffect(() => {
     loadAll();
-    const handleRefresh = () => loadAll();
+    const handleRefresh = () => loadAllRef.current();
     window.addEventListener("session-updated", handleRefresh);
     return () => window.removeEventListener("session-updated", handleRefresh);
   }, []);
@@ -167,16 +192,13 @@ export default function DashboardPage() {
   return (
     <div
       className="p-2 md:p-8 w-full space-y-4 md:space-y-8 pb-20 md:pb-8 min-w-0 overflow-x-hidden relative"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
-      {/* Overlay de carga */}
-      {(loading || refreshing) && !pullProgress && (
+      {/* Overlay solo en refresh manual (no en carga inicial, que ya tiene skeleton) */}
+      {refreshing && !pullProgress && (
         <div className="fixed inset-0 z-[100] bg-background/40 backdrop-blur-[2px] flex items-center justify-center transition-all">
           <div className="bg-card/80 p-6 rounded-2xl shadow-xl border flex flex-col items-center gap-4">
             <RefreshCw className="w-10 h-10 animate-spin text-primary" />
-            <p className="text-sm font-medium animate-pulse">Sincronizando Dashboard...</p>
+            <p className="text-sm font-medium animate-pulse">Actualizando...</p>
           </div>
         </div>
       )}

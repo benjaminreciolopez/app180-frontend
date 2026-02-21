@@ -312,7 +312,16 @@ export default function AdminLayout({
     },
   ];
 
+  const isPwaMobile = isMobileDevice() && isStandalone();
+
   const visibleMenu = menu.filter((item) => {
+    // Rutas de importación de calendario no tienen sentido en PWA móvil
+    if (isPwaMobile && (
+      item.path.includes('/calendario/importar') ||
+      item.path.includes('/calendario/importaciones')
+    )) {
+      return false;
+    }
     if (item.path === "/admin/jornadas") {
       return hasModule(session.modulos, "fichajes") || hasModule(session.modulos, "calendario");
     }
