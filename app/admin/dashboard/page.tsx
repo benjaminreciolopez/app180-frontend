@@ -154,7 +154,8 @@ export default function DashboardPage() {
   };
 
   const handleTouchEnd = () => {
-    if (pullProgress > 0.8 && !refreshing) {
+    // Reducimos el umbral de 0.8 a 0.5 (aprox 75px) para que sea más fácil activarlo
+    if (pullProgress > 0.5 && !refreshing) {
       setRefreshing(true);
       loadAll();
     } else {
@@ -328,7 +329,7 @@ export default function DashboardPage() {
           <ChartActividad data={data.stats.fichajesUltimosDias} />
         )}
 
-        {shouldShowWidget("chart_clientes", null) && (
+        {shouldShowWidget("chart_clientes", "clientes") && (
           <ChartClientesOrTipos
             topClientes={data.stats?.topClientesSemana}
             distribucionTipos={data.stats?.fichajesPorTipoHoy}

@@ -17,8 +17,8 @@ export function ChartActividad({ data }: { data: { dia: string; cantidad: number
         <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border">
             <h3 className="text-base md:text-lg font-semibold">Actividad Semanal</h3>
             <p className="text-xs md:text-sm text-gray-500 mb-4">Fichajes últimos 7 días</p>
-            <div className="h-52 md:h-64 w-full min-h-[200px]">
-                <ResponsiveContainer width="99%" height="100%">
+            <div className="h-52 md:h-64 w-full min-h-[200px] relative">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <BarChart data={data}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="dia" tickFormatter={fechaGrafico} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -53,9 +53,9 @@ export function ChartClientesOrTipos({
             <h3 className="text-base md:text-lg font-semibold mb-4">
                 {hasClientesModule ? "Top Clientes (Semana)" : "Distribución Tipos Hoy"}
             </h3>
-            <div className="h-52 md:h-64 w-full min-h-[200px]">
+            <div className="h-52 md:h-64 w-full min-h-[200px] relative">
                 {showClientes ? (
-                    <ResponsiveContainer width="99%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <BarChart data={topClientes} layout="vertical" margin={{ left: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
                             <XAxis type="number" hide />
@@ -65,7 +65,7 @@ export function ChartClientesOrTipos({
                         </BarChart>
                     </ResponsiveContainer>
                 ) : showTipos ? (
-                    <ResponsiveContainer width="99%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <PieChart>
                             <Pie data={distribucionTipos} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="cantidad">
                                 {distribucionTipos.map((_, i) => (

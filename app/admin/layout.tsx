@@ -137,7 +137,7 @@ export default function AdminLayout({
       { path: "/admin/calendario", module: "calendario" },
 
       { path: "/admin/empleados", module: "empleados" },
-      { path: "/admin/clientes", module: null },
+      { path: "/admin/clientes", module: "clientes" },
 
       // ✅ Facturación y Pagos como módulos independientes
       { path: "/admin/cobros-pagos", module: "pagos" },
@@ -277,7 +277,7 @@ export default function AdminLayout({
     { path: "/admin/planings", label: "Gestión Planings", module: "calendario" }, // Nueva ruta V5.5
     { path: "/admin/reportes/rentabilidad", label: "Reporte Rentabilidad", module: "fichajes" },
 
-    { path: "/admin/clientes", label: "Clientes", module: null },
+    { path: "/admin/clientes", label: "Clientes", module: "clientes" },
     { path: "/admin/facturacion", label: "Facturación", module: "facturacion" },
     { path: "/admin/gastos", label: "Compras y Gastos", module: "facturacion" },
     { path: "/admin/contabilidad", label: "Libros Contables", module: "facturacion" },

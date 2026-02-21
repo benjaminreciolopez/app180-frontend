@@ -190,8 +190,10 @@ export default function AdminSelfConfigModal({
         }));
       }
 
-      // 2. Guardar Empresa (Incluyendo nuevos campos)
-      promises.push(api.put("/admin/facturacion/configuracion/emisor", empresaData));
+      // 2. Guardar Empresa (solo si Facturación está activo para evitar 403)
+      if (sistemaConfig.modulos.facturacion) {
+        promises.push(api.put("/admin/facturacion/configuracion/emisor", empresaData));
+      }
 
       // 3. Guardar Facturación (si el módulo está activo)
       if (sistemaConfig.modulos.facturacion) {
