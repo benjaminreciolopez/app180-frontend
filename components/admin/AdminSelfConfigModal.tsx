@@ -209,34 +209,44 @@ export default function AdminSelfConfigModal({
 
       // 1. Guardar Jornada (Perfil)
       if (selectedPlantilla !== adminData?.plantilla_id) {
-        promises.push(api.post("/admin/plantillas/asignar", {
-          empleado_id: adminData.id,
-          plantilla_id: selectedPlantilla,
-          fecha_inicio: new Date().toISOString().split('T')[0]
-        }));
+        promises.push(
+          api.post("/admin/plantillas/asignar", {
+            empleado_id: adminData.id,
+            plantilla_id: selectedPlantilla,
+            fecha_inicio: new Date().toISOString().split('T')[0]
+          }).catch(err => console.warn("No se pudo guardar plantilla:", err))
+        );
       }
 
       // 2. Guardar Empresa (solo si Facturación está activo para evitar 403)
       if (sistemaConfig.modulos.facturacion) {
-        promises.push(api.put("/admin/facturacion/configuracion/emisor", empresaData));
+        promises.push(
+          api.put("/admin/facturacion/configuracion/emisor", empresaData)
+            .catch(err => console.warn("403/Error guardando emisor (módulo off?):", err))
+        );
       }
 
       // 3. Guardar Facturación (si el módulo está activo)
       if (sistemaConfig.modulos.facturacion) {
-        promises.push(api.put("/admin/facturacion/configuracion/sistema", facturacionData));
+        promises.push(
+          api.put("/admin/facturacion/configuracion/sistema", facturacionData)
+            .catch(err => console.warn("403/Error guardando sistema fact (módulo off?):", err))
+        );
       }
 
-      // 4. Guardar Configuración Global Sistema
+      // 4. Guardar Configuración Global Sistema (crítico, sin catch para que falle visible)
       promises.push(api.put("/admin/configuracion", {
         modulos: sistemaConfig.modulos,
         modulos_mobile: sistemaConfig.mobileEnabled ? sistemaConfig.modulos_mobile : null
       }));
 
       // 5. Guardar Widgets Dashboard
-      promises.push(api.put("/admin/configuracion/widgets", {
-        widgets: dashboardWidgets,
-        widgets_mobile: dashboardWidgetsMobile
-      }));
+      promises.push(
+        api.put("/admin/configuracion/widgets", {
+          widgets: dashboardWidgets,
+          widgets_mobile: dashboardWidgetsMobile
+        }).catch(err => console.warn("403/Error guardando widgets:", err))
+      );
 
       await Promise.all(promises);
 
@@ -776,14 +786,14 @@ export default function AdminSelfConfigModal({
                                 {Object.entries(activeWidgetProfile === 'desktop' ? sistemaConfig.modulos : sistemaConfig.modulos_mobile)
                                   .map(([key, active]: [string, any]) => {
                                     const MODULE_MAP: Record<string, { label: string, icon: any, desc: string, color: string }> = {
-                                      empleados: { label: "Personal y RRHH", icon: Users, desc: "Fichas, perfiles y contratos", color: "text-blue-500" },
-                                      fichajes: { label: "Control Horario", icon: Clock, desc: "Entradas, salidas y excesos", color: "text-amber-500" },
-                                      calendario: { label: "Calendario Global", icon: CalendarIcon, desc: "Eventos, bajas y festivos", color: "text-emerald-500" },
-                                      clientes: { label: "Gestión CRM", icon: Contact2, desc: "Contactos y fidelización", color: "text-indigo-500" },
+                                      empleados: { label: "Empleados", icon: Users, desc: "Fichas, perfiles y contratos", color: "text-blue-500" },
+                                      fichajes: { label: "Fichajes", icon: Clock, desc: "Entradas, salidas y excesos", color: "text-amber-500" },
+                                      calendario: { label: "Calendario", icon: CalendarIcon, desc: "Eventos, bajas y festivos", color: "text-emerald-500" },
+                                      clientes: { label: "Clientes", icon: Contact2, desc: "Contactos y fidelización", color: "text-indigo-500" },
                                       facturacion: { label: "Facturación", icon: Wallet, desc: "Ventas y presupuestos", color: "text-rose-500" },
-                                      fiscal: { label: "Contabilidad/Fiscal", icon: Calculator, desc: "Libros de IVA e impuestos", color: "text-purple-500" },
+                                      fiscal: { label: "Modelos Fiscales", icon: Calculator, desc: "Libros de IVA e impuestos", color: "text-purple-500" },
                                       pagos: { label: "Cobros y Pagos", icon: CreditCard, desc: "Tesorería y conciliación", color: "text-green-500" },
-                                      worklogs: { label: "Obras y Partes", icon: Briefcase, desc: "Control de costes y proyectos", color: "text-cyan-500" }
+                                      worklogs: { label: "Trabajos Diarios", icon: Briefcase, desc: "Control de costes y proyectos", color: "text-cyan-500" }
                                     };
                                     const info = MODULE_MAP[key] || { label: key, icon: Settings, desc: "Módulo del sistema", color: "text-muted-foreground" };
                                     const Icon = info.icon;

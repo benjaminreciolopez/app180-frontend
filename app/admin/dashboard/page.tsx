@@ -42,7 +42,9 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pullProgress, setPullProgress] = useState(0);
-  const [startY, setStartY] = useState(0);
+  // useRef para evitar stale closure en los handlers de touch
+  const startYRef = useRef(0);
+  const pullProgressRef = useRef(0);
 
   // Estados para previsualización PDF
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -116,30 +118,39 @@ export default function DashboardPage() {
     }
   }
 
-  // Pull to Refresh
+  // Pull to Refresh — usamos refs para evitar stale closure en los handlers de touch
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (window.scrollY === 0) setStartY(e.touches[0].pageY);
+    if (window.scrollY === 0) {
+      startYRef.current = e.touches[0].pageY;
+    } else {
+      startYRef.current = 0;
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (startY === 0) return;
+    if (startYRef.current === 0) return;
     const y = e.touches[0].pageY;
-    const diff = y - startY;
+    const diff = y - startYRef.current;
     if (diff > 0 && window.scrollY === 0) {
-      setPullProgress(Math.min(diff / 150, 1));
+      const progress = Math.min(diff / 150, 1);
+      pullProgressRef.current = progress;
+      setPullProgress(progress);
+    } else {
+      pullProgressRef.current = 0;
+      setPullProgress(0);
     }
   };
 
   const handleTouchEnd = () => {
-    if (pullProgress > 0.4 && !refreshing) {
+    if (pullProgressRef.current > 0.4 && !refreshing) {
       setRefreshing(true);
-      // Forzamos skeleton al recargar manualmente si no hay datos o por UX
       setLoading(true);
       loadAll();
     }
-    // IMPORTANTE: Resetear progreso inmediatamente para que desaparezca la flecha
+    // Resetear refs y estado visual inmediatamente
+    pullProgressRef.current = 0;
+    startYRef.current = 0;
     setPullProgress(0);
-    setStartY(0);
   };
 
   useEffect(() => {
