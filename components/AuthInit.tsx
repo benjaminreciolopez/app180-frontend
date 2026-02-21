@@ -37,6 +37,10 @@ export default function AuthInit() {
     if (initialized.current) return;
     initialized.current = true;
 
+    const handlePasswordForced = () => {
+      router.replace("/cambiar-password");
+    };
+
     async function init() {
       try {
         setAuthToken(getToken());
@@ -67,9 +71,6 @@ export default function AuthInit() {
         }
 
         // Listen for password-forced event
-        const handlePasswordForced = () => {
-          router.replace("/cambiar-password");
-        };
         window.addEventListener("password-forced", handlePasswordForced);
 
         const forced = user?.password_forced === true;
@@ -122,7 +123,7 @@ export default function AuthInit() {
     init();
 
     return () => {
-      window.removeEventListener("password-forced", () => { });
+      window.removeEventListener("password-forced", handlePasswordForced);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

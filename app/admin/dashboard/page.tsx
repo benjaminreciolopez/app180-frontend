@@ -186,8 +186,18 @@ export default function DashboardPage() {
   }, []);
 
   if ((loading || refreshing) && !data) return <SkeletonDashboard />;
-  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
-  if (!data) return null;
+  if (error) return (
+    <div className="p-8 text-center">
+      <p className="text-red-500 mb-4">{error}</p>
+      <button onClick={() => { setError(null); loadAll(); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Reintentar</button>
+    </div>
+  );
+  if (!data) return (
+    <div className="p-8 text-center">
+      <p className="text-gray-500 mb-4">No se pudieron cargar los datos</p>
+      <button onClick={() => loadAll()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Reintentar</button>
+    </div>
+  );
 
   return (
     <div

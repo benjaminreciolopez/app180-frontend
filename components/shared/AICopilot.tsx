@@ -52,9 +52,17 @@ export function AICopilot() {
   useEffect(() => {
     if (mensajes.length > 0) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(mensajes))
+        // Limitar a últimos 100 mensajes para evitar exceder cuota de localStorage
+        const mensajesAGuardar = mensajes.slice(-100)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(mensajesAGuardar))
       } catch (error) {
-        console.error("Error guardando historial:", error)
+        // Si localStorage está lleno, limpiar historial viejo
+        try {
+          const mensajesRecientes = mensajes.slice(-20)
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(mensajesRecientes))
+        } catch {
+          localStorage.removeItem(STORAGE_KEY)
+        }
       }
     }
   }, [mensajes])

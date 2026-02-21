@@ -31,18 +31,6 @@ export function isStandalone(): boolean {
 
   const result = isStandaloneMode || isIOSStandalone || isLaunchedFromHomeScreen;
 
-  // 🐛 Debug logging
-  console.log('🔍 PWA Detection:', {
-    isStandaloneMode,
-    isIOSStandalone,
-    isLaunchedFromHomeScreen,
-    finalResult: result,
-    userAgent: window.navigator.userAgent,
-    displayMode: window.matchMedia('(display-mode: standalone)').matches ? 'standalone' :
-      window.matchMedia('(display-mode: fullscreen)').matches ? 'fullscreen' :
-        window.matchMedia('(display-mode: minimal-ui)').matches ? 'minimal-ui' : 'browser'
-  });
-
   return result;
 }
 

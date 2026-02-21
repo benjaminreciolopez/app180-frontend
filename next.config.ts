@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
 
   // @ts-ignore
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
 
   webpack(config, { isServer }) {
