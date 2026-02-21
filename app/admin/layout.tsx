@@ -44,6 +44,7 @@ export default function AdminLayout({
   // Cargar sesión (inicial + sync)
   // ============================
   async function loadSession(isInitial = false) {
+    if (!isInitial) setChecking(true); // Mostrar carga durante refresco
     try {
       const user = getUser();
       if (!user) {
@@ -104,10 +105,10 @@ export default function AdminLayout({
         modulos: activeModulos,
       });
       setUserId(user.id);
-      if (isInitial) setChecking(false);
+      setChecking(false);
     } catch {
       setSession(null);
-      if (isInitial) setChecking(false);
+      setChecking(false);
     }
   }
 

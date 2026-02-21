@@ -36,14 +36,16 @@ export function ChartClientesOrTipos({
     topClientes,
     distribucionTipos,
     hasClientesModule,
-    hasFichajesModule
+    hasFichajesModule,
+    forceHideClientKpis
 }: {
     topClientes?: { nombre: string; total: number }[];
     distribucionTipos?: { tipo: string; cantidad: number }[];
     hasClientesModule: boolean;
     hasFichajesModule: boolean;
+    forceHideClientKpis?: boolean;
 }) {
-    const showClientes = hasClientesModule && topClientes && topClientes.length > 0;
+    const showClientes = hasClientesModule && !forceHideClientKpis && topClientes && topClientes.length > 0;
     const showTipos = hasFichajesModule && distribucionTipos && distribucionTipos.length > 0;
 
     return (

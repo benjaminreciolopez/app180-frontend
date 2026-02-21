@@ -25,6 +25,7 @@ import { ListTrabajando, ListFichajes, ListFacturas } from "@/components/admin/d
 import { TrabajosPendientesModal } from "@/components/admin/dashboard/TrabajosPendientesModal";
 import { SkeletonDashboard } from "@/components/ui/skeletons";
 import { ALL_DASHBOARD_WIDGETS } from "@/lib/dashboard-widgets";
+import { cn } from "@/lib/utils";
 
 // --- Logic ---
 
@@ -49,6 +50,11 @@ export default function DashboardPage() {
   const [editingWidgets, setEditingWidgets] = useState(false);
   const [savingWidgets, setSavingWidgets] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Pull-to-refresh states
+  const [startY, setStartY] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullProgress, setPullProgress] = useState(0);
 
   // Estados para previsualización PDF
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -84,7 +90,10 @@ export default function DashboardPage() {
   }
 
   function shouldShowWidget(id: string, module: string | null) {
+    // Si el módulo no está activo, el widget se oculta SIEMPRE, ignore config
     if (module && !hasModule(module)) return false;
+
+    // Si el módulo es null (global) o está activo, respetamos la visibilidad configurada
     return isWidgetVisible(id);
   }
 
@@ -102,6 +111,9 @@ export default function DashboardPage() {
       const isLargeScreen = typeof window !== "undefined" && window.innerWidth >= 1024;
       const isPwaMobile = isMobileDevice() && isStandalone();
       const useMobileProfile = isPwaMobile && !isLargeScreen;
+
+      // Resetear módulos antes de cargar para evitar "fantasmas"
+      setModulos(null);
 
       // Cargar módulos primero para filtrar widgets
       const mods = await api.get(useMobileProfile ? "/auth/me/modules?mobile=true" : "/auth/me/modules");
@@ -121,8 +133,35 @@ export default function DashboardPage() {
       setError(err.response?.data?.error || "Error al cargar datos");
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      setPullProgress(0);
     }
   }
+
+  // --- Pull to Refresh Logic ---
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY === 0) setStartY(e.touches[0].pageY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (startY === 0) return;
+    const y = e.touches[0].pageY;
+    const diff = y - startY;
+    if (diff > 0 && window.scrollY === 0) {
+      const progress = Math.min(diff / 150, 1);
+      setPullProgress(progress);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullProgress > 0.8 && !refreshing) {
+      setRefreshing(true);
+      loadAll();
+    } else {
+      setPullProgress(0);
+    }
+    setStartY(0);
+  };
 
   useEffect(() => {
     loadAll();
@@ -173,7 +212,33 @@ export default function DashboardPage() {
   if (!data) return null;
 
   return (
-    <div className="p-2 md:p-8 w-full space-y-4 md:space-y-8 pb-20 md:pb-8 min-w-0 overflow-x-hidden">
+    <div
+      className="p-2 md:p-8 w-full space-y-4 md:space-y-8 pb-20 md:pb-8 min-w-0 overflow-x-hidden relative"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Overlay de carga durante refresco forzado */}
+      {(loading || refreshing) && !pullProgress && (
+        <div className="fixed inset-0 z-[100] bg-background/40 backdrop-blur-[2px] flex items-center justify-center transition-all">
+          <div className="bg-card/80 p-6 rounded-2xl shadow-xl border flex flex-col items-center gap-4">
+            <RefreshCw className="w-10 h-10 animate-spin text-primary" />
+            <p className="text-sm font-medium animate-pulse">Sincronizando Dashboard...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Indicador Pull to Refresh */}
+      {pullProgress > 0 && (
+        <div
+          className="absolute top-0 left-0 w-full flex justify-center py-2 pointer-events-none transition-opacity"
+          style={{ opacity: pullProgress, transform: `translateY(${pullProgress * 20}px)` }}
+        >
+          <div className="bg-primary/10 text-primary p-2 rounded-full shadow-sm">
+            <RefreshCw size={16} className={cn("animate-spin", pullProgress < 0.8 && "animate-none")} />
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -269,6 +334,7 @@ export default function DashboardPage() {
             distribucionTipos={data.stats?.fichajesPorTipoHoy}
             hasClientesModule={hasModule("clientes")}
             hasFichajesModule={hasModule("fichajes")}
+            forceHideClientKpis={!hasModule("clientes")}
           />
         )}
 
