@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import DrawerGastoAdmin from "@/components/admin/drawer/DrawerGastoAdmin";
+import BankImportDialog from "@/components/admin/BankImportDialog";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 
 type Gasto = {
@@ -71,6 +72,7 @@ export default function GastosPage() {
     // UI State
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [editingGasto, setEditingGasto] = useState<Gasto | null>(null);
+    const [showBankImport, setShowBankImport] = useState(false);
 
     // Filters & Search
     const [search, setSearch] = useState("");
@@ -201,6 +203,14 @@ export default function GastosPage() {
                         queryParams={{ search, fechaDesde, fechaHasta, categoria: categoriaFilter }}
                         label="Exportar CSV"
                     />
+                    <Button
+                        onClick={() => setShowBankImport(true)}
+                        variant="outline"
+                        className="rounded-xl h-11 px-5 gap-2 active:scale-95 transition-all"
+                    >
+                        <FileText size={18} />
+                        <span>Importar Extracto</span>
+                    </Button>
                     <Button
                         onClick={openCreate}
                         className="bg-black text-white hover:bg-slate-800 rounded-xl h-11 px-5 gap-2 shadow-lg active:scale-95 transition-all"
@@ -399,6 +409,13 @@ export default function GastosPage() {
                 onClose={() => setIsDrawerOpen(false)}
                 onSuccess={loadGastos}
                 editingGasto={editingGasto}
+            />
+
+            {/* Bank Import Dialog */}
+            <BankImportDialog
+                open={showBankImport}
+                onClose={() => setShowBankImport(false)}
+                onSuccess={loadGastos}
             />
         </div>
     );
