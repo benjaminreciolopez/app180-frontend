@@ -10,7 +10,10 @@ import {
   Sparkles,
   MessageCircle,
   Trash2,
-  HelpCircle
+  HelpCircle,
+  Paperclip,
+  FileText,
+  Lock
 } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/services/api"
@@ -22,6 +25,7 @@ interface Mensaje {
   role: "user" | "assistant"
   content: string
   timestamp: string
+  fileName?: string
 }
 
 const STORAGE_KEY = "contendo_chat_history"
@@ -31,9 +35,13 @@ export function AICopilot() {
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [needsPassword, setNeedsPassword] = useState(false)
+  const [pdfPassword, setPdfPassword] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 🆕 Cargar historial de localStorage al montar
+  // Cargar historial de localStorage al montar
   useEffect(() => {
     try {
       const historialGuardado = localStorage.getItem(STORAGE_KEY)
@@ -48,15 +56,13 @@ export function AICopilot() {
     }
   }, [])
 
-  // 🆕 Guardar historial en localStorage cuando cambian los mensajes
+  // Guardar historial en localStorage cuando cambian los mensajes
   useEffect(() => {
     if (mensajes.length > 0) {
       try {
-        // Limitar a últimos 100 mensajes para evitar exceder cuota de localStorage
         const mensajesAGuardar = mensajes.slice(-100)
         localStorage.setItem(STORAGE_KEY, JSON.stringify(mensajesAGuardar))
       } catch (error) {
-        // Si localStorage está lleno, limpiar historial viejo
         try {
           const mensajesRecientes = mensajes.slice(-20)
           localStorage.setItem(STORAGE_KEY, JSON.stringify(mensajesRecientes))
@@ -78,40 +84,61 @@ export function AICopilot() {
       setMensajes([
         {
           role: "assistant",
-          content: "👋 ¡Hola! Soy **CONTENDO**, tu asistente de gestión empresarial.\n\nPuedo ayudarte con:\n- 📊 Consultar facturas y estadísticas\n- 👥 Información de empleados y clientes\n- 💰 Trabajos pendientes de facturar\n- 📈 Análisis de facturación\n\n¿En qué puedo ayudarte hoy?",
+          content: "Hola! Soy **CONTENDO**, tu asistente de gestion empresarial.\n\nPuedo ayudarte con:\n- Consultar facturas y estadisticas\n- Informacion de empleados y clientes\n- Trabajos pendientes de facturar\n- Analisis de facturacion\n- **Leer QR de facturas** (adjunta un PDF)\n\nEn que puedo ayudarte hoy?",
           timestamp: new Date().toISOString()
         }
       ])
     }
   }, [isOpen, mensajes.length])
 
-  const enviarMensaje = async () => {
-    if (!inputValue.trim() || isLoading) return
+  const enviarMensaje = async (overrideMsg?: string) => {
+    const msg = overrideMsg || inputValue.trim()
+    if ((!msg && !pendingFile) || isLoading) return
 
-    const mensajeUsuario = inputValue.trim()
     setInputValue("")
+    setIsLoading(true)
 
     // Agregar mensaje del usuario
     const nuevoMensajeUsuario: Mensaje = {
       role: "user",
-      content: mensajeUsuario,
-      timestamp: new Date().toISOString()
+      content: msg || (pendingFile ? `Adjunto: ${pendingFile.name}` : ""),
+      timestamp: new Date().toISOString(),
+      fileName: pendingFile?.name
     }
-
     setMensajes(prev => [...prev, nuevoMensajeUsuario])
-    setIsLoading(true)
 
     try {
-      // Preparar historial para el backend (últimos 10 mensajes)
+      // Preparar historial para el backend (ultimos 10 mensajes)
       const historial = mensajes.slice(-10).map(m => ({
         role: m.role,
         content: m.content
       }))
 
-      const response = await api.post("/admin/ai/chat", {
-        mensaje: mensajeUsuario,
-        historial
-      })
+      let response
+
+      if (pendingFile) {
+        // Enviar con archivo adjunto
+        const formData = new FormData()
+        formData.append("file", pendingFile)
+        formData.append("mensaje", msg || "Analiza este documento y extrae los datos fiscales del QR si lo tiene.")
+        formData.append("historial", JSON.stringify(historial))
+        if (pdfPassword) formData.append("password", pdfPassword)
+
+        response = await api.post("/admin/ai/chat-file", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 60000
+        })
+
+        // Limpiar estado de archivo
+        setPendingFile(null)
+        setPdfPassword("")
+        setNeedsPassword(false)
+      } else {
+        response = await api.post("/admin/ai/chat", {
+          mensaje: msg,
+          historial
+        })
+      }
 
       const mensajeAsistente: Mensaje = {
         role: "assistant",
@@ -121,16 +148,25 @@ export function AICopilot() {
 
       setMensajes(prev => [...prev, mensajeAsistente])
 
-      // Si CONTENDO ejecutó una acción de escritura, refrescar datos del dashboard
+      // Si CONTENDO ejecuto una accion de escritura, refrescar datos del dashboard
       if (response.data.accion_realizada) {
         window.dispatchEvent(new Event("data-updated"))
       }
     } catch (error: any) {
       console.error("Error al chatear con IA:", error)
 
+      // Si el PDF necesita password
+      if (error.response?.data?.code === "PDF_PASSWORD_REQUIRED") {
+        setNeedsPassword(true)
+        // Quitar el mensaje del usuario que acabamos de añadir
+        setMensajes(prev => prev.slice(0, -1))
+        setIsLoading(false)
+        return
+      }
+
       const mensajeError: Mensaje = {
         role: "assistant",
-        content: `❌ **Error**: ${error.response?.data?.error || "No pude procesar tu mensaje. Intenta de nuevo."}`,
+        content: `**Error**: ${error.response?.data?.error || "No pude procesar tu mensaje. Intenta de nuevo."}`,
         timestamp: new Date().toISOString()
       }
 
@@ -146,6 +182,41 @@ export function AICopilot() {
       e.preventDefault()
       enviarMensaje()
     }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const validTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"]
+    if (!validTypes.includes(file.type) && !file.name.endsWith(".pdf")) {
+      toast.error("Formato no soportado. Usa PDF, PNG o JPG.")
+      return
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("El archivo es demasiado grande (max 20MB)")
+      return
+    }
+
+    setPendingFile(file)
+    setNeedsPassword(false)
+    setPdfPassword("")
+
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  const handlePasswordSubmit = () => {
+    if (pdfPassword && pendingFile) {
+      enviarMensaje(inputValue.trim() || undefined)
+    }
+  }
+
+  const removePendingFile = () => {
+    setPendingFile(null)
+    setNeedsPassword(false)
+    setPdfPassword("")
   }
 
   const mostrarAyuda = () => {
@@ -179,6 +250,10 @@ export function AICopilot() {
 - **Ausencias**: "Pon vacaciones a [empleado]"
 - **Calendario**: "Crea evento festivo el [fecha]"
 
+### Documentos (adjunta un PDF/imagen)
+- **Leer QR de factura**: Sube tu ultima factura y configuro tu numeracion
+- **Extraer datos fiscales**: NIF, serie, direccion desde el QR o OCR
+
 Preguntame lo que necesites.`,
       timestamp: new Date().toISOString()
     }
@@ -186,9 +261,9 @@ Preguntame lo que necesites.`,
   }
 
   const limpiarHistorial = () => {
-    toast("¿Eliminar todo el historial?", {
+    toast("Eliminar todo el historial?", {
       action: {
-        label: "Sí, eliminar",
+        label: "Si, eliminar",
         onClick: () => {
           setMensajes([])
           localStorage.removeItem(STORAGE_KEY)
@@ -204,7 +279,7 @@ Preguntame lo que necesites.`,
 
   return (
     <>
-      {/* Botón flotante */}
+      {/* Boton flotante */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
@@ -246,7 +321,7 @@ Preguntame lo que necesites.`,
                   <h3 className="font-semibold text-white">CONTENDO</h3>
                   <p className="text-xs text-blue-100 flex items-center gap-1">
                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                    En línea
+                    En linea
                   </p>
                 </div>
               </div>
@@ -303,6 +378,14 @@ Preguntame lo que necesites.`,
                         : "bg-white border border-slate-200 text-slate-900"
                     }`}
                   >
+                    {mensaje.fileName && (
+                      <div className={`flex items-center gap-1.5 text-xs mb-1 ${
+                        mensaje.role === "user" ? "text-blue-200" : "text-slate-500"
+                      }`}>
+                        <FileText className="w-3 h-3" />
+                        {mensaje.fileName}
+                      </div>
+                    )}
                     {mensaje.role === "assistant" ? (
                       <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0">
                         <ReactMarkdown>{mensaje.content}</ReactMarkdown>
@@ -330,7 +413,12 @@ Preguntame lo que necesites.`,
                     </div>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3">
-                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                      <span className="text-xs text-slate-500">
+                        {pendingFile ? "Analizando documento..." : "Pensando..."}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -367,20 +455,102 @@ Preguntame lo que necesites.`,
               </div>
             )}
 
+            {/* Password prompt for protected PDFs */}
+            {needsPassword && (
+              <div className="px-4 py-3 border-t border-amber-200 bg-amber-50 shrink-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lock className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm font-medium text-amber-800">PDF protegido</span>
+                </div>
+                <p className="text-xs text-amber-700 mb-2">
+                  El archivo <strong>{pendingFile?.name}</strong> requiere contrasena.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    placeholder="Contrasena del PDF..."
+                    value={pdfPassword}
+                    onChange={(e) => setPdfPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                    className="flex-1 h-9 text-sm"
+                    autoFocus
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handlePasswordSubmit}
+                    disabled={!pdfPassword}
+                    className="bg-amber-600 hover:bg-amber-700 h-9"
+                  >
+                    Abrir
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={removePendingFile}
+                    className="h-9"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Pending file indicator */}
+            {pendingFile && !needsPassword && (
+              <div className="px-4 py-2 border-t border-blue-200 bg-blue-50 shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs text-blue-700 truncate max-w-[250px]">
+                      {pendingFile.name}
+                    </span>
+                    <span className="text-xs text-blue-500">
+                      ({(pendingFile.size / 1024).toFixed(0)} KB)
+                    </span>
+                  </div>
+                  <button
+                    onClick={removePendingFile}
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Input */}
             <div className="p-4 border-t border-slate-200 bg-white shrink-0 safe-area-bottom">
               <div className="flex gap-2">
+                {/* File upload button */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading}
+                  className="shrink-0 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+                  title="Adjuntar PDF o imagen"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+
                 <Input
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  placeholder="Escribe tu mensaje..."
+                  placeholder={pendingFile ? "Mensaje (opcional)..." : "Escribe tu mensaje..."}
                   disabled={isLoading}
                   className="flex-1"
                 />
                 <Button
-                  onClick={enviarMensaje}
-                  disabled={!inputValue.trim() || isLoading}
+                  onClick={() => enviarMensaje()}
+                  disabled={(!inputValue.trim() && !pendingFile) || isLoading}
                   size="icon"
                   className="bg-blue-600 hover:bg-blue-700"
                 >
@@ -398,6 +568,8 @@ Preguntame lo que necesites.`,
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Hidden file input */}
     </>
   )
 }
