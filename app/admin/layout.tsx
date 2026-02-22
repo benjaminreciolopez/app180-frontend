@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User, LogOut, Settings } from "lucide-react";
 import { getUser, refreshMe } from "@/services/auth";
+import { api } from "@/services/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { AICopilot } from "@/components/shared/AICopilot";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
 import AutoBackupSync from "@/components/admin/AutoBackupSync";
+import { LockScreen } from "@/components/shared/LockScreen";
 
 type Modulos = Record<string, boolean>;
 
@@ -31,6 +33,11 @@ export default function AdminLayout({
   const [checking, setChecking] = useState(true);
   const [selfConfigOpen, setSelfConfigOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [pinConfig, setPinConfig] = useState<{
+    pin_lock_enabled: boolean; pin_code: string | null;
+    pin_timeout_minutes: number; screensaver_enabled: boolean;
+    screensaver_style: "clock" | "logo" | "minimal";
+  }>({ pin_lock_enabled: false, pin_code: null, pin_timeout_minutes: 5, screensaver_enabled: false, screensaver_style: "clock" });
 
   // ============================
   // Helpers
@@ -126,6 +133,22 @@ export default function AdminLayout({
       window.removeEventListener("session-updated", onSessionUpdated);
     };
   }, []);
+
+  // Fetch PIN config
+  useEffect(() => {
+    if (!session) return;
+    api.get("/admin/configuracion").then(res => {
+      if (res.data?.pin_lock_enabled) {
+        setPinConfig({
+          pin_lock_enabled: !!res.data.pin_lock_enabled,
+          pin_code: res.data.pin_code || null,
+          pin_timeout_minutes: res.data.pin_timeout_minutes || 5,
+          screensaver_enabled: !!res.data.screensaver_enabled,
+          screensaver_style: res.data.screensaver_style || "clock",
+        });
+      }
+    }).catch(() => {});
+  }, [session]);
 
   // ============================
   // Guards por módulos
@@ -340,6 +363,15 @@ export default function AdminLayout({
   return (
     <div className="flex h-[100svh] w-full overflow-hidden">
       <AutoBackupSync />
+      {pinConfig.pin_lock_enabled && pinConfig.pin_code && (
+        <LockScreen
+          pinCode={pinConfig.pin_code}
+          timeoutMinutes={pinConfig.pin_timeout_minutes}
+          screensaverEnabled={pinConfig.screensaver_enabled}
+          screensaverStyle={pinConfig.screensaver_style}
+          enabled={pinConfig.pin_lock_enabled}
+        />
+      )}
       {/* Overlay móvil */}
       {menuOpen && (
         <div

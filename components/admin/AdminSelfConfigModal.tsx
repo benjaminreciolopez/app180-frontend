@@ -3,7 +3,7 @@ import { api } from "@/services/api";
 import { refreshMe } from "@/services/auth";
 import { showSuccess, showError } from "@/lib/toast";
 import ShareInviteLinkModal from "./ShareInviteLinkModal";
-import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon, LayoutGrid, Hash, AlertCircle, TrendingUp, GripHorizontal, Users, Calculator, CreditCard, Briefcase, Contact2, Wallet, HardHat, LandPlot } from "lucide-react";
+import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon, LayoutGrid, Hash, AlertCircle, TrendingUp, GripHorizontal, Users, Calculator, CreditCard, Briefcase, Contact2, Wallet, HardHat, LandPlot, Lock, Monitor } from "lucide-react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -90,6 +90,22 @@ export default function AdminSelfConfigModal({
     backup_local_path: ""
   });
 
+  // PIN lock config
+  const [pinConfigLocal, setPinConfigLocal] = useState({
+    pin_lock_enabled: false,
+    pin_code: "",
+    pin_timeout_minutes: 5,
+    screensaver_enabled: false,
+    screensaver_style: "clock" as "clock" | "logo" | "minimal",
+  });
+
+  // VeriFactu status
+  const [verifactuStatus, setVerifactuStatus] = useState<{
+    modo_actual: string; modos_disponibles: string[]; deadline: string;
+    dias_restantes: number; pasado_deadline: boolean; facturas_verifactu: number;
+    es_irreversible: boolean; alerta: string | null; tipo_contribuyente: string;
+  } | null>(null);
+
   // --- NUEVOS ESTADOS INTEGRADOS ---
   // Backup Local
   const [directoryHandle, setDirectoryHandle] = useState<any>(null);
@@ -135,7 +151,7 @@ export default function AdminSelfConfigModal({
   async function loadData() {
     setLoading(true);
     try {
-      const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes] = await Promise.all([
+      const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes, verifactuRes] = await Promise.all([
         api.get("/employees").catch(err => { console.warn("403/Error employees:", err); return { data: [] }; }),
         api.get("/admin/plantillas").catch(err => { console.warn("403/Error plantillas:", err); return { data: [] }; }),
         api.get("/admin/facturacion/configuracion/emisor").catch(err => { console.warn("403/Error emisor:", err); return { status: 403, data: { data: {} } }; }),
@@ -143,7 +159,8 @@ export default function AdminSelfConfigModal({
         api.get("/admin/configuracion").catch(err => { console.warn("403/Error global config:", err); return { data: {} }; }),
         api.get("/api/admin/calendar-config").catch(err => { console.warn("403/Error calendar config:", err); return { data: {} }; }),
         api.get("/admin/email-config").catch(err => { console.warn("403/Error email config:", err); return { data: {} }; }),
-        api.get("/admin/configuracion/widgets").catch(err => { console.warn("403/Error widgets:", err); return { data: { widgets: [], widgets_mobile: [] } }; })
+        api.get("/admin/configuracion/widgets").catch(err => { console.warn("403/Error widgets:", err); return { data: { widgets: [], widgets_mobile: [] } }; }),
+        api.get("/admin/facturacion/configuracion/verifactu/status").catch(err => { console.warn("403/Error verifactu status:", err); return { data: { data: null } }; })
       ]);
 
       const employees = empRes.data || [];
@@ -159,7 +176,21 @@ export default function AdminSelfConfigModal({
       // Configuración Facturación (catch silenciar si 403 por modulo off)
       setFacturacionData(sistemaFactRes.status === 200 ? sistemaFactRes.data.data : {});
 
+      // VeriFactu status
+      if (verifactuRes.data?.data) setVerifactuStatus(verifactuRes.data.data);
+
       const config = globalConfigRes.data || {};
+
+      // PIN lock config
+      if (config.pin_lock_enabled !== undefined) {
+        setPinConfigLocal({
+          pin_lock_enabled: !!config.pin_lock_enabled,
+          pin_code: config.pin_code || "",
+          pin_timeout_minutes: config.pin_timeout_minutes || 5,
+          screensaver_enabled: !!config.screensaver_enabled,
+          screensaver_style: config.screensaver_style || "clock",
+        });
+      }
       const rawModulos = config.modulos || config || {};
       const modulos_mobile = config.modulos_mobile || {};
 
@@ -241,7 +272,8 @@ export default function AdminSelfConfigModal({
       promises.push(api.put("/admin/configuracion", {
         modulos: sistemaConfig.modulos,
         modulos_mobile: sistemaConfig.mobileEnabled ? sistemaConfig.modulos_mobile : null,
-        backup_local_path: sistemaConfig.backup_local_path || null
+        backup_local_path: sistemaConfig.backup_local_path || null,
+        pin_config: pinConfigLocal.pin_lock_enabled ? pinConfigLocal : { ...pinConfigLocal, pin_code: null }
       }));
 
       // 5. Guardar Widgets Dashboard
@@ -858,6 +890,95 @@ export default function AdminSelfConfigModal({
                                 </div>
                               </div>
 
+                              {/* PIN de bloqueo y Protector de Pantalla */}
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-violet-600">
+                                  <Lock size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Bloqueo por PIN</h3>
+                                </div>
+                                <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-xs font-bold">Activar bloqueo por PIN</Label>
+                                      <p className="text-[10px] text-muted-foreground leading-tight">La app se bloquea tras inactividad y pide un PIN</p>
+                                    </div>
+                                    <Switch
+                                      checked={pinConfigLocal.pin_lock_enabled}
+                                      onCheckedChange={(c) => setPinConfigLocal({ ...pinConfigLocal, pin_lock_enabled: c })}
+                                    />
+                                  </div>
+
+                                  {pinConfigLocal.pin_lock_enabled && (
+                                    <div className="space-y-3 pt-2">
+                                      <div>
+                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase">Codigo PIN (4-6 digitos)</Label>
+                                        <input
+                                          type="password"
+                                          maxLength={6}
+                                          value={pinConfigLocal.pin_code}
+                                          onChange={(e) => {
+                                            const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                            setPinConfigLocal({ ...pinConfigLocal, pin_code: v });
+                                          }}
+                                          placeholder="****"
+                                          className="w-full mt-1 border rounded-lg px-3 py-2 text-center text-lg tracking-[0.5em] font-mono"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase">Tiempo de inactividad (minutos)</Label>
+                                        <div className="flex items-center gap-3 mt-1">
+                                          <input
+                                            type="range"
+                                            min={1}
+                                            max={60}
+                                            value={pinConfigLocal.pin_timeout_minutes}
+                                            onChange={(e) => setPinConfigLocal({ ...pinConfigLocal, pin_timeout_minutes: parseInt(e.target.value) })}
+                                            className="flex-1"
+                                          />
+                                          <span className="text-sm font-bold text-primary w-12 text-right">{pinConfigLocal.pin_timeout_minutes} min</span>
+                                        </div>
+                                      </div>
+
+                                      <Separator />
+
+                                      <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                          <Label className="text-xs font-bold flex items-center gap-1.5">
+                                            <Monitor size={14} /> Protector de pantalla
+                                          </Label>
+                                          <p className="text-[10px] text-muted-foreground leading-tight">Mostrar pantalla decorativa antes del PIN</p>
+                                        </div>
+                                        <Switch
+                                          checked={pinConfigLocal.screensaver_enabled}
+                                          onCheckedChange={(c) => setPinConfigLocal({ ...pinConfigLocal, screensaver_enabled: c })}
+                                        />
+                                      </div>
+
+                                      {pinConfigLocal.screensaver_enabled && (
+                                        <div className="grid grid-cols-3 gap-2">
+                                          {([
+                                            { key: "clock", label: "Reloj" },
+                                            { key: "logo", label: "Logo + Reloj" },
+                                            { key: "minimal", label: "Minimalista" },
+                                          ] as const).map((opt) => (
+                                            <Button
+                                              key={opt.key}
+                                              size="sm"
+                                              variant={pinConfigLocal.screensaver_style === opt.key ? "default" : "outline"}
+                                              className={cn("h-8 text-[10px]", pinConfigLocal.screensaver_style === opt.key && "bg-violet-600 hover:bg-violet-700")}
+                                              onClick={() => setPinConfigLocal({ ...pinConfigLocal, screensaver_style: opt.key })}
+                                            >
+                                              {opt.label}
+                                            </Button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
                               {/* Google Calendar Section */}
                               <div className="space-y-4">
                                 <div className="flex items-center gap-2 text-blue-600">
@@ -902,38 +1023,89 @@ export default function AdminSelfConfigModal({
                                     <h3 className="font-bold uppercase tracking-wider text-xs">Cumplimiento y Seguridad</h3>
                                   </div>
                                   <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-4">
+                                    {/* Banner deadline VeriFactu */}
+                                    {verifactuStatus && (verifactuStatus.alerta === 'rojo' || verifactuStatus.alerta === 'critico') && (
+                                      <div className={cn("rounded-lg p-3 text-xs", verifactuStatus.alerta === 'critico' ? "bg-red-100 border border-red-300 text-red-800" : "bg-red-50 border border-red-200 text-red-700")}>
+                                        <div className="flex items-center gap-1.5 font-bold mb-1">
+                                          <AlertCircle size={12} />
+                                          {verifactuStatus.pasado_deadline ? "VeriFactu es obligatorio" : `Quedan ${verifactuStatus.dias_restantes} dias`}
+                                        </div>
+                                        <p className="leading-tight">
+                                          {verifactuStatus.pasado_deadline
+                                            ? `Desde el ${verifactuStatus.deadline}, todas las facturas deben emitirse con VeriFactu activo para ${verifactuStatus.tipo_contribuyente === 'sociedad' ? 'sociedades' : 'autonomos'}.`
+                                            : `A partir del ${verifactuStatus.deadline}, VeriFactu sera obligatorio para ${verifactuStatus.tipo_contribuyente === 'sociedad' ? 'sociedades' : 'autonomos'}.`
+                                          }
+                                        </p>
+                                      </div>
+                                    )}
+                                    {verifactuStatus && verifactuStatus.alerta === 'amarillo' && (
+                                      <div className="rounded-lg p-3 text-xs bg-amber-50 border border-amber-200 text-amber-700">
+                                        <div className="flex items-center gap-1.5 font-bold mb-1">
+                                          <AlertCircle size={12} />
+                                          Quedan {verifactuStatus.dias_restantes} dias para el plazo
+                                        </div>
+                                        <p className="leading-tight">
+                                          A partir del {verifactuStatus.deadline}, VeriFactu sera obligatorio para {verifactuStatus.tipo_contribuyente === 'sociedad' ? 'sociedades' : 'autonomos'}.
+                                        </p>
+                                      </div>
+                                    )}
+
                                     <div className="flex items-center justify-between">
                                       <div className="space-y-0.5">
                                         <Label className="text-xs font-bold">Modo Veri*Factu</Label>
-                                        <p className="text-[10px] text-muted-foreground leading-tight">Envío automático a la AEAT según Ley Antifraude</p>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Envio automatico a la AEAT segun Ley Antifraude</p>
                                       </div>
-                                      <Switch
-                                        checked={facturacionData.verifactu_activo}
-                                        onCheckedChange={(c) => setFacturacionData({ ...facturacionData, verifactu_activo: c })}
-                                      />
+                                      {verifactuStatus?.es_irreversible ? (
+                                        <span className="text-[9px] font-bold text-green-600 uppercase">Activo permanente</span>
+                                      ) : (
+                                        <Switch
+                                          checked={facturacionData.verifactu_activo}
+                                          onCheckedChange={(c) => setFacturacionData({ ...facturacionData, verifactu_activo: c, verifactu_modo: c ? 'TEST' : 'OFF' })}
+                                          disabled={verifactuStatus?.pasado_deadline}
+                                        />
+                                      )}
                                     </div>
 
-                                    {facturacionData.verifactu_activo && (
-                                      <div className="grid grid-cols-2 gap-2 pt-2">
-                                        <Button
-                                          size="sm"
-                                          variant={facturacionData.verifactu_modo === 'TEST' ? 'default' : 'outline'}
-                                          className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'TEST' && "bg-blue-600 hover:bg-blue-700")}
-                                          onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'TEST' })}
-                                        >
-                                          ENTORNO TEST
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant={facturacionData.verifactu_modo === 'PROD' ? 'default' : 'outline'}
-                                          className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'PROD' && "bg-red-600 hover:bg-red-700")}
-                                          onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'PROD' })}
-                                        >
-                                          PRODUCCIÓN
-                                        </Button>
-                                        {facturacionData.verifactu_modo === 'PROD' && (
-                                          <p className="col-span-2 text-[9px] text-red-600 font-bold flex items-center gap-1">
-                                            <AlertCircle size={10} /> ¡Atención! El modo producción envía datos reales a Hacienda.
+                                    {(facturacionData.verifactu_activo || verifactuStatus?.es_irreversible) && (
+                                      <div className="grid grid-cols-3 gap-2 pt-2">
+                                        {(!verifactuStatus || verifactuStatus.modos_disponibles.includes('OFF')) && (
+                                          <Button
+                                            size="sm"
+                                            variant={facturacionData.verifactu_modo === 'OFF' ? 'default' : 'outline'}
+                                            className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'OFF' && "bg-slate-600 hover:bg-slate-700")}
+                                            onClick={() => setFacturacionData({ ...facturacionData, verifactu_activo: false, verifactu_modo: 'OFF' })}
+                                          >
+                                            OFF
+                                          </Button>
+                                        )}
+                                        {(!verifactuStatus || verifactuStatus.modos_disponibles.includes('TEST')) && (
+                                          <Button
+                                            size="sm"
+                                            variant={facturacionData.verifactu_modo === 'TEST' ? 'default' : 'outline'}
+                                            className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'TEST' && "bg-blue-600 hover:bg-blue-700")}
+                                            onClick={() => setFacturacionData({ ...facturacionData, verifactu_modo: 'TEST' })}
+                                          >
+                                            TEST
+                                          </Button>
+                                        )}
+                                        {(!verifactuStatus || verifactuStatus.modos_disponibles.includes('PRODUCCION')) && (
+                                          <Button
+                                            size="sm"
+                                            variant={facturacionData.verifactu_modo === 'PRODUCCION' ? 'default' : 'outline'}
+                                            className={cn("h-8 text-[10px]", facturacionData.verifactu_modo === 'PRODUCCION' && "bg-red-600 hover:bg-red-700")}
+                                            onClick={() => setFacturacionData({ ...facturacionData, verifactu_activo: true, verifactu_modo: 'PRODUCCION' })}
+                                          >
+                                            PRODUCCION
+                                          </Button>
+                                        )}
+                                        {facturacionData.verifactu_modo === 'PRODUCCION' && !verifactuStatus?.es_irreversible && (
+                                          <p className="col-span-3 text-[9px] text-red-600 font-bold flex items-center gap-1">
+                                            <AlertCircle size={10} /> Al emitir tu primera factura con VeriFactu, este cambio sera irreversible.
+                                          </p>
+                                        )}
+                                        {verifactuStatus?.es_irreversible && (
+                                          <p className="col-span-3 text-[9px] text-green-600 font-bold flex items-center gap-1">
+                                            <ShieldCheck size={10} /> VeriFactu activo permanentemente. {verifactuStatus.facturas_verifactu} factura(s) registradas en la AEAT.
                                           </p>
                                         )}
                                       </div>

@@ -6,7 +6,10 @@ import { api } from "@/services/api";
 import { getUser, updateStoredUser } from "@/services/auth";
 import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
-import { Check, Calendar, Mail, ArrowRight, Building2 } from "lucide-react";
+import {
+  Check, Calendar, Mail, ArrowRight, Building2,
+  User, Briefcase, Bot, Sparkles
+} from "lucide-react";
 
 type Modulos = {
   fichajes: boolean;
@@ -15,21 +18,28 @@ type Modulos = {
   calendario: boolean;
   facturacion: boolean;
   pagos: boolean;
+  clientes: boolean;
+  fiscal: boolean;
 };
 
 const MODULE_LIST = [
-  { key: "empleados", label: "Empleados", desc: "Gestión de empleados, ausencias, dispositivos", default: true },
+  { key: "empleados", label: "Empleados", desc: "Gestion de empleados, ausencias, dispositivos", default: true },
   { key: "fichajes", label: "Fichajes", desc: "Control de entrada/salida, horas trabajadas", default: true },
-  { key: "calendario", label: "Calendario", desc: "Festivos, cierres, planificación", default: true },
-  { key: "worklogs", label: "Trabajos / Partes", desc: "Partes de trabajo, asignaciones a clientes", default: false },
-  { key: "facturacion", label: "Facturación", desc: "Facturas, conceptos, IVA, VeriFactu", default: false },
+  { key: "calendario", label: "Calendario", desc: "Festivos, cierres, planificacion", default: true },
+  { key: "clientes", label: "Clientes", desc: "Base de datos de clientes, datos fiscales", default: true },
+  { key: "facturacion", label: "Facturacion", desc: "Facturas, conceptos, IVA, VeriFactu", default: false },
   { key: "pagos", label: "Cobros y Pagos", desc: "Control de cobros y pagos de clientes", default: false },
+  { key: "worklogs", label: "Trabajos / Partes", desc: "Partes de trabajo, asignaciones a clientes", default: false },
+  { key: "fiscal", label: "Fiscal", desc: "Modelos 303, 130, 111 y libros registro", default: false },
 ];
+
+const TOTAL_STEPS = 5;
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [empresaNombre, setEmpresaNombre] = useState("");
+  const [tipoContribuyente, setTipoContribuyente] = useState<"autonomo" | "sociedad">("autonomo");
   const [modulos, setModulos] = useState<Modulos>({
     fichajes: true,
     worklogs: false,
@@ -37,6 +47,8 @@ export default function OnboardingPage() {
     calendario: true,
     facturacion: false,
     pagos: false,
+    clientes: true,
+    fiscal: false,
   });
   const [googleConnected, setGoogleConnected] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -47,12 +59,10 @@ export default function OnboardingPage() {
       router.replace("/login");
       return;
     }
-    // Pre-fill empresa name from domain
     const domain = user.email?.split("@")[1]?.split(".")[0] || "";
     setEmpresaNombre(domain.charAt(0).toUpperCase() + domain.slice(1));
   }, [router]);
 
-  // Listen for OAuth popup completion
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
       if (e.data?.type === "oauth-success") {
@@ -75,7 +85,6 @@ export default function OnboardingPage() {
         empresa_nombre: empresaNombre,
       });
       const { authUrl } = res.data;
-      // Open popup
       window.open(
         authUrl,
         "Google Setup",
@@ -91,26 +100,31 @@ export default function OnboardingPage() {
   async function handleFinish() {
     setLoading(true);
     try {
-      // 1. Update empresa name if changed
+      // 1. Update empresa name + tipo_contribuyente
       if (empresaNombre) {
         await api.post("/auth/google/complete-setup", {
           empresa_nombre: empresaNombre,
-        }).catch(() => {}); // ignore if already called
+        }).catch(() => {});
       }
 
-      // 2. Save modules
+      // 2. Save tipo_contribuyente
+      await api.put("/admin/empresa/tipo-contribuyente", {
+        tipo_contribuyente: tipoContribuyente
+      }).catch(() => {});
+
+      // 3. Save modules
       await api.put("/admin/configuracion", { modulos });
 
-      // 3. Refresh user data
+      // 4. Refresh user data
       const me = await api.get("/auth/me");
       updateStoredUser(me.data);
       localStorage.setItem("user", JSON.stringify(me.data));
       window.dispatchEvent(new Event("session-updated"));
 
-      showSuccess("Configuración completada");
+      showSuccess("Configuracion completada");
       router.replace("/admin/dashboard");
     } catch (err: any) {
-      showError(err?.response?.data?.error || "Error guardando configuración");
+      showError(err?.response?.data?.error || "Error guardando configuracion");
     } finally {
       setLoading(false);
     }
@@ -123,7 +137,7 @@ export default function OnboardingPage() {
         <div className="h-1.5 bg-gray-100">
           <div
             className="h-full bg-blue-500 transition-all duration-500"
-            style={{ width: `${(step / 3) * 100}%` }}
+            style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
           />
         </div>
 
@@ -137,7 +151,7 @@ export default function OnboardingPage() {
                 </div>
                 <h1 className="text-2xl font-bold">Nombre de tu empresa</h1>
                 <p className="text-gray-500 text-sm">
-                  Puedes cambiarlo más adelante en Configuración
+                  Puedes cambiarlo mas adelante en Configuracion
                 </p>
               </div>
 
@@ -161,8 +175,75 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 2: Connect Google services */}
+          {/* Step 2: Tipo de contribuyente */}
           {step === 2 && (
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto">
+                  <Briefcase className="w-7 h-7 text-indigo-600" />
+                </div>
+                <h1 className="text-2xl font-bold">Tipo de contribuyente</h1>
+                <p className="text-gray-500 text-sm">
+                  Necesario para calcular los plazos de VeriFactu y modelos fiscales
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => setTipoContribuyente("autonomo")}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                    tipoContribuyente === "autonomo"
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    tipoContribuyente === "autonomo" ? "bg-blue-500" : "bg-gray-200"
+                  }`}>
+                    <User className={`w-5 h-5 ${tipoContribuyente === "autonomo" ? "text-white" : "text-gray-500"}`} />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Autonomo / Persona fisica</p>
+                    <p className="text-xs text-gray-500">Tributas por IRPF. VeriFactu obligatorio desde el 1 de julio de 2027.</p>
+                  </div>
+                  {tipoContribuyente === "autonomo" && <Check className="w-5 h-5 text-blue-500 ml-auto shrink-0" />}
+                </button>
+
+                <button
+                  onClick={() => setTipoContribuyente("sociedad")}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                    tipoContribuyente === "sociedad"
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    tipoContribuyente === "sociedad" ? "bg-blue-500" : "bg-gray-200"
+                  }`}>
+                    <Building2 className={`w-5 h-5 ${tipoContribuyente === "sociedad" ? "text-white" : "text-gray-500"}`} />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Sociedad (SL, SA, etc.)</p>
+                    <p className="text-xs text-gray-500">Tributas por Impuesto de Sociedades. VeriFactu obligatorio desde el 1 de enero de 2027.</p>
+                  </div>
+                  {tipoContribuyente === "sociedad" && <Check className="w-5 h-5 text-blue-500 ml-auto shrink-0" />}
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setStep(1)} className="flex-1 py-5">
+                  Atras
+                </Button>
+                <Button onClick={() => setStep(3)} className="flex-1 py-5 font-semibold">
+                  Continuar
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Connect Google services */}
+          {step === 3 && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto">
@@ -178,13 +259,12 @@ export default function OnboardingPage() {
                 </p>
               </div>
 
-              {/* What will be connected */}
               <div className="space-y-3">
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100">
                   <Calendar className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
                   <div>
                     <p className="font-medium text-sm">Google Calendar</p>
-                    <p className="text-xs text-gray-500">Sincroniza festivos, cierres y eventos automáticamente</p>
+                    <p className="text-xs text-gray-500">Sincroniza festivos, cierres y eventos automaticamente</p>
                   </div>
                   {googleConnected && <Check className="w-5 h-5 text-green-500 ml-auto mt-0.5" />}
                 </div>
@@ -193,7 +273,7 @@ export default function OnboardingPage() {
                   <Mail className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
                   <div>
                     <p className="font-medium text-sm">Gmail</p>
-                    <p className="text-xs text-gray-500">Envía facturas, invitaciones y notificaciones</p>
+                    <p className="text-xs text-gray-500">Envia facturas, invitaciones y notificaciones</p>
                   </div>
                   {googleConnected && <Check className="w-5 h-5 text-green-500 ml-auto mt-0.5" />}
                 </div>
@@ -221,17 +301,10 @@ export default function OnboardingPage() {
               )}
 
               <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                  className="flex-1 py-5"
-                >
-                  Atrás
+                <Button variant="outline" onClick={() => setStep(2)} className="flex-1 py-5">
+                  Atras
                 </Button>
-                <Button
-                  onClick={() => setStep(3)}
-                  className="flex-1 py-5 font-semibold"
-                >
+                <Button onClick={() => setStep(4)} className="flex-1 py-5 font-semibold">
                   {googleConnected ? "Continuar" : "Omitir por ahora"}
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -239,11 +312,11 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 3: Choose modules */}
-          {step === 3 && (
+          {/* Step 4: Choose modules */}
+          {step === 4 && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
-                <h1 className="text-2xl font-bold">Elige tus módulos</h1>
+                <h1 className="text-2xl font-bold">Elige tus modulos</h1>
                 <p className="text-gray-500 text-sm">
                   Activa solo los que necesites. Puedes cambiarlos en cualquier momento.
                 </p>
@@ -278,19 +351,68 @@ export default function OnboardingPage() {
               </div>
 
               <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep(2)}
-                  className="flex-1 py-5"
-                >
-                  Atrás
+                <Button variant="outline" onClick={() => setStep(3)} className="flex-1 py-5">
+                  Atras
+                </Button>
+                <Button onClick={() => setStep(5)} className="flex-1 py-5 font-semibold">
+                  Continuar
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Welcome / Ready */}
+          {step === 5 && (
+            <div className="space-y-6">
+              <div className="text-center space-y-3">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto">
+                  <Bot className="w-8 h-8 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold">Todo listo</h1>
+                <p className="text-gray-500 text-sm">
+                  Tu asistente CONTENDO esta preparado para ayudarte
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 space-y-3 border border-blue-100">
+                <div className="flex items-center gap-2 text-blue-700 font-semibold text-sm">
+                  <Sparkles className="w-4 h-4" />
+                  Plan gratuito incluido
+                </div>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    10 consultas IA diarias con CONTENDO
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    300 consultas mensuales
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    Todos los modulos activados
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    VeriFactu y auditoria incluidos
+                  </li>
+                </ul>
+                <p className="text-xs text-gray-400">
+                  Puedes recargar creditos IA en cualquier momento desde la configuracion.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setStep(4)} className="flex-1 py-5">
+                  Atras
                 </Button>
                 <Button
                   onClick={handleFinish}
                   disabled={loading}
-                  className="flex-1 py-5 font-semibold"
+                  className="flex-1 py-5 font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                 >
-                  {loading ? "Guardando..." : "Empezar a usar APP180"}
+                  {loading ? "Guardando..." : "Ir al dashboard"}
                 </Button>
               </div>
             </div>

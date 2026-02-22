@@ -38,6 +38,12 @@ export function AICopilot() {
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [needsPassword, setNeedsPassword] = useState(false)
   const [pdfPassword, setPdfPassword] = useState("")
+  const [aiUsage, setAiUsage] = useState<{
+    consultas_hoy: number; limite_diario: number;
+    consultas_mes: number; limite_mensual: number;
+    creditos_extra: number; sin_limites: boolean;
+    pct_diario: number; pct_mensual: number;
+  } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -77,6 +83,20 @@ export function AICopilot() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [mensajes])
+
+  // Cargar consumo de IA al abrir el chat
+  const fetchUsage = async () => {
+    try {
+      const res = await api.get("/admin/ai/usage")
+      setAiUsage(res.data)
+    } catch (err) {
+      console.error("Error cargando uso IA:", err)
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen) fetchUsage()
+  }, [isOpen])
 
   // Mensaje de bienvenida cuando se abre por primera vez
   useEffect(() => {
@@ -148,6 +168,9 @@ export function AICopilot() {
 
       setMensajes(prev => [...prev, mensajeAsistente])
 
+      // Refrescar uso despues de cada mensaje
+      fetchUsage()
+
       // Si CONTENDO ejecuto una accion de escritura, refrescar datos del dashboard
       if (response.data.accion_realizada) {
         window.dispatchEvent(new Event("data-updated"))
@@ -158,8 +181,20 @@ export function AICopilot() {
       // Si el PDF necesita password
       if (error.response?.data?.code === "PDF_PASSWORD_REQUIRED") {
         setNeedsPassword(true)
-        // Quitar el mensaje del usuario que acabamos de añadir
         setMensajes(prev => prev.slice(0, -1))
+        setIsLoading(false)
+        return
+      }
+
+      // Si se alcanzo el limite de consultas
+      if (error.response?.data?.limite_alcanzado) {
+        const mensajeLimite: Mensaje = {
+          role: "assistant",
+          content: `**Has alcanzado el limite diario de consultas.**\n\nTu plan actual incluye ${aiUsage?.limite_diario || 10} consultas al dia.\n\nPuedes recargar creditos para seguir usando CONTENDO.`,
+          timestamp: new Date().toISOString()
+        }
+        setMensajes(prev => [...prev, mensajeLimite])
+        fetchUsage()
         setIsLoading(false)
         return
       }
@@ -561,6 +596,32 @@ Preguntame lo que necesites.`,
                   )}
                 </Button>
               </div>
+              {/* Barra de consumo IA */}
+              {aiUsage && !aiUsage.sin_limites && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                    <span>{aiUsage.consultas_hoy}/{aiUsage.limite_diario} hoy</span>
+                    <span>{aiUsage.consultas_mes}/{aiUsage.limite_mensual} este mes</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-1.5">
+                    <div
+                      className={`h-1.5 rounded-full transition-all ${
+                        aiUsage.pct_diario >= 80 ? "bg-red-500" :
+                        aiUsage.pct_diario >= 60 ? "bg-amber-500" : "bg-emerald-500"
+                      }`}
+                      style={{ width: `${Math.min(100, aiUsage.pct_diario)}%` }}
+                    />
+                  </div>
+                  {aiUsage.creditos_extra > 0 && (
+                    <p className="text-[10px] text-blue-500 mt-0.5">+{aiUsage.creditos_extra} creditos extra</p>
+                  )}
+                  {aiUsage.pct_diario >= 100 && aiUsage.creditos_extra <= 0 && (
+                    <p className="text-[10px] text-red-500 mt-0.5 text-center">
+                      Limite alcanzado · <span className="underline cursor-pointer">Recargar creditos</span>
+                    </p>
+                  )}
+                </div>
+              )}
               <p className="text-xs text-slate-400 mt-2 text-center">
                 Powered by IA · CONTENDO
               </p>

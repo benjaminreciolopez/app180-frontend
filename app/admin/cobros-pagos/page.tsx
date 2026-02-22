@@ -477,7 +477,14 @@ export default function CobrosPagosPage() {
                     <CardContent className="p-6">
                         <p className="text-sm font-medium text-slate-500 mb-1">Cobros Recientes</p>
                         <h3 className="text-2xl font-bold text-slate-900">
-                            {pagos.slice(0, 5).length} <span className="text-sm font-normal text-slate-400">esta semana</span>
+                            {pagos.filter(p => {
+                                const d = new Date(p.fecha_pago);
+                                const now = new Date();
+                                const monday = new Date(now);
+                                monday.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
+                                monday.setHours(0,0,0,0);
+                                return d >= monday;
+                            }).length} <span className="text-sm font-normal text-slate-400">esta semana</span>
                         </h3>
                     </CardContent>
                 </Card>
