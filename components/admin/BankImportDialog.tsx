@@ -78,6 +78,11 @@ export default function BankImportDialog({ open, onClose, onSuccess }: Props) {
     const [showOnlyGastos, setShowOnlyGastos] = useState(true);
     const [importing, setImporting] = useState(false);
 
+    // PDF password
+    const [needsPassword, setNeedsPassword] = useState(false);
+    const [pdfPassword, setPdfPassword] = useState("");
+    const [pendingFile, setPendingFile] = useState<File | null>(null);
+
     // Defaults for bulk import
     const [defaultCategoria, setDefaultCategoria] = useState("general");
     const [defaultMetodoPago, setDefaultMetodoPago] = useState("domiciliacion");
@@ -87,6 +92,9 @@ export default function BankImportDialog({ open, onClose, onSuccess }: Props) {
         setStep("upload");
         setLoading(false);
         setTransactions([]);
+        setNeedsPassword(false);
+        setPdfPassword("");
+        setPendingFile(null);
         setResumen(null);
         setBankName("");
         setFileName("");
@@ -103,12 +111,13 @@ export default function BankImportDialog({ open, onClose, onSuccess }: Props) {
     };
 
     // ========== UPLOAD ==========
-    const handleFileUpload = async (file: File) => {
+    const handleFileUpload = async (file: File, password?: string) => {
         setLoading(true);
         setFileName(file.name);
         try {
             const formData = new FormData();
             formData.append("file", file);
+            if (password) formData.append("password", password);
 
             const res = await api.post("/api/admin/purchases/bank-import", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
@@ -122,6 +131,10 @@ export default function BankImportDialog({ open, onClose, onSuccess }: Props) {
                 return;
             }
 
+            setNeedsPassword(false);
+            setPdfPassword("");
+            setPendingFile(null);
+
             const txs: Transaction[] = (data.transactions || []).map((t: any) => ({
                 ...t,
                 proveedor: t.proveedor_sugerido || "",
@@ -133,9 +146,21 @@ export default function BankImportDialog({ open, onClose, onSuccess }: Props) {
             setBankName(data.bank_name || "");
             setStep("preview");
         } catch (err: any) {
+            if (err?.response?.data?.code === "PDF_PASSWORD_REQUIRED") {
+                setPendingFile(file);
+                setNeedsPassword(true);
+                setLoading(false);
+                return;
+            }
             showError(err?.response?.data?.error || "Error al procesar el archivo");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePasswordSubmit = () => {
+        if (pendingFile && pdfPassword) {
+            handleFileUpload(pendingFile, pdfPassword);
         }
     };
 
@@ -253,6 +278,31 @@ export default function BankImportDialog({ open, onClose, onSuccess }: Props) {
                                 <Loader2 className="w-12 h-12 animate-spin text-slate-400" />
                                 <p className="text-slate-500">Procesando extracto bancario...</p>
                                 <p className="text-sm text-slate-400">Esto puede tardar unos segundos</p>
+                            </div>
+                        ) : needsPassword ? (
+                            <div className="flex flex-col items-center gap-4 w-full max-w-md">
+                                <AlertTriangle className="w-12 h-12 text-amber-500" />
+                                <p className="text-lg font-medium text-slate-700">PDF protegido con contraseña</p>
+                                <p className="text-sm text-slate-500 text-center">
+                                    El archivo <strong>{fileName}</strong> requiere contraseña para abrirlo.
+                                </p>
+                                <Input
+                                    type="password"
+                                    placeholder="Contraseña del PDF..."
+                                    value={pdfPassword}
+                                    onChange={(e) => setPdfPassword(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                                    className="rounded-xl h-11"
+                                    autoFocus
+                                />
+                                <div className="flex gap-2">
+                                    <Button variant="outline" onClick={() => { setNeedsPassword(false); setPendingFile(null); }} className="rounded-xl">
+                                        Cancelar
+                                    </Button>
+                                    <Button onClick={handlePasswordSubmit} disabled={!pdfPassword} className="bg-black text-white hover:bg-slate-800 rounded-xl">
+                                        Desbloquear
+                                    </Button>
+                                </div>
                             </div>
                         ) : (
                             <div
