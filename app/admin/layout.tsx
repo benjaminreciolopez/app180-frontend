@@ -12,6 +12,7 @@ import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
 import AutoBackupSync from "@/components/admin/AutoBackupSync";
 import { LockScreen } from "@/components/shared/LockScreen";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 
 type Modulos = Record<string, boolean>;
 
@@ -457,6 +458,8 @@ export default function AdminLayout({
               <p className="text-[10px] text-muted-foreground uppercase tracking-tighter mt-1">Sesión Administrativa</p>
             </div>
 
+            <NotificationBell />
+
             <button
               onClick={() => setSelfConfigOpen(true)}
               className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300"
@@ -496,6 +499,8 @@ export default function AdminLayout({
           >
             ☰
           </button>
+          <h1 className="text-xs font-bold tracking-wider text-foreground/80 uppercase">CONTENDO</h1>
+          <NotificationBell />
         </div>
 
         {/* Contenido */}
