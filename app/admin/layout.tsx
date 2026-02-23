@@ -194,6 +194,7 @@ export default function AdminLayout({
       { path: "/admin/gastos", module: "facturacion" },
       { path: "/admin/contabilidad", module: "facturacion" }, // Nuevo: Libros
       { path: "/admin/fiscal", module: "fiscal" }, // Nuevo: Modelos (Módulo cobrable)
+      { path: "/admin/fiscal/renta", module: "fiscal" },
 
       // ✅ Importación OCR / historial dependen de calendario
       {
@@ -241,6 +242,7 @@ export default function AdminLayout({
       "/admin/gastos": "Compras y Gastos",
       "/admin/contabilidad": "Contabilidad",
       "/admin/fiscal": "Fiscalidad",
+      "/admin/fiscal/renta": "Declaración Renta",
     };
 
     // Match most specific path first
@@ -321,6 +323,7 @@ export default function AdminLayout({
     { path: "/admin/gastos", label: "Compras y Gastos", module: "facturacion" },
     { path: "/admin/contabilidad", label: "Libros Contables", module: "facturacion" },
     { path: "/admin/fiscal", label: "Modelos Fiscales", module: "fiscal" }, // Requiere módulo fiscal explícito
+    { path: "/admin/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
     { path: "/admin/cobros-pagos", label: "Cobros y Pagos", module: "pagos" },
 
     { path: "/admin/jornadas", label: "Configurar Jornadas", module: "fichajes" },
