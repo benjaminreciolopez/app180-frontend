@@ -18,6 +18,14 @@ import {
 
 type Tab = "historial" | "datos" | "dossier"
 
+function safeJsonArray(val: any): any[] {
+  if (Array.isArray(val)) return val
+  if (typeof val === "string") {
+    try { const parsed = JSON.parse(val); return Array.isArray(parsed) ? parsed : [] } catch { return [] }
+  }
+  return []
+}
+
 export default function RentaPage() {
   const [tab, setTab] = useState<Tab>("historial")
   const [ejercicio, setEjercicio] = useState(new Date().getFullYear() - 1)
@@ -84,6 +92,9 @@ function HistorialTab({ ejercicio }: { ejercicio: number }) {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [detalle, setDetalle] = useState<any>(null)
+  const [editForm, setEditForm] = useState<Record<string, number | string>>({})
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const loadHistorial = useCallback(async () => {
     try {
@@ -124,7 +135,10 @@ function HistorialTab({ ejercicio }: { ejercicio: number }) {
       const json = await res.json()
 
       if (json.success) {
-        toast.success(`Renta ${ejercicio} importada correctamente (confianza: ${(json.extraccion.confianza * 100).toFixed(0)}%)`)
+        const dpMsg = json.extraccion.datos_personales_extraidos
+          ? " + datos personales actualizados"
+          : ""
+        toast.success(`Renta ${ejercicio} importada (confianza: ${(json.extraccion.confianza * 100).toFixed(0)}%)${dpMsg}`)
         loadHistorial()
       } else {
         toast.error(json.error || "Error al procesar el PDF")
@@ -157,10 +171,56 @@ function HistorialTab({ ejercicio }: { ejercicio: number }) {
       const res = await authenticatedFetch(`/api/admin/fiscal/renta/historial/${ej}`)
       if (res.ok) {
         const json = await res.json()
-        if (json.success) setDetalle(json.data)
+        if (json.success) {
+          setDetalle(json.data)
+          setEditing(false)
+          setEditForm({
+            rendimientos_trabajo: parseFloat(json.data.rendimientos_trabajo) || 0,
+            rendimientos_capital_mob: parseFloat(json.data.rendimientos_capital_mob) || 0,
+            rendimientos_capital_inmob: parseFloat(json.data.rendimientos_capital_inmob) || 0,
+            rendimientos_actividades: parseFloat(json.data.rendimientos_actividades) || 0,
+            casilla_505: parseFloat(json.data.casilla_505) || 0,
+            casilla_510: parseFloat(json.data.casilla_510) || 0,
+            casilla_595: parseFloat(json.data.casilla_595) || 0,
+            casilla_600: parseFloat(json.data.casilla_600) || 0,
+            casilla_610: parseFloat(json.data.casilla_610) || 0,
+            casilla_611: parseFloat(json.data.casilla_611) || 0,
+            retenciones_trabajo: parseFloat(json.data.retenciones_trabajo) || 0,
+            retenciones_actividades: parseFloat(json.data.retenciones_actividades) || 0,
+            pagos_fraccionados: parseFloat(json.data.pagos_fraccionados) || 0,
+            resultado_declaracion: parseFloat(json.data.resultado_declaracion) || 0,
+            tipo_declaracion: json.data.tipo_declaracion || "individual",
+            ganancias_patrimoniales: parseFloat(json.data.ganancias_patrimoniales) || 0,
+          })
+        }
       }
     } catch (e) {
       toast.error("Error al cargar detalle")
+    }
+  }
+
+  const handleSaveEdit = async () => {
+    if (!detalle) return
+    setSaving(true)
+    try {
+      const res = await authenticatedFetch(`/api/admin/fiscal/renta/historial/${detalle.ejercicio}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      })
+      const json = await res.json()
+      if (json.success) {
+        toast.success("Casillas actualizadas correctamente")
+        setDetalle(json.data)
+        setEditing(false)
+        loadHistorial()
+      } else {
+        toast.error(json.error || "Error al guardar")
+      }
+    } catch (e) {
+      toast.error("Error al guardar cambios")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -272,33 +332,64 @@ function HistorialTab({ ejercicio }: { ejercicio: number }) {
             <div className="flex justify-between items-start">
               <div>
                 <CardTitle>Detalle Renta {detalle.ejercicio}</CardTitle>
-                <CardDescription>Casillas extraidas del PDF</CardDescription>
+                <CardDescription>
+                  {editing ? "Editando casillas — modifica los valores y guarda" : "Casillas extraidas del PDF"}
+                </CardDescription>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => setDetalle(null)}>
-                <X className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                {!editing ? (
+                  <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                    <FileText className="w-4 h-4 mr-1" /> Editar
+                  </Button>
+                ) : (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
+                      Cancelar
+                    </Button>
+                    <Button size="sm" onClick={handleSaveEdit} disabled={saving}>
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                      Guardar
+                    </Button>
+                  </>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => { setDetalle(null); setEditing(false) }}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <CasillaItem label="Rend. Trabajo (003)" value={detalle.rendimientos_trabajo} />
-              <CasillaItem label="Rend. Capital Mob. (027)" value={detalle.rendimientos_capital_mob} />
-              <CasillaItem label="Rend. Capital Inmob. (063)" value={detalle.rendimientos_capital_inmob} />
-              <CasillaItem label="Rend. Actividades (109)" value={detalle.rendimientos_actividades} />
-              <CasillaItem label="Base Imp. General (505)" value={detalle.casilla_505} />
-              <CasillaItem label="Base Imp. Ahorro (510)" value={detalle.casilla_510} />
-              <CasillaItem label="Cuota Int. Estatal (595)" value={detalle.casilla_595} />
-              <CasillaItem label="Cuota Int. Autonomica (600)" value={detalle.casilla_600} />
-              <CasillaItem label="Cuota Liquida (610)" value={detalle.casilla_610} />
-              <CasillaItem label="Deducciones (611)" value={detalle.casilla_611} />
-              <CasillaItem label="Retenciones Trabajo" value={detalle.retenciones_trabajo} />
-              <CasillaItem label="Pagos Fraccionados" value={detalle.pagos_fraccionados} />
+              <CasillaItem label="Rend. Trabajo (003)" field="rendimientos_trabajo" value={detalle.rendimientos_trabajo} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Rend. Capital Mob. (027)" field="rendimientos_capital_mob" value={detalle.rendimientos_capital_mob} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Rend. Capital Inmob. (063)" field="rendimientos_capital_inmob" value={detalle.rendimientos_capital_inmob} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Rend. Actividades (109)" field="rendimientos_actividades" value={detalle.rendimientos_actividades} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Base Imp. General (505)" field="casilla_505" value={detalle.casilla_505} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Base Imp. Ahorro (510)" field="casilla_510" value={detalle.casilla_510} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Cuota Int. Estatal (595)" field="casilla_595" value={detalle.casilla_595} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Cuota Int. Autonomica (600)" field="casilla_600" value={detalle.casilla_600} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Cuota Liquida (610)" field="casilla_610" value={detalle.casilla_610} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Deducciones (611)" field="casilla_611" value={detalle.casilla_611} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Retenciones Trabajo" field="retenciones_trabajo" value={detalle.retenciones_trabajo} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Retenciones Actividades" field="retenciones_actividades" value={detalle.retenciones_actividades} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Pagos Fraccionados" field="pagos_fraccionados" value={detalle.pagos_fraccionados} editing={editing} editForm={editForm} setEditForm={setEditForm} />
+              <CasillaItem label="Ganancias Patrimoniales" field="ganancias_patrimoniales" value={detalle.ganancias_patrimoniales} editing={editing} editForm={editForm} setEditForm={setEditForm} />
             </div>
             <div className="mt-4 p-4 rounded-lg bg-white border flex items-center justify-between">
               <span className="font-semibold text-lg">Resultado Declaracion</span>
-              <span className={`text-xl font-bold ${parseFloat(detalle.resultado_declaracion) >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                {formatCurrency(parseFloat(detalle.resultado_declaracion))}
-              </span>
+              {editing ? (
+                <Input
+                  type="number"
+                  step="0.01"
+                  className="w-48 text-right font-bold text-lg"
+                  value={editForm.resultado_declaracion}
+                  onChange={e => setEditForm(p => ({ ...p, resultado_declaracion: parseFloat(e.target.value) || 0 }))}
+                />
+              ) : (
+                <span className={`text-xl font-bold ${parseFloat(detalle.resultado_declaracion) >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {formatCurrency(parseFloat(detalle.resultado_declaracion))}
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -307,12 +398,26 @@ function HistorialTab({ ejercicio }: { ejercicio: number }) {
   )
 }
 
-function CasillaItem({ label, value }: { label: string; value: any }) {
+function CasillaItem({ label, field, value, editing, editForm, setEditForm }: {
+  label: string; field: string; value: any;
+  editing: boolean; editForm: Record<string, number | string>;
+  setEditForm: React.Dispatch<React.SetStateAction<Record<string, number | string>>>;
+}) {
   const num = parseFloat(value) || 0
   return (
-    <div className="p-3 bg-white rounded-lg border">
+    <div className={`p-3 rounded-lg border ${editing ? "bg-blue-50/50 border-blue-200" : "bg-white"}`}>
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="font-semibold mt-1">{formatCurrency(num)}</div>
+      {editing ? (
+        <Input
+          type="number"
+          step="0.01"
+          className="mt-1 h-8 text-sm font-semibold"
+          value={editForm[field] ?? 0}
+          onChange={e => setEditForm(p => ({ ...p, [field]: parseFloat(e.target.value) || 0 }))}
+        />
+      ) : (
+        <div className="font-semibold mt-1">{formatCurrency(num)}</div>
+      )}
     </div>
   )
 }
@@ -367,8 +472,8 @@ function DatosPersonalesTab() {
             conyuge_fecha_nacimiento: json.data.conyuge_fecha_nacimiento?.split("T")[0] || "",
             conyuge_rendimientos: json.data.conyuge_rendimientos || 0,
             conyuge_discapacidad: json.data.conyuge_discapacidad || 0,
-            descendientes: json.data.descendientes || [],
-            ascendientes: json.data.ascendientes || [],
+            descendientes: safeJsonArray(json.data.descendientes),
+            ascendientes: safeJsonArray(json.data.ascendientes),
             vivienda_tipo: json.data.vivienda_tipo || "propiedad",
             vivienda_referencia_catastral: json.data.vivienda_referencia_catastral || "",
             alquiler_anual: json.data.alquiler_anual || 0,
