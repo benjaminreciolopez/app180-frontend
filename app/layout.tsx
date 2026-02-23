@@ -6,6 +6,7 @@ import AuthInit from "@/components/AuthInit";
 import ToastProvider from "@/components/ToastProvider";
 import DynamicAuthor from "@/components/DynamicAuthor";
 import { ConfirmProvider } from "@/components/shared/ConfirmDialog";
+import { CookieBanner } from "@/components/shared/CookieBanner";
 
 export default function RootLayout({
   children,
@@ -28,6 +29,7 @@ export default function RootLayout({
               <DynamicAuthor />
               {children}
               <ToastProvider />
+              <CookieBanner />
             </ConfirmProvider>
           </ThemeProvider>
         </QueryProvider>
