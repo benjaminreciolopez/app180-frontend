@@ -235,6 +235,21 @@ export default function FacturasListadoPage() {
     }
   }
 
+  const handleConvertirANormal = async (facturaId: number) => {
+    setProcesandoId(facturaId)
+    try {
+      const { data } = await api.post(`/admin/facturacion/facturas/${facturaId}/convertir-a-normal`, {
+        fecha: new Date().toISOString().split('T')[0]
+      })
+      toast.success(data.message || "Proforma convertida a factura normal. Ahora valídala para asignar número oficial.")
+      loadFacturas()
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Error al convertir proforma")
+    } finally {
+      setProcesandoId(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       
@@ -327,13 +342,14 @@ export default function FacturasListadoPage() {
             <div className="divide-y divide-slate-100">
                 <AnimatePresence>
                     {filteredFacturas.map((factura) => (
-                        <FacturaRow 
-                            key={factura.id} 
-                            factura={factura} 
+                        <FacturaRow
+                            key={factura.id}
+                            factura={factura}
                             onValidar={() => handleValidar(factura.id)}
                             onAnular={() => setFacturaToAnular(factura)}
                             onDelete={() => setFacturaToDelete(factura)}
                             onEdit={() => router.push(`/admin/facturacion/editar/${factura.id}`)}
+                            onConvertir={() => handleConvertirANormal(factura.id)}
                             isProcessing={procesandoId === factura.id}
                             isDownloading={downloadingId === factura.id}
                             isGlobalBusy={!!procesandoId || !!downloadingId}
@@ -424,10 +440,11 @@ export default function FacturasListadoPage() {
   )
 }
 
-function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular, onDelete, onEdit, isProcessing, isDownloading, isGlobalBusy }: any) {
+function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular, onDelete, onEdit, onConvertir, isProcessing, isDownloading, isGlobalBusy }: any) {
     const isBorrador = factura.estado === "BORRADOR"
     const isValidada = factura.estado === "VALIDADA"
     const isAnulada = factura.estado === "ANULADA"
+    const isProforma = factura.tipo_factura === "PROFORMA"
 
     // Determinar estado de pago
     const pagado = Number(factura.pagado || 0)
@@ -442,10 +459,17 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
             className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group"
         >
             {/* Estado */}
-            <div className="col-span-2 md:col-span-1">
-                {isBorrador && <Badge variant="secondary" className="bg-slate-100 text-slate-600">Borrador</Badge>}
-                {isValidada && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0">Validada</Badge>}
-                {isAnulada && <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0">Anulada</Badge>}
+            <div className="col-span-2 md:col-span-1 flex flex-col gap-1">
+                <div>
+                    {isBorrador && <Badge variant="secondary" className="bg-slate-100 text-slate-600">Borrador</Badge>}
+                    {isValidada && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0">Validada</Badge>}
+                    {isAnulada && <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0">Anulada</Badge>}
+                </div>
+                {isProforma && (
+                    <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 shadow-none border-0 text-xs">
+                        Proforma
+                    </Badge>
+                )}
             </div>
 
             {/* Número y Fecha */}
@@ -566,6 +590,19 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
                             >
                                 {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
                                 {isDownloading ? "CREANDO..." : "CREAR PDF"}
+                            </Button>
+                        )}
+                        {isProforma && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white border-amber-200 shadow-sm transition-all active:scale-95"
+                                onClick={onConvertir}
+                                disabled={isGlobalBusy}
+                                title="Convertir a factura normal con numeración oficial"
+                            >
+                                {isProcessing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCcw className="w-4 h-4 mr-1" />}
+                                {isProcessing ? "CONVIRTIENDO..." : "A NORMAL"}
                             </Button>
                         )}
                         <DropdownMenu>

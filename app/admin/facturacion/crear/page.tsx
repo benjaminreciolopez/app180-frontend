@@ -130,6 +130,7 @@ export default function CrearFacturaPage() {
     const [newIban, setNewIban] = useState("")
     const [ivaGlobal, setIvaGlobal] = useState(21)
     const [retencionPorcentaje, setRetencionPorcentaje] = useState(0)
+    const [tipoFactura, setTipoFactura] = useState<"NORMAL" | "PROFORMA">("NORMAL")
     const [saving, setSaving] = useState(false)
 
     // UI State
@@ -466,6 +467,7 @@ export default function CrearFacturaPage() {
                 mensaje_iva: mensajeIva,
                 metodo_pago: metodoPago,
                 retencion_porcentaje: retencionPorcentaje,
+                tipo_factura: tipoFactura,
                 lineas: lineas.map(({ id, ...rest }) => rest), // Remove temp ID
                 work_log_ids: selectedTrabajos
             }
@@ -573,7 +575,7 @@ export default function CrearFacturaPage() {
 
                     {/* Card: Cliente y Fecha */}
                     <Card className="border-slate-200 shadow-sm">
-                        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
 
                             {/* Selector Cliente */}
                             <div className="space-y-4">
@@ -687,6 +689,35 @@ export default function CrearFacturaPage() {
                                     />
                                     <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                                 </div>
+                            </div>
+
+                            {/* Selector Tipo de Factura */}
+                            <div className="space-y-2">
+                                <Label>Tipo de Factura</Label>
+                                <Select value={tipoFactura} onValueChange={(v: "NORMAL" | "PROFORMA") => setTipoFactura(v)}>
+                                    <SelectTrigger className="h-12 bg-white">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="NORMAL">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                <span className="font-medium">Normal (Numerada)</span>
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="PROFORMA">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                                                <span className="font-medium">Proforma (Presupuesto)</span>
+                                            </div>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {tipoFactura === "PROFORMA" && (
+                                    <p className="text-xs text-amber-600">
+                                        ℹ️ No consumirá numeración oficial
+                                    </p>
+                                )}
                             </div>
 
                         </CardContent>

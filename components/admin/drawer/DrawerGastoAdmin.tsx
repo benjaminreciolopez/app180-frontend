@@ -56,6 +56,8 @@ const gastoSchema = z.object({
     base_imponible: z.coerce.number().min(0.01, "La Base Imponible es obligatoria para fiscalidad"),
     iva_importe: z.coerce.number().min(0, "La Cuota de IVA es obligatoria"),
     iva_porcentaje: z.coerce.number().min(0, "El porcentaje de IVA es obligatorio"),
+    retencion_porcentaje: z.coerce.number().min(0).optional(),
+    retencion_importe: z.coerce.number().min(0).optional(),
     numero_factura: z.string().optional(),
     documento_url: z.string().optional(),
     anio: z.coerce.number().optional(),
@@ -99,18 +101,21 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             iva_porcentaje: 21,
             base_imponible: 0,
             iva_importe: 0,
+            retencion_porcentaje: 0,
+            retencion_importe: 0,
             total: 0
         },
     });
 
     const watchedBase = watch("base_imponible");
     const watchedIvaPct = watch("iva_porcentaje");
+    const watchedRetencionPct = watch("retencion_porcentaje");
     const watchedTotal = watch("total");
 
     // Flag para evitar loop infinito entre los dos useEffects
     const calcDirection = useRef<"from_base" | "from_total" | null>(null);
 
-    // Lógica de cálculo automático: Base + IVA % -> Total e IVA Importe
+    // Lógica de cálculo automático: Base + IVA % + Retención % -> Total, IVA Importe y Retención Importe
     useEffect(() => {
         if (calcDirection.current === "from_total") {
             calcDirection.current = null;
@@ -118,29 +123,35 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         }
         if (typeof watchedBase === 'number' && typeof watchedIvaPct === 'number') {
             const ivaImp = Number((watchedBase * (watchedIvaPct / 100)).toFixed(2));
-            const newTotal = Number((watchedBase + ivaImp).toFixed(2));
+            const retencionPct = watchedRetencionPct || 0;
+            const retencionImp = Number((watchedBase * (retencionPct / 100)).toFixed(2));
+            const newTotal = Number((watchedBase + ivaImp - retencionImp).toFixed(2));
 
             calcDirection.current = "from_base";
             setValue("iva_importe", ivaImp);
+            setValue("retencion_importe", retencionImp);
             setValue("total", newTotal);
         }
-    }, [watchedBase, watchedIvaPct, setValue]);
+    }, [watchedBase, watchedIvaPct, watchedRetencionPct, setValue]);
 
-    // Lógica de cálculo inverso: Total -> Base e IVA Importe
+    // Lógica de cálculo inverso: Total -> Base, IVA Importe y Retención Importe
     useEffect(() => {
         if (calcDirection.current === "from_base") {
             calcDirection.current = null;
             return;
         }
         if (typeof watchedTotal === 'number' && typeof watchedIvaPct === 'number' && watchedTotal > 0) {
-            const base = Number((watchedTotal / (1 + watchedIvaPct / 100)).toFixed(2));
-            const ivaImp = Number((watchedTotal - base).toFixed(2));
+            const retencionPct = watchedRetencionPct || 0;
+            const base = Number((watchedTotal / (1 + watchedIvaPct / 100 - retencionPct / 100)).toFixed(2));
+            const ivaImp = Number((base * (watchedIvaPct / 100)).toFixed(2));
+            const retencionImp = Number((base * (retencionPct / 100)).toFixed(2));
 
             calcDirection.current = "from_total";
             setValue("base_imponible", base);
             setValue("iva_importe", ivaImp);
+            setValue("retencion_importe", retencionImp);
         }
-    }, [watchedTotal, setValue]);
+    }, [watchedTotal, watchedIvaPct, watchedRetencionPct, setValue]);
 
     const [categories, setCategories] = useState<string[]>(["general", "material", "combustible", "herramientas", "oficina"]);
     const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
@@ -222,6 +233,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 base_imponible: Number(editingGasto.base_imponible) || 0,
                 iva_importe: Number(editingGasto.iva_importe) || 0,
                 iva_porcentaje: Number(editingGasto.iva_porcentaje) || 21,
+                retencion_porcentaje: Number(editingGasto.retencion_porcentaje) || 0,
+                retencion_importe: Number(editingGasto.retencion_importe) || 0,
                 numero_factura: editingGasto.numero_factura || "",
                 documento_url: editingGasto.documento_url || "",
             });
@@ -241,6 +254,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 base_imponible: 0,
                 iva_porcentaje: 21,
                 iva_importe: 0,
+                retencion_porcentaje: 0,
+                retencion_importe: 0,
                 numero_factura: "",
                 documento_url: "",
             });
@@ -314,6 +329,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         setValue("base_imponible", Number(ocrPreviewData.base_imponible) || 0);
         setValue("iva_porcentaje", Number(ocrPreviewData.iva_porcentaje) || 21);
         setValue("iva_importe", Number(ocrPreviewData.iva_importe) || 0);
+        setValue("retencion_porcentaje", Number(ocrPreviewData.retencion_porcentaje) || 0);
+        setValue("retencion_importe", Number(ocrPreviewData.retencion_importe) || 0);
 
         if (ocrPreviewData.fecha_compra) {
             try {
@@ -348,6 +365,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 base_imponible: Number(nextData.base_imponible) || 0,
                 iva_porcentaje: Number(nextData.iva_porcentaje) || 21,
                 iva_importe: Number(nextData.iva_importe) || 0,
+                retencion_porcentaje: Number(nextData.retencion_porcentaje) || 0,
+                retencion_importe: Number(nextData.retencion_importe) || 0,
                 fecha_compra: nextData.fecha_compra ? new Date(nextData.fecha_compra).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
             });
         }
@@ -424,6 +443,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             base_imponible: 0,
             iva_porcentaje: 21,
             iva_importe: 0,
+            retencion_porcentaje: 0,
+            retencion_importe: 0,
             numero_factura: "",
             documento_url: "",
         });
@@ -608,11 +629,31 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                             </div>
                         </div>
 
+                        {/* Retención % e Importe (para alquileres, etc.) */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-2">
+                                <Label className="text-slate-700 font-semibold text-xs">Retención % (IRPF)</Label>
+                                <Input
+                                    type="number"
+                                    {...register("retencion_porcentaje", { valueAsNumber: true })}
+                                    className="bg-slate-50/10 h-11 rounded-xl"
+                                    placeholder="0"
+                                />
+                                <p className="text-[10px] text-slate-400">Ej: 19% para alquileres</p>
+                            </div>
+                            <div className="space-y-2 text-center">
+                                <Label className="text-slate-400 font-semibold text-[10px] uppercase">Retención (€)</Label>
+                                <div className="h-11 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500 font-mono text-sm">
+                                    {watch("retencion_importe") || 0}
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Importe Total */}
                         <div className="space-y-2">
                             <Label htmlFor="total" className="flex items-center gap-2 text-slate-700 font-semibold">
                                 <CreditCard size={14} className="text-slate-400" />
-                                Total Factura *
+                                Total Factura * (Base + IVA - Retención)
                             </Label>
                             <Input
                                 id="total"
