@@ -3,7 +3,7 @@ import { api } from "@/services/api";
 import { refreshMe } from "@/services/auth";
 import { showSuccess, showError } from "@/lib/toast";
 import ShareInviteLinkModal from "./ShareInviteLinkModal";
-import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon, LayoutGrid, Hash, AlertCircle, TrendingUp, GripHorizontal, Users, Calculator, CreditCard, Briefcase, Contact2, Wallet, HardHat, LandPlot, Lock, Monitor } from "lucide-react";
+import { User, Clock, Smartphone, Save, X, Send, Building2, ShieldCheck, FileText, Settings, Database, Sparkles, History, Loader2, Globe, Phone, Upload, Trash2, FolderCog, Mail, CheckCircle2, XCircle, Calendar as CalendarIcon, LayoutGrid, Hash, AlertCircle, TrendingUp, GripHorizontal, Users, Calculator, CreditCard, Briefcase, Contact2, Wallet, HardHat, LandPlot, Lock, Monitor, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -98,6 +98,7 @@ export default function AdminSelfConfigModal({
     screensaver_enabled: false,
     screensaver_style: "clock" as "clock" | "logo" | "minimal",
   });
+  const [showPin, setShowPin] = useState(false);
 
   // VeriFactu status
   const [verifactuStatus, setVerifactuStatus] = useState<{
@@ -912,17 +913,27 @@ export default function AdminSelfConfigModal({
                                     <div className="space-y-3 pt-2">
                                       <div>
                                         <Label className="text-[10px] font-bold text-muted-foreground uppercase">Codigo PIN (4-6 digitos)</Label>
-                                        <input
-                                          type="password"
-                                          maxLength={6}
-                                          value={pinConfigLocal.pin_code}
-                                          onChange={(e) => {
-                                            const v = e.target.value.replace(/\D/g, '').slice(0, 6);
-                                            setPinConfigLocal({ ...pinConfigLocal, pin_code: v });
-                                          }}
-                                          placeholder="****"
-                                          className="w-full mt-1 border rounded-lg px-3 py-2 text-center text-lg tracking-[0.5em] font-mono"
-                                        />
+                                        <div className="relative mt-1">
+                                          <input
+                                            type={showPin ? "text" : "password"}
+                                            maxLength={6}
+                                            value={pinConfigLocal.pin_code}
+                                            onChange={(e) => {
+                                              const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                              setPinConfigLocal({ ...pinConfigLocal, pin_code: v });
+                                            }}
+                                            placeholder="****"
+                                            className="w-full border rounded-lg px-3 py-2 pr-10 text-center text-lg tracking-[0.5em] font-mono"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => setShowPin(!showPin)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                            title={showPin ? "Ocultar PIN" : "Mostrar PIN"}
+                                          >
+                                            {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                          </button>
+                                        </div>
                                       </div>
 
                                       <div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { Lock, Sparkles, Delete } from "lucide-react"
+import { Lock, Sparkles, Delete, Keyboard } from "lucide-react"
 
 interface LockScreenProps {
   pinCode: string
@@ -9,13 +9,15 @@ interface LockScreenProps {
   screensaverEnabled: boolean
   screensaverStyle: "clock" | "logo" | "minimal"
   enabled: boolean
+  companyLogo?: string | null
 }
 
-export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screensaverStyle, enabled }: LockScreenProps) {
+export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screensaverStyle, enabled, companyLogo }: LockScreenProps) {
   const [isLocked, setIsLocked] = useState(false)
   const [enteredPin, setEnteredPin] = useState("")
   const [error, setError] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [showVirtualKeyboard, setShowVirtualKeyboard] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const resetTimer = useCallback(() => {
@@ -52,6 +54,27 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
     const interval = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(interval)
   }, [isLocked])
+
+  // Physical keyboard support
+  useEffect(() => {
+    if (!isLocked) return
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Numbers 0-9
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault()
+        handleDigit(e.key)
+      }
+      // Backspace or Delete
+      else if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault()
+        handleDelete()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [isLocked, enteredPin, pinCode]) // Include dependencies for handleDigit and handleDelete
 
   const handleDigit = (digit: string) => {
     if (enteredPin.length >= 6) return
@@ -96,9 +119,15 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
             </>
           )}
           {screensaverStyle === "logo" && (
-            <div className="flex items-center gap-2 justify-center mt-6">
-              <Sparkles className="h-5 w-5 text-blue-400/60" />
-              <span className="text-blue-400/60 font-semibold tracking-wider text-sm">CONTENDO GESTIONES</span>
+            <div className="flex flex-col items-center justify-center mt-8 gap-4">
+              {companyLogo ? (
+                <img src={companyLogo} alt="Logo" className="max-h-16 w-auto object-contain" />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-blue-400/60" />
+                  <span className="text-blue-400/60 font-semibold tracking-wider text-sm">CONTENDO GESTIONES</span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -127,12 +156,22 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
         ))}
       </div>
 
-      <p className={`text-sm mb-8 transition-colors ${error ? "text-red-400" : "text-white/40"}`}>
+      <p className={`text-sm mb-4 transition-colors ${error ? "text-red-400" : "text-white/40"}`}>
         {error ? "PIN incorrecto" : "Introduce tu PIN"}
       </p>
 
-      {/* Number pad */}
-      <div className="grid grid-cols-3 gap-3 max-w-[240px]">
+      {/* Toggle virtual keyboard button */}
+      <button
+        onClick={() => setShowVirtualKeyboard(!showVirtualKeyboard)}
+        className="mb-6 px-4 py-2 rounded-lg flex items-center gap-2 text-white/60 hover:bg-white/10 active:bg-white/20 transition-colors text-sm"
+      >
+        <Keyboard className="h-4 w-4" />
+        {showVirtualKeyboard ? "Ocultar teclado" : "Mostrar teclado"}
+      </button>
+
+      {/* Number pad (conditional) */}
+      {showVirtualKeyboard && (
+        <div className="grid grid-cols-3 gap-3 max-w-[240px]">
         {["1","2","3","4","5","6","7","8","9","","0","del"].map((key) => {
           if (key === "") return <div key="empty" />
           if (key === "del") {
@@ -156,7 +195,8 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
             </button>
           )
         })}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

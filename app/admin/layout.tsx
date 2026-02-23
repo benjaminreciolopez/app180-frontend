@@ -39,6 +39,7 @@ export default function AdminLayout({
     pin_timeout_minutes: number; screensaver_enabled: boolean;
     screensaver_style: "clock" | "logo" | "minimal";
   }>({ pin_lock_enabled: false, pin_code: null, pin_timeout_minutes: 5, screensaver_enabled: false, screensaver_style: "clock" });
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
   // ============================
   // Helpers
@@ -135,9 +136,11 @@ export default function AdminLayout({
     };
   }, []);
 
-  // Fetch PIN config
+  // Fetch PIN config and company logo
   useEffect(() => {
     if (!session) return;
+
+    // Fetch PIN configuration
     api.get("/admin/configuracion").then(res => {
       if (res.data?.pin_lock_enabled) {
         setPinConfig({
@@ -147,6 +150,17 @@ export default function AdminLayout({
           screensaver_enabled: !!res.data.screensaver_enabled,
           screensaver_style: res.data.screensaver_style || "clock",
         });
+      }
+    }).catch(() => {});
+
+    // Fetch company logo for screensaver
+    api.get("/admin/facturacion/configuracion/emisor").then(res => {
+      if (res.data?.logo_path) {
+        // Handle both base64 and uploaded file paths
+        const logoUrl = res.data.logo_path.startsWith('data:')
+          ? res.data.logo_path
+          : `/api/uploads/${res.data.logo_path}`;
+        setCompanyLogo(logoUrl);
       }
     }).catch(() => {});
   }, [session]);
@@ -371,6 +385,7 @@ export default function AdminLayout({
           screensaverEnabled={pinConfig.screensaver_enabled}
           screensaverStyle={pinConfig.screensaver_style}
           enabled={pinConfig.pin_lock_enabled}
+          companyLogo={companyLogo}
         />
       )}
       {/* Overlay móvil */}
