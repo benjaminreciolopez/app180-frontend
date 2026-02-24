@@ -154,8 +154,14 @@ export default function AsientosPage() {
     const [showGenerateDialog, setShowGenerateDialog] = useState(false);
     const [genDesde, setGenDesde] = useState("");
     const [genHasta, setGenHasta] = useState("");
-    const [genTipo, setGenTipo] = useState("facturas");
     const [generating, setGenerating] = useState(false);
+    const [genResult, setGenResult] = useState<{
+        facturas: number;
+        gastos: number;
+        nominas: number;
+        errores: string[];
+        ya_existentes: { facturas: number; gastos: number; nominas: number };
+    } | null>(null);
 
     // -----------------------------------------------------------------------
     // Load asientos
@@ -359,6 +365,7 @@ export default function AsientosPage() {
     const handleGenerate = async () => {
         if (!genDesde || !genHasta) return;
         setGenerating(true);
+        setGenResult(null);
         try {
             const res = await authenticatedFetch(
                 `/api/admin/contabilidad/asientos/generar`,
@@ -368,14 +375,12 @@ export default function AsientosPage() {
                     body: JSON.stringify({
                         fecha_desde: genDesde,
                         fecha_hasta: genHasta,
-                        tipo: genTipo,
                     }),
                 }
             );
             if (res.ok) {
-                setShowGenerateDialog(false);
-                setGenDesde("");
-                setGenHasta("");
+                const json = await res.json();
+                setGenResult(json);
                 loadAsientos();
             }
         } catch (error) {
@@ -383,6 +388,18 @@ export default function AsientosPage() {
         } finally {
             setGenerating(false);
         }
+    };
+
+    // Pre-fill generate dates with current quarter
+    const prefillQuarter = () => {
+        const now = new Date();
+        const q = Math.ceil((now.getMonth() + 1) / 3);
+        const y = now.getFullYear();
+        const startMonth = (q - 1) * 3 + 1;
+        const endMonth = q * 3;
+        const endDay = new Date(y, endMonth, 0).getDate();
+        setGenDesde(`${y}-${String(startMonth).padStart(2, "0")}-01`);
+        setGenHasta(`${y}-${String(endMonth).padStart(2, "0")}-${String(endDay).padStart(2, "0")}`);
     };
 
     // -----------------------------------------------------------------------
@@ -432,7 +449,10 @@ export default function AsientosPage() {
                     {/* Generate button */}
                     <Dialog
                         open={showGenerateDialog}
-                        onOpenChange={setShowGenerateDialog}
+                        onOpenChange={(open) => {
+                            setShowGenerateDialog(open);
+                            if (!open) setGenResult(null);
+                        }}
                     >
                         <DialogTrigger asChild>
                             <Button
@@ -454,8 +474,9 @@ export default function AsientosPage() {
                             <div className="space-y-4 pt-2">
                                 <p className="text-sm text-muted-foreground">
                                     Genera asientos contables automaticamente a
-                                    partir de facturas, gastos o nominas de un
-                                    periodo.
+                                    partir de facturas emitidas, gastos y nominas
+                                    del periodo seleccionado. Se ignoran movimientos
+                                    que ya tienen asiento.
                                 </p>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1.5">
@@ -485,44 +506,87 @@ export default function AsientosPage() {
                                         />
                                     </div>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-slate-500">
-                                        Origen
-                                    </Label>
-                                    <Select
-                                        value={genTipo}
-                                        onValueChange={setGenTipo}
+                                {!genDesde && !genHasta && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="rounded-lg text-xs"
+                                        onClick={prefillQuarter}
                                     >
-                                        <SelectTrigger className="rounded-xl">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="facturas">
-                                                Facturas emitidas
-                                            </SelectItem>
-                                            <SelectItem value="gastos">
-                                                Gastos / Facturas recibidas
-                                            </SelectItem>
-                                            <SelectItem value="nominas">
-                                                Nominas
-                                            </SelectItem>
-                                            <SelectItem value="todos">
-                                                Todos
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <Button
-                                    className="w-full bg-black text-white hover:bg-slate-800 rounded-xl h-11"
-                                    onClick={handleGenerate}
-                                    disabled={
-                                        generating || !genDesde || !genHasta
-                                    }
-                                >
-                                    {generating
-                                        ? "Generando..."
-                                        : "Generar Asientos"}
-                                </Button>
+                                        Rellenar trimestre actual
+                                    </Button>
+                                )}
+
+                                {/* Results summary */}
+                                {genResult && (
+                                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
+                                        <p className="font-semibold text-sm text-slate-900">
+                                            Resultado de la generacion
+                                        </p>
+                                        <div className="grid grid-cols-3 gap-3 text-center">
+                                            <div className="bg-white rounded-lg border border-slate-100 p-2.5">
+                                                <p className="text-lg font-bold text-blue-600">{genResult.facturas}</p>
+                                                <p className="text-[10px] text-slate-500">Facturas</p>
+                                                {genResult.ya_existentes.facturas > 0 && (
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">{genResult.ya_existentes.facturas} ya tenian</p>
+                                                )}
+                                            </div>
+                                            <div className="bg-white rounded-lg border border-slate-100 p-2.5">
+                                                <p className="text-lg font-bold text-orange-600">{genResult.gastos}</p>
+                                                <p className="text-[10px] text-slate-500">Gastos</p>
+                                                {genResult.ya_existentes.gastos > 0 && (
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">{genResult.ya_existentes.gastos} ya tenian</p>
+                                                )}
+                                            </div>
+                                            <div className="bg-white rounded-lg border border-slate-100 p-2.5">
+                                                <p className="text-lg font-bold text-purple-600">{genResult.nominas}</p>
+                                                <p className="text-[10px] text-slate-500">Nominas</p>
+                                                {genResult.ya_existentes.nominas > 0 && (
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">{genResult.ya_existentes.nominas} ya tenian</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {genResult.facturas + genResult.gastos + genResult.nominas === 0 && (
+                                            <p className="text-xs text-slate-500 text-center">
+                                                No se encontraron movimientos nuevos sin asiento en este periodo.
+                                            </p>
+                                        )}
+                                        {genResult.errores.length > 0 && (
+                                            <div className="bg-red-50 rounded-lg border border-red-200 p-2.5">
+                                                <p className="text-xs font-semibold text-red-700 mb-1">Errores ({genResult.errores.length}):</p>
+                                                {genResult.errores.slice(0, 5).map((err, i) => (
+                                                    <p key={i} className="text-xs text-red-600">{err}</p>
+                                                ))}
+                                                {genResult.errores.length > 5 && (
+                                                    <p className="text-xs text-red-500">...y {genResult.errores.length - 5} mas</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {!genResult ? (
+                                    <Button
+                                        className="w-full bg-black text-white hover:bg-slate-800 rounded-xl h-11"
+                                        onClick={handleGenerate}
+                                        disabled={generating || !genDesde || !genHasta}
+                                    >
+                                        {generating
+                                            ? "Generando asientos..."
+                                            : "Generar Asientos"}
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        className="w-full rounded-xl h-11"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowGenerateDialog(false);
+                                            setGenResult(null);
+                                        }}
+                                    >
+                                        Cerrar
+                                    </Button>
+                                )}
                             </div>
                         </DialogContent>
                     </Dialog>
