@@ -363,14 +363,13 @@ export default function AdminLayout({
 
   const isPwaMobile = isMobileDevice() && isStandalone();
 
-  const FABRICANTE_EMAIL = process.env.NEXT_PUBLIC_FABRICANTE_EMAIL || "";
   const currentUser = getUser();
-  const isFabricante = currentUser?.email === FABRICANTE_EMAIL;
+  const isFabricante = currentUser?.es_fabricante === true;
 
   const visibleMenu = menu.filter((item) => {
-    // Fabricante solo visible para el creador en móvil
+    // Fabricante solo visible para el creador en móvil PWA
     if (item.path === "/admin/fabricante") {
-      return isFabricante;
+      return isFabricante && isPwaMobile;
     }
     // Rutas de importación de calendario no tienen sentido en PWA móvil
     if (isPwaMobile && (

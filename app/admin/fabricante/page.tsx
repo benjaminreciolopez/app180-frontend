@@ -9,8 +9,6 @@ import {
   MessageCircle, Send, Lightbulb, Bug, Wrench, HelpCircle
 } from "lucide-react"
 
-const FABRICANTE_EMAIL = process.env.NEXT_PUBLIC_FABRICANTE_EMAIL || ""
-
 export default function FabricantePage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [authorized, setAuthorized] = useState(false)
@@ -25,7 +23,7 @@ export default function FabricantePage() {
   const [loading, setLoading] = useState(true)
   const scannerRef = useRef<HTMLDivElement>(null)
 
-  // Check auth
+  // Check auth via es_fabricante del backend
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -33,8 +31,9 @@ export default function FabricantePage() {
         if (res.ok) {
           const json = await res.json()
           const email = json.user?.email || json.email
+          const esFabricante = json.user?.es_fabricante || json.es_fabricante
           setUserEmail(email)
-          if (email === FABRICANTE_EMAIL) {
+          if (esFabricante) {
             setAuthorized(true)
             loadActivations()
             loadSugerencias()

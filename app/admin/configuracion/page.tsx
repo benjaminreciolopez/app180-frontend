@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
+import { getUser } from "@/services/auth";
 import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
@@ -9,6 +11,7 @@ import CalendarConfigPanel from "@/components/admin/CalendarConfigPanel";
 import CalendarSyncHistory from "@/components/admin/CalendarSyncHistory";
 import KnowledgePanel from "@/components/admin/KnowledgePanel";
 import BackupPanel from "@/components/admin/BackupPanel";
+import { QrCode, Shield, ArrowRight } from "lucide-react";
 
 type Modulos = {
   fichajes?: boolean;
@@ -27,6 +30,9 @@ const DEFAULTS: Modulos = {
 };
 
 export default function AdminConfiguracionPage() {
+  const router = useRouter();
+  const user = getUser();
+  const isFabricante = user?.es_fabricante === true;
   const [modulos, setModulos] = useState<Modulos | null>(null);
   const [modulosMobile, setModulosMobile] = useState<Modulos | null>(null);
   const [mobileEnabled, setMobileEnabled] = useState(false);
@@ -212,6 +218,36 @@ export default function AdminConfiguracionPage() {
       <div>
         <BackupPanel />
       </div>
+
+      {/* Fabricante QR VIP - solo visible para el creador */}
+      {isFabricante && (
+        <div>
+          <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-indigo-600" />
+            Fabricante - QR VIP
+          </h2>
+          <div className="card space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                <QrCode className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Activar usuarios VIP</p>
+                <p className="text-xs text-gray-500">
+                  Escanea codigos QR para conceder acceso VIP. Disponible desde la app movil (PWA).
+                </p>
+              </div>
+              <button
+                onClick={() => router.push("/admin/fabricante")}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
+              >
+                Abrir
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
