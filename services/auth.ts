@@ -5,10 +5,11 @@ import { jwtDecode, JwtPayload } from "jwt-decode";
 export interface AppJwtPayload extends JwtPayload {
   id: string;
   email: string;
-  role: "admin" | "empleado";
+  role: "admin" | "empleado" | "asesor";
   nombre: string;
   avatar_url?: string | null;
   empleado_id?: string | null;
+  asesoria_id?: string | null;
   device_hash?: string | null;
   password_forced?: boolean;
 }

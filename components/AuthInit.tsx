@@ -13,6 +13,7 @@ function isPublicPath(path: string) {
     path === "/register" ||
     path === "/cambiar-password" ||
     path.startsWith("/empleado/instalar") ||
+    path.startsWith("/asesor/registro") ||
     path.startsWith("/_next") ||
     path.startsWith("/icons") ||
     path === "/manifest.json" ||
@@ -96,18 +97,25 @@ export default function AuthInit() {
 
         // 3. Con sesión en página pública → dashboard
         if (hasSession && (pathname === "/login" || pathname === "/")) {
-          window.location.href = user!.role === "admin" ? "/admin/dashboard" : "/empleado/dashboard";
+          window.location.href = user!.role === "admin" ? "/admin/dashboard" : user!.role === "asesor" ? "/asesor/dashboard" : "/empleado/dashboard";
           return;
         }
 
         // 4. Role Guard
         if (hasSession) {
-          if (pathname.startsWith("/admin") && user!.role !== "admin") {
-            router.replace("/empleado/dashboard");
+          const role = user!.role;
+          const roleHome = role === "admin" ? "/admin/dashboard" : role === "asesor" ? "/asesor/dashboard" : "/empleado/dashboard";
+
+          if (pathname.startsWith("/admin") && role !== "admin") {
+            router.replace(roleHome);
             return;
           }
-          if (pathname.startsWith("/empleado") && user!.role !== "empleado") {
-            router.replace("/admin/dashboard");
+          if (pathname.startsWith("/empleado") && role !== "empleado") {
+            router.replace(roleHome);
+            return;
+          }
+          if (pathname.startsWith("/asesor") && role !== "asesor") {
+            router.replace(roleHome);
             return;
           }
         }

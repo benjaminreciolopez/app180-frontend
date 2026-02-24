@@ -29,7 +29,7 @@ import {
   ShieldCheck,
   ShieldOff,
   Link2,
-  LinkOff,
+  Link2Off,
   Send,
   Download,
   FileSpreadsheet,
@@ -905,7 +905,7 @@ function EstadoSinVinculo({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <LinkOff className="size-5 text-muted-foreground" />
+          <Link2Off className="size-5 text-muted-foreground" />
           Sin asesoria conectada
         </CardTitle>
         <CardDescription>
