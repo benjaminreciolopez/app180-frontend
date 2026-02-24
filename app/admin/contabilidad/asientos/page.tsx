@@ -46,6 +46,9 @@ import {
     ArrowUp,
     ArrowDown,
     ArrowUpDown,
+    Download,
+    Upload,
+    Loader2,
 } from "lucide-react";
 
 // --- Types ---
@@ -139,6 +142,15 @@ export default function AsientosPage() {
     const [fechaHasta, setFechaHasta] = useState("");
     const [tipoFilter, setTipoFilter] = useState("all");
     const [estadoFilter, setEstadoFilter] = useState("all");
+    const [buscar, setBuscar] = useState("");
+    const [buscarDebounced, setBuscarDebounced] = useState("");
+    const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // --- State: export/import ---
+    const [exporting, setExporting] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState<{ importados: number; duplicados: number; errores: string[] } | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // --- State: detail expansion ---
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -200,6 +212,7 @@ export default function AsientosPage() {
             if (fechaHasta) params.set("fecha_hasta", fechaHasta);
             if (tipoFilter !== "all") params.set("tipo", tipoFilter);
             if (estadoFilter !== "all") params.set("estado", estadoFilter);
+            if (buscarDebounced) params.set("buscar", buscarDebounced);
             if (sortField) params.set("sort_field", sortField);
             if (sortDir) params.set("sort_dir", sortDir);
 
@@ -216,7 +229,7 @@ export default function AsientosPage() {
         } finally {
             setLoading(false);
         }
-    }, [year, page, limit, fechaDesde, fechaHasta, tipoFilter, estadoFilter, sortField, sortDir]);
+    }, [year, page, limit, fechaDesde, fechaHasta, tipoFilter, estadoFilter, buscarDebounced, sortField, sortDir]);
 
     useEffect(() => {
         loadAsientos();
@@ -225,7 +238,7 @@ export default function AsientosPage() {
     // Reset page when filters change
     useEffect(() => {
         setPage(1);
-    }, [year, fechaDesde, fechaHasta, tipoFilter, estadoFilter, sortField, sortDir]);
+    }, [year, fechaDesde, fechaHasta, tipoFilter, estadoFilter, buscarDebounced, sortField, sortDir]);
 
     // -----------------------------------------------------------------------
     // Expand row to show lineas
@@ -427,6 +440,85 @@ export default function AsientosPage() {
     };
 
     // -----------------------------------------------------------------------
+    // Search debounce
+    // -----------------------------------------------------------------------
+
+    const handleSearchChange = (val: string) => {
+        setBuscar(val);
+        if (searchTimer.current) clearTimeout(searchTimer.current);
+        searchTimer.current = setTimeout(() => setBuscarDebounced(val), 400);
+    };
+
+    // -----------------------------------------------------------------------
+    // Export
+    // -----------------------------------------------------------------------
+
+    const handleExport = async (formato: "excel" | "csv") => {
+        setExporting(true);
+        try {
+            const params = new URLSearchParams();
+            params.set("ejercicio", year);
+            params.set("formato", formato);
+            if (fechaDesde) params.set("fecha_desde", fechaDesde);
+            if (fechaHasta) params.set("fecha_hasta", fechaHasta);
+            if (tipoFilter !== "all") params.set("tipo", tipoFilter);
+            if (estadoFilter !== "all") params.set("estado", estadoFilter);
+            if (buscarDebounced) params.set("buscar", buscarDebounced);
+
+            const res = await authenticatedFetch(
+                `/api/admin/contabilidad/asientos/exportar?${params.toString()}`
+            );
+            if (!res.ok) throw new Error("Error exportando");
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = formato === "csv"
+                ? `diario_contable_${year}.csv`
+                : `libro_diario_${year}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Error exportando:", err);
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    // -----------------------------------------------------------------------
+    // Import
+    // -----------------------------------------------------------------------
+
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        setImportResult(null);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            const res = await authenticatedFetch(
+                `/api/admin/contabilidad/asientos/importar`,
+                { method: "POST", body: formData }
+            );
+            const json = await res.json();
+            if (res.ok) {
+                setImportResult(json);
+                loadAsientos();
+            } else {
+                setImportResult({ importados: 0, duplicados: 0, errores: [json.error || "Error desconocido"] });
+            }
+        } catch (err) {
+            setImportResult({ importados: 0, duplicados: 0, errores: ["Error de conexión"] });
+        } finally {
+            setImporting(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+
+    // -----------------------------------------------------------------------
     // Sorting
     // -----------------------------------------------------------------------
 
@@ -501,7 +593,49 @@ export default function AsientosPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                    {/* Export/Import buttons */}
+                    <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl h-9 px-3 gap-1.5 text-xs font-medium"
+                            onClick={() => handleExport("excel")}
+                            disabled={exporting}
+                        >
+                            {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                            Excel
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl h-9 px-3 gap-1.5 text-xs font-medium"
+                            onClick={() => handleExport("csv")}
+                            disabled={exporting}
+                        >
+                            <Download size={14} />
+                            CSV
+                        </Button>
+                        <div className="w-px h-5 bg-slate-200" />
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl h-9 px-3 gap-1.5 text-xs font-medium"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={importing}
+                        >
+                            {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                            Importar
+                        </Button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".csv,.xlsx,.xls"
+                            className="hidden"
+                            onChange={handleImport}
+                        />
+                    </div>
+
                     {/* Year selector */}
                     <div className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-tight ml-2">
@@ -956,9 +1090,10 @@ export default function AsientosPage() {
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                     <Input
-                        placeholder="Buscar por concepto..."
+                        placeholder="Buscar por concepto, cuenta o numero..."
                         className="pl-10 bg-slate-50 border-none h-11 rounded-xl focus-visible:ring-1 focus-visible:ring-slate-300"
-                        disabled
+                        value={buscar}
+                        onChange={(e) => handleSearchChange(e.target.value)}
                     />
                 </div>
 
@@ -1037,6 +1172,31 @@ export default function AsientosPage() {
                     )}
                 </div>
             </div>
+
+            {/* Import result banner */}
+            {importResult && (
+                <div className={`p-4 rounded-2xl border shadow-sm flex items-start justify-between gap-3 ${importResult.errores.length > 0 && importResult.importados === 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
+                    <div className="text-sm">
+                        <p className="font-semibold">
+                            Importacion completada: {importResult.importados} asiento{importResult.importados !== 1 ? "s" : ""} importado{importResult.importados !== 1 ? "s" : ""}
+                            {importResult.duplicados > 0 && `, ${importResult.duplicados} duplicado${importResult.duplicados !== 1 ? "s" : ""} omitido${importResult.duplicados !== 1 ? "s" : ""}`}
+                        </p>
+                        {importResult.errores.length > 0 && (
+                            <div className="mt-1 space-y-0.5">
+                                {importResult.errores.slice(0, 5).map((err, i) => (
+                                    <p key={i} className="text-xs text-red-600">{err}</p>
+                                ))}
+                                {importResult.errores.length > 5 && (
+                                    <p className="text-xs text-red-500">...y {importResult.errores.length - 5} mas</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <button onClick={() => setImportResult(null)} className="text-slate-400 hover:text-slate-600 shrink-0">
+                        <XCircle size={16} />
+                    </button>
+                </div>
+            )}
 
             {/* ============================================================ */}
             {/* Asientos Table */}

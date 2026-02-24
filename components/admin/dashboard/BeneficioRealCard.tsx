@@ -1,15 +1,15 @@
 
 import { useState, useEffect } from "react";
-import { TrendingUp, Wallet, Filter, Loader2, ChevronDown } from "lucide-react";
+import { TrendingUp, Wallet, AlertTriangle, Loader2, ChevronDown } from "lucide-react";
 import { api } from "@/services/api";
 
 interface Props {
     data: {
         facturado_base: number;
-        no_facturado: number;
         gastos_base: number;
         impuestos_estimados?: number;
         beneficio_neto: number;
+        pendiente_facturar?: number;
         year: number;
     };
 }
@@ -19,7 +19,6 @@ export function BeneficioRealCard({ data: initialData }: Props) {
     const [loading, setLoading] = useState(false);
     const [currentFilter, setCurrentFilter] = useState("this_year");
 
-    // Sincronizar con props si cambian (ej. refresco global) y estamos viendo el año actual
     useEffect(() => {
         if (currentFilter === 'this_year') {
             setData(initialData);
@@ -28,31 +27,29 @@ export function BeneficioRealCard({ data: initialData }: Props) {
 
     const f = (n: number) => n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
-    const totalIngresos = (data.facturado_base + data.no_facturado);
-    const pctGastos = totalIngresos > 0 ? Math.min(100, (data.gastos_base / totalIngresos) * 100) : 100;
+    const pctGastos = data.facturado_base > 0 ? Math.min(100, (data.gastos_base / data.facturado_base) * 100) : 100;
 
     const fetchFiltered = async (filter: string) => {
         setLoading(true);
         setCurrentFilter(filter);
         try {
             const now = new Date();
-            let params: any = {};
+            let params: Record<string, string | number> = {};
 
             if (filter === 'this_year') {
                 params = { period: 'year', year: now.getFullYear() };
             } else if (filter === 'prev_year') {
                 params = { period: 'year', year: now.getFullYear() - 1 };
             } else if (filter === 'this_quarter') {
-                params = { period: 'quarter', year: now.getFullYear() }; // Backend calcula trimestre actual por defecto si no se pasa
+                params = { period: 'quarter', year: now.getFullYear() };
             } else if (filter === 'prev_quarter') {
-                // Calcular anterior manual para asegurar
                 const currentQ = Math.floor((now.getMonth() + 3) / 3);
                 let q = currentQ - 1;
                 let y = now.getFullYear();
                 if (q <= 0) { q = 4; y--; }
                 params = { period: 'quarter', year: y, quarter: q };
             } else if (filter === 'this_month') {
-                params = { period: 'month', year: now.getFullYear() }; // Backend usa mes actual si no se pasa
+                params = { period: 'month', year: now.getFullYear() };
             } else if (filter === 'prev_month') {
                 let m = (now.getMonth() + 1) - 1;
                 let y = now.getFullYear();
@@ -71,9 +68,10 @@ export function BeneficioRealCard({ data: initialData }: Props) {
         }
     };
 
+    const pendiente = data.pendiente_facturar || 0;
+
     return (
         <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow relative overflow-hidden group h-full flex flex-col">
-            {/* Fondo decorativo sutil */}
             <div className="absolute -top-6 -right-6 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity pointer-events-none">
                 <TrendingUp className="w-40 h-40" />
             </div>
@@ -82,12 +80,11 @@ export function BeneficioRealCard({ data: initialData }: Props) {
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <p className="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                            Beneficio Real
+                            Rendimiento Neto
                         </p>
                         {loading && <Loader2 className="w-3 h-3 animate-spin text-blue-500" />}
                     </div>
 
-                    {/* Filtro Dropdown */}
                     <div className="relative inline-block text-left">
                         <select
                             value={currentFilter}
@@ -116,59 +113,55 @@ export function BeneficioRealCard({ data: initialData }: Props) {
             </div>
 
             <div className="space-y-4 relative z-10 flex-1">
-                {/* Barra de progreso visual: Ingresos vs Gastos */}
+                {/* Barra visual: Ingresos vs Gastos */}
                 <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden flex mb-2">
-                    {/* Ingresos (Verde/Azul) */}
                     {data.beneficio_neto > 0 && (
-                        <div className="h-full bg-emerald-500" style={{ width: `${100 - pctGastos}%` }} title="Margen de beneficio" />
+                        <div className="h-full bg-emerald-500" style={{ width: `${100 - pctGastos}%` }} title="Margen" />
                     )}
-                    {/* Gastos (Rojo) */}
                     <div className="h-full bg-red-400" style={{ width: `${pctGastos}%` }} title="Gastos" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
-                    {/* Ingresos A: Facturado */}
-                    <div className="space-y-0.5">
+                <div className="grid grid-cols-1 gap-y-2 text-xs">
+                    {/* Ingresos facturados */}
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-gray-500">
                             <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                             <span>Facturado (B.I.)</span>
                         </div>
-                        <p className="font-semibold text-gray-700 text-sm ml-3 text-right pr-2">{f(data.facturado_base)}</p>
-                    </div>
-
-                    {/* Ingresos B: No Facturado */}
-                    <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5 text-gray-500">
-                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
-                            <span>Sin Factura (Cobrado)</span>
-                        </div>
-                        <p className="font-semibold text-gray-700 text-sm ml-3 text-right pr-2">{f(data.no_facturado)}</p>
+                        <p className="font-semibold text-gray-700 text-sm">{f(data.facturado_base)}</p>
                     </div>
 
                     {/* Gastos */}
-                    <div className="space-y-0.5 col-span-2 pt-2 border-t border-dashed border-gray-100 mt-1">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-gray-500">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-                                <span>Gastos Totales (B.I.)</span>
-                            </div>
-                            <p className="font-bold text-red-600 text-sm">-{f(data.gastos_base)}</p>
+                    <div className="flex items-center justify-between pt-1 border-t border-dashed border-gray-100">
+                        <div className="flex items-center gap-1.5 text-gray-500">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+                            <span>Gastos deducibles (B.I.)</span>
                         </div>
+                        <p className="font-bold text-red-600 text-sm">-{f(data.gastos_base)}</p>
                     </div>
 
-                    {/* Impuestos (modelos 130/303) */}
+                    {/* Impuestos estimados */}
                     {(data.impuestos_estimados || 0) > 0 && (
-                        <div className="space-y-0.5 col-span-2 pt-1">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5 text-gray-500">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-                                    <span>IRPF (Est. Modelo 130)</span>
-                                </div>
-                                <p className="font-bold text-red-500 text-sm">-{f(data.impuestos_estimados || 0)}</p>
+                        <div className="flex items-center justify-between pt-1">
+                            <div className="flex items-center gap-1.5 text-gray-500">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                                <span>IRPF est. (Mod. 130)</span>
                             </div>
+                            <p className="font-bold text-red-500 text-sm">-{f(data.impuestos_estimados || 0)}</p>
                         </div>
                     )}
                 </div>
+
+                {/* Aviso: trabajo cobrado pendiente de facturar */}
+                {pendiente > 0 && (
+                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-xs text-amber-800">
+                            Tienes <strong>{f(pendiente)}</strong> en trabajos cobrados sin factura.
+                            Recuerda emitir las facturas correspondientes.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );
