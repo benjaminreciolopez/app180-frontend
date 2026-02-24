@@ -229,7 +229,7 @@ export default function MiAsesoriaPage() {
       const res = await authenticatedFetch("/admin/asesoria/mensajes/no-leidos");
       const json = await res.json();
       if (res.ok && json.success) {
-        setUnreadCount(json.data?.count || 0);
+        setUnreadCount(json.data?.total ?? 0);
       }
     } catch {
       // silent

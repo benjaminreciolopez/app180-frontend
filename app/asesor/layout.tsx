@@ -51,6 +51,9 @@ const menuItems = [
   },
 ];
 
+// Public routes that don't require authentication
+const PUBLIC_ROUTES = ["/asesor/registro"];
+
 export default function AsesorLayout({
   children,
 }: {
@@ -59,11 +62,17 @@ export default function AsesorLayout({
   const pathname = usePathname();
   const router = useRouter();
 
+  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<AsesorUser | null>(null);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    if (isPublicRoute) {
+      setChecking(false);
+      return;
+    }
     const currentUser = getUser();
     if (!currentUser || currentUser.role !== "asesor") {
       setUser(null);
@@ -72,7 +81,7 @@ export default function AsesorLayout({
     }
     setUser(currentUser);
     setChecking(false);
-  }, []);
+  }, [isPublicRoute]);
 
   // Listen for session updates
   useEffect(() => {
@@ -116,6 +125,12 @@ export default function AsesorLayout({
     sessionStorage.removeItem("asesor_empresa_id");
     window.dispatchEvent(new Event("session-updated"));
     location.href = "/login";
+  }
+
+  // Public routes render children directly without layout chrome
+  if (isPublicRoute) {
+    if (checking) return null;
+    return <>{children}</>;
   }
 
   // Loading state
