@@ -49,6 +49,7 @@
     "framer-motion": "^12.29.2",
     "googleapis": "^171.0.0",
     "groq-sdk": "^0.37.0",
+    "html5-qrcode": "^2.3.8",
     "idb-keyval": "^6.2.2",
     "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",

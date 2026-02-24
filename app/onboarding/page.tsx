@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/services/api";
 import { getUser, updateStoredUser } from "@/services/auth";
 import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import {
   Check, Calendar, Mail, ArrowRight, Building2,
-  User, Briefcase, Bot, Sparkles
+  User, Briefcase, Bot, Sparkles, Shield
 } from "lucide-react";
 
 type Modulos = {
@@ -35,20 +35,22 @@ const MODULE_LIST = [
 
 const TOTAL_STEPS = 5;
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isVip = searchParams.get("vip") === "1";
   const [step, setStep] = useState(1);
   const [empresaNombre, setEmpresaNombre] = useState("");
   const [tipoContribuyente, setTipoContribuyente] = useState<"autonomo" | "sociedad">("autonomo");
   const [modulos, setModulos] = useState<Modulos>({
-    fichajes: true,
-    worklogs: false,
-    empleados: true,
-    calendario: true,
-    facturacion: false,
-    pagos: false,
-    clientes: true,
-    fiscal: false,
+    fichajes: isVip,
+    worklogs: isVip,
+    empleados: isVip,
+    calendario: isVip,
+    facturacion: isVip,
+    pagos: isVip,
+    clientes: isVip,
+    fiscal: isVip,
   });
   const [googleConnected, setGoogleConnected] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -318,8 +320,17 @@ export default function OnboardingPage() {
               <div className="text-center space-y-2">
                 <h1 className="text-2xl font-bold">Elige tus modulos</h1>
                 <p className="text-gray-500 text-sm">
-                  Activa solo los que necesites. Puedes cambiarlos en cualquier momento.
+                  {isVip
+                    ? "Como usuario VIP tienes todos los modulos incluidos."
+                    : "Activa solo los que necesites. Puedes cambiarlos en cualquier momento."
+                  }
                 </p>
+                {isVip && (
+                  <div className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+                    <Shield className="w-3 h-3" />
+                    VIP - Todos incluidos
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -375,10 +386,14 @@ export default function OnboardingPage() {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 space-y-3 border border-blue-100">
+              <div className={`rounded-xl p-5 space-y-3 border ${
+                isVip
+                  ? "bg-gradient-to-br from-blue-100 to-indigo-100 border-blue-200"
+                  : "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100"
+              }`}>
                 <div className="flex items-center gap-2 text-blue-700 font-semibold text-sm">
-                  <Sparkles className="w-4 h-4" />
-                  Plan gratuito incluido
+                  {isVip ? <Shield className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                  {isVip ? "Plan VIP - Cortesia del creador" : "Plan gratuito incluido"}
                 </div>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-center gap-2">
@@ -399,7 +414,10 @@ export default function OnboardingPage() {
                   </li>
                 </ul>
                 <p className="text-xs text-gray-400">
-                  Puedes recargar creditos IA en cualquier momento desde la configuracion.
+                  {isVip
+                    ? "Los limites de IA (10/dia, 300/mes) aplican igual. Puedes recargar creditos desde configuracion."
+                    : "Puedes recargar creditos IA en cualquier momento desde la configuracion."
+                  }
                 </p>
               </div>
 
@@ -420,5 +438,17 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-500">Cargando...</p>
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
   );
 }

@@ -6,6 +6,7 @@ import {
   Users, Calculator, Calendar, Building2, Shield,
   CheckCircle, Sparkles
 } from "lucide-react";
+import LandingQRSection from "@/components/landing/LandingQRSection";
 
 const modules = [
   {
@@ -244,26 +245,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* COMPLIANCE */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 md:p-12 text-white text-center">
-            <Shield className="h-12 w-12 mx-auto mb-4 text-blue-200" />
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Cumplimiento legal automatico</h2>
-            <p className="text-blue-100 max-w-2xl mx-auto mb-6">
-              VeriFactu integrado, cadena de hashes SHA-256, auditoria completa y
-              exportacion XML para la AEAT. Tu negocio siempre al dia con la normativa.
-            </p>
-            <Link
-              href="/setup"
-              className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-all shadow-lg"
-            >
-              Empieza gratis
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* VERIFACTU + QR FABRICANTE */}
+      <LandingQRSection />
 
       {/* FOOTER */}
       <footer className="bg-gray-50 border-t border-gray-200">

@@ -243,6 +243,7 @@ export default function AdminLayout({
       "/admin/contabilidad": "Contabilidad",
       "/admin/fiscal": "Fiscalidad",
       "/admin/fiscal/renta": "Declaración Renta",
+      "/admin/fabricante": "Fabricante",
     };
 
     // Match most specific path first
@@ -340,6 +341,9 @@ export default function AdminLayout({
     { path: "/admin/partes-dia", label: "Partes del día", module: "worklogs" },
     { path: "/admin/trabajos", label: "Trabajos", module: "worklogs" },
 
+    // Fabricante (solo visible para el creador)
+    { path: "/admin/fabricante", label: "Fabricante", module: null },
+
     // ✅ Importación calendario
     {
       path: "/admin/configuracion/calendario/importar",
@@ -355,7 +359,15 @@ export default function AdminLayout({
 
   const isPwaMobile = isMobileDevice() && isStandalone();
 
+  const FABRICANTE_EMAIL = process.env.NEXT_PUBLIC_FABRICANTE_EMAIL || "";
+  const currentUser = getUser();
+  const isFabricante = currentUser?.email === FABRICANTE_EMAIL;
+
   const visibleMenu = menu.filter((item) => {
+    // Fabricante solo visible para el creador en móvil
+    if (item.path === "/admin/fabricante") {
+      return isFabricante;
+    }
     // Rutas de importación de calendario no tienen sentido en PWA móvil
     if (isPwaMobile && (
       item.path.includes('/calendario/importar') ||
