@@ -417,7 +417,7 @@ export default function MiAsesoriaPage() {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const ext = exportFormato === "excel" ? "xlsx" : exportFormato;
+      const ext = exportFormato === "excel" ? "xlsx" : "zip";
       a.href = url;
       a.download = `datos-asesoria-${exportAnio}-T${exportTrimestre}.${ext}`;
       document.body.appendChild(a);
