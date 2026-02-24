@@ -88,20 +88,19 @@ export default function DashboardPage() {
   async function loadAll() {
     try {
       setLoading(true);
-      const [dashRes, widgetRes] = await Promise.all([
-        api.get("/api/admin/dashboard"),
-        api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } })),
-      ]);
-
-      setData(dashRes.data as DashboardData);
 
       const isLargeScreen = typeof window !== "undefined" && window.innerWidth >= 1024;
       const isPwaMobile = isMobileDevice() && isStandalone();
       const useMobileProfile = isPwaMobile && !isLargeScreen;
 
-      setModulos(null);
-      const mods = await api.get(useMobileProfile ? "/auth/me/modules?mobile=true" : "/auth/me/modules");
-      setModulos(mods.data || {});
+      const [dashRes, widgetRes, modsRes] = await Promise.all([
+        api.get("/api/admin/dashboard"),
+        api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } })),
+        api.get(useMobileProfile ? "/auth/me/modules?mobile=true" : "/auth/me/modules").catch(() => ({ data: {} })),
+      ]);
+
+      setData(dashRes.data as DashboardData);
+      setModulos(modsRes.data || {});
 
       let w = useMobileProfile ? (widgetRes.data?.widgets_mobile || []) : (widgetRes.data?.widgets || []);
       if (w.length === 0) {
