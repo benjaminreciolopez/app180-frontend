@@ -21,6 +21,14 @@ export async function authenticatedFetch(endpoint: string, options: RequestInit 
         headers["Authorization"] = `Bearer ${token}`;
     }
 
+    // Asesor context switching: inject X-Empresa-Id when viewing a client
+    if (!isServer) {
+        const asesorEmpresaId = sessionStorage.getItem("asesor_empresa_id");
+        if (asesorEmpresaId && !headers["X-Empresa-Id"]) {
+            headers["X-Empresa-Id"] = asesorEmpresaId;
+        }
+    }
+
     // Fetch nativo
     const response = await fetch(url, {
         ...options,

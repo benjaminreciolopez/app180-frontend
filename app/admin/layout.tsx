@@ -243,6 +243,12 @@ export default function AdminLayout({
       "/admin/fiscal": "Fiscalidad",
       "/admin/fiscal/renta": "Declaración Renta",
       "/admin/nominas": "Nominas",
+      "/admin/contabilidad/asientos": "Asientos Contables",
+      "/admin/contabilidad/mayor": "Libro Mayor",
+      "/admin/contabilidad/balance": "Balance de Situación",
+      "/admin/contabilidad/pyg": "Pérdidas y Ganancias",
+      "/admin/contabilidad/cuentas": "Plan de Cuentas",
+      "/admin/mi-asesoria": "Mi Asesoría",
       "/admin/sugerencias": "Sugerencias",
       "/admin/fabricante": "Fabricante",
     };
@@ -324,6 +330,11 @@ export default function AdminLayout({
     { path: "/admin/facturacion", label: "Facturación", module: "facturacion" },
     { path: "/admin/gastos", label: "Compras y Gastos", module: "facturacion" },
     { path: "/admin/contabilidad", label: "Libros Contables", module: "facturacion" },
+    { path: "/admin/contabilidad/asientos", label: "Asientos Contables", module: "facturacion" },
+    { path: "/admin/contabilidad/balance", label: "Balance", module: "facturacion" },
+    { path: "/admin/contabilidad/pyg", label: "Pérdidas y Ganancias", module: "facturacion" },
+    { path: "/admin/contabilidad/mayor", label: "Libro Mayor", module: "facturacion" },
+    { path: "/admin/contabilidad/cuentas", label: "Plan de Cuentas", module: "facturacion" },
     { path: "/admin/fiscal", label: "Modelos Fiscales", module: "fiscal" }, // Requiere módulo fiscal explícito
     { path: "/admin/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
     { path: "/admin/cobros-pagos", label: "Cobros y Pagos", module: "pagos" },
@@ -343,6 +354,9 @@ export default function AdminLayout({
     { path: "/admin/trabajos", label: "Trabajos", module: "worklogs" },
 
     { path: "/admin/nominas", label: "Nominas", module: "empleados" },
+
+    // Mi Asesoría (visible para todos los admins)
+    { path: "/admin/mi-asesoria", label: "Mi Asesoría", module: null },
 
     // Sugerencias (visible para todos los admins)
     { path: "/admin/sugerencias", label: "Sugerencias", module: null },

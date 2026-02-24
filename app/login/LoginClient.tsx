@@ -56,6 +56,8 @@ export default function LoginClient() {
         window.location.href = "/onboarding";
       } else if (user.role === "admin") {
         window.location.href = "/admin/dashboard";
+      } else if (user.role === "asesor") {
+        window.location.href = "/asesor/dashboard";
       } else {
         window.location.href = "/empleado/dashboard";
       }
@@ -126,6 +128,8 @@ export default function LoginClient() {
 
       if (result?.decoded?.role === "admin") {
         window.location.href = "/admin/dashboard";
+      } else if (result?.decoded?.role === "asesor") {
+        window.location.href = "/asesor/dashboard";
       } else {
         window.location.href = "/empleado/dashboard";
       }

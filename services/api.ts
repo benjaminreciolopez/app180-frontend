@@ -49,6 +49,12 @@ api.interceptors.request.use((config) => {
     if (token && !config.url?.startsWith("/system")) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Asesor context switching: inject X-Empresa-Id when viewing a client
+    const asesorEmpresaId = sessionStorage.getItem("asesor_empresa_id");
+    if (asesorEmpresaId && !config.headers["X-Empresa-Id"]) {
+      config.headers["X-Empresa-Id"] = asesorEmpresaId;
+    }
   }
 
   return config;
