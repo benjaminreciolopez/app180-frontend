@@ -5,7 +5,8 @@ import { authenticatedFetch } from "@/utils/api"
 import { toast } from "sonner"
 import {
   QrCode, CheckCircle, XCircle, Loader2, ScanLine,
-  Camera, CameraOff, Clock, User, Shield
+  Camera, CameraOff, Clock, User, Shield,
+  MessageCircle, Send, Lightbulb, Bug, Wrench, HelpCircle
 } from "lucide-react"
 
 const FABRICANTE_EMAIL = process.env.NEXT_PUBLIC_FABRICANTE_EMAIL || ""
@@ -17,6 +18,10 @@ export default function FabricantePage() {
   const [scanner, setScanner] = useState<any>(null)
   const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null)
   const [activations, setActivations] = useState<any[]>([])
+  const [sugerencias, setSugerencias] = useState<any[]>([])
+  const [respondingId, setRespondingId] = useState<string | null>(null)
+  const [respuestaText, setRespuestaText] = useState("")
+  const [sendingReply, setSendingReply] = useState(false)
   const [loading, setLoading] = useState(true)
   const scannerRef = useRef<HTMLDivElement>(null)
 
@@ -32,6 +37,7 @@ export default function FabricantePage() {
           if (email === FABRICANTE_EMAIL) {
             setAuthorized(true)
             loadActivations()
+            loadSugerencias()
           }
         }
       } catch (e) {
@@ -51,6 +57,41 @@ export default function FabricantePage() {
         if (json.success) setActivations(json.data || [])
       }
     } catch (e) { /* silent */ }
+  }
+
+  const loadSugerencias = async () => {
+    try {
+      const res = await authenticatedFetch("/api/admin/fabricante/sugerencias")
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success) setSugerencias(json.data || [])
+      }
+    } catch (e) { /* silent */ }
+  }
+
+  const handleResponder = async (id: string) => {
+    if (!respuestaText.trim()) return
+    setSendingReply(true)
+    try {
+      const res = await authenticatedFetch(`/api/admin/fabricante/sugerencias/${id}/responder`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ respuesta: respuestaText }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        toast.success("Respuesta enviada")
+        setRespondingId(null)
+        setRespuestaText("")
+        loadSugerencias()
+      } else {
+        toast.error(json.error || "Error")
+      }
+    } catch {
+      toast.error("Error de conexion")
+    } finally {
+      setSendingReply(false)
+    }
   }
 
   const startScanner = useCallback(async () => {
@@ -269,6 +310,110 @@ export default function FabricantePage() {
                 </span>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Sugerencias de usuarios */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <MessageCircle className="w-5 h-5 text-indigo-600" />
+          Sugerencias
+          {sugerencias.filter(s => s.estado === "nueva").length > 0 && (
+            <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full">
+              {sugerencias.filter(s => s.estado === "nueva").length}
+            </span>
+          )}
+        </h2>
+
+        {sugerencias.length === 0 ? (
+          <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Sin sugerencias todavia</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sugerencias.map((s: any) => {
+              const catIcons: Record<string, any> = {
+                mejora: Lightbulb, bug: Bug, modulo: Wrench, general: HelpCircle, otra: MessageCircle
+              }
+              const CatIcon = catIcons[s.categoria] || HelpCircle
+              return (
+                <div key={s.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <CatIcon className="w-4 h-4 text-gray-400 shrink-0" />
+                          <h3 className="font-medium text-gray-900 text-sm">{s.titulo}</h3>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-2">{s.descripcion}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                          <span className="font-medium text-gray-600">{s.user_nombre}</span>
+                          <span>({s.empresa_nombre})</span>
+                          <span>{new Date(s.created_at).toLocaleDateString("es-ES")}</span>
+                        </div>
+                      </div>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
+                        s.estado === "nueva" ? "bg-blue-100 text-blue-700"
+                        : s.estado === "respondida" ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-500"
+                      }`}>
+                        {s.estado === "nueva" ? "Nueva" : s.estado === "respondida" ? "Respondida" : s.estado}
+                      </span>
+                    </div>
+
+                    {/* Respuesta existente */}
+                    {s.respuesta && (
+                      <div className="mt-3 bg-green-50 rounded-lg p-3 border border-green-100">
+                        <p className="text-xs font-semibold text-green-700 mb-1">Tu respuesta:</p>
+                        <p className="text-sm text-green-800">{s.respuesta}</p>
+                      </div>
+                    )}
+
+                    {/* Boton/form responder */}
+                    {s.estado !== "respondida" && respondingId !== s.id && (
+                      <button
+                        onClick={() => { setRespondingId(s.id); setRespuestaText("") }}
+                        className="mt-3 flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        <Send className="w-3 h-3" />
+                        Responder
+                      </button>
+                    )}
+
+                    {respondingId === s.id && (
+                      <div className="mt-3 space-y-2">
+                        <textarea
+                          value={respuestaText}
+                          onChange={(e) => setRespuestaText(e.target.value)}
+                          placeholder="Escribe tu respuesta..."
+                          rows={3}
+                          className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 resize-none"
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setRespondingId(null)}
+                            className="flex-1 py-2 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            onClick={() => handleResponder(s.id)}
+                            disabled={sendingReply || !respuestaText.trim()}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                          >
+                            {sendingReply ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                            Enviar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

@@ -243,6 +243,7 @@ export default function AdminLayout({
       "/admin/contabilidad": "Contabilidad",
       "/admin/fiscal": "Fiscalidad",
       "/admin/fiscal/renta": "Declaración Renta",
+      "/admin/sugerencias": "Sugerencias",
       "/admin/fabricante": "Fabricante",
     };
 
@@ -340,6 +341,9 @@ export default function AdminLayout({
 
     { path: "/admin/partes-dia", label: "Partes del día", module: "worklogs" },
     { path: "/admin/trabajos", label: "Trabajos", module: "worklogs" },
+
+    // Sugerencias (visible para todos los admins)
+    { path: "/admin/sugerencias", label: "Sugerencias", module: null },
 
     // Fabricante (solo visible para el creador)
     { path: "/admin/fabricante", label: "Fabricante", module: null },
