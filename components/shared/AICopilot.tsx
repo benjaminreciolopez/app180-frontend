@@ -13,7 +13,11 @@ import {
   HelpCircle,
   Paperclip,
   FileText,
-  Lock
+  Lock,
+  Coins,
+  Zap,
+  Star,
+  ArrowLeft
 } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/services/api"
@@ -44,6 +48,8 @@ export function AICopilot() {
     creditos_extra: number; sin_limites: boolean;
     pct_diario: number; pct_mensual: number;
   } | null>(null)
+  const [showCreditModal, setShowCreditModal] = useState(false)
+  const [buyingPack, setBuyingPack] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -97,6 +103,22 @@ export function AICopilot() {
   useEffect(() => {
     if (isOpen) fetchUsage()
   }, [isOpen])
+
+  const handleBuyCredits = async (pack: string) => {
+    setBuyingPack(pack)
+    try {
+      const res = await api.post("/admin/subscription/buy-credits", { pack })
+      if (res.data?.url) {
+        window.open(res.data.url, "_blank")
+        toast.success("Redirigiendo a pasarela de pago...")
+        setShowCreditModal(false)
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Error al iniciar la compra")
+    } finally {
+      setBuyingPack(null)
+    }
+  }
 
   // Mensaje de bienvenida cuando se abre por primera vez
   useEffect(() => {
@@ -599,25 +621,42 @@ Preguntame lo que necesites.`,
               {/* Barra de consumo IA */}
               {aiUsage && !aiUsage.sin_limites && (
                 <div className="mt-2">
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
-                    <span>{aiUsage.consultas_hoy}/{aiUsage.limite_diario} hoy</span>
-                    <span>{aiUsage.consultas_mes}/{aiUsage.limite_mensual} este mes</span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-1.5">
-                    <div
-                      className={`h-1.5 rounded-full transition-all ${
-                        aiUsage.pct_diario >= 80 ? "bg-red-500" :
-                        aiUsage.pct_diario >= 60 ? "bg-amber-500" : "bg-emerald-500"
-                      }`}
-                      style={{ width: `${Math.min(100, aiUsage.pct_diario)}%` }}
-                    />
-                  </div>
-                  {aiUsage.creditos_extra > 0 && (
+                  {aiUsage.limite_diario > 0 ? (
+                    <>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                        <span>{aiUsage.consultas_hoy}/{aiUsage.limite_diario} hoy</span>
+                        <span>{aiUsage.consultas_mes}/{aiUsage.limite_mensual} este mes</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-1.5">
+                        <div
+                          className={`h-1.5 rounded-full transition-all ${
+                            aiUsage.pct_diario >= 80 ? "bg-red-500" :
+                            aiUsage.pct_diario >= 60 ? "bg-amber-500" : "bg-emerald-500"
+                          }`}
+                          style={{ width: `${Math.min(100, aiUsage.pct_diario)}%` }}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                      <span className="flex items-center gap-1">
+                        <Coins className="w-3 h-3" />
+                        {aiUsage.creditos_extra} creditos
+                      </span>
+                      <span
+                        className="text-blue-600 underline cursor-pointer hover:text-blue-800"
+                        onClick={() => setShowCreditModal(true)}
+                      >
+                        Recargar
+                      </span>
+                    </div>
+                  )}
+                  {aiUsage.creditos_extra > 0 && aiUsage.limite_diario > 0 && (
                     <p className="text-[10px] text-blue-500 mt-0.5">+{aiUsage.creditos_extra} creditos extra</p>
                   )}
                   {aiUsage.pct_diario >= 100 && aiUsage.creditos_extra <= 0 && (
                     <p className="text-[10px] text-red-500 mt-0.5 text-center">
-                      Limite alcanzado · <span className="underline cursor-pointer">Recargar creditos</span>
+                      {aiUsage.limite_diario === 0 ? "Necesitas creditos" : "Limite alcanzado"} · <span className="underline cursor-pointer" onClick={() => setShowCreditModal(true)}>Recargar creditos</span>
                     </p>
                   )}
                 </div>
@@ -631,6 +670,113 @@ Preguntame lo que necesites.`,
       </AnimatePresence>
 
       {/* Hidden file input */}
+
+      {/* Modal de compra de creditos */}
+      <AnimatePresence>
+        {showCreditModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4"
+            onClick={() => setShowCreditModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Coins className="w-5 h-5" />
+                    <h3 className="font-bold text-base">Recargar Creditos IA</h3>
+                  </div>
+                  <button onClick={() => setShowCreditModal(false)} className="text-white/70 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-blue-100 text-xs mt-1">Cada credito = 1 consulta a CONTENDO</p>
+              </div>
+
+              <div className="p-4 space-y-3">
+                {/* Pack Basico */}
+                <button
+                  onClick={() => handleBuyCredits("credits_50")}
+                  disabled={!!buyingPack}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all text-left disabled:opacity-50"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                    <Coins className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-slate-800">50 creditos</p>
+                    <p className="text-xs text-slate-500">Pack basico</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {buyingPack === "credits_50" ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    ) : (
+                      <span className="font-bold text-blue-600">4,99 &euro;</span>
+                    )}
+                  </div>
+                </button>
+
+                {/* Pack Popular */}
+                <button
+                  onClick={() => handleBuyCredits("credits_150")}
+                  disabled={!!buyingPack}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-blue-300 bg-blue-50/30 hover:border-blue-500 hover:bg-blue-50 transition-all text-left disabled:opacity-50 relative"
+                >
+                  <span className="absolute -top-2 right-3 bg-blue-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">POPULAR</span>
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                    <Zap className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-slate-800">150 creditos</p>
+                    <p className="text-xs text-slate-500">Mejor relacion calidad-precio</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {buyingPack === "credits_150" ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    ) : (
+                      <span className="font-bold text-blue-600">9,99 &euro;</span>
+                    )}
+                  </div>
+                </button>
+
+                {/* Pack Pro */}
+                <button
+                  onClick={() => handleBuyCredits("credits_500")}
+                  disabled={!!buyingPack}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all text-left disabled:opacity-50"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                    <Star className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-slate-800">500 creditos</p>
+                    <p className="text-xs text-slate-500">Pack profesional</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {buyingPack === "credits_500" ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    ) : (
+                      <span className="font-bold text-indigo-600">24,99 &euro;</span>
+                    )}
+                  </div>
+                </button>
+
+                <p className="text-[10px] text-slate-400 text-center pt-1">
+                  Pago seguro via Stripe. Los creditos se acumulan y no caducan.
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
