@@ -155,11 +155,12 @@ export default function AdminLayout({
 
     // Fetch company logo for screensaver
     api.get("/admin/facturacion/configuracion/emisor").then(res => {
-      if (res.data?.logo_path) {
+      const logoPath = res.data?.data?.logo_path || res.data?.logo_path;
+      if (logoPath) {
         // Handle both base64 and uploaded file paths
-        const logoUrl = res.data.logo_path.startsWith('data:')
-          ? res.data.logo_path
-          : `/api/uploads/${res.data.logo_path}`;
+        const logoUrl = logoPath.startsWith('data:')
+          ? logoPath
+          : `/api/uploads/${logoPath}`;
         setCompanyLogo(logoUrl);
       }
     }).catch(() => {});
