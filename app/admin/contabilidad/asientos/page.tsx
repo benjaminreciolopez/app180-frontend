@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { authenticatedFetch } from "@/utils/api";
 import {
     Card,
@@ -43,6 +43,9 @@ import {
     XCircle,
     Eye,
     FileText,
+    ArrowUp,
+    ArrowDown,
+    ArrowUpDown,
 } from "lucide-react";
 
 // --- Types ---
@@ -106,6 +109,12 @@ const ESTADO_LABELS: Record<string, string> = {
     anulado: "Anulado",
 };
 
+const COL_WIDTH_KEY = "asientos-col-widths";
+const DEFAULT_COL_WIDTHS: Record<string, number> = {
+    numero: 80, fecha: 110, concepto: 300, tipo: 120,
+    estado: 110, total_debe: 120, total_haber: 120, acciones: 100,
+};
+
 // --- Empty line factory ---
 
 function emptyLinea(): AsientoLinea {
@@ -163,6 +172,19 @@ export default function AsientosPage() {
         ya_existentes: { facturas: number; gastos: number; nominas: number };
     } | null>(null);
 
+    // --- State: sorting ---
+    const [sortField, setSortField] = useState("fecha");
+    const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+    // --- State: column widths (persisted) ---
+    const [colWidths, setColWidths] = useState<Record<string, number>>(DEFAULT_COL_WIDTHS);
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(COL_WIDTH_KEY);
+            if (saved) setColWidths(prev => ({ ...prev, ...JSON.parse(saved) }));
+        } catch {}
+    }, []);
+
     // -----------------------------------------------------------------------
     // Load asientos
     // -----------------------------------------------------------------------
@@ -178,6 +200,8 @@ export default function AsientosPage() {
             if (fechaHasta) params.set("fecha_hasta", fechaHasta);
             if (tipoFilter !== "all") params.set("tipo", tipoFilter);
             if (estadoFilter !== "all") params.set("estado", estadoFilter);
+            if (sortField) params.set("sort_field", sortField);
+            if (sortDir) params.set("sort_dir", sortDir);
 
             const res = await authenticatedFetch(
                 `/api/admin/contabilidad/asientos?${params.toString()}`
@@ -192,7 +216,7 @@ export default function AsientosPage() {
         } finally {
             setLoading(false);
         }
-    }, [year, page, limit, fechaDesde, fechaHasta, tipoFilter, estadoFilter]);
+    }, [year, page, limit, fechaDesde, fechaHasta, tipoFilter, estadoFilter, sortField, sortDir]);
 
     useEffect(() => {
         loadAsientos();
@@ -201,7 +225,7 @@ export default function AsientosPage() {
     // Reset page when filters change
     useEffect(() => {
         setPage(1);
-    }, [year, fechaDesde, fechaHasta, tipoFilter, estadoFilter]);
+    }, [year, fechaDesde, fechaHasta, tipoFilter, estadoFilter, sortField, sortDir]);
 
     // -----------------------------------------------------------------------
     // Expand row to show lineas
@@ -400,6 +424,55 @@ export default function AsientosPage() {
         const endDay = new Date(y, endMonth, 0).getDate();
         setGenDesde(`${y}-${String(startMonth).padStart(2, "0")}-01`);
         setGenHasta(`${y}-${String(endMonth).padStart(2, "0")}-${String(endDay).padStart(2, "0")}`);
+    };
+
+    // -----------------------------------------------------------------------
+    // Sorting
+    // -----------------------------------------------------------------------
+
+    const toggleSort = (field: string) => {
+        if (sortField === field) {
+            setSortDir(d => d === "asc" ? "desc" : "asc");
+        } else {
+            setSortField(field);
+            setSortDir("asc");
+        }
+    };
+
+    const sortIcon = (field: string) => {
+        if (sortField !== field) return <ArrowUpDown size={12} className="ml-1 text-slate-300 shrink-0" />;
+        return sortDir === "asc"
+            ? <ArrowUp size={12} className="ml-1 text-slate-700 shrink-0" />
+            : <ArrowDown size={12} className="ml-1 text-slate-700 shrink-0" />;
+    };
+
+    // -----------------------------------------------------------------------
+    // Column resize
+    // -----------------------------------------------------------------------
+
+    const onResizeStart = (col: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startW = colWidths[col] || 100;
+        const onMove = (ev: MouseEvent) => {
+            const w = Math.max(50, startW + ev.clientX - startX);
+            setColWidths(prev => {
+                const next = { ...prev, [col]: w };
+                try { localStorage.setItem(COL_WIDTH_KEY, JSON.stringify(next)); } catch {}
+                return next;
+            });
+        };
+        const onUp = () => {
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+            document.body.style.cursor = "";
+            document.body.style.userSelect = "";
+        };
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
     };
 
     // -----------------------------------------------------------------------
@@ -978,32 +1051,40 @@ export default function AsientosPage() {
                         {total !== 1 ? "s" : ""} en el ejercicio {year}.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="p-0">
-                    <Table>
+                <CardContent className="p-0 overflow-hidden">
+                    <Table className="table-fixed w-full">
                         <TableHeader>
                             <TableRow className="bg-slate-50/50">
-                                <TableHead className="pl-6 w-[80px]">
-                                    Num
-                                </TableHead>
-                                <TableHead className="w-[110px]">
-                                    Fecha
-                                </TableHead>
-                                <TableHead>Concepto</TableHead>
-                                <TableHead className="w-[120px]">
-                                    Tipo
-                                </TableHead>
-                                <TableHead className="w-[110px]">
-                                    Estado
-                                </TableHead>
-                                <TableHead className="text-right w-[120px]">
-                                    Debe
-                                </TableHead>
-                                <TableHead className="text-right w-[120px]">
-                                    Haber
-                                </TableHead>
-                                <TableHead className="text-right pr-6 w-[100px]">
-                                    Acciones
-                                </TableHead>
+                                {[
+                                    { key: "numero", label: "Num", cls: "pl-6" },
+                                    { key: "fecha", label: "Fecha" },
+                                    { key: "concepto", label: "Concepto" },
+                                    { key: "tipo", label: "Tipo" },
+                                    { key: "estado", label: "Estado" },
+                                    { key: "total_debe", label: "Debe", cls: "text-right", right: true },
+                                    { key: "total_haber", label: "Haber", cls: "text-right", right: true },
+                                    { key: "acciones", label: "Acciones", cls: "text-right pr-6", right: true, noSort: true },
+                                ].map(col => (
+                                    <TableHead
+                                        key={col.key}
+                                        className={`relative select-none ${col.cls || ""}`}
+                                        style={{ width: colWidths[col.key] }}
+                                    >
+                                        <div
+                                            className={`flex items-center gap-0.5 ${col.right ? "justify-end" : ""} ${!col.noSort ? "cursor-pointer hover:text-slate-900" : ""}`}
+                                            onClick={() => !col.noSort && toggleSort(col.key)}
+                                        >
+                                            <span>{col.label}</span>
+                                            {!col.noSort && sortIcon(col.key)}
+                                        </div>
+                                        {!col.noSort && (
+                                            <div
+                                                className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-400/40 active:bg-blue-500/60"
+                                                onMouseDown={(e) => onResizeStart(col.key, e)}
+                                            />
+                                        )}
+                                    </TableHead>
+                                ))}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1057,8 +1138,8 @@ export default function AsientosPage() {
                                             <TableCell className="text-slate-600 text-sm">
                                                 {formatDate(asiento.fecha)}
                                             </TableCell>
-                                            <TableCell className="font-medium text-slate-900 text-sm">
-                                                <span className="line-clamp-1">
+                                            <TableCell className="font-medium text-slate-900 text-sm overflow-hidden">
+                                                <span className="block truncate" title={asiento.concepto}>
                                                     {asiento.concepto}
                                                 </span>
                                             </TableCell>
