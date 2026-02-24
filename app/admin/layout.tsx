@@ -97,14 +97,12 @@ export default function AdminLayout({
         setUserId(user.id);
         if (isInitial) setChecking(false);
 
-        // Curar en background y recargar con datos frescos
+        // Curar en background (refreshMe actualiza storage y dispara session-updated)
         try {
           await refreshMe();
-          console.log("[AdminLayout] Datos frescos obtenidos. Recargando...");
-          window.location.reload();
+          console.log("[AdminLayout] Datos frescos obtenidos via refreshMe.");
         } catch (err) {
           console.error("Error en curación:", err);
-          // Sesión provisional ya está puesta, no pasa nada
         }
         return;
       }
