@@ -6,13 +6,15 @@ import { toast } from "sonner"
 import {
   QrCode, CheckCircle, XCircle, Loader2, ScanLine,
   Camera, CameraOff, Clock, User, Shield,
-  MessageCircle, Send, Lightbulb, Bug, Wrench, HelpCircle
+  MessageCircle, Send, Lightbulb, Bug, Wrench, HelpCircle,
+  ShieldCheck, RefreshCw,
 } from "lucide-react"
 
 export default function FabricantePage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [authorized, setAuthorized] = useState(false)
   const [scanning, setScanning] = useState(false)
+  const [paused, setPaused] = useState(false)
   const [scanner, setScanner] = useState<any>(null)
   const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null)
   const [activations, setActivations] = useState<any[]>([])
@@ -21,7 +23,9 @@ export default function FabricantePage() {
   const [respuestaText, setRespuestaText] = useState("")
   const [sendingReply, setSendingReply] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [cameraPermission, setCameraPermission] = useState<"unknown" | "granted" | "denied" | "prompt">("unknown")
   const scannerRef = useRef<HTMLDivElement>(null)
+  const scannerInstanceRef = useRef<any>(null)
 
   // Check auth via es_fabricante del backend
   useEffect(() => {
@@ -47,6 +51,22 @@ export default function FabricantePage() {
     }
     checkAuth()
   }, [])
+
+  // Check camera permission status on mount
+  useEffect(() => {
+    if (!authorized) return
+    // Use Permissions API to check without triggering a prompt
+    if (navigator.permissions?.query) {
+      navigator.permissions.query({ name: "camera" as PermissionName }).then((status) => {
+        setCameraPermission(status.state as any)
+        // Listen for changes (user grants/revokes in browser settings)
+        status.onchange = () => setCameraPermission(status.state as any)
+      }).catch(() => {
+        // Permissions API not supported for camera (e.g. iOS Safari)
+        setCameraPermission("unknown")
+      })
+    }
+  }, [authorized])
 
   const loadActivations = async () => {
     try {
@@ -93,14 +113,36 @@ export default function FabricantePage() {
     }
   }
 
+  // Track if we're processing a scan to prevent double-fires
+  const processingRef = useRef(false)
+
   const startScanner = useCallback(async () => {
+    // If paused (camera still running), just resume
+    if (paused && scannerInstanceRef.current) {
+      try {
+        await scannerInstanceRef.current.resume()
+      } catch {
+        // If resume fails, restart fresh
+        try { await scannerInstanceRef.current.stop() } catch { /* ok */ }
+        scannerInstanceRef.current = null
+      }
+      setPaused(false)
+      setScanning(true)
+      setLastResult(null)
+      processingRef.current = false
+      return
+    }
+
     if (scanning) return
     try {
       const { Html5Qrcode } = await import("html5-qrcode")
       const html5QrCode = new Html5Qrcode("qr-reader")
+      scannerInstanceRef.current = html5QrCode
       setScanner(html5QrCode)
       setScanning(true)
+      setPaused(false)
       setLastResult(null)
+      processingRef.current = false
 
       await html5QrCode.start(
         { facingMode: "environment" },
@@ -110,17 +152,23 @@ export default function FabricantePage() {
           aspectRatio: 1,
         },
         async (decodedText: string) => {
+          // Prevent double-processing
+          if (processingRef.current) return
+          processingRef.current = true
+
           // Extract session token from URL
           const match = decodedText.match(/\/qr\/([a-f0-9]{64})/)
           if (!match) {
             setLastResult({ success: false, message: "QR no reconocido como sesion Contendo" })
+            processingRef.current = false
             return
           }
 
           const sessionToken = match[1]
 
-          // Stop scanner before API call
-          try { await html5QrCode.stop() } catch (e) { /* ok */ }
+          // PAUSE scanner (camera stays on) instead of stopping
+          try { await html5QrCode.pause(true) } catch { /* ok */ }
+          setPaused(true)
           setScanning(false)
 
           // Activate VIP
@@ -135,7 +183,6 @@ export default function FabricantePage() {
             if (json.success) {
               setLastResult({ success: true, message: "VIP activado correctamente" })
               toast.success("VIP activado")
-              // Vibrate on success
               if (navigator.vibrate) navigator.vibrate([100, 50, 100])
               loadActivations()
             } else {
@@ -149,29 +196,41 @@ export default function FabricantePage() {
         },
         () => { /* ignore errors during scanning */ }
       )
+
+      // Permission was granted if we got here
+      setCameraPermission("granted")
     } catch (e: any) {
       console.error("Error starting scanner:", e)
       setScanning(false)
-      toast.error("No se pudo acceder a la camara")
+      if (e?.message?.includes("Permission") || e?.name === "NotAllowedError") {
+        setCameraPermission("denied")
+        toast.error("Permiso de camara denegado. Activa el permiso en los ajustes del navegador.")
+      } else {
+        toast.error("No se pudo acceder a la camara")
+      }
     }
-  }, [scanning])
+  }, [scanning, paused])
 
   const stopScanner = useCallback(async () => {
-    if (scanner) {
-      try { await scanner.stop() } catch (e) { /* ok */ }
-      setScanner(null)
+    if (scannerInstanceRef.current) {
+      try { await scannerInstanceRef.current.stop() } catch (e) { /* ok */ }
+      scannerInstanceRef.current = null
     }
+    setScanner(null)
     setScanning(false)
-  }, [scanner])
+    setPaused(false)
+    processingRef.current = false
+  }, [])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (scanner) {
-        try { scanner.stop() } catch (e) { /* ok */ }
+      if (scannerInstanceRef.current) {
+        try { scannerInstanceRef.current.stop() } catch (e) { /* ok */ }
+        scannerInstanceRef.current = null
       }
     }
-  }, [scanner])
+  }, [])
 
   if (loading) {
     return (
@@ -210,33 +269,64 @@ export default function FabricantePage() {
             <div className="flex items-center gap-2 text-white">
               <QrCode className="w-5 h-5" />
               <span className="font-semibold">Escaner QR VIP</span>
+              {cameraPermission === "granted" && (
+                <span className="flex items-center gap-1 text-[10px] text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                  <ShieldCheck className="w-3 h-3" />
+                  Camara autorizada
+                </span>
+              )}
             </div>
-            {scanning ? (
-              <button
-                onClick={stopScanner}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 text-red-300 text-sm rounded-lg hover:bg-red-500/30 transition-colors"
-              >
-                <CameraOff className="w-4 h-4" />
-                Parar
-              </button>
-            ) : (
-              <button
-                onClick={startScanner}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 text-blue-300 text-sm rounded-lg hover:bg-blue-500/30 transition-colors"
-              >
-                <Camera className="w-4 h-4" />
-                Escanear
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {(scanning || paused) && (
+                <button
+                  onClick={stopScanner}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 text-red-300 text-sm rounded-lg hover:bg-red-500/30 transition-colors"
+                >
+                  <CameraOff className="w-4 h-4" />
+                  Parar
+                </button>
+              )}
+              {!scanning && !paused && (
+                <button
+                  onClick={startScanner}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 text-blue-300 text-sm rounded-lg hover:bg-blue-500/30 transition-colors"
+                >
+                  <Camera className="w-4 h-4" />
+                  Escanear
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Camera viewfinder */}
           <div className="relative aspect-square max-h-80 mx-auto bg-black rounded-xl overflow-hidden">
             <div id="qr-reader" className="w-full h-full" />
-            {!scanning && (
+            {!scanning && !paused && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80">
                 <ScanLine className="w-16 h-16 text-slate-500 mb-3" />
-                <p className="text-slate-400 text-sm">Pulsa "Escanear" para activar la camara</p>
+                <p className="text-slate-400 text-sm">
+                  {cameraPermission === "denied"
+                    ? "Permiso de camara denegado"
+                    : "Pulsa \"Escanear\" para activar la camara"}
+                </p>
+                {cameraPermission === "denied" && (
+                  <p className="text-slate-500 text-xs mt-2 text-center px-4">
+                    Ve a Ajustes del navegador &gt; Permisos del sitio &gt; Camara y selecciona "Permitir"
+                  </p>
+                )}
+              </div>
+            )}
+            {/* Paused overlay - camera still running behind */}
+            {paused && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+                <button
+                  onClick={startScanner}
+                  className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors shadow-lg"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Escanear otro QR
+                </button>
+                <p className="text-slate-400 text-xs mt-2">La camara sigue activa</p>
               </div>
             )}
           </div>

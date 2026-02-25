@@ -51,6 +51,10 @@ import {
     Loader2,
     ListChecks,
     X,
+    Pencil,
+    RefreshCw,
+    Save,
+    AlertTriangle,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -195,6 +199,25 @@ export default function AsientosPage() {
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [validatingMultiple, setValidatingMultiple] = useState(false);
+
+    // --- State: edit asiento ---
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editConcepto, setEditConcepto] = useState("");
+    const [editNotas, setEditNotas] = useState("");
+    const [editLineas, setEditLineas] = useState<AsientoLinea[]>([]);
+    const [editSaving, setEditSaving] = useState(false);
+    const [editError, setEditError] = useState("");
+
+    // --- State: re-review ---
+    const [reviewing, setReviewing] = useState(false);
+    const [reviewResult, setReviewResult] = useState<{
+        revisados: number;
+        corregidos: number;
+        sin_cambios: number;
+        errores: string[];
+        cambios: { asiento_id: string; concepto: string; cuenta_anterior: { codigo: string; nombre: string }; cuenta_nueva: { codigo: string; nombre: string }; importe: number }[];
+    } | null>(null);
+    const [reviewSimulating, setReviewSimulating] = useState(false);
 
     // --- State: column widths (persisted) ---
     const [colWidths, setColWidths] = useState<Record<string, number>>(DEFAULT_COL_WIDTHS);
@@ -349,6 +372,130 @@ export default function AsientosPage() {
             console.error("Error validando múltiples asientos:", error);
         } finally {
             setValidatingMultiple(false);
+        }
+    };
+
+    // -----------------------------------------------------------------------
+    // Edit asiento
+    // -----------------------------------------------------------------------
+
+    const startEdit = async (asiento: Asiento) => {
+        setEditingId(asiento.id);
+        setEditConcepto(asiento.concepto);
+        setEditNotas(asiento.notas || "");
+        setEditError("");
+        // Load lines if not already in expandedLineas
+        try {
+            const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/${asiento.id}`);
+            if (res.ok) {
+                const json = await res.json();
+                setEditLineas(json.lineas || []);
+            }
+        } catch (err) {
+            console.error("Error loading lineas for edit:", err);
+        }
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setEditLineas([]);
+        setEditError("");
+    };
+
+    const updateEditLinea = (index: number, field: keyof AsientoLinea, value: string | number) => {
+        setEditLineas(prev => {
+            const next = [...prev];
+            next[index] = { ...next[index], [field]: value };
+            return next;
+        });
+    };
+
+    const addEditLinea = () => {
+        setEditLineas(prev => [...prev, emptyLinea()]);
+    };
+
+    const removeEditLinea = (index: number) => {
+        if (editLineas.length <= 2) return;
+        setEditLineas(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const editTotalDebe = editLineas.reduce((acc, l) => acc + (Number(l.debe) || 0), 0);
+    const editTotalHaber = editLineas.reduce((acc, l) => acc + (Number(l.haber) || 0), 0);
+    const editIsBalanced = Math.abs(editTotalDebe - editTotalHaber) < 0.01;
+
+    const handleSaveEdit = async () => {
+        if (!editConcepto.trim()) { setEditError("El concepto es obligatorio."); return; }
+        if (!editIsBalanced) { setEditError("El asiento no cuadra."); return; }
+        if (editTotalDebe === 0) { setEditError("Los importes deben ser > 0."); return; }
+        const lineasValidas = editLineas.filter(l => l.cuenta_codigo.trim() !== "");
+        if (lineasValidas.length < 2) { setEditError("Mínimo 2 líneas con cuenta."); return; }
+
+        setEditSaving(true);
+        setEditError("");
+        try {
+            const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/${editingId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    concepto: editConcepto,
+                    notas: editNotas,
+                    lineas: lineasValidas.map(l => ({
+                        cuenta_codigo: l.cuenta_codigo,
+                        cuenta_nombre: l.cuenta_nombre,
+                        debe: Number(l.debe) || 0,
+                        haber: Number(l.haber) || 0,
+                    })),
+                }),
+            });
+            if (res.ok) {
+                setEditingId(null);
+                setEditLineas([]);
+                loadAsientos();
+                // Refresh expanded detail if same ID
+                if (expandedId === editingId) {
+                    const json = await res.json();
+                    setExpandedLineas(json.lineas || []);
+                }
+            } else {
+                const json = await res.json().catch(() => null);
+                setEditError(json?.error || "Error al guardar.");
+            }
+        } catch (err) {
+            setEditError("Error de conexión.");
+        } finally {
+            setEditSaving(false);
+        }
+    };
+
+    // -----------------------------------------------------------------------
+    // Re-review asientos (IA revisa cuentas contables)
+    // -----------------------------------------------------------------------
+
+    const handleReview = async (simular: boolean) => {
+        if (simular) setReviewSimulating(true);
+        else setReviewing(true);
+        setReviewResult(null);
+        try {
+            const ids = selectedBorradorIds.length > 0
+                ? [...selectedIds]
+                : [];
+            const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/revisar`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids, simular }),
+            });
+            if (res.ok) {
+                const json = await res.json();
+                setReviewResult(json);
+                if (!simular && json.corregidos > 0) {
+                    loadAsientos();
+                }
+            }
+        } catch (err) {
+            console.error("Error reviewing:", err);
+        } finally {
+            setReviewing(false);
+            setReviewSimulating(false);
         }
     };
 
@@ -729,6 +876,17 @@ export default function AsientosPage() {
                         <span className="hidden sm:inline">
                             {selectionMode ? "Cancelar" : "Seleccionar"}
                         </span>
+                    </Button>
+
+                    {/* Re-review button */}
+                    <Button
+                        variant="outline"
+                        className="rounded-xl h-11 px-5 gap-2 active:scale-95 transition-all border-amber-200 text-amber-700 hover:bg-amber-50"
+                        onClick={() => handleReview(true)}
+                        disabled={reviewing || reviewSimulating}
+                    >
+                        {reviewSimulating ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+                        <span className="hidden sm:inline">Re-revisar</span>
                     </Button>
 
                     {/* Generate button */}
@@ -1490,6 +1648,20 @@ export default function AsientosPage() {
                                                     >
                                                         <Eye size={14} />
                                                     </Button>
+                                                    {asiento.estado !== "anulado" && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 text-slate-500"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                startEdit(asiento);
+                                                            }}
+                                                            title="Editar asiento"
+                                                        >
+                                                            <Pencil size={14} />
+                                                        </Button>
+                                                    )}
                                                     {asiento.estado ===
                                                         "borrador" && (
                                                         <Button
@@ -1661,6 +1833,207 @@ export default function AsientosPage() {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* ============================================================ */}
+            {/* Re-review results banner */}
+            {/* ============================================================ */}
+            {reviewResult && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm space-y-4">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <RefreshCw size={20} className="text-amber-600" />
+                            <div>
+                                <p className="font-semibold text-amber-900">Resultado de la revision</p>
+                                <p className="text-sm text-amber-700">
+                                    {reviewResult.revisados} revisados &middot; {reviewResult.corregidos} con cambios &middot; {reviewResult.sin_cambios} correctos
+                                </p>
+                            </div>
+                        </div>
+                        <button onClick={() => setReviewResult(null)} className="text-amber-400 hover:text-amber-600">
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    {reviewResult.cambios.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Cambios detectados:</p>
+                            <div className="bg-white rounded-xl border border-amber-100 overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-amber-100 bg-amber-50/50">
+                                            <th className="text-left p-2.5 text-xs font-semibold text-amber-700">Concepto</th>
+                                            <th className="text-left p-2.5 text-xs font-semibold text-amber-700">Cuenta anterior</th>
+                                            <th className="text-left p-2.5 text-xs font-semibold text-amber-700">Cuenta correcta</th>
+                                            <th className="text-right p-2.5 text-xs font-semibold text-amber-700">Importe</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {reviewResult.cambios.map((c, i) => (
+                                            <tr key={i} className="border-b border-amber-50 last:border-0">
+                                                <td className="p-2.5 text-slate-900 max-w-[300px] truncate" title={c.concepto}>{c.concepto}</td>
+                                                <td className="p-2.5">
+                                                    <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 px-2 py-0.5 rounded-lg text-xs font-mono">
+                                                        {c.cuenta_anterior.codigo} <span className="font-sans text-red-500">{c.cuenta_anterior.nombre}</span>
+                                                    </span>
+                                                </td>
+                                                <td className="p-2.5">
+                                                    <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2 py-0.5 rounded-lg text-xs font-mono">
+                                                        {c.cuenta_nueva.codigo} <span className="font-sans text-green-500">{c.cuenta_nueva.nombre}</span>
+                                                    </span>
+                                                </td>
+                                                <td className="p-2.5 text-right font-medium">{formatCurrency(c.importe)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="flex items-center justify-end gap-2 pt-2">
+                                <Button
+                                    variant="outline"
+                                    className="rounded-xl h-10 px-4 text-sm"
+                                    onClick={() => setReviewResult(null)}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    className="bg-amber-600 text-white hover:bg-amber-700 rounded-xl h-10 px-5 gap-2 text-sm shadow-sm"
+                                    onClick={() => handleReview(false)}
+                                    disabled={reviewing}
+                                >
+                                    {reviewing ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                                    Aplicar {reviewResult.corregidos} corrección{reviewResult.corregidos !== 1 ? "es" : ""}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {reviewResult.cambios.length === 0 && reviewResult.corregidos === 0 && (
+                        <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-xl p-3 border border-green-200">
+                            <CheckCircle size={16} />
+                            Todos los asientos tienen las cuentas correctas. No se necesitan correcciones.
+                        </div>
+                    )}
+
+                    {reviewResult.errores.length > 0 && (
+                        <div className="bg-red-50 rounded-xl border border-red-200 p-3">
+                            <p className="text-xs font-semibold text-red-700 mb-1">Errores ({reviewResult.errores.length}):</p>
+                            {reviewResult.errores.slice(0, 5).map((err, i) => (
+                                <p key={i} className="text-xs text-red-600">{err}</p>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ============================================================ */}
+            {/* Edit dialog */}
+            {/* ============================================================ */}
+            <Dialog open={!!editingId} onOpenChange={(open) => { if (!open) cancelEdit(); }}>
+                <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Editar Asiento Contable</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-5 pt-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-slate-500">Concepto</Label>
+                                <Input
+                                    value={editConcepto}
+                                    onChange={(e) => setEditConcepto(e.target.value)}
+                                    className="rounded-xl"
+                                    placeholder="Concepto del asiento"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-slate-500">Notas (opcional)</Label>
+                                <Input
+                                    value={editNotas}
+                                    onChange={(e) => setEditNotas(e.target.value)}
+                                    className="rounded-xl"
+                                    placeholder="Notas adicionales"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Líneas del asiento</Label>
+                                <Button type="button" variant="outline" size="sm" className="rounded-lg gap-1 text-xs" onClick={addEditLinea}>
+                                    <Plus size={14} /> Línea
+                                </Button>
+                            </div>
+                            <div className="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-200 bg-slate-100/50">
+                                            <th className="text-left p-2.5 font-semibold text-slate-500 text-xs">Cuenta</th>
+                                            <th className="text-left p-2.5 font-semibold text-slate-500 text-xs">Nombre</th>
+                                            <th className="text-right p-2.5 font-semibold text-slate-500 text-xs w-[120px]">Debe</th>
+                                            <th className="text-right p-2.5 font-semibold text-slate-500 text-xs w-[120px]">Haber</th>
+                                            <th className="w-[40px]"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {editLineas.map((linea, idx) => (
+                                            <tr key={idx} className="border-b border-slate-100 last:border-0">
+                                                <td className="p-1.5">
+                                                    <Input placeholder="4300" value={linea.cuenta_codigo} onChange={(e) => updateEditLinea(idx, "cuenta_codigo", e.target.value)} className="h-8 rounded-lg text-xs bg-white" />
+                                                </td>
+                                                <td className="p-1.5">
+                                                    <Input placeholder="Clientes" value={linea.cuenta_nombre} onChange={(e) => updateEditLinea(idx, "cuenta_nombre", e.target.value)} className="h-8 rounded-lg text-xs bg-white" />
+                                                </td>
+                                                <td className="p-1.5">
+                                                    <Input type="number" step="0.01" min="0" placeholder="0.00" value={linea.debe || ""} onChange={(e) => updateEditLinea(idx, "debe", parseFloat(e.target.value) || 0)} className="h-8 rounded-lg text-xs text-right bg-white" />
+                                                </td>
+                                                <td className="p-1.5">
+                                                    <Input type="number" step="0.01" min="0" placeholder="0.00" value={linea.haber || ""} onChange={(e) => updateEditLinea(idx, "haber", parseFloat(e.target.value) || 0)} className="h-8 rounded-lg text-xs text-right bg-white" />
+                                                </td>
+                                                <td className="p-1.5 text-center">
+                                                    {editLineas.length > 2 && (
+                                                        <button type="button" onClick={() => removeEditLinea(idx)} className="text-slate-400 hover:text-red-500 transition-colors">
+                                                            <XCircle size={16} />
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="flex items-center justify-between bg-white rounded-xl border border-slate-200 p-3">
+                                <div className="flex items-center gap-6 text-sm">
+                                    <div><span className="text-slate-500 mr-2">Total Debe:</span><span className="font-bold text-slate-900">{formatCurrency(editTotalDebe)}</span></div>
+                                    <div><span className="text-slate-500 mr-2">Total Haber:</span><span className="font-bold text-slate-900">{formatCurrency(editTotalHaber)}</span></div>
+                                </div>
+                                <div>
+                                    {editIsBalanced && editTotalDebe > 0 ? (
+                                        <Badge className="bg-green-50 text-green-700 border-green-200"><CheckCircle size={12} className="mr-1" />Cuadrado</Badge>
+                                    ) : (
+                                        <Badge className="bg-red-50 text-red-700 border-red-200"><XCircle size={12} className="mr-1" />Descuadre: {formatCurrency(Math.abs(editTotalDebe - editTotalHaber))}</Badge>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {editError && (
+                            <div className="bg-red-50 text-red-700 text-sm p-3 rounded-xl border border-red-200">{editError}</div>
+                        )}
+
+                        <div className="flex items-center gap-3">
+                            <Button variant="outline" className="flex-1 rounded-xl h-11" onClick={cancelEdit}>Cancelar</Button>
+                            <Button
+                                className="flex-1 bg-black text-white hover:bg-slate-800 rounded-xl h-11 gap-2"
+                                onClick={handleSaveEdit}
+                                disabled={editSaving}
+                            >
+                                {editSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                {editSaving ? "Guardando..." : "Guardar Cambios"}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* ============================================================ */}
             {/* Pagination */}
