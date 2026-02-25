@@ -488,9 +488,12 @@ export default function AsientosPage() {
             });
             if (res.ok) {
                 const json = await res.json();
-                setReviewResult(json);
-                if (!simular && json.corregidos > 0) {
+                if (!simular) {
+                    // After applying corrections, clear the banner and refresh
+                    setReviewResult(null);
                     loadAsientos();
+                } else {
+                    setReviewResult(json);
                 }
             }
         } catch (err) {
