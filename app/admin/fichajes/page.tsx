@@ -6,7 +6,7 @@ import { showSuccess, showError } from "@/lib/toast";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Clock } from "lucide-react";
+import { Clock, ShieldCheck, ShieldX, ShieldAlert, ChevronDown, ChevronUp, Loader2, RefreshCw, AlertTriangle, MessageSquareWarning } from "lucide-react";
 
 type TipoFichaje = "entrada" | "salida" | "descanso_inicio" | "descanso_fin";
 
@@ -172,6 +172,59 @@ export default function FichajesPage() {
   // saving state for manual fichaje
   const [saving, setSaving] = useState(false);
 
+  // integridad panel
+  const [integridadOpen, setIntegridadOpen] = useState(false);
+  const [integridadLoading, setIntegridadLoading] = useState(false);
+  const [integridadResult, setIntegridadResult] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [stats, setStats] = useState<any>(null);
+  const [regenerando, setRegenerando] = useState(false);
+  const [correccionesPendientes, setCorreccionesPendientes] = useState(0);
+
+  async function loadStats() {
+    setStatsLoading(true);
+    try {
+      const res = await api.get("/api/admin/fichajes/integridad/estadisticas");
+      setStats(res.data);
+    } catch { /* silencio */ } finally {
+      setStatsLoading(false);
+    }
+  }
+
+  async function verificarIntegridad() {
+    setIntegridadLoading(true);
+    try {
+      const res = await api.get("/api/admin/fichajes/integridad/verificar");
+      setIntegridadResult(res.data?.verificacion || res.data);
+    } catch (e: any) {
+      showError("Error verificando integridad");
+    } finally {
+      setIntegridadLoading(false);
+    }
+  }
+
+  async function regenerarHashes() {
+    setRegenerando(true);
+    try {
+      const res = await api.post("/api/admin/fichajes/integridad/regenerar");
+      showSuccess(`${res.data.procesados} fichajes sellados con hash`);
+      await loadStats();
+      setIntegridadResult(null);
+    } catch {
+      showError("Error regenerando hashes");
+    } finally {
+      setRegenerando(false);
+    }
+  }
+
+  async function loadCorreccionesPendientes() {
+    try {
+      const res = await api.get("/api/admin/fichajes/correcciones?estado=pendiente");
+      const data = Array.isArray(res.data) ? res.data : [];
+      setCorreccionesPendientes(data.length);
+    } catch { /* silencio */ }
+  }
+
   // detalle jornada (al clicar)
   const [detalleOpen, setDetalleOpen] = useState(false);
   const [jornadaSel, setJornadaSel] = useState<JornadaUI | null>(null);
@@ -197,6 +250,8 @@ export default function FichajesPage() {
   useEffect(() => {
     loadEmpleados();
     loadFichajes();
+    loadStats();
+    loadCorreccionesPendientes();
   }, []);
 
   // aplica filtros en frontend (estable en zona local)
@@ -469,6 +524,141 @@ export default function FichajesPage() {
           Jornadas: <b>{jornadas.length}</b> · Fichajes filtrados:{" "}
           <b>{rawFiltrado.length}</b>
         </div>
+      </div>
+
+      {/* INTEGRIDAD + CORRECCIONES PANEL */}
+      <div className="bg-white border rounded overflow-hidden">
+        <button
+          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+          onClick={() => { setIntegridadOpen(!integridadOpen); if (!integridadOpen && !stats) loadStats(); }}
+        >
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="w-5 h-5 text-blue-600" />
+            <span className="font-semibold text-sm">Integridad y Compliance (RD 8/2019)</span>
+            {correccionesPendientes > 0 && (
+              <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
+                {correccionesPendientes} correcciones pendientes
+              </span>
+            )}
+            {stats && stats.sin_hash > 0 && (
+              <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                {stats.sin_hash} sin sellar
+              </span>
+            )}
+            {stats && stats.sin_hash === 0 && stats.total_fichajes > 0 && (
+              <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                100% sellado
+              </span>
+            )}
+          </div>
+          {integridadOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+        </button>
+
+        {integridadOpen && (
+          <div className="border-t p-4 space-y-4">
+            {/* Estadísticas */}
+            {statsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin" /> Cargando estadísticas...
+              </div>
+            ) : stats ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-gray-50 rounded p-3 text-center">
+                  <p className="text-2xl font-bold">{stats.total_fichajes}</p>
+                  <p className="text-xs text-gray-500">Total fichajes</p>
+                </div>
+                <div className="bg-gray-50 rounded p-3 text-center">
+                  <p className="text-2xl font-bold">{stats.total_empleados}</p>
+                  <p className="text-xs text-gray-500">Empleados</p>
+                </div>
+                <div className={`rounded p-3 text-center ${stats.sin_hash > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                  <p className="text-2xl font-bold">{stats.con_hash}</p>
+                  <p className="text-xs text-gray-500">Con hash SHA-256</p>
+                </div>
+                <div className={`rounded p-3 text-center ${stats.sin_hash > 0 ? 'bg-amber-50' : 'bg-green-50'}`}>
+                  <p className={`text-2xl font-bold ${stats.sin_hash > 0 ? 'text-amber-600' : 'text-green-600'}`}>{stats.sin_hash}</p>
+                  <p className="text-xs text-gray-500">Sin sellar (legacy)</p>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Acciones */}
+            <div className="flex flex-wrap gap-3">
+              {/* Verificar cadena */}
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                onClick={verificarIntegridad}
+                disabled={integridadLoading}
+              >
+                {integridadLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                {integridadLoading ? "Verificando..." : "Verificar cadena de hashes"}
+              </button>
+
+              {/* Regenerar legacy */}
+              {stats && stats.sin_hash > 0 && (
+                <button
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+                  onClick={regenerarHashes}
+                  disabled={regenerando}
+                >
+                  {regenerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  {regenerando ? "Sellando..." : `Sellar ${stats.sin_hash} fichajes legacy`}
+                </button>
+              )}
+
+              {/* Correcciones pendientes */}
+              {correccionesPendientes > 0 && (
+                <a
+                  href="/admin/fichajes/correcciones"
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-800 rounded text-sm font-medium hover:bg-amber-200"
+                >
+                  <MessageSquareWarning className="w-4 h-4" />
+                  {correccionesPendientes} correcciones pendientes
+                </a>
+              )}
+            </div>
+
+            {/* Resultado de verificación */}
+            {integridadResult && (
+              <div className={`rounded-lg p-4 ${integridadResult.valido ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                <div className="flex items-center gap-3 mb-2">
+                  {integridadResult.valido
+                    ? <ShieldCheck className="w-6 h-6 text-green-600" />
+                    : <ShieldX className="w-6 h-6 text-red-600" />
+                  }
+                  <div>
+                    <p className={`font-semibold ${integridadResult.valido ? 'text-green-800' : 'text-red-800'}`}>
+                      {integridadResult.valido ? "Cadena íntegra" : "Errores detectados"}
+                    </p>
+                    <p className="text-sm text-gray-600">{integridadResult.mensaje}</p>
+                  </div>
+                </div>
+                {integridadResult.errores?.length > 0 && (
+                  <div className="mt-3 space-y-1">
+                    {integridadResult.errores.slice(0, 5).map((err: any, i: number) => (
+                      <div key={i} className="text-xs text-red-700 bg-red-100 rounded px-2 py-1 font-mono">
+                        {err.tipo}: fichaje {err.fichaje_id?.substring(0, 8)}... ({new Date(err.fecha).toLocaleDateString("es-ES")})
+                      </div>
+                    ))}
+                    {integridadResult.errores.length > 5 && (
+                      <p className="text-xs text-red-600">...y {integridadResult.errores.length - 5} errores más</p>
+                    )}
+                  </div>
+                )}
+                {integridadResult.valido && (
+                  <p className="text-xs text-green-600 mt-1">
+                    {integridadResult.total_fichajes} fichajes de {integridadResult.empleados_verificados} empleado(s) verificados correctamente
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Info legal */}
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              RD 8/2019, art. 34.9 ET: Los fichajes se sellan con hash SHA-256 encadenado. Cada registro incluye el hash del anterior, formando una cadena verificable. Las correcciones generan nuevos registros sin modificar los originales.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* TABLA JORNADAS */}

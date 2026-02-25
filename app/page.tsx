@@ -88,6 +88,7 @@ export default function LandingPage() {
             <nav className="hidden md:flex space-x-8">
               <a href="#modulos" className="text-gray-600 hover:text-blue-600 transition-colors">Modulos</a>
               <a href="#ia" className="text-gray-600 hover:text-blue-600 transition-colors">IA</a>
+              <Link href="/cumplimiento-legal" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Cumplimiento Legal</Link>
               <Link href="/privacidad" className="text-gray-600 hover:text-blue-600 transition-colors">Privacidad</Link>
               <Link href="/terminos" className="text-gray-600 hover:text-blue-600 transition-colors">Terminos</Link>
             </nav>
@@ -257,6 +258,9 @@ export default function LandingPage() {
               <p className="text-gray-500 text-sm mt-1">&copy; {new Date().getFullYear()} Todos los derechos reservados. Hecho en Espana.</p>
             </div>
             <div className="flex space-x-6">
+              <Link href="/cumplimiento-legal" className="text-gray-500 hover:text-gray-900 text-sm font-medium">
+                Cumplimiento Legal
+              </Link>
               <Link href="/privacidad" className="text-gray-500 hover:text-gray-900 text-sm">
                 Politica de Privacidad
               </Link>
