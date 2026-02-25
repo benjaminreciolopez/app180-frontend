@@ -93,6 +93,7 @@ export default function CentrosTrabajoPage() {
   const [showAsignar, setShowAsignar] = useState(false);
   const [empleadosDisponibles, setEmpleadosDisponibles] = useState<EmpleadoDisponible[]>([]);
   const [loadingDisponibles, setLoadingDisponibles] = useState(false);
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
 
   const loadCentros = useCallback(async () => {
     try {
@@ -151,6 +152,8 @@ export default function CentrosTrabajoPage() {
   }
 
   async function toggleActivo(c: Centro) {
+    if (processingAction) return;
+    setProcessingAction(`toggle-${c.id}`);
     try {
       if (c.activo) {
         await api.delete(`/admin/centros-trabajo/${c.id}`);
@@ -162,6 +165,8 @@ export default function CentrosTrabajoPage() {
       loadCentros();
     } catch (err: any) {
       showError(err?.response?.data?.error || "Error");
+    } finally {
+      setProcessingAction(null);
     }
   }
 
@@ -192,6 +197,8 @@ export default function CentrosTrabajoPage() {
   }
 
   async function asignarEmpleado(empleadoId: string, centroId: string) {
+    if (processingAction) return;
+    setProcessingAction(`asignar-${empleadoId}`);
     try {
       await api.post("/admin/centros-trabajo/asignar", {
         empleado_id: empleadoId,
@@ -203,10 +210,14 @@ export default function CentrosTrabajoPage() {
       setShowAsignar(false);
     } catch (err: any) {
       showError(err?.response?.data?.error || "Error al asignar");
+    } finally {
+      setProcessingAction(null);
     }
   }
 
   async function desasignarEmpleado(empleadoId: string, centroId: string) {
+    if (processingAction) return;
+    setProcessingAction(`desasignar-${empleadoId}`);
     try {
       await api.post("/admin/centros-trabajo/desasignar", {
         empleado_id: empleadoId,
@@ -216,6 +227,8 @@ export default function CentrosTrabajoPage() {
       loadCentros();
     } catch (err: any) {
       showError(err?.response?.data?.error || "Error al desasignar");
+    } finally {
+      setProcessingAction(null);
     }
   }
 
@@ -327,10 +340,11 @@ export default function CentrosTrabajoPage() {
                     {c.num_empleados} empleado{c.num_empleados !== 1 ? "s" : ""}
                   </button>
                   <button
-                    className="text-xs text-muted-foreground hover:text-foreground"
+                    className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:pointer-events-none"
                     onClick={() => toggleActivo(c)}
+                    disabled={!!processingAction}
                   >
-                    {c.activo ? "Desactivar" : "Activar"}
+                    {processingAction === `toggle-${c.id}` ? "Procesando..." : c.activo ? "Desactivar" : "Activar"}
                   </button>
                 </div>
 
@@ -361,11 +375,16 @@ export default function CentrosTrabajoPage() {
                                 <span className="text-muted-foreground ml-2">{emp.email}</span>
                               </div>
                               <button
-                                className="text-red-500 hover:text-red-700 p-1"
+                                className="text-red-500 hover:text-red-700 p-1 disabled:opacity-50 disabled:pointer-events-none"
                                 onClick={() => desasignarEmpleado(emp.id, c.id)}
                                 title="Desasignar"
+                                disabled={!!processingAction}
                               >
-                                <UserMinus size={14} />
+                                {processingAction === `desasignar-${emp.id}` ? (
+                                  <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full" />
+                                ) : (
+                                  <UserMinus size={14} />
+                                )}
                               </button>
                             </div>
                           ))
@@ -411,8 +430,9 @@ export default function CentrosTrabajoPage() {
                                       .map((ed) => (
                                         <button
                                           key={ed.id}
-                                          className="w-full text-left flex items-center justify-between px-2 py-1 rounded hover:bg-muted text-xs"
+                                          className="w-full text-left flex items-center justify-between px-2 py-1 rounded hover:bg-muted text-xs disabled:opacity-50 disabled:pointer-events-none"
                                           onClick={() => asignarEmpleado(ed.id, c.id)}
+                                          disabled={!!processingAction}
                                         >
                                           <div>
                                             <span className="font-medium">{ed.nombre}</span>
@@ -427,7 +447,11 @@ export default function CentrosTrabajoPage() {
                                               </span>
                                             )}
                                           </div>
-                                          <UserPlus size={12} className="text-blue-500" />
+                                          {processingAction === `asignar-${ed.id}` ? (
+                                            <span className="animate-spin inline-block w-3 h-3 border-2 border-blue-300 border-t-blue-600 rounded-full" />
+                                          ) : (
+                                            <UserPlus size={12} className="text-blue-500" />
+                                          )}
                                         </button>
                                       ))}
                                     {empleadosDisponibles.filter(
@@ -577,7 +601,7 @@ export default function CentrosTrabajoPage() {
                 <Button variant="outline" onClick={() => setEditing(null)}>
                   Cancelar
                 </Button>
-                <Button onClick={save} disabled={saving}>
+                <Button onClick={save} disabled={saving || !!processingAction}>
                   {saving ? "Guardando..." : isNew ? "Crear" : "Guardar"}
                 </Button>
               </div>
