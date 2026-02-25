@@ -8,7 +8,8 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUser } from "@/services/auth";
-import { Search, Filter, ArrowUpDown, Calendar, CheckSquare, AlertTriangle, CheckCircle2, ClipboardList } from "lucide-react";
+import { Search, Filter, ArrowUpDown, Calendar, CheckSquare, AlertTriangle, CheckCircle2, ClipboardList, Settings2, X } from "lucide-react";
+import ParteConfigPanel from "@/app/admin/configuracion/ParteConfigPanel";
 
 type ParteItem = {
   empleado_id: string;
@@ -78,6 +79,9 @@ export default function AdminPartesDiaPage() {
   // Multiselección
   const [selectedIds, setSelectedIds] = useState<string[]>([]); // Format: "empleado_id|fecha"
   const [bulkMode, setBulkMode] = useState<"validate" | "incident" | null>(null);
+
+  // Panel configuración
+  const [showConfig, setShowConfig] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -254,6 +258,17 @@ export default function AdminPartesDiaPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowConfig(!showConfig)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              showConfig
+                ? "bg-violet-600 text-white shadow-md"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            <Settings2 className="h-4 w-4" />
+            Configurar Campos
+          </button>
           <UniversalExportButton
             module="partes-dia"
             queryParams={{ fecha, cliente_id: clienteId, fecha_inicio: fechaInicio, fecha_fin: fechaFin }}
@@ -261,6 +276,27 @@ export default function AdminPartesDiaPage() {
           />
         </div>
       </div>
+
+      {/* Panel Configuración de Campos Custom */}
+      {showConfig && (
+        <div className="bg-white rounded-xl shadow-sm border border-violet-200 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between px-5 py-3 bg-violet-50 border-b border-violet-200">
+            <h2 className="text-sm font-bold text-violet-800 flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              Configuración de Campos Personalizados
+            </h2>
+            <button
+              onClick={() => setShowConfig(false)}
+              className="p-1 rounded hover:bg-violet-200 text-violet-600 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="p-5">
+            <ParteConfigPanel onSave={() => { load(); }} />
+          </div>
+        </div>
+      )}
 
       {/* Barra de Filtros */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-end">

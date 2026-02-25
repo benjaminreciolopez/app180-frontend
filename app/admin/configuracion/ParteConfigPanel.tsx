@@ -41,7 +41,11 @@ function toKey(label: string) {
     .replace(/^_|_$/g, "");
 }
 
-export default function ParteConfigPanel() {
+type Props = {
+  onSave?: () => void;
+};
+
+export default function ParteConfigPanel({ onSave }: Props = {}) {
   const [configs, setConfigs] = useState<ParteConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -131,6 +135,7 @@ export default function ParteConfigPanel() {
       });
       await load();
       showSuccess("Configuración guardada");
+      onSave?.();
     } catch (e: any) {
       showError(e?.response?.data?.error || "Error guardando");
     } finally {

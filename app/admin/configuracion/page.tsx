@@ -12,7 +12,6 @@ import CalendarSyncHistory from "@/components/admin/CalendarSyncHistory";
 import KnowledgePanel from "@/components/admin/KnowledgePanel";
 import BackupPanel from "@/components/admin/BackupPanel";
 import TiposBloquePanel from "./TiposBloquePanel";
-import ParteConfigPanel from "./ParteConfigPanel";
 import { QrCode, Shield, ArrowRight } from "lucide-react";
 
 type Modulos = {
@@ -203,12 +202,6 @@ export default function AdminConfiguracionPage() {
       <div>
         <h2 className="text-xl font-semibold mb-3">Tipos de Bloque (Jornadas)</h2>
         <TiposBloquePanel />
-      </div>
-
-      {/* Partes de Trabajo Configurables */}
-      <div>
-        <h2 className="text-xl font-semibold mb-3">Partes de Trabajo (Campos Custom)</h2>
-        <ParteConfigPanel />
       </div>
 
       {/* Conocimiento IA */}
