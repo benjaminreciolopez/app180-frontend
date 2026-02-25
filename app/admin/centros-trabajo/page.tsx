@@ -390,17 +390,19 @@ export default function CentrosTrabajoPage() {
                           ))
                         )}
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full gap-1 text-xs h-7"
-                          onClick={() => {
-                            setShowAsignar(true);
-                            loadEmpleadosDisponibles();
-                          }}
-                        >
-                          <UserPlus size={12} /> Asignar empleado
-                        </Button>
+                        {c.activo && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-1 text-xs h-7"
+                            onClick={() => {
+                              setShowAsignar(true);
+                              loadEmpleadosDisponibles();
+                            }}
+                          >
+                            <UserPlus size={12} /> Asignar empleado
+                          </Button>
+                        )}
 
                         {/* Assign modal inline */}
                         <AnimatePresence>
