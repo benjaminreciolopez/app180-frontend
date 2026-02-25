@@ -5,6 +5,7 @@ import { api } from "@/services/api";
 import { X, Save, Copy, ChevronDown, Trash2, Edit, Calendar } from "lucide-react";
 import SimpleMultiselectCalendar from "@/components/shared/SimpleMultiselectCalendar";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
+import { DynamicFieldsGroup, type CampoConfig } from "@/components/shared/DynamicFieldRenderer";
 
 type Option = { id: string; nombre: string; modo_defecto?: string };
 type Template = { id: string; descripcion: string; detalles?: string };
@@ -17,6 +18,7 @@ type Props = {
   initialData?: any;
   mode?: 'create' | 'edit' | 'clone';
   onCancel?: () => void;
+  parteConfig?: { id?: string; campos: CampoConfig[] } | null;
 };
 
 export default function FormTrabajos({
@@ -26,7 +28,8 @@ export default function FormTrabajos({
   onCreated,
   initialData,
   mode = 'create',
-  onCancel
+  onCancel,
+  parteConfig,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
@@ -73,6 +76,9 @@ export default function FormTrabajos({
   const [extraDates, setExtraDates] = useState<string[]>([]);
   const [isMultiDate, setIsMultiDate] = useState(false);
   const [selectedBulkDates, setSelectedBulkDates] = useState<string[]>([]);
+
+  // Dynamic fields (partes configurables)
+  const [camposExtra, setCamposExtra] = useState<Record<string, any>>({});
 
   // Validation
   const [triedToSubmit, setTriedToSubmit] = useState(false);
@@ -155,6 +161,9 @@ export default function FormTrabajos({
       if (initialData.tipo_facturacion === 'hora' && initialData.minutos) setHoras(String(initialData.minutos / 60));
       if (initialData.tipo_facturacion === 'dia' && initialData.minutos) setDias(String(initialData.minutos / 480));
       if (initialData.tipo_facturacion === 'mes' && initialData.minutos) setMeses(String(initialData.minutos / 9600));
+
+      // Dynamic fields
+      setCamposExtra(initialData.campos_extra || {});
     } else {
       // Reset to defaults if initialData is null
       setDescripcion("");
@@ -162,6 +171,7 @@ export default function FormTrabajos({
       setWorkItemNombre("");
       setSaveAsTemplate(false);
       setExtraDates([]);
+      setCamposExtra({});
     }
   }, [initialData, mode]);
 
@@ -195,6 +205,7 @@ export default function FormTrabajos({
 
     setLoading(true);
     try {
+      const hasCampos = parteConfig?.campos?.length && Object.keys(camposExtra).length > 0;
       const payload = {
         fecha,
         minutos: calculatedMinutes,
@@ -206,7 +217,9 @@ export default function FormTrabajos({
         tipo_facturacion: billingType,
         duracion_texto: billingType === 'valorado' ? duracionTexto : null,
         precio: finalPrecio,
-        save_as_template: saveAsTemplate
+        save_as_template: saveAsTemplate,
+        campos_extra: hasCampos ? camposExtra : undefined,
+        parte_config_id: hasCampos ? parteConfig?.id : undefined,
       };
 
       if (mode === 'edit' && initialData?.id) {
@@ -712,6 +725,21 @@ export default function FormTrabajos({
           </label>
         )}
       </div>
+
+      {/* Campos dinámicos (partes configurables) */}
+      {parteConfig?.campos && parteConfig.campos.length > 0 && mode !== 'clone' && (
+        <div className="border-t pt-4 space-y-2">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Campos adicionales
+          </div>
+          <DynamicFieldsGroup
+            campos={parteConfig.campos}
+            values={camposExtra}
+            onChange={setCamposExtra}
+            disabled={loading}
+          />
+        </div>
+      )}
 
       <div className="flex justify-end pt-2 gap-3">
         {onCancel && (

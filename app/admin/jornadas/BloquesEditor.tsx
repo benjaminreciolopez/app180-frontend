@@ -1,7 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Bloque } from "./types";
+import type { Bloque, TipoBloque } from "./types";
+
+const DEFAULT_TIPOS: TipoBloque[] = [
+  { key: "trabajo", label: "Trabajo", color: "#22c55e", es_trabajo: true, sistema: true },
+  { key: "descanso", label: "Descanso", color: "#f59e0b", es_trabajo: false, sistema: true },
+  { key: "pausa", label: "Pausa", color: "#a855f7", es_trabajo: false, sistema: false },
+  { key: "comida", label: "Comida", color: "#ef4444", es_trabajo: false, sistema: false },
+  { key: "otro", label: "Otro", color: "#6b7280", es_trabajo: false, sistema: false },
+];
 
 function cmpTime(a: string, b: string) {
   return a.localeCompare(b);
@@ -48,12 +56,10 @@ function validate(bloques: Bloque[]) {
     if (i > 0) {
       const prev = sorted[i - 1];
 
-      // solape
       if (cmpTime(prev.hora_fin, b.hora_inicio) > 0) {
         errs.push(`Bloque ${i + 1}: solapa con el anterior`);
       }
 
-      // contigüidad estricta
       if (cmpTime(prev.hora_fin, b.hora_inicio) !== 0) {
         errs.push(
           `Bloque ${i + 1}: debe empezar exactamente a ${prev.hora_fin}`
@@ -73,6 +79,8 @@ export default function BloquesEditor({
   rangoInicio,
   rangoFin,
   clientes = [],
+  centrosTrabajo = [],
+  tiposBloqueEmpresa,
 }: {
   title: string;
   bloques: Bloque[];
@@ -81,23 +89,20 @@ export default function BloquesEditor({
   rangoInicio?: string;
   rangoFin?: string;
   clientes?: { id: string; nombre: string }[];
+  centrosTrabajo?: { id: string; nombre: string }[];
+  tiposBloqueEmpresa?: TipoBloque[];
 }) {
   const { errs, sorted } = useMemo(() => validate(bloques), [bloques]);
+  const tipos = tiposBloqueEmpresa || DEFAULT_TIPOS;
 
   function add() {
     if (bloques.length === 0) {
-      // Default al inicio del rango (si existe), sino 08:00
       const start = rangoInicio ? normalizeTime(rangoInicio) : "08:00:00";
-      
-      // Intentar 60 min (petición usuario), pero clipear con fin de rango
       let end = addMinutes(start.slice(0, 5), 60);
 
       if (rangoFin) {
         const rf = normalizeTime(rangoFin);
-        // Si start + 60 > rangoFin => usar rangoFin
-        if (cmpTime(end, rf) > 0) {
-            end = rf;
-        }
+        if (cmpTime(end, rf) > 0) end = rf;
       }
 
       onChange([
@@ -113,21 +118,12 @@ export default function BloquesEditor({
 
     const last = sorted[sorted.length - 1];
     const start = last.hora_fin;
-    
-    // Default 1 hora
     let end = addMinutes(start.slice(0, 5), 60);
 
-    // Clamping con fin de rango
     if (rangoFin) {
-        const rf = normalizeTime(rangoFin);
-        if (cmpTime(end, rf) > 0) {
-            end = rf;
-        }
-        // Seguridad: si start >= rangoFin, bloque de 0 min o no añadir?
-        // Dejamos que el usuario decida o ponemos 0 min, pero aquí ponemos rf
-        if (cmpTime(start, rf) >= 0) {
-            end = start; // Bloque inválido visualmente pero no rompe
-        }
+      const rf = normalizeTime(rangoFin);
+      if (cmpTime(end, rf) > 0) end = rf;
+      if (cmpTime(start, rf) >= 0) end = start;
     }
 
     onChange([
@@ -144,13 +140,11 @@ export default function BloquesEditor({
   function update(i: number, patch: Partial<Bloque>) {
     const next = sorted.map((b, idx) => (idx === i ? { ...b, ...patch } : b));
 
-    // Normalizar formato
     next.forEach((b) => {
       if (b.hora_inicio) b.hora_inicio = normalizeTime(b.hora_inicio);
       if (b.hora_fin) b.hora_fin = normalizeTime(b.hora_fin);
     });
 
-    // Forzar contigüidad
     for (let j = 1; j < next.length; j++) {
       next[j].hora_inicio = next[j - 1].hora_fin;
     }
@@ -160,17 +154,34 @@ export default function BloquesEditor({
 
   function del(i: number) {
     const next = sorted.filter((_, idx) => idx !== i);
-
-    // Reajustar contigüidad
     for (let j = 1; j < next.length; j++) {
       next[j].hora_inicio = next[j - 1].hora_fin;
     }
-
     onChange(next);
   }
 
   function sort() {
     onChange(sorted);
+  }
+
+  function getUbicacionValue(b: Bloque) {
+    if (b.centro_trabajo_id) return `ct:${b.centro_trabajo_id}`;
+    if (b.cliente_id) return `cli:${b.cliente_id}`;
+    return "";
+  }
+
+  function handleUbicacionChange(i: number, val: string) {
+    if (val.startsWith("ct:")) {
+      update(i, { centro_trabajo_id: val.slice(3), cliente_id: null });
+    } else if (val.startsWith("cli:")) {
+      update(i, { cliente_id: val.slice(4), centro_trabajo_id: null });
+    } else {
+      update(i, { cliente_id: null, centro_trabajo_id: null });
+    }
+  }
+
+  function getTipoColor(key: string) {
+    return tipos.find(t => t.key === key)?.color || "#6b7280";
   }
 
   return (
@@ -210,87 +221,105 @@ export default function BloquesEditor({
 
       <div className="space-y-2">
         {sorted.map((b, i) => (
-          <div
-            key={i}
-            className="grid grid-cols-1 md:grid-cols-[140px_160px_100px_100px_100px_80px] gap-2 items-end border rounded p-3"
-          >
-            <div>
-              <label className="text-xs text-gray-600">Tipo</label>
-              <select
-                className="border p-2 rounded w-full text-sm"
-                value={b.tipo}
-                onChange={(e) => update(i, { tipo: e.target.value })}
-              >
-                <option value="trabajo">trabajo</option>
-                <option value="descanso">descanso</option>
-                <option value="pausa">pausa</option>
-                <option value="comida">comida</option>
-                <option value="otro">otro</option>
-              </select>
-            </div>
+          <div key={i} className="border rounded p-3">
+            <div className="grid grid-cols-2 md:grid-cols-[150px_1fr_100px_100px_90px_80px] gap-2 items-end">
+              <div>
+                <label className="text-xs text-gray-600">Tipo</label>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="inline-block w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: getTipoColor(b.tipo) }}
+                  />
+                  <select
+                    className="border p-2 rounded w-full text-sm"
+                    value={b.tipo}
+                    onChange={(e) => update(i, { tipo: e.target.value })}
+                  >
+                    {tipos.map((t) => (
+                      <option key={t.key} value={t.key}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-            <div>
-              <label className="text-xs text-gray-600">Sede / Cliente</label>
-              <select
-                className="border p-2 rounded w-full text-sm"
-                value={b.cliente_id || ""}
-                onChange={(e) => update(i, { cliente_id: e.target.value || null })}
-              >
-                <option value="">(Asignación general)</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="text-xs text-gray-600">Ubicación</label>
+                <select
+                  className="border p-2 rounded w-full text-sm"
+                  value={getUbicacionValue(b)}
+                  onChange={(e) => handleUbicacionChange(i, e.target.value)}
+                >
+                  <option value="">(Asignación general)</option>
+                  {centrosTrabajo.length > 0 && (
+                    <optgroup label="Centros de Trabajo">
+                      {centrosTrabajo.map((ct) => (
+                        <option key={`ct:${ct.id}`} value={`ct:${ct.id}`}>
+                          {ct.nombre}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {clientes.length > 0 && (
+                    <optgroup label="Clientes">
+                      {clientes.map((c) => (
+                        <option key={`cli:${c.id}`} value={`cli:${c.id}`}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </div>
 
-            <div>
-              <label className="text-xs text-gray-600">Inicio</label>
-              <input
-                type="time"
-                className="border p-2 rounded w-full bg-gray-100"
-                disabled={i !== 0}
-                value={(b.hora_inicio || "").slice(0, 5)}
-                onChange={(e) =>
-                  update(i, { hora_inicio: `${e.target.value}:00` })
-                }
-              />
-            </div>
+              <div>
+                <label className="text-xs text-gray-600">Inicio</label>
+                <input
+                  type="time"
+                  className="border p-2 rounded w-full bg-gray-100"
+                  disabled={i !== 0}
+                  value={(b.hora_inicio || "").slice(0, 5)}
+                  onChange={(e) =>
+                    update(i, { hora_inicio: `${e.target.value}:00` })
+                  }
+                />
+              </div>
 
-            <div>
-              <label className="text-xs text-gray-600">Fin</label>
-              <input
-                type="time"
-                className="border p-2 rounded w-full"
-                value={(b.hora_fin || "").slice(0, 5)}
-                onChange={(e) =>
-                  update(i, { hora_fin: `${e.target.value}:00` })
-                }
-              />
-            </div>
+              <div>
+                <label className="text-xs text-gray-600">Fin</label>
+                <input
+                  type="time"
+                  className="border p-2 rounded w-full"
+                  value={(b.hora_fin || "").slice(0, 5)}
+                  onChange={(e) =>
+                    update(i, { hora_fin: `${e.target.value}:00` })
+                  }
+                />
+              </div>
 
-            <div>
-              <label className="text-xs text-gray-600">Obligatorio</label>
-              <select
-                className="border p-2 rounded w-full"
-                value={b.obligatorio ? "1" : "0"}
-                onChange={(e) =>
-                  update(i, { obligatorio: e.target.value === "1" })
-                }
-              >
-                <option value="1">Sí</option>
-                <option value="0">No</option>
-              </select>
-            </div>
+              <div>
+                <label className="text-xs text-gray-600">Obligatorio</label>
+                <select
+                  className="border p-2 rounded w-full"
+                  value={b.obligatorio ? "1" : "0"}
+                  onChange={(e) =>
+                    update(i, { obligatorio: e.target.value === "1" })
+                  }
+                >
+                  <option value="1">Sí</option>
+                  <option value="0">No</option>
+                </select>
+              </div>
 
-            <div className="flex justify-end">
-              <button
-                className="px-3 py-2 rounded bg-red-600 text-white"
-                onClick={() => del(i)}
-              >
-                Eliminar
-              </button>
+              <div className="flex justify-end">
+                <button
+                  className="px-3 py-2 rounded bg-red-600 text-white"
+                  onClick={() => del(i)}
+                >
+                  Eliminar
+                </button>
+              </div>
             </div>
           </div>
         ))}

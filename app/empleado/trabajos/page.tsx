@@ -27,6 +27,7 @@ export default function EmpleadoTrabajosPage() {
 
   // Catalogos
   const [clientes, setClientes] = useState<any[]>([]);
+  const [parteConfig, setParteConfig] = useState<any>(null);
 
   async function loadData() {
     setLoading(true);
@@ -46,10 +47,14 @@ export default function EmpleadoTrabajosPage() {
     try {
       const results = await Promise.allSettled([
         api.get("/empleado/clientes"),
+        api.get("/empleado/mi-parte-config"),
       ]);
-      const [cRes] = results;
-      
+      const [cRes, pcRes] = results;
+
       setClientes(cRes.status === 'fulfilled' && Array.isArray(cRes.value.data) ? cRes.value.data : []);
+      if (pcRes.status === 'fulfilled' && pcRes.value.data?.campos?.length) {
+        setParteConfig(pcRes.value.data);
+      }
     } catch {
       setClientes([]);
     }
@@ -135,6 +140,7 @@ export default function EmpleadoTrabajosPage() {
         clientes={clientes}
         initialData={selectedItem}
         mode={formMode}
+        parteConfig={parteConfig}
         onCancel={() => {
           setSelectedItem(null);
           setFormMode('create');

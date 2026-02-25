@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
-import type { Bloque, Excepcion, Plantilla, PlantillaDia } from "./types";
+import type { Bloque, Excepcion, Plantilla, PlantillaDia, TipoBloque } from "./types";
 import BloquesEditor from "./BloquesEditor";
 import RenamePlantillaModal from "./RenamePlantillaModal";
 import DeletePlantillaModal from "./DeletePlantillaModal";
@@ -43,6 +43,8 @@ export default function PlantillasPanel() {
   const [loading, setLoading] = useState(true);
   const [plantillas, setPlantillas] = useState<Plantilla[]>([]);
   const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([]);
+  const [centrosTrabajo, setCentrosTrabajo] = useState<{ id: string; nombre: string }[]>([]);
+  const [tiposBloqueEmpresa, setTiposBloqueEmpresa] = useState<TipoBloque[] | undefined>(undefined);
   const [sel, setSel] = useState<Plantilla | null>(null);
   const [showRename, setShowRename] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -110,12 +112,16 @@ export default function PlantillasPanel() {
     setLoading(true);
     setError(null);
     try {
-      const [rp, rc] = await Promise.all([
+      const [rp, rc, rct, rconf] = await Promise.all([
          api.get("/admin/plantillas"),
-         api.get("/admin/clientes")
+         api.get("/admin/clientes"),
+         api.get("/admin/centros-trabajo"),
+         api.get("/admin/configuracion/tipos-bloque"),
       ]);
       setPlantillas(Array.isArray(rp.data) ? rp.data : []);
       setClientes(Array.isArray(rc.data) ? rc.data : []);
+      setCentrosTrabajo(Array.isArray(rct.data) ? rct.data : []);
+      if (Array.isArray(rconf.data)) setTiposBloqueEmpresa(rconf.data);
     } catch (e) {
       setError(apiErrorMessage(e));
     } finally {
@@ -747,6 +753,8 @@ export default function PlantillasPanel() {
                     rangoInicio={diaHoraInicio}
                     rangoFin={diaHoraFin}
                     clientes={clientes}
+                    centrosTrabajo={centrosTrabajo}
+                    tiposBloqueEmpresa={tiposBloqueEmpresa}
                   />
                   {savingBloquesDia ? (
                     <div className="text-xs text-gray-600">
@@ -870,6 +878,9 @@ export default function PlantillasPanel() {
                       bloques={bloquesEx}
                       onChange={setBloquesEx}
                       onSave={() => guardarBloquesEx(bloquesEx)}
+                      clientes={clientes}
+                      centrosTrabajo={centrosTrabajo}
+                      tiposBloqueEmpresa={tiposBloqueEmpresa}
                     />
                     {savingBloquesEx ? (
                       <div className="text-xs text-gray-600">

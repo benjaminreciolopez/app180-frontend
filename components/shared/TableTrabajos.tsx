@@ -27,6 +27,8 @@ export type WorkLogItem = {
   duracion_texto?: string | null;
   factura_id?: number | null;
   detalles?: string | null;
+  campos_extra?: Record<string, any> | null;
+  parte_config_id?: string | null;
 };
 
 type ColKey =
@@ -277,6 +279,11 @@ export default function TableTrabajos({
               {it.descripcion}
               {it.detalles && (
                 <Info size={14} className="text-blue-400 shrink-0" />
+              )}
+              {it.campos_extra && Object.keys(it.campos_extra).length > 0 && (
+                <span className="text-[10px] px-1 py-0.5 rounded bg-violet-100 text-violet-700 shrink-0" title={Object.entries(it.campos_extra).map(([k, v]) => `${k}: ${v}`).join(", ")}>
+                  +{Object.keys(it.campos_extra).length}
+                </span>
               )}
             </div>
         </td>

@@ -3,6 +3,14 @@ export type PlantillaTipo = "semanal" | "mensual" | "diaria";
 
 export type BloqueTipo = "trabajo" | "descanso" | "pausa" | "comida" | "otro";
 
+export type TipoBloque = {
+  key: string;
+  label: string;
+  color: string;
+  es_trabajo: boolean;
+  sistema: boolean;
+};
+
 export type Plantilla = {
   id: string;
   empresa_id: string;
@@ -20,17 +28,19 @@ export type PlantillaDia = {
   dia_semana: number; // 1..7
   hora_inicio: string | null; // "HH:MM:SS"
   hora_fin: string | null;
-  activo?: boolean; // si existe en tu tabla
+  activo?: boolean;
 };
 
 export type Bloque = {
   id?: string;
-  tipo: string; // en BD es text; en UI intentamos BloqueTipo
+  tipo: string;
   hora_inicio: string; // "HH:MM:SS"
   hora_fin: string;
   obligatorio: boolean;
   cliente_id?: string | null;
   cliente_nombre?: string | null;
+  centro_trabajo_id?: string | null;
+  centro_trabajo_nombre?: string | null;
 };
 
 export type Excepcion = {
@@ -49,7 +59,7 @@ export type Asignacion = {
   cliente_nombre?: string;
   empleado_id: string | null;
   plantilla_id: string;
-  fecha_inicio: string; // date
+  fecha_inicio: string;
   fecha_fin: string | null;
   activo: boolean;
   plantilla_nombre?: string;
@@ -66,10 +76,13 @@ export type PlanDia = {
   nota?: string | null;
   bloques: Array<{
     tipo: string;
+    es_trabajo?: boolean;
     inicio: string;
     fin: string;
     obligatorio: boolean;
     cliente_id?: string | null;
     cliente_nombre?: string | null;
+    centro_trabajo_id?: string | null;
+    centro_trabajo_nombre?: string | null;
   }>;
 };
