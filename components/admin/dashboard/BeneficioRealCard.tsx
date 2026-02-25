@@ -151,17 +151,6 @@ export function BeneficioRealCard({ data: initialData }: Props) {
                         </div>
                     )}
                 </div>
-
-                {/* Aviso: trabajo cobrado pendiente de facturar */}
-                {pendiente > 0 && (
-                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
-                        <p className="text-xs text-amber-800">
-                            Tienes <strong>{f(pendiente)}</strong> en trabajos cobrados sin factura.
-                            Recuerda emitir las facturas correspondientes.
-                        </p>
-                    </div>
-                )}
             </div>
         </div>
     );
