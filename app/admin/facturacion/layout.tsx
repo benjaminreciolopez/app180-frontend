@@ -9,7 +9,6 @@ import {
   Settings,
   PlusCircle,
   PieChart,
-  Tag,
   BookOpen,
   HardDrive,
   ShieldCheck
@@ -36,7 +35,7 @@ export default function FacturacionLayout({
       label: "Facturas",
       icon: FileText,
       href: "/admin/facturacion/listado",
-      active: pathname.includes("/listado") || pathname === "/admin/facturacion",
+      active: pathname.includes("/listado") || pathname.includes("/proformas") || pathname === "/admin/facturacion",
     },
     {
       label: "Conceptos",

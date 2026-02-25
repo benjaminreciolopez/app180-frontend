@@ -119,7 +119,7 @@ export default function EditarProformaPage() {
         }
       } catch (err) {
         toast.error("Error cargando proforma")
-        router.push('/admin/facturacion/proformas')
+        router.push('/admin/facturacion/listado?tab=proformas')
       } finally {
         setLoading(false)
       }
@@ -172,7 +172,7 @@ export default function EditarProformaPage() {
 
       await api.put(`/admin/facturacion/proformas/${proformaId}`, payload)
       toast.success("Proforma actualizada")
-      router.push('/admin/facturacion/proformas')
+      router.push('/admin/facturacion/listado?tab=proformas')
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error al actualizar proforma")
     } finally {

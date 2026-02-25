@@ -150,7 +150,7 @@ export default function CrearProformaPage() {
 
       const res = await api.post('/admin/facturacion/proformas', payload)
       toast.success(res.data.message || "Proforma creada correctamente")
-      router.push('/admin/facturacion/proformas')
+      router.push('/admin/facturacion/listado?tab=proformas')
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error al crear proforma")
     } finally {

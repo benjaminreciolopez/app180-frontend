@@ -369,7 +369,6 @@ export default function AdminLayout({
       title: "FACTURACIÓN",
       items: [
         { path: "/admin/facturacion", label: "Facturación", module: "facturacion" },
-        { path: "/admin/facturacion/proformas", label: "Proformas", module: "facturacion" },
         { path: "/admin/gastos", label: "Compras y Gastos", module: "facturacion" },
         { path: "/admin/cobros-pagos", label: "Cobros y Pagos", module: "pagos" },
       ],
