@@ -84,9 +84,10 @@ export default function ParteConfigPanel({ onSave }: Props = {}) {
       const cfg = r.data;
       setEditId(cfg.id);
       setEditNombre(cfg.nombre);
-      setEditCampos(cfg.campos || []);
+      setEditCampos(Array.isArray(cfg.campos) ? cfg.campos : []);
       setEditPorDefecto(cfg.por_defecto);
-      setEditEmpleadoIds((cfg.empleados || []).map((e: any) => e.id));
+      const emps = Array.isArray(cfg.empleados) ? cfg.empleados : [];
+      setEditEmpleadoIds(emps.map((e: any) => e.id));
     } catch {
       showError("Error cargando configuración");
     }
