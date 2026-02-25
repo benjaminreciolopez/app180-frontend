@@ -49,7 +49,10 @@ import {
     Download,
     Upload,
     Loader2,
+    ListChecks,
+    X,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // --- Types ---
 
@@ -188,6 +191,11 @@ export default function AsientosPage() {
     const [sortField, setSortField] = useState("fecha");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
+    // --- State: multi-selection ---
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [validatingMultiple, setValidatingMultiple] = useState(false);
+
     // --- State: column widths (persisted) ---
     const [colWidths, setColWidths] = useState<Record<string, number>>(DEFAULT_COL_WIDTHS);
     useEffect(() => {
@@ -283,6 +291,64 @@ export default function AsientosPage() {
             }
         } catch (error) {
             console.error("Error validating asiento:", error);
+        }
+    };
+
+    // -----------------------------------------------------------------------
+    // Multi-validate
+    // -----------------------------------------------------------------------
+
+    const borradores = asientos.filter(a => a.estado === "borrador");
+    const selectedBorradorIds = [...selectedIds].filter(id => borradores.some(b => b.id === id));
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const selectAll = () => {
+        setSelectedIds(new Set(borradores.map(b => b.id)));
+    };
+
+    const selectNone = () => {
+        setSelectedIds(new Set());
+    };
+
+    const toggleSelectionMode = () => {
+        if (selectionMode) {
+            setSelectionMode(false);
+            setSelectedIds(new Set());
+        } else {
+            setSelectionMode(true);
+        }
+    };
+
+    const handleValidarMultiple = async () => {
+        if (selectedBorradorIds.length === 0) return;
+        setValidatingMultiple(true);
+        try {
+            const res = await authenticatedFetch(
+                `/api/admin/contabilidad/asientos/validar-multiple`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ids: selectedBorradorIds }),
+                }
+            );
+            if (res.ok) {
+                const json = await res.json();
+                setSelectionMode(false);
+                setSelectedIds(new Set());
+                loadAsientos();
+            }
+        } catch (error) {
+            console.error("Error validando múltiples asientos:", error);
+        } finally {
+            setValidatingMultiple(false);
         }
     };
 
@@ -652,6 +718,18 @@ export default function AsientosPage() {
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {/* Selection mode toggle */}
+                    <Button
+                        variant={selectionMode ? "default" : "outline"}
+                        className={`rounded-xl h-11 px-5 gap-2 active:scale-95 transition-all ${selectionMode ? "bg-blue-600 text-white hover:bg-blue-700" : ""}`}
+                        onClick={toggleSelectionMode}
+                    >
+                        {selectionMode ? <X size={18} /> : <ListChecks size={18} />}
+                        <span className="hidden sm:inline">
+                            {selectionMode ? "Cancelar" : "Seleccionar"}
+                        </span>
+                    </Button>
 
                     {/* Generate button */}
                     <Dialog
@@ -1199,6 +1277,46 @@ export default function AsientosPage() {
             )}
 
             {/* ============================================================ */}
+            {/* Selection bar */}
+            {/* ============================================================ */}
+            {selectionMode && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3 flex items-center justify-between gap-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <ListChecks size={18} className="text-blue-600" />
+                        <span className="text-sm font-medium text-blue-900">
+                            {selectedBorradorIds.length} de {borradores.length} borrador{borradores.length !== 1 ? "es" : ""} seleccionado{selectedBorradorIds.length !== 1 ? "s" : ""}
+                        </span>
+                        <div className="flex items-center gap-1.5 ml-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-lg h-8 px-3 text-xs border-blue-200 text-blue-700 hover:bg-blue-100"
+                                onClick={selectAll}
+                            >
+                                Todos
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-lg h-8 px-3 text-xs border-blue-200 text-blue-700 hover:bg-blue-100"
+                                onClick={selectNone}
+                            >
+                                Ninguno
+                            </Button>
+                        </div>
+                    </div>
+                    <Button
+                        className="bg-green-600 text-white hover:bg-green-700 rounded-xl h-10 px-5 gap-2 shadow-sm"
+                        onClick={handleValidarMultiple}
+                        disabled={selectedBorradorIds.length === 0 || validatingMultiple}
+                    >
+                        {validatingMultiple ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                        Validar {selectedBorradorIds.length > 0 ? `(${selectedBorradorIds.length})` : ""}
+                    </Button>
+                </div>
+            )}
+
+            {/* ============================================================ */}
             {/* Asientos Table */}
             {/* ============================================================ */}
             <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden">
@@ -1215,8 +1333,16 @@ export default function AsientosPage() {
                     <Table className="table-fixed w-full">
                         <TableHeader>
                             <TableRow className="bg-slate-50/50">
+                                {selectionMode && (
+                                    <TableHead className="w-[44px] pl-4">
+                                        <Checkbox
+                                            checked={borradores.length > 0 && selectedBorradorIds.length === borradores.length}
+                                            onCheckedChange={(checked) => checked ? selectAll() : selectNone()}
+                                        />
+                                    </TableHead>
+                                )}
                                 {[
-                                    { key: "numero", label: "Num", cls: "pl-6" },
+                                    { key: "numero", label: "Num", cls: selectionMode ? "" : "pl-6" },
                                     { key: "fecha", label: "Fecha" },
                                     { key: "concepto", label: "Concepto" },
                                     { key: "tipo", label: "Tipo" },
@@ -1251,6 +1377,7 @@ export default function AsientosPage() {
                             {loading ? (
                                 Array.from({ length: 8 }).map((_, i) => (
                                     <TableRow key={i}>
+                                        {selectionMode && <TableCell><div className="h-4 w-4 bg-slate-100 rounded animate-pulse" /></TableCell>}
                                         {Array.from({ length: 8 }).map(
                                             (_, j) => (
                                                 <TableCell key={j}>
@@ -1263,7 +1390,7 @@ export default function AsientosPage() {
                             ) : asientos.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={8}
+                                        colSpan={selectionMode ? 9 : 8}
                                         className="text-center py-16"
                                     >
                                         <div className="flex flex-col items-center gap-2 text-slate-400">
@@ -1287,12 +1414,26 @@ export default function AsientosPage() {
                                     <>
                                         <TableRow
                                             key={asiento.id}
-                                            className="cursor-pointer hover:bg-slate-50/80 transition-colors"
+                                            className={`cursor-pointer hover:bg-slate-50/80 transition-colors ${selectionMode && selectedIds.has(asiento.id) ? "bg-blue-50/60" : ""}`}
                                             onClick={() =>
-                                                toggleExpand(asiento)
+                                                selectionMode && asiento.estado === "borrador"
+                                                    ? toggleSelect(asiento.id)
+                                                    : toggleExpand(asiento)
                                             }
                                         >
-                                            <TableCell className="pl-6 font-mono text-xs text-slate-500">
+                                            {selectionMode && (
+                                                <TableCell className="pl-4 w-[44px]" onClick={(e) => e.stopPropagation()}>
+                                                    {asiento.estado === "borrador" ? (
+                                                        <Checkbox
+                                                            checked={selectedIds.has(asiento.id)}
+                                                            onCheckedChange={() => toggleSelect(asiento.id)}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-4 h-4" />
+                                                    )}
+                                                </TableCell>
+                                            )}
+                                            <TableCell className={`${selectionMode ? "" : "pl-6"} font-mono text-xs text-slate-500`}>
                                                 {asiento.numero}
                                             </TableCell>
                                             <TableCell className="text-slate-600 text-sm">
@@ -1378,7 +1519,7 @@ export default function AsientosPage() {
                                                 key={`${asiento.id}-detail`}
                                             >
                                                 <TableCell
-                                                    colSpan={8}
+                                                    colSpan={selectionMode ? 9 : 8}
                                                     className="bg-slate-50/70 p-0"
                                                 >
                                                     <div className="px-6 py-4">
