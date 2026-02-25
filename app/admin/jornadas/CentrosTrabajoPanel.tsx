@@ -18,9 +18,6 @@ import {
   Building2,
   MapPin,
   Users,
-  Trash2,
-  UserPlus,
-  UserMinus,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { showSuccess, showError } from "@/lib/toast";
@@ -32,10 +29,6 @@ import { api } from "@/services/api";
 const GeoPicker = dynamic(() => import("@/components/GeoPicker"), {
   ssr: false,
 });
-
-/* =====================================================
-   Types
-===================================================== */
 
 interface Centro {
   id: string;
@@ -51,22 +44,6 @@ interface Centro {
   created_at: string;
 }
 
-interface Empleado {
-  id: string;
-  nombre: string;
-  email: string;
-  activo: boolean;
-}
-
-interface EmpleadoDisponible {
-  id: string;
-  nombre: string;
-  email: string;
-  activo: boolean;
-  centro_trabajo_nombre: string | null;
-  cliente_actual_nombre: string | null;
-}
-
 const GEO_POLICIES = [
   { value: "none", label: "Sin validar", desc: "No se valida ubicación" },
   { value: "info", label: "Informativo", desc: "Registra pero no alerta" },
@@ -74,25 +51,13 @@ const GEO_POLICIES = [
   { value: "strict", label: "Estricto", desc: "Marca como sospechoso" },
 ];
 
-/* =====================================================
-   Component
-===================================================== */
-
-export default function CentrosTrabajoPage() {
+export default function CentrosTrabajoPanel() {
   const [loading, setLoading] = useState(true);
   const [centros, setCentros] = useState<Centro[]>([]);
   const [editing, setEditing] = useState<Partial<Centro> | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [geoOpen, setGeoOpen] = useState(false);
-
-  // Employee assignment
-  const [showEmpleados, setShowEmpleados] = useState<string | null>(null);
-  const [empleadosCentro, setEmpleadosCentro] = useState<Empleado[]>([]);
-  const [loadingEmpleados, setLoadingEmpleados] = useState(false);
-  const [showAsignar, setShowAsignar] = useState(false);
-  const [empleadosDisponibles, setEmpleadosDisponibles] = useState<EmpleadoDisponible[]>([]);
-  const [loadingDisponibles, setLoadingDisponibles] = useState(false);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
 
   const loadCentros = useCallback(async () => {
@@ -170,94 +135,57 @@ export default function CentrosTrabajoPage() {
     }
   }
 
-  /* ---- Employee management ---- */
-
-  async function loadEmpleadosCentro(centroId: string) {
-    setLoadingEmpleados(true);
-    try {
-      const res = await api.get(`/admin/centros-trabajo/${centroId}/empleados`);
-      setEmpleadosCentro(res.data || []);
-    } catch (err) {
-      console.error("Error cargando empleados", err);
-    }
-    setLoadingEmpleados(false);
-  }
-
-  async function loadEmpleadosDisponibles() {
-    setLoadingDisponibles(true);
-    try {
-      const res = await api.get("/employees");
-      setEmpleadosDisponibles(
-        (res.data || []).filter((e: EmpleadoDisponible) => e.activo)
-      );
-    } catch (err) {
-      console.error("Error cargando empleados disponibles", err);
-    }
-    setLoadingDisponibles(false);
-  }
-
-  async function asignarEmpleado(empleadoId: string, centroId: string) {
-    if (processingAction) return;
-    setProcessingAction(`asignar-${empleadoId}`);
-    try {
-      await api.post("/admin/centros-trabajo/asignar", {
-        empleado_id: empleadoId,
-        centro_trabajo_id: centroId,
-      });
-      showSuccess("Empleado asignado");
-      loadEmpleadosCentro(centroId);
-      loadCentros();
-      setShowAsignar(false);
-    } catch (err: any) {
-      showError(err?.response?.data?.error || "Error al asignar");
-    } finally {
-      setProcessingAction(null);
-    }
-  }
-
-  async function desasignarEmpleado(empleadoId: string, centroId: string) {
-    if (processingAction) return;
-    setProcessingAction(`desasignar-${empleadoId}`);
-    try {
-      await api.post("/admin/centros-trabajo/desasignar", {
-        empleado_id: empleadoId,
-      });
-      showSuccess("Empleado desasignado");
-      loadEmpleadosCentro(centroId);
-      loadCentros();
-    } catch (err: any) {
-      showError(err?.response?.data?.error || "Error al desasignar");
-    } finally {
-      setProcessingAction(null);
-    }
-  }
-
   /* ---- Render ---- */
 
   if (loading) {
     return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-5 w-36" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                  <Skeleton className="h-7 w-7 rounded" />
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Building2 size={24} />
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Building2 size={20} />
             Centros de Trabajo
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configura las sedes y oficinas de tu empresa con geolocalización para validar fichajes
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Configura sedes y oficinas con geolocalización para validar fichajes
           </p>
         </div>
-        <Button onClick={openNew} className="gap-2">
-          <Plus size={16} /> Nuevo Centro
+        <Button onClick={openNew} size="sm" className="gap-1.5">
+          <Plus size={14} /> Nuevo Centro
         </Button>
       </div>
 
@@ -323,22 +251,12 @@ export default function CentrosTrabajoPage() {
                   )}
                 </div>
 
-                {/* Employees */}
+                {/* Footer */}
                 <div className="flex items-center justify-between pt-2 border-t">
-                  <button
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => {
-                      if (showEmpleados === c.id) {
-                        setShowEmpleados(null);
-                      } else {
-                        setShowEmpleados(c.id);
-                        loadEmpleadosCentro(c.id);
-                      }
-                    }}
-                  >
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Users size={14} />
                     {c.num_empleados} empleado{c.num_empleados !== 1 ? "s" : ""}
-                  </button>
+                  </span>
                   <button
                     className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:pointer-events-none"
                     onClick={() => toggleActivo(c)}
@@ -347,133 +265,6 @@ export default function CentrosTrabajoPage() {
                     {processingAction === `toggle-${c.id}` ? "Procesando..." : c.activo ? "Desactivar" : "Activar"}
                   </button>
                 </div>
-
-                {/* Employees panel */}
-                <AnimatePresence>
-                  {showEmpleados === c.id && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-2 border-t space-y-2">
-                        {loadingEmpleados ? (
-                          <Skeleton className="h-8 w-full" />
-                        ) : empleadosCentro.length === 0 ? (
-                          <p className="text-xs text-muted-foreground">
-                            Sin empleados asignados
-                          </p>
-                        ) : (
-                          empleadosCentro.map((emp) => (
-                            <div
-                              key={emp.id}
-                              className="flex items-center justify-between text-xs bg-muted/30 rounded-md px-2 py-1.5"
-                            >
-                              <div>
-                                <span className="font-medium">{emp.nombre}</span>
-                                <span className="text-muted-foreground ml-2">{emp.email}</span>
-                              </div>
-                              <button
-                                className="text-red-500 hover:text-red-700 p-1 disabled:opacity-50 disabled:pointer-events-none"
-                                onClick={() => desasignarEmpleado(emp.id, c.id)}
-                                title="Desasignar"
-                                disabled={!!processingAction}
-                              >
-                                {processingAction === `desasignar-${emp.id}` ? (
-                                  <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full" />
-                                ) : (
-                                  <UserMinus size={14} />
-                                )}
-                              </button>
-                            </div>
-                          ))
-                        )}
-
-                        {c.activo && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full gap-1 text-xs h-7"
-                            onClick={() => {
-                              setShowAsignar(true);
-                              loadEmpleadosDisponibles();
-                            }}
-                          >
-                            <UserPlus size={12} /> Asignar empleado
-                          </Button>
-                        )}
-
-                        {/* Assign modal inline */}
-                        <AnimatePresence>
-                          {showAsignar && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="bg-muted/50 rounded-md p-2 space-y-1.5">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-medium">Seleccionar empleado</span>
-                                  <button onClick={() => setShowAsignar(false)}>
-                                    <X size={12} />
-                                  </button>
-                                </div>
-                                {loadingDisponibles ? (
-                                  <Skeleton className="h-6 w-full" />
-                                ) : (
-                                  <div className="max-h-40 overflow-y-auto space-y-1">
-                                    {empleadosDisponibles
-                                      .filter(
-                                        (ed) =>
-                                          !empleadosCentro.some((ec) => ec.id === ed.id)
-                                      )
-                                      .map((ed) => (
-                                        <button
-                                          key={ed.id}
-                                          className="w-full text-left flex items-center justify-between px-2 py-1 rounded hover:bg-muted text-xs disabled:opacity-50 disabled:pointer-events-none"
-                                          onClick={() => asignarEmpleado(ed.id, c.id)}
-                                          disabled={!!processingAction}
-                                        >
-                                          <div>
-                                            <span className="font-medium">{ed.nombre}</span>
-                                            {ed.centro_trabajo_nombre && (
-                                              <span className="text-muted-foreground ml-1">
-                                                ({ed.centro_trabajo_nombre})
-                                              </span>
-                                            )}
-                                            {ed.cliente_actual_nombre && (
-                                              <span className="text-muted-foreground ml-1">
-                                                ({ed.cliente_actual_nombre})
-                                              </span>
-                                            )}
-                                          </div>
-                                          {processingAction === `asignar-${ed.id}` ? (
-                                            <span className="animate-spin inline-block w-3 h-3 border-2 border-blue-300 border-t-blue-600 rounded-full" />
-                                          ) : (
-                                            <UserPlus size={12} className="text-blue-500" />
-                                          )}
-                                        </button>
-                                      ))}
-                                    {empleadosDisponibles.filter(
-                                      (ed) =>
-                                        !empleadosCentro.some((ec) => ec.id === ed.id)
-                                    ).length === 0 && (
-                                      <p className="text-xs text-muted-foreground text-center py-2">
-                                        Todos los empleados ya están asignados
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </CardContent>
             </Card>
           ))}

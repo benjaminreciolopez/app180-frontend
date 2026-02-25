@@ -3,10 +3,11 @@
 import { useState } from "react";
 import PlantillasPanel from "./PlantillasPanel";
 import PlantillasAsignacionPanel from "./PlantillasAsignacionPanel";
-import ClientesAsignacionPanel from "./ClientesAsignacionPanel";
+import UbicacionAsignacionPanel from "./UbicacionAsignacionPanel";
+import CentrosTrabajoPanel from "./CentrosTrabajoPanel";
 import PreviewPanel from "./PreviewPanel";
 
-type Tab = "plantillas" | "asignar_horarios" | "asignar_clientes" | "preview";
+type Tab = "plantillas" | "asignar_horarios" | "asignar_ubicacion" | "centros" | "preview";
 
 export default function JornadasPage() {
   const [tab, setTab] = useState<Tab>("plantillas");
@@ -25,7 +26,7 @@ export default function JornadasPage() {
           >
             Edición Plantillas
           </button>
-          
+
           <button
             className={`px-3 py-2 rounded text-sm font-medium ${
               tab === "asignar_horarios" ? "bg-indigo-600 text-white" : "bg-gray-100 hover:bg-gray-200"
@@ -37,11 +38,20 @@ export default function JornadasPage() {
 
           <button
             className={`px-3 py-2 rounded text-sm font-medium ${
-              tab === "asignar_clientes" ? "bg-emerald-600 text-white" : "bg-gray-100 hover:bg-gray-200"
+              tab === "asignar_ubicacion" ? "bg-emerald-600 text-white" : "bg-gray-100 hover:bg-gray-200"
             }`}
-            onClick={() => setTab("asignar_clientes")}
+            onClick={() => setTab("asignar_ubicacion")}
           >
-             Asignar Clientes
+             Asignar Ubicación
+          </button>
+
+          <button
+            className={`px-3 py-2 rounded text-sm font-medium ${
+              tab === "centros" ? "bg-orange-600 text-white" : "bg-gray-100 hover:bg-gray-200"
+            }`}
+            onClick={() => setTab("centros")}
+          >
+            Centros de Trabajo
           </button>
 
           <button
@@ -58,7 +68,8 @@ export default function JornadasPage() {
       <div className="min-h-[400px]">
         {tab === "plantillas" && <PlantillasPanel />}
         {tab === "asignar_horarios" && <PlantillasAsignacionPanel />}
-        {tab === "asignar_clientes" && <ClientesAsignacionPanel />}
+        {tab === "asignar_ubicacion" && <UbicacionAsignacionPanel />}
+        {tab === "centros" && <CentrosTrabajoPanel />}
         {tab === "preview" && <PreviewPanel />}
       </div>
     </div>
