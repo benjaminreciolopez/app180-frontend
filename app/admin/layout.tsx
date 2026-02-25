@@ -149,7 +149,7 @@ export default function AdminLayout({
           screensaver_style: res.data.screensaver_style || "clock",
         });
       }
-    }).catch(() => {});
+    }).catch(() => { });
 
     // Fetch company logo for screensaver
     api.get("/admin/facturacion/configuracion/emisor").then(res => {
@@ -161,7 +161,7 @@ export default function AdminLayout({
           : `/api/uploads/${logoPath}`;
         setCompanyLogo(logoUrl);
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }, [session]);
 
   // ============================
@@ -233,7 +233,7 @@ export default function AdminLayout({
       "/admin/auditoria/rechazados": "Rechazados",
       "/admin/auditoria": "Auditoría",
       "/admin/partes-dia": "Partes del Día",
-      "/admin/trabajos": "Trabajos",
+      "/admin/trabajos": "Trabajos diarios",
       "/admin/planings": "Planings",
       "/admin/configuracion": "Configuración",
       "/admin/perfil": "Mi Perfil",
@@ -352,7 +352,7 @@ export default function AdminLayout({
       title: "TRABAJOS",
       items: [
         { path: "/admin/partes-dia", label: "Partes del día", module: "worklogs" },
-        { path: "/admin/trabajos", label: "Trabajos", module: "worklogs" },
+        { path: "/admin/trabajos", label: "Trabajos diarios", module: "worklogs" },
         { path: "/admin/reportes/rentabilidad", label: "Reporte Rentabilidad", module: "fichajes" },
       ],
     },
@@ -501,11 +501,10 @@ export default function AdminLayout({
                     <Link
                       href={item.path}
                       onClick={() => setMenuOpen(false)}
-                      className={`block px-3 py-2 rounded-md text-sm transition ${
-                        pathname === item.path || (item.path !== "/admin/dashboard" && pathname.startsWith(item.path + "/"))
+                      className={`block px-3 py-2 rounded-md text-sm transition ${pathname === item.path || (item.path !== "/admin/dashboard" && pathname.startsWith(item.path + "/"))
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-muted"
-                      }`}
+                        }`}
                     >
                       {item.label}
                     </Link>
