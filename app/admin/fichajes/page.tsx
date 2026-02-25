@@ -219,7 +219,7 @@ export default function FichajesPage() {
 
   async function loadCorreccionesPendientes() {
     try {
-      const res = await api.get("/api/admin/fichajes/correcciones?estado=pendiente");
+      const res = await api.get("/fichajes/admin/correcciones?estado=pendiente");
       const data = Array.isArray(res.data) ? res.data : [];
       setCorreccionesPendientes(data.length);
     } catch { /* silencio */ }

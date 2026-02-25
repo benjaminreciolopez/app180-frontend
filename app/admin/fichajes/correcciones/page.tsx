@@ -36,7 +36,7 @@ export default function CorreccionesPage() {
   async function load() {
     setLoading(true);
     try {
-      const res = await api.get(`/api/admin/fichajes/correcciones?estado=${filtro}`);
+      const res = await api.get(`/fichajes/admin/correcciones?estado=${filtro}`);
       setCorrecciones(Array.isArray(res.data) ? res.data : []);
     } catch {
       setCorrecciones([]);
@@ -50,7 +50,7 @@ export default function CorreccionesPage() {
   async function resolver(id: string, accion: "aprobar" | "rechazar") {
     setResolviendo(id + accion);
     try {
-      await api.put(`/api/admin/fichajes/correcciones/${id}`, {
+      await api.put(`/fichajes/admin/correcciones/${id}`, {
         accion,
         notas_resolucion: notas || undefined,
       });
