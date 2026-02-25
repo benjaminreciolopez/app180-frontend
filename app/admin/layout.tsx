@@ -182,6 +182,7 @@ export default function AdminLayout({
       { path: "/admin/facturacion", module: "facturacion" },
 
       // Jornadas y fichajes sí dependen de fichajes
+      { path: "/admin/centros-trabajo", module: "fichajes" },
       { path: "/admin/jornadas", module: "fichajes" },
       { path: "/admin/fichajes", module: "fichajes" },
       { path: "/admin/fichajes/sospechosos", module: "fichajes" },
@@ -213,6 +214,7 @@ export default function AdminLayout({
     const titles: Record<string, string> = {
       "/admin/dashboard": "Dashboard",
       "/admin/empleados": "Empleados",
+      "/admin/centros-trabajo": "Centros de Trabajo",
       "/admin/clientes": "Clientes",
       "/admin/facturacion/listado": "Facturas",
       "/admin/facturacion/crear": "Nueva Factura",
@@ -339,6 +341,7 @@ export default function AdminLayout({
     { path: "/admin/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
     { path: "/admin/cobros-pagos", label: "Cobros y Pagos", module: "pagos" },
 
+    { path: "/admin/centros-trabajo", label: "Centros de Trabajo", module: "fichajes" },
     { path: "/admin/jornadas", label: "Configurar Jornadas", module: "fichajes" },
     { path: "/admin/fichajes", label: "Fichajes", module: "fichajes" },
     {

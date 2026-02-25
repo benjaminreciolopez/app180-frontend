@@ -9,7 +9,7 @@ import EditEmployeeModal from "@/components/admin/EditEmployeeModal";
 import { showSuccess, showError } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Users } from "lucide-react";
+import { Users, Building2, MapPin } from "lucide-react";
 
 interface Empleado {
   id: string;
@@ -21,8 +21,10 @@ interface Empleado {
 
   plantilla_id: string | null;
   plantilla_nombre: string | null;
-  
-  // Cliente actual desde Jornadas (asignaciones)
+
+  // Centro de trabajo o cliente (viene del backend JOIN)
+  centro_trabajo_id_actual: string | null;
+  centro_trabajo_nombre: string | null;
   cliente_actual_id: string | null;
   cliente_actual_nombre: string | null;
   cliente_actual_codigo: string | null;
@@ -54,36 +56,8 @@ export default function EmpleadosPage() {
   async function loadEmpleados() {
     try {
       const res = await api.get("/employees");
-      const empleadosData = res.data || [];
-      
-      // Cargar clientes actuales desde Jornadas para cada empleado
-      const empleadosConClientes = await Promise.all(
-        empleadosData.map(async (emp: any) => {
-          try {
-            const asignacionesRes = await api.get(`/admin/clientes/asignaciones/${emp.id}`);
-            const asignaciones = asignacionesRes.data || [];
-            // Buscar la asignación activa (fecha_fin es null)
-            const activa = asignaciones.find((a: any) => !a.fecha_fin);
-            
-            return {
-              ...emp,
-              cliente_actual_id: activa?.cliente_id || null,
-              cliente_actual_nombre: activa?.cliente_nombre || null,
-              cliente_actual_codigo: activa?.cliente_codigo || null,
-            };
-          } catch (err) {
-            // Si falla, devolver sin cliente
-            return {
-              ...emp,
-              cliente_actual_id: null,
-              cliente_actual_nombre: null,
-              cliente_actual_codigo: null,
-            };
-          }
-        })
-      );
-      
-      setEmpleados(empleadosConClientes);
+      // Backend now includes centro_trabajo_nombre, cliente_actual_* via JOINs
+      setEmpleados(res.data || []);
     } catch (err) {
       console.error("Error cargando empleados", err);
     }
@@ -162,7 +136,7 @@ export default function EmpleadosPage() {
           <thead>
             <tr>
               <th>Nombre_</th>
-              <th>Cliente Actual</th>
+              <th>Ubicación</th>
               <th>Estado</th>
               <th>Jornada</th>
               <th>Dispositivo</th>
@@ -201,10 +175,15 @@ export default function EmpleadosPage() {
                     <div className="text-xs text-muted-foreground">{e.email}</div>
                 </td>
                 <td>
-                    {e.cliente_actual_nombre ? (
+                    {e.centro_trabajo_nombre ? (
                         <div className="flex items-center gap-2">
-                          <span className="badge-primary">{e.cliente_actual_nombre}</span>
-                          <div className="h-1.5 w-1.5 rounded-full bg-green-500" title="Asignación activa" />
+                          <Building2 size={14} className="text-blue-500 shrink-0" />
+                          <span className="text-sm">{e.centro_trabajo_nombre}</span>
+                        </div>
+                    ) : e.cliente_actual_nombre ? (
+                        <div className="flex items-center gap-2">
+                          <MapPin size={14} className="text-green-500 shrink-0" />
+                          <span className="text-sm">{e.cliente_actual_nombre}</span>
                         </div>
                     ) : (
                         <span className="text-xs text-muted-foreground">Sin asignar</span>
