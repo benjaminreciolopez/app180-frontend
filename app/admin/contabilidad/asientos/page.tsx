@@ -55,6 +55,7 @@ import {
     RefreshCw,
     Save,
     AlertTriangle,
+    Bot,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -76,6 +77,7 @@ type Asiento = {
     tipo: string;
     estado: string;
     notas?: string;
+    revisado_ia?: boolean;
     total_debe: number;
     total_haber: number;
     lineas?: AsientoLinea[];
@@ -887,6 +889,14 @@ export default function AsientosPage() {
                     >
                         {reviewSimulating ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
                         <span className="hidden sm:inline">Re-revisar</span>
+                        {(() => {
+                            const sinRevisar = asientos.filter(a => !a.revisado_ia && (a.tipo === "auto_gasto" || a.tipo === "auto_factura") && a.estado !== "anulado").length;
+                            return sinRevisar > 0 ? (
+                                <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold bg-amber-600 text-white rounded-full">
+                                    {sinRevisar}
+                                </span>
+                            ) : null;
+                        })()}
                     </Button>
 
                     {/* Generate button */}
@@ -1613,14 +1623,22 @@ export default function AsientosPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge
-                                                    variant="outline"
-                                                    className={`px-2 py-0.5 rounded-lg text-xs font-medium ${ESTADO_STYLES[asiento.estado] || ""}`}
-                                                >
-                                                    {ESTADO_LABELS[
-                                                        asiento.estado
-                                                    ] || asiento.estado}
-                                                </Badge>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={`px-2 py-0.5 rounded-lg text-xs font-medium ${ESTADO_STYLES[asiento.estado] || ""}`}
+                                                    >
+                                                        {ESTADO_LABELS[
+                                                            asiento.estado
+                                                        ] || asiento.estado}
+                                                    </Badge>
+                                                    {asiento.revisado_ia && (
+                                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-600 border border-violet-200 text-[10px] font-medium" title="Clasificado por IA">
+                                                            <Bot size={10} />
+                                                            IA
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-right font-semibold text-slate-900 text-sm">
                                                 {formatCurrency(
@@ -1846,6 +1864,9 @@ export default function AsientosPage() {
                                 <p className="font-semibold text-amber-900">Resultado de la revision</p>
                                 <p className="text-sm text-amber-700">
                                     {reviewResult.revisados} revisados &middot; {reviewResult.corregidos} con cambios &middot; {reviewResult.sin_cambios} correctos
+                                    {(reviewResult as any).omitidos_ia > 0 && (
+                                        <span className="text-violet-600"> &middot; {(reviewResult as any).omitidos_ia} ya revisados por IA</span>
+                                    )}
                                 </p>
                             </div>
                         </div>
