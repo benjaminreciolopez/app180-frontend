@@ -319,64 +319,86 @@ export default function AdminLayout({
   // ============================
   // Menú
   // ============================
-  const menu = [
-    { path: "/admin/dashboard", label: "Dashboard", module: null },
-    { path: "/admin/empleados", label: "Empleados", module: "empleados" },
-
-    // ✅ Calendario separado de fichajes
-    { path: "/admin/calendario", label: "Calendario", module: "calendario" },
-    { path: "/admin/planings", label: "Gestión Planings", module: "calendario" }, // Nueva ruta V5.5
-    { path: "/admin/reportes/rentabilidad", label: "Reporte Rentabilidad", module: "fichajes" },
-
-    { path: "/admin/clientes", label: "Clientes", module: "clientes" },
-    { path: "/admin/facturacion", label: "Facturación", module: "facturacion" },
-    { path: "/admin/gastos", label: "Compras y Gastos", module: "facturacion" },
-    { path: "/admin/contabilidad", label: "Libros Contables", module: "facturacion" },
-    { path: "/admin/contabilidad/asientos", label: "Asientos Contables", module: "facturacion" },
-    { path: "/admin/contabilidad/balance", label: "Balance", module: "facturacion" },
-    { path: "/admin/contabilidad/pyg", label: "Pérdidas y Ganancias", module: "facturacion" },
-    { path: "/admin/contabilidad/mayor", label: "Libro Mayor", module: "facturacion" },
-    { path: "/admin/contabilidad/cuentas", label: "Plan de Cuentas", module: "facturacion" },
-    { path: "/admin/fiscal", label: "Modelos Fiscales", module: "fiscal" }, // Requiere módulo fiscal explícito
-    { path: "/admin/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
-    { path: "/admin/cobros-pagos", label: "Cobros y Pagos", module: "pagos" },
-
-    { path: "/admin/centros-trabajo", label: "Centros de Trabajo", module: "fichajes" },
-    { path: "/admin/jornadas", label: "Configurar Jornadas", module: "fichajes" },
-    { path: "/admin/fichajes", label: "Fichajes", module: "fichajes" },
+  const menuSections = [
     {
-      path: "/admin/fichajes/sospechosos",
-      label: "Sospechosos",
-      module: "fichajes",
-    },
-
-    { path: "/admin/auditoria", label: "🔍 Auditoría", module: "fichajes" },
-    { path: "/admin/auditoria/rechazados", label: "🚫 Rechazados", module: "fichajes" },
-
-    { path: "/admin/partes-dia", label: "Partes del día", module: "worklogs" },
-    { path: "/admin/trabajos", label: "Trabajos", module: "worklogs" },
-
-    { path: "/admin/nominas", label: "Nominas", module: "empleados" },
-
-    // Mi Asesoría (visible para todos los admins)
-    { path: "/admin/mi-asesoria", label: "Mi Asesoría", module: null },
-
-    // Sugerencias (visible para todos los admins)
-    { path: "/admin/sugerencias", label: "Sugerencias", module: null },
-
-    // Fabricante (solo visible para el creador)
-    { path: "/admin/fabricante", label: "Fabricante", module: null },
-
-    // ✅ Importación calendario
-    {
-      path: "/admin/configuracion/calendario/importar",
-      label: "Importar calendario",
-      module: "calendario",
+      title: "INICIO",
+      items: [
+        { path: "/admin/dashboard", label: "Dashboard", module: null },
+      ],
     },
     {
-      path: "/admin/configuracion/calendario/importaciones",
-      label: "Historial importaciones",
-      module: "calendario",
+      title: "RECURSOS HUMANOS",
+      items: [
+        { path: "/admin/empleados", label: "Empleados", module: "empleados" },
+        { path: "/admin/nominas", label: "Nóminas", module: "empleados" },
+      ],
+    },
+    {
+      title: "PLANIFICACIÓN",
+      items: [
+        { path: "/admin/calendario", label: "Calendario", module: "calendario" },
+        { path: "/admin/planings", label: "Gestión Planings", module: "calendario" },
+        { path: "/admin/jornadas", label: "Configurar Jornadas", module: "fichajes" },
+      ],
+    },
+    {
+      title: "CONTROL HORARIO",
+      items: [
+        { path: "/admin/fichajes", label: "Fichajes", module: "fichajes" },
+        { path: "/admin/centros-trabajo", label: "Centros de Trabajo", module: "fichajes" },
+        { path: "/admin/fichajes/sospechosos", label: "Sospechosos", module: "fichajes" },
+        { path: "/admin/auditoria", label: "Auditoría", module: "fichajes" },
+        { path: "/admin/auditoria/rechazados", label: "Rechazados", module: "fichajes" },
+      ],
+    },
+    {
+      title: "TRABAJOS",
+      items: [
+        { path: "/admin/partes-dia", label: "Partes del día", module: "worklogs" },
+        { path: "/admin/trabajos", label: "Trabajos", module: "worklogs" },
+        { path: "/admin/reportes/rentabilidad", label: "Reporte Rentabilidad", module: "fichajes" },
+      ],
+    },
+    {
+      title: "CLIENTES",
+      items: [
+        { path: "/admin/clientes", label: "Clientes", module: "clientes" },
+      ],
+    },
+    {
+      title: "FACTURACIÓN",
+      items: [
+        { path: "/admin/facturacion", label: "Facturación", module: "facturacion" },
+        { path: "/admin/gastos", label: "Compras y Gastos", module: "facturacion" },
+        { path: "/admin/cobros-pagos", label: "Cobros y Pagos", module: "pagos" },
+      ],
+    },
+    {
+      title: "CONTABILIDAD",
+      items: [
+        { path: "/admin/contabilidad/asientos", label: "Asientos Contables", module: "facturacion" },
+        { path: "/admin/contabilidad/balance", label: "Balance", module: "facturacion" },
+        { path: "/admin/contabilidad/pyg", label: "Pérdidas y Ganancias", module: "facturacion" },
+        { path: "/admin/contabilidad/mayor", label: "Libro Mayor", module: "facturacion" },
+        { path: "/admin/contabilidad/cuentas", label: "Plan de Cuentas", module: "facturacion" },
+      ],
+    },
+    {
+      title: "FISCAL",
+      items: [
+        { path: "/admin/fiscal", label: "Modelos Fiscales", module: "fiscal" },
+        { path: "/admin/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
+      ],
+    },
+    {
+      title: "OTROS",
+      items: [
+        { path: "/admin/mi-asesoria", label: "Mi Asesoría", module: null },
+        { path: "/admin/sugerencias", label: "Sugerencias", module: null },
+        { path: "/admin/fabricante", label: "Fabricante", module: null },
+        { path: "/admin/configuracion/calendario/importar", label: "Importar calendario", module: "calendario" },
+        { path: "/admin/configuracion/calendario/importaciones", label: "Historial importaciones", module: "calendario" },
+      ],
     },
   ];
 
@@ -385,29 +407,24 @@ export default function AdminLayout({
   const currentUser = getUser();
   const isFabricante = currentUser?.es_fabricante === true;
 
-  const visibleMenu = menu.filter((item) => {
-    // Fabricante solo visible para el creador en móvil PWA
-    if (item.path === "/admin/fabricante") {
-      return isFabricante && isPwaMobile;
-    }
-    // Rutas de importación de calendario no tienen sentido en PWA móvil
-    if (isPwaMobile && (
-      item.path.includes('/calendario/importar') ||
-      item.path.includes('/calendario/importaciones')
-    )) {
-      return false;
-    }
-    if (item.path === "/admin/jornadas") {
-      return hasModule(session.modulos, "fichajes") || hasModule(session.modulos, "calendario");
-    }
-    return hasModule(session.modulos, item.module);
-  }).map(item => {
-    // VISIÓN RENTABILIDAD: Si no hay empleados, el enfoque es auditar tiempos y costes
-    if (item.path === "/admin/partes-dia" && !hasModule(session.modulos, "empleados")) {
-      return { ...item, label: "Rentabilidad y Tiempos" };
-    }
-    return item;
-  });
+  const visibleSections = menuSections
+    .map((section) => {
+      const visibleItems = section.items
+        .filter((item) => {
+          if (item.path === "/admin/fabricante") return isFabricante && isPwaMobile;
+          if (isPwaMobile && (item.path.includes('/calendario/importar') || item.path.includes('/calendario/importaciones'))) return false;
+          if (item.path === "/admin/jornadas") return hasModule(session.modulos, "fichajes") || hasModule(session.modulos, "calendario");
+          return hasModule(session.modulos, item.module);
+        })
+        .map((item) => {
+          if (item.path === "/admin/partes-dia" && !hasModule(session.modulos, "empleados")) {
+            return { ...item, label: "Rentabilidad y Tiempos" };
+          }
+          return item;
+        });
+      return { ...section, items: visibleItems };
+    })
+    .filter((section) => section.items.length > 0);
 
   // ============================
   // Render
@@ -470,24 +487,37 @@ export default function AdminLayout({
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] -mt-1">Gestiones</p>
         </div>
 
-        {/* Links */}
-        <ul className="mt-8 space-y-2 flex-1 overflow-y-auto">
-          {visibleMenu.map((item) => (
-            <li key={item.path}>
-              <Link
-                href={item.path}
-                onClick={() => setMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md transition ${pathname === item.path
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
-                  }`}
-              >
-                {item.label}
-              </Link>
-            </li>
+        {/* Links por secciones */}
+        <nav className="mt-6 flex-1 overflow-y-auto">
+          {visibleSections.map((section, sIdx) => (
+            <div key={section.title} className={sIdx > 0 ? "mt-4" : ""}>
+              {section.title !== "INICIO" && (
+                <div className="px-3 mb-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    {section.title}
+                  </span>
+                </div>
+              )}
+              <ul className="space-y-0.5">
+                {section.items.map((item) => (
+                  <li key={item.path}>
+                    <Link
+                      href={item.path}
+                      onClick={() => setMenuOpen(false)}
+                      className={`block px-3 py-2 rounded-md text-sm transition ${
+                        pathname === item.path || (item.path !== "/admin/dashboard" && pathname.startsWith(item.path + "/"))
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-
-        </ul>
+        </nav>
 
       </aside>
 

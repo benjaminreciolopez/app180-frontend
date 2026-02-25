@@ -37,9 +37,30 @@ export function NotificationBell() {
 
   useEffect(() => {
     fetchNotificaciones()
-    // Polling cada 30 segundos
-    const interval = setInterval(fetchNotificaciones, 30000)
-    return () => clearInterval(interval)
+
+    let interval: ReturnType<typeof setInterval> | null = null
+
+    const startPolling = () => {
+      if (interval) clearInterval(interval)
+      interval = setInterval(() => {
+        if (!document.hidden) fetchNotificaciones()
+      }, 60000)
+    }
+
+    const onVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchNotificaciones()
+        startPolling()
+      }
+    }
+
+    document.addEventListener("visibilitychange", onVisibilityChange)
+    startPolling()
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+      if (interval) clearInterval(interval)
+    }
   }, [])
 
   const marcarLeida = async (id: string) => {

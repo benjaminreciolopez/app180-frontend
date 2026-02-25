@@ -75,9 +75,9 @@ export default function DashboardPage() {
   };
 
   const isWidgetVisible = (id: string) => {
-    if (!widgetsLoaded) return true;
+    if (!widgetsLoaded) return false;
     const w = widgets.find((w) => w.id === id);
-    return w ? w.visible : true;
+    return w ? w.visible : false;
   };
 
   const shouldShowWidget = (id: string, module: string | null) => {
@@ -105,6 +105,11 @@ export default function DashboardPage() {
       let w = useMobileProfile ? (widgetRes.data?.widgets_mobile || []) : (widgetRes.data?.widgets || []);
       if (w.length === 0) {
         w = ALL_WIDGETS.map((wd, index) => ({ id: wd.id, visible: true, order: index }));
+        // Persistir defaults para que no se recreen cada vez
+        try {
+          const payload = useMobileProfile ? { widgets_mobile: w } : { widgets: w };
+          api.put("/admin/configuracion/widgets", payload).catch(() => {});
+        } catch (_) {}
       }
       setWidgets(w);
       setWidgetsLoaded(true);
