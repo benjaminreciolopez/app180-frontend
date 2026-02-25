@@ -63,7 +63,7 @@ export default function ParteConfigPanel({ onSave }: Props = {}) {
     try {
       const [rc, re] = await Promise.all([
         api.get("/admin/parte-configuraciones"),
-        api.get("/admin/empleados"),
+        api.get("/employees"),
       ]);
       setConfigs(Array.isArray(rc.data) ? rc.data : []);
       setEmpleados(Array.isArray(re.data) ? re.data : []);
