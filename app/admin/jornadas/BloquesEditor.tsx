@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { api } from "@/services/api";
+import { showSuccess, showError } from "@/lib/toast";
 import type { Bloque, TipoBloque } from "./types";
 
 const DEFAULT_TIPOS: TipoBloque[] = [
@@ -10,6 +12,17 @@ const DEFAULT_TIPOS: TipoBloque[] = [
   { key: "comida", label: "Comida", color: "#ef4444", es_trabajo: false, sistema: false },
   { key: "otro", label: "Otro", color: "#6b7280", es_trabajo: false, sistema: false },
 ];
+
+const CUSTOM_OPTION = "__custom__";
+
+function toKey(label: string) {
+  return label
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
 
 function cmpTime(a: string, b: string) {
   return a.localeCompare(b);
@@ -81,6 +94,7 @@ export default function BloquesEditor({
   clientes = [],
   centrosTrabajo = [],
   tiposBloqueEmpresa,
+  onTiposChange,
 }: {
   title: string;
   bloques: Bloque[];
@@ -91,9 +105,73 @@ export default function BloquesEditor({
   clientes?: { id: string; nombre: string }[];
   centrosTrabajo?: { id: string; nombre: string }[];
   tiposBloqueEmpresa?: TipoBloque[];
+  onTiposChange?: (tipos: TipoBloque[]) => void;
 }) {
   const { errs, sorted } = useMemo(() => validate(bloques), [bloques]);
   const tipos = tiposBloqueEmpresa || DEFAULT_TIPOS;
+
+  // Estado para el editor inline de tipo personalizado
+  const [customEditorIndex, setCustomEditorIndex] = useState<number | null>(null);
+  const [customLabel, setCustomLabel] = useState("");
+  const [customColor, setCustomColor] = useState("#6b7280");
+  const [customEsTrabajo, setCustomEsTrabajo] = useState(false);
+  const [savingCustom, setSavingCustom] = useState(false);
+  const customInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (customEditorIndex !== null && customInputRef.current) {
+      customInputRef.current.focus();
+    }
+  }, [customEditorIndex]);
+
+  async function saveCustomTipo(bloqueIndex: number) {
+    const label = customLabel.trim();
+    if (!label) { showError("Escribe un nombre para el tipo"); return; }
+
+    const key = toKey(label);
+    if (!key) { showError("Nombre no válido"); return; }
+    if (tipos.some((t) => t.key === key)) {
+      showError(`Ya existe un tipo "${label}"`);
+      return;
+    }
+
+    const nuevoTipo: TipoBloque = {
+      key,
+      label,
+      color: customColor,
+      es_trabajo: customEsTrabajo,
+      sistema: false,
+    };
+    const nuevosTipos = [...tipos, nuevoTipo];
+
+    setSavingCustom(true);
+    try {
+      await api.put("/admin/configuracion/tipos-bloque", { tipos_bloque: nuevosTipos });
+      onTiposChange?.(nuevosTipos);
+      update(bloqueIndex, { tipo: key });
+      setCustomEditorIndex(null);
+      setCustomLabel("");
+      setCustomColor("#6b7280");
+      setCustomEsTrabajo(false);
+      showSuccess(`Tipo "${label}" creado`);
+    } catch (e: any) {
+      showError(e?.response?.data?.error || "Error guardando tipo personalizado");
+    } finally {
+      setSavingCustom(false);
+    }
+  }
+
+  function cancelCustom(bloqueIndex: number) {
+    // Revert to previous tipo (first tipo as fallback)
+    const prev = sorted[bloqueIndex]?.tipo;
+    if (prev === CUSTOM_OPTION || !tipos.some((t) => t.key === prev)) {
+      update(bloqueIndex, { tipo: tipos[0]?.key || "trabajo" });
+    }
+    setCustomEditorIndex(null);
+    setCustomLabel("");
+    setCustomColor("#6b7280");
+    setCustomEsTrabajo(false);
+  }
 
   function add() {
     if (bloques.length === 0) {
@@ -232,14 +310,26 @@ export default function BloquesEditor({
                   />
                   <select
                     className="border p-2 rounded w-full text-sm"
-                    value={b.tipo}
-                    onChange={(e) => update(i, { tipo: e.target.value })}
+                    value={customEditorIndex === i ? CUSTOM_OPTION : b.tipo}
+                    onChange={(e) => {
+                      if (e.target.value === CUSTOM_OPTION) {
+                        setCustomEditorIndex(i);
+                        setCustomLabel("");
+                        setCustomColor("#6b7280");
+                        setCustomEsTrabajo(false);
+                      } else {
+                        setCustomEditorIndex(null);
+                        update(i, { tipo: e.target.value });
+                      }
+                    }}
                   >
                     {tipos.map((t) => (
                       <option key={t.key} value={t.key}>
                         {t.label}
                       </option>
                     ))}
+                    <option disabled>──────────</option>
+                    <option value={CUSTOM_OPTION}>+ Personalizar…</option>
                   </select>
                 </div>
               </div>
@@ -321,6 +411,65 @@ export default function BloquesEditor({
                 </button>
               </div>
             </div>
+
+            {/* Editor inline de tipo personalizado */}
+            {customEditorIndex === i && (
+              <div className="mt-2 border border-blue-200 rounded-lg p-3 bg-blue-50/50">
+                <div className="text-xs font-semibold text-blue-700 mb-2">Nuevo tipo personalizado</div>
+                <div className="flex items-end gap-2 flex-wrap">
+                  <div className="flex-1 min-w-[140px]">
+                    <label className="text-xs text-gray-600">Nombre</label>
+                    <input
+                      ref={customInputRef}
+                      type="text"
+                      className="border p-2 rounded w-full text-sm"
+                      value={customLabel}
+                      onChange={(e) => setCustomLabel(e.target.value)}
+                      placeholder="Ej: Formación, Traslado…"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveCustomTipo(i);
+                        if (e.key === "Escape") cancelCustom(i);
+                      }}
+                      disabled={savingCustom}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600">Color</label>
+                    <input
+                      type="color"
+                      className="border rounded w-full h-[38px] cursor-pointer"
+                      value={customColor}
+                      onChange={(e) => setCustomColor(e.target.value)}
+                      disabled={savingCustom}
+                    />
+                  </div>
+                  <label className="flex items-center gap-1.5 text-sm pb-1 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={customEsTrabajo}
+                      onChange={(e) => setCustomEsTrabajo(e.target.checked)}
+                      className="w-4 h-4"
+                      disabled={savingCustom}
+                    />
+                    Laboral
+                  </label>
+                  <button
+                    className="px-3 py-2 rounded bg-blue-600 text-white text-sm disabled:opacity-50"
+                    disabled={!customLabel.trim() || savingCustom}
+                    onClick={() => saveCustomTipo(i)}
+                  >
+                    {savingCustom ? "Guardando…" : "Crear"}
+                  </button>
+                  <button
+                    className="px-3 py-2 rounded bg-gray-200 text-sm"
+                    onClick={() => cancelCustom(i)}
+                    disabled={savingCustom}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

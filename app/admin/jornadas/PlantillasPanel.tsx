@@ -755,6 +755,7 @@ export default function PlantillasPanel() {
                     clientes={clientes}
                     centrosTrabajo={centrosTrabajo}
                     tiposBloqueEmpresa={tiposBloqueEmpresa}
+                    onTiposChange={setTiposBloqueEmpresa}
                   />
                   {savingBloquesDia ? (
                     <div className="text-xs text-gray-600">
@@ -881,6 +882,7 @@ export default function PlantillasPanel() {
                       clientes={clientes}
                       centrosTrabajo={centrosTrabajo}
                       tiposBloqueEmpresa={tiposBloqueEmpresa}
+                      onTiposChange={setTiposBloqueEmpresa}
                     />
                     {savingBloquesEx ? (
                       <div className="text-xs text-gray-600">
