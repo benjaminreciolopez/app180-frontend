@@ -64,3 +64,9 @@ AI_COPILOT_SETUP.md
 *.tsbuildinfo
 next-env.d.ts
 .cache/
+
+# next-pwa generated files (regenerated on every build)
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
