@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Search, FolderTree, ChevronRight, ChevronDown } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
+import ExportButton from "@/components/admin/contabilidad/ExportButton";
 
 interface Cuenta {
     id: number;
@@ -221,6 +222,12 @@ export default function PlanCuentasPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <ExportButton
+                        endpoint="cuentas/exportar"
+                        params={{}}
+                        filenamePrefix="plan_cuentas"
+                        label="Exportar"
+                    />
                     {showInitButton && (
                         <Button
                             onClick={handleInitializePGC}

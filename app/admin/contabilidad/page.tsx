@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUser } from "@/services/auth";
+import ExportPaqueteButton from "@/components/admin/contabilidad/ExportPaqueteButton";
 
 export default function ContabilidadPage() {
     const [year, setYear] = useState(new Date().getFullYear().toString());
@@ -33,18 +34,21 @@ export default function ContabilidadPage() {
                         Libros oficiales de registro de facturas emitidas, recibidas{showNominas ? " y nóminas" : ""}.
                     </p>
                 </div>
-                <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-tight ml-2">Ejercicio</span>
-                    <Select value={year} onValueChange={setYear}>
-                        <SelectTrigger className="w-[110px] h-9 border-none bg-slate-50 font-bold text-slate-700 rounded-xl">
-                            <SelectValue placeholder="Año" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-slate-100">
-                            <SelectItem value="2026">2026</SelectItem>
-                            <SelectItem value="2025">2025</SelectItem>
-                            <SelectItem value="2024">2024</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-tight ml-2">Ejercicio</span>
+                        <Select value={year} onValueChange={setYear}>
+                            <SelectTrigger className="w-[110px] h-9 border-none bg-slate-50 font-bold text-slate-700 rounded-xl">
+                                <SelectValue placeholder="Año" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-slate-100">
+                                <SelectItem value="2026">2026</SelectItem>
+                                <SelectItem value="2025">2025</SelectItem>
+                                <SelectItem value="2024">2024</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <ExportPaqueteButton />
                 </div>
             </div>
 

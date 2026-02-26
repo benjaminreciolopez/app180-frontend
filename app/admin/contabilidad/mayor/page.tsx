@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Search, BookOpen, ArrowUpDown } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
+import ExportButton from "@/components/admin/contabilidad/ExportButton";
 
 interface Cuenta {
     id: number;
@@ -148,14 +149,27 @@ export default function LibroMayorPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-                    <BookOpen className="h-8 w-8 text-blue-600" />
-                    Libro Mayor
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                    Movimientos por cuenta contable
-                </p>
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+                        <BookOpen className="h-8 w-8 text-blue-600" />
+                        Libro Mayor
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
+                        Movimientos por cuenta contable
+                    </p>
+                </div>
+                <ExportButton
+                    endpoint="mayor/exportar"
+                    params={{
+                        ...(selectedCuenta ? { cuenta_codigo: selectedCuenta.codigo } : {}),
+                        fecha_desde: fechaDesde,
+                        fecha_hasta: fechaHasta,
+                    }}
+                    filenamePrefix={`libro_mayor_${fechaDesde}_${fechaHasta}`}
+                    label="Exportar"
+                    size="md"
+                />
             </div>
 
             {/* Search and filters */}

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { TrendingUp, TrendingDown, Scale, Calendar } from "lucide-react";
+import ExportButton from "@/components/admin/contabilidad/ExportButton";
 
 interface CuentaPyG {
     cuenta_codigo: string;
@@ -169,6 +170,12 @@ export default function PerdidasGananciasPage() {
                             />
                         </div>
                     </div>
+                    <ExportButton
+                        endpoint="pyg/exportar"
+                        params={{ fecha_desde: fechaDesde, fecha_hasta: fechaHasta }}
+                        filenamePrefix={`pyg_${fechaDesde}_${fechaHasta}`}
+                        label="Exportar"
+                    />
                 </div>
             </div>
 

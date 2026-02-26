@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { TrendingUp, TrendingDown, Scale, Calendar } from "lucide-react";
+import ExportButton from "@/components/admin/contabilidad/ExportButton";
 
 interface CuentaBalance {
     cuenta_codigo: string;
@@ -148,6 +149,12 @@ export default function BalanceSituacionPage() {
                         value={fecha}
                         onChange={(e) => setFecha(e.target.value)}
                         className="h-9 px-3 border-none bg-slate-50 font-bold text-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
+                    />
+                    <ExportButton
+                        endpoint="balance/exportar"
+                        params={{ fecha }}
+                        filenamePrefix={`balance_${fecha}`}
+                        label="Exportar"
                     />
                 </div>
             </div>
