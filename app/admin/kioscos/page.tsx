@@ -18,6 +18,9 @@ import {
   Key,
   X,
   Check,
+  Eye,
+  EyeOff,
+  Copy,
 } from "lucide-react";
 
 interface KioskDevice {
@@ -29,6 +32,7 @@ interface KioskDevice {
   centro_trabajo_id: string | null;
   centro_nombre: string | null;
   offline_pin: string | null;
+  device_token: string | null;
 }
 
 interface CentroTrabajo {
@@ -66,6 +70,9 @@ export default function KioscosAdminPage() {
 
   // Employee counts per device
   const [empCounts, setEmpCounts] = useState<Record<string, number>>({});
+
+  // Token visibility
+  const [visibleTokenId, setVisibleTokenId] = useState<string | null>(null);
 
   useEffect(() => {
     loadDevices();
@@ -186,7 +193,7 @@ export default function KioscosAdminPage() {
     setAssignDevice(device);
     // Load all employees
     try {
-      const res = await authenticatedFetch("/api/admin/empleados");
+      const res = await authenticatedFetch("/employees");
       if (res.ok) {
         const data = await res.json();
         setAllEmployees(data);
@@ -303,7 +310,7 @@ export default function KioscosAdminPage() {
             <div className="text-xs text-muted-foreground space-y-1">
               <p className="flex items-center gap-1.5">
                 <Clock className="h-3 w-3" />
-                Último uso: {formatDate(d.ultimo_uso)}
+                Ultimo uso: {formatDate(d.ultimo_uso)}
               </p>
               <p className="flex items-center gap-1.5">
                 <Users className="h-3 w-3" />
@@ -315,6 +322,38 @@ export default function KioscosAdminPage() {
                   <Key className="h-3 w-3" />
                   PIN offline configurado
                 </p>
+              )}
+
+              {/* Token de activacion */}
+              {d.device_token && (
+                <div className="pt-1">
+                  <div className="flex items-center gap-1.5">
+                    <Key className="h-3 w-3" />
+                    <span>Token:</span>
+                    <button
+                      onClick={() => setVisibleTokenId(visibleTokenId === d.id ? null : d.id)}
+                      className="p-0.5 rounded hover:bg-muted transition-colors"
+                      title={visibleTokenId === d.id ? "Ocultar token" : "Mostrar token"}
+                    >
+                      {visibleTokenId === d.id ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(d.device_token!);
+                        showSuccess("Token copiado");
+                      }}
+                      className="p-0.5 rounded hover:bg-muted transition-colors"
+                      title="Copiar token"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                  </div>
+                  {visibleTokenId === d.id && (
+                    <p className="mt-1 bg-muted p-2 rounded-lg break-all font-mono text-[10px] select-all">
+                      {d.device_token}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
