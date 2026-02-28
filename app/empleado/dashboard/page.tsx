@@ -7,6 +7,7 @@ import { logout } from "@/services/auth";
 import { useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
 import FloatingActionButton from "@/components/ui/FloatingActionButton";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 
 import IOSDrawer from "@/components/ui/IOSDrawer";
 import DrawerMenu from "@/components/empleado/drawer/DrawerMenu";
@@ -339,6 +340,14 @@ export default function EmpleadoDashboardPage() {
             onSolicitudes={() =>
               push({ key: "solicitudes", title: "Mis solicitudes" })
             }
+            onNominas={() => {
+              closeDrawer();
+              router.push("/empleado/nominas");
+            }}
+            onNotificaciones={() => {
+              closeDrawer();
+              router.push("/empleado/notificaciones");
+            }}
             onLogout={() => {
               logout();
             }}
@@ -419,13 +428,16 @@ export default function EmpleadoDashboardPage() {
       </IOSDrawer>
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">
-          Hola, {data.nombre || "Empleado"}
-        </h1>
-        <p className="text-muted">
-          Jornada: {planDia?.plan?.plantilla_nombre ?? "Sin jornada"}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">
+            Hola, {data.nombre || "Empleado"}
+          </h1>
+          <p className="text-muted">
+            Jornada: {planDia?.plan?.plantilla_nombre ?? "Sin jornada"}
+          </p>
+        </div>
+        <NotificationBell basePath="/empleado/notificaciones" />
       </div>
 
       {/* Estado de hoy */}

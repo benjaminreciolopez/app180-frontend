@@ -21,7 +21,7 @@ function Row({
           <div className="text-[13px] text-gray-500 mt-0.5">{subtitle}</div>
         ) : null}
       </div>
-      <div className="text-gray-400 text-lg leading-none">›</div>
+      <div className="text-gray-400 text-lg leading-none">{"\u203A"}</div>
     </button>
   );
 }
@@ -35,12 +35,16 @@ export default function DrawerMenu({
   onVacaciones,
   onBaja,
   onSolicitudes,
+  onNominas,
+  onNotificaciones,
   onLogout,
 }: {
   onCalendario: () => void;
   onVacaciones: () => void;
   onBaja: () => void;
   onSolicitudes: () => void;
+  onNominas?: () => void;
+  onNotificaciones?: () => void;
   onLogout: () => void;
 }) {
   return (
@@ -58,7 +62,7 @@ export default function DrawerMenu({
       />
       <Divider />
       <Row
-        title="Solicitar baja médica"
+        title="Solicitar baja medica"
         subtitle="Adjuntar documentos si procede"
         onClick={onBaja}
       />
@@ -68,10 +72,30 @@ export default function DrawerMenu({
         subtitle="Estado: pendiente / aprobado / rechazado"
         onClick={onSolicitudes}
       />
+      {onNominas && (
+        <>
+          <Divider />
+          <Row
+            title="Mis nominas"
+            subtitle="Consulta, confirma y firma tus nominas"
+            onClick={onNominas}
+          />
+        </>
+      )}
+      {onNotificaciones && (
+        <>
+          <Divider />
+          <Row
+            title="Notificaciones"
+            subtitle="Avisos de nominas, ausencias y mas"
+            onClick={onNotificaciones}
+          />
+        </>
+      )}
       <Divider />
       <Row
-        title="Cerrar sesión"
-        subtitle="Salir de la aplicación"
+        title="Cerrar sesion"
+        subtitle="Salir de la aplicacion"
         onClick={onLogout}
       />
     </div>

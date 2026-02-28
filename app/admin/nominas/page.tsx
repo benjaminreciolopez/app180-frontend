@@ -4,8 +4,10 @@ import { useEffect, useState } from "react"
 import { api } from "@/services/api"
 import { showSuccess, showError } from "@/lib/toast"
 import {
-  FileText, Upload, Trash2, Loader2, Download, Search, Plus, X, Send
+  FileText, Upload, Trash2, Loader2, Download, Search, Plus, X, Send,
+  CheckSquare, Square, Mail, ClipboardList
 } from "lucide-react"
+import Link from "next/link"
 
 type Nomina = {
   id: string
@@ -18,6 +20,7 @@ type Nomina = {
   irpf_retencion: number
   liquido: number
   pdf_path: string | null
+  estado_entrega: string | null
   created_at: string
   nombre?: string
   apellidos?: string
@@ -34,6 +37,22 @@ const MESES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ]
 
+function EstadoBadge({ estado }: { estado: string | null }) {
+  if (!estado || estado === "borrador") return (
+    <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium">Borrador</span>
+  )
+  const map: Record<string, string> = {
+    enviada: "bg-blue-100 text-blue-700",
+    recibida: "bg-yellow-100 text-yellow-700",
+    firmada: "bg-green-100 text-green-700",
+  }
+  return (
+    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${map[estado] || "bg-gray-100 text-gray-500"}`}>
+      {estado.charAt(0).toUpperCase() + estado.slice(1)}
+    </span>
+  )
+}
+
 export default function AdminNominasPage() {
   const [nominas, setNominas] = useState<Nomina[]>([])
   const [empleados, setEmpleados] = useState<Empleado[]>([])
@@ -43,6 +62,9 @@ export default function AdminNominasPage() {
   const [showForm, setShowForm] = useState(false)
   const [sending, setSending] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [sendingId, setSendingId] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [sendingLote, setSendingLote] = useState(false)
 
   // Form state
   const [formEmpleado, setFormEmpleado] = useState("")
@@ -71,6 +93,7 @@ export default function AdminNominasPage() {
       showError("Error cargando nominas")
     } finally {
       setLoading(false)
+      setSelected(new Set())
     }
   }
 
@@ -131,6 +154,41 @@ export default function AdminNominasPage() {
     }
   }
 
+  async function handleEnviar(id: string) {
+    setSendingId(id)
+    try {
+      const res = await api.post(`/api/admin/nominas/${id}/enviar`)
+      if (res.data?.success) {
+        showSuccess("Nomina enviada al empleado")
+        loadNominas()
+      }
+    } catch (err: any) {
+      showError(err?.response?.data?.error || "Error enviando nomina")
+    } finally {
+      setSendingId(null)
+    }
+  }
+
+  async function handleEnviarLote() {
+    if (selected.size === 0) { showError("Selecciona al menos una nomina"); return }
+    if (!confirm(`Enviar ${selected.size} nominas a los empleados?`)) return
+    setSendingLote(true)
+    try {
+      const res = await api.post("/api/admin/nominas/enviar-lote", {
+        nomina_ids: Array.from(selected)
+      })
+      if (res.data) {
+        const { enviadas, errores } = res.data
+        showSuccess(`${enviadas} nominas enviadas${errores > 0 ? `, ${errores} errores` : ""}`)
+        loadNominas()
+      }
+    } catch (err: any) {
+      showError(err?.response?.data?.error || "Error en envio masivo")
+    } finally {
+      setSendingLote(false)
+    }
+  }
+
   async function handleOCR(file: File) {
     const formData = new FormData()
     formData.append("file", file)
@@ -165,6 +223,19 @@ export default function AdminNominasPage() {
     setFormFile(null)
   }
 
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === nominas.length) setSelected(new Set())
+    else setSelected(new Set(nominas.map(n => n.id)))
+  }
+
   return (
     <div className="space-y-6 p-4 md:p-0 pb-20">
       {/* Header */}
@@ -173,17 +244,26 @@ export default function AdminNominasPage() {
           <h1 className="text-2xl font-bold tracking-tight">Nominas</h1>
           <p className="text-muted-foreground text-sm">Gestion de nominas de empleados</p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
-        >
-          {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          {showForm ? "Cerrar" : "Nueva"}
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/nominas/entregas"
+            className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors"
+          >
+            <ClipboardList className="w-4 h-4" />
+            Entregas
+          </Link>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {showForm ? "Cerrar" : "Nueva"}
+          </button>
+        </div>
       </div>
 
-      {/* Filtros */}
-      <div className="flex items-center gap-3">
+      {/* Filtros + acciones lote */}
+      <div className="flex items-center gap-3 flex-wrap">
         <select
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
@@ -203,6 +283,17 @@ export default function AdminNominasPage() {
             <option key={i} value={i + 1}>{m}</option>
           ))}
         </select>
+
+        {selected.size > 0 && (
+          <button
+            onClick={handleEnviarLote}
+            disabled={sendingLote}
+            className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50 ml-auto"
+          >
+            {sendingLote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+            Enviar {selected.size} seleccionadas
+          </button>
+        )}
       </div>
 
       {/* Formulario nueva nomina */}
@@ -304,9 +395,23 @@ export default function AdminNominasPage() {
         </div>
       ) : (
         <div className="space-y-3">
+          {/* Select all */}
+          <button onClick={toggleSelectAll} className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 px-1">
+            {selected.size === nominas.length ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <Square className="w-4 h-4" />}
+            {selected.size === nominas.length ? "Deseleccionar todo" : "Seleccionar todo"}
+          </button>
+
           {nominas.map((n) => (
-            <div key={n.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+            <div key={n.id} className={`bg-white rounded-xl border shadow-sm p-4 transition-colors ${selected.has(n.id) ? "border-blue-300 bg-blue-50/30" : "border-gray-100"}`}>
               <div className="flex items-center justify-between gap-3">
+                {/* Checkbox */}
+                <button onClick={() => toggleSelect(n.id)} className="shrink-0">
+                  {selected.has(n.id)
+                    ? <CheckSquare className="w-5 h-5 text-blue-600" />
+                    : <Square className="w-5 h-5 text-gray-300" />
+                  }
+                </button>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <FileText className="w-4 h-4 text-blue-500 shrink-0" />
@@ -316,6 +421,7 @@ export default function AdminNominasPage() {
                     {n.pdf_path && (
                       <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">PDF</span>
                     )}
+                    <EstadoBadge estado={n.estado_entrega} />
                   </div>
                   <p className="text-xs text-gray-500">
                     {n.nombre || "Sin asignar"} {n.apellidos || ""}
@@ -326,7 +432,18 @@ export default function AdminNominasPage() {
                     <span className="text-gray-400">IRPF: <span className="text-red-600">{Number(n.irpf_retencion).toFixed(2)}</span></span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Enviar */}
+                  {(!n.estado_entrega || n.estado_entrega === "borrador") && (
+                    <button
+                      onClick={() => handleEnviar(n.id)}
+                      disabled={sendingId === n.id}
+                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="Enviar al empleado"
+                    >
+                      {sendingId === n.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                    </button>
+                  )}
                   {n.pdf_path && (
                     <a
                       href={n.pdf_path}

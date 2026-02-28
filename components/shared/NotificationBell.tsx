@@ -19,7 +19,11 @@ interface Notificacion {
   metadata: any
 }
 
-export function NotificationBell() {
+interface NotificationBellProps {
+  basePath?: string
+}
+
+export function NotificationBell({ basePath = "/admin/notificaciones" }: NotificationBellProps) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [noLeidas, setNoLeidas] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
@@ -27,7 +31,7 @@ export function NotificationBell() {
 
   const fetchNotificaciones = async () => {
     try {
-      const res = await api.get("/admin/notificaciones?limit=10")
+      const res = await api.get(`${basePath}?limit=10`)
       setNotificaciones(res.data.notificaciones || [])
       setNoLeidas(res.data.no_leidas || 0)
     } catch (err) {
@@ -61,24 +65,24 @@ export function NotificationBell() {
       document.removeEventListener("visibilitychange", onVisibilityChange)
       if (interval) clearInterval(interval)
     }
-  }, [])
+  }, [basePath])
 
   const marcarLeida = async (id: string) => {
     try {
-      await api.put(`/admin/notificaciones/${id}/marcar-leida`)
+      await api.put(`${basePath}/${id}/marcar-leida`)
       fetchNotificaciones()
     } catch (err) {
-      console.error("Error marcando notificación:", err)
+      console.error("Error marcando notificacion:", err)
     }
   }
 
   const marcarTodasLeidas = async () => {
     setLoading(true)
     try {
-      await api.put("/admin/notificaciones/marcar-todas-leidas")
+      await api.put(`${basePath}/marcar-todas-leidas`)
       await fetchNotificaciones()
     } catch (err) {
-      console.error("Error marcando todas leídas:", err)
+      console.error("Error marcando todas leidas:", err)
     } finally {
       setLoading(false)
     }
@@ -91,6 +95,8 @@ export function NotificationBell() {
       case "verifactu_deadline": return "text-orange-600 bg-orange-50 border-orange-200"
       case "limite_ia": return "text-blue-600 bg-blue-50 border-blue-200"
       case "config_change": return "text-purple-600 bg-purple-50 border-purple-200"
+      case "nomina": return "text-green-600 bg-green-50 border-green-200"
+      case "ausencia": return "text-indigo-600 bg-indigo-50 border-indigo-200"
       default: return "text-gray-600 bg-gray-50 border-gray-200"
     }
   }
@@ -204,7 +210,7 @@ export function NotificationBell() {
                                   className="text-[10px] text-blue-600 hover:text-blue-700 font-medium flex items-center gap-0.5"
                                 >
                                   <Check className="h-3 w-3" />
-                                  Marcar leída
+                                  Marcar leida
                                 </button>
                               )}
                               {notif.accion_url && notif.accion_label && (
