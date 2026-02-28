@@ -36,9 +36,22 @@ export default function EmpleadoCalendarioPage() {
   const isMobile = useIsMobile();
   const confirm = useConfirm();
 
-  async function loadCalendario() {
+  async function loadCalendario(desde?: string, hasta?: string) {
     try {
-      const res = await api.get("/calendario/usuario");
+      // Default: current month ± 1 week buffer for calendar view
+      if (!desde || !hasta) {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        start.setDate(start.getDate() - 7);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        end.setDate(end.getDate() + 7);
+        desde = start.toISOString().slice(0, 10);
+        hasta = end.toISOString().slice(0, 10);
+      }
+
+      const res = await api.get("/empleado/calendario/usuario", {
+        params: { desde, hasta },
+      });
 
       const data = Array.isArray(res.data) ? res.data : [];
 
@@ -146,6 +159,11 @@ export default function EmpleadoCalendarioPage() {
           events={events}
           height="100%"
           eventDisplay="block"
+          datesSet={(info) => {
+            const desde = info.start.toISOString().slice(0, 10);
+            const hasta = info.end.toISOString().slice(0, 10);
+            loadCalendario(desde, hasta);
+          }}
           views={{
             dayGridMonth: {
               titleFormat: { year: 'numeric', month: 'short' } 
