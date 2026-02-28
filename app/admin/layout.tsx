@@ -344,6 +344,7 @@ export default function AdminLayout({
       items: [
         { path: "/admin/fichajes", label: "Fichajes", module: "fichajes" },
         { path: "/admin/fichajes/sospechosos", label: "Sospechosos", module: "fichajes" },
+        { path: "/admin/kioscos", label: "Kioscos", module: "fichajes" },
         { path: "/admin/auditoria", label: "Auditoría", module: "fichajes" },
         { path: "/admin/auditoria/rechazados", label: "Rechazados", module: "fichajes" },
       ],

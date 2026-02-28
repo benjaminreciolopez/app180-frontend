@@ -8,7 +8,7 @@ import { showSuccess, showError } from "@/lib/toast";
 export function useFichaje(reload: () => void) {
   const [loading, setLoading] = useState(false);
 
-  async function fichar(accion: AccionFichaje) {
+  async function fichar(accion: AccionFichaje, subtipo?: string) {
     setLoading(true);
     try {
       let lat: number | null = null;
@@ -28,6 +28,7 @@ export function useFichaje(reload: () => void) {
 
       await api.post("/fichajes", {
         tipo: accion,
+        subtipo: subtipo || undefined,
         lat,
         lng,
       });

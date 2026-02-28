@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "@/services/api";
+import { authenticatedFetch } from "@/utils/api";
 import Link from "next/link";
 import { showSuccess, showError } from "@/lib/toast";
+import { Camera } from "lucide-react";
 
 interface EditEmployeeModalProps {
   isOpen: boolean;
@@ -11,6 +13,7 @@ interface EditEmployeeModalProps {
     id: string;
     nombre: string;
     email: string;
+    foto_url?: string | null;
   };
 }
 
@@ -23,6 +26,35 @@ export default function EditEmployeeModal({
   const [nombre, setNombre] = useState(empleado.nombre);
   const [email, setEmail] = useState(empleado.email);
   const [loading, setLoading] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(empleado.foto_url || null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+      const res = await authenticatedFetch(`/api/admin/employees/${empleado.id}/photo`, {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPhotoPreview(data.foto_url);
+        showSuccess("Foto actualizada");
+      } else {
+        showError("Error al subir foto");
+      }
+    } catch {
+      showError("Error de conexión");
+    }
+    setUploadingPhoto(false);
+    if (photoRef.current) photoRef.current.value = "";
+  };
+
   const [clienteActual, setClienteActual] = useState<{
     nombre: string;
     codigo: string;
@@ -89,6 +121,39 @@ export default function EditEmployeeModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto">
+          {/* Foto del empleado */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              {photoPreview ? (
+                <img src={photoPreview} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-border" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-xl font-semibold text-muted-foreground">
+                  {empleado.nombre.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => photoRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600/10 text-blue-500 hover:bg-blue-600/20 transition-colors disabled:opacity-50"
+              >
+                <Camera className="h-3.5 w-3.5" />
+                {uploadingPhoto ? "Subiendo..." : photoPreview ? "Cambiar foto" : "Subir foto"}
+              </button>
+              <p className="text-[10px] text-muted-foreground mt-1">Se muestra en el kiosco para confirmar identidad</p>
+              <input
+                ref={photoRef}
+                type="file"
+                accept="image/*"
+                capture="user"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Nombre</label>
             <input

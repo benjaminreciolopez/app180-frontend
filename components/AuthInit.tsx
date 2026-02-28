@@ -14,6 +14,8 @@ function isPublicPath(path: string) {
     path === "/cambiar-password" ||
     path.startsWith("/empleado/instalar") ||
     path.startsWith("/asesor/registro") ||
+    path.startsWith("/kiosko") ||
+    path.startsWith("/verificar") ||
     path.startsWith("/_next") ||
     path.startsWith("/icons") ||
     path === "/manifest.json" ||

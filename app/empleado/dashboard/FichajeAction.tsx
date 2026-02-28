@@ -1,6 +1,7 @@
 "use client";
 
-import { CalendarOff, BedDouble, Ban } from "lucide-react";
+import { useState } from "react";
+import { CalendarOff, BedDouble, Ban, Coffee, Utensils, Route, ChevronLeft } from "lucide-react";
 import { useFichaje } from "./useFichaje";
 import { Button } from "@/components/ui/button";
 
@@ -109,6 +110,12 @@ function MotivoBloqueo({ boton }: { boton: BotonEstado }) {
   return null;
 }
 
+const SUBTIPOS = [
+  { key: "pausa_corta", label: "Pausa corta", icon: Coffee, desc: "15 min" },
+  { key: "comida", label: "Comida", icon: Utensils, desc: "Almuerzo" },
+  { key: "trayecto", label: "Desplazamiento", icon: Route, desc: "Traslado" },
+];
+
 export function FichajeAction({
   boton,
   reload,
@@ -117,6 +124,7 @@ export function FichajeAction({
   reload: () => void;
 }) {
   const { fichar, loading } = useFichaje(reload);
+  const [showSubtipos, setShowSubtipos] = useState(false);
 
   if (!boton) return null;
 
@@ -127,13 +135,54 @@ export function FichajeAction({
     descanso_fin: { label: "Finalizar descanso" },
   };
 
+  const handleClick = () => {
+    if (boton.accion === "descanso_inicio") {
+      setShowSubtipos(true);
+    } else {
+      fichar(boton.accion!);
+    }
+  };
+
+  const handleSubtipo = (subtipo: string) => {
+    setShowSubtipos(false);
+    fichar("descanso_inicio", subtipo);
+  };
+
   return (
     <div className="space-y-2">
-      {/* BOTÓN (solo si visible) */}
-      {boton.visible && boton.accion && (
+      {/* SUBTIPO SELECTOR */}
+      {showSubtipos && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <button
+              onClick={() => setShowSubtipos(false)}
+              className="p-1 rounded hover:bg-gray-100 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4 text-gray-500" />
+            </button>
+            <span className="text-sm font-medium text-gray-600">Tipo de descanso</span>
+          </div>
+          {SUBTIPOS.map(({ key, label, icon: Icon, desc }) => (
+            <Button
+              key={key}
+              disabled={loading}
+              onClick={() => handleSubtipo(key)}
+              variant="secondary"
+              className="w-full py-4 justify-start gap-3"
+            >
+              <Icon className="h-5 w-5 flex-shrink-0" />
+              <span className="font-semibold">{label}</span>
+              <span className="text-xs text-gray-400 ml-auto">{desc}</span>
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {/* BOTÓN (solo si visible y no mostrando subtipos) */}
+      {!showSubtipos && boton.visible && boton.accion && (
         <Button
           disabled={loading || !boton.puede_fichar}
-          onClick={() => fichar(boton.accion!)}
+          onClick={handleClick}
           variant={boton.color === "rojo" ? "destructive" : "secondary"}
           className="w-full py-6 text-xl font-bold shadow-lg"
         >
@@ -142,7 +191,7 @@ export function FichajeAction({
       )}
 
       {/* MENSAJE NORMAL */}
-      {boton.mensaje && (
+      {!showSubtipos && boton.mensaje && (
         <p className="text-sm text-gray-600 text-center">{boton.mensaje}</p>
       )}
 
