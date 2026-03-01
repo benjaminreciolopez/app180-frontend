@@ -37,5 +37,5 @@
     "app/admin/empleados/dashboard.tsx",
     "app/admin/empleados/dashboard"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "e2e"]
 }
