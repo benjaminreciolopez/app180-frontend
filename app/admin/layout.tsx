@@ -385,6 +385,7 @@ export default function AdminLayout({
       title: "FISCAL",
       items: [
         { path: "/admin/fiscal", label: "Modelos Fiscales", module: "fiscal" },
+        { path: "/admin/fiscal?tab=alertas", label: "Alertas Hacienda", module: "fiscal" },
         { path: "/admin/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
       ],
     },
