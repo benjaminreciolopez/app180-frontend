@@ -59,6 +59,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import ClientFiscalForm from "@/components/admin/clientes/ClientFiscalForm"
+import FiscalSimulatorDialog from "@/components/admin/fiscal/FiscalSimulatorDialog"
 
 // --- TYPES ---
 interface Linea {
@@ -132,6 +133,7 @@ export default function CrearFacturaPage() {
     const [retencionPorcentaje, setRetencionPorcentaje] = useState(0)
     const [tipoFactura, setTipoFactura] = useState<"NORMAL" | "PROFORMA">("NORMAL")
     const [saving, setSaving] = useState(false)
+    const [showFiscalSim, setShowFiscalSim] = useState(false)
 
     // UI State
     const [clienteOpen, setClienteOpen] = useState(false)
@@ -558,14 +560,24 @@ export default function CrearFacturaPage() {
         <div className="max-w-5xl mx-auto space-y-6 pb-20">
 
             {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
-                <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                    <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Nueva Factura</h1>
-                    <p className="text-slate-500 text-sm">Crear un nuevo borrador de factura</p>
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                        <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Nueva Factura</h1>
+                        <p className="text-slate-500 text-sm">Crear un nuevo borrador de factura</p>
+                    </div>
                 </div>
+                <Button
+                    variant="outline"
+                    onClick={() => setShowFiscalSim(true)}
+                    className="rounded-xl h-11 px-5 gap-2 active:scale-95 transition-all border-amber-200 text-amber-700 hover:bg-amber-50"
+                >
+                    <Calculator className="w-4 h-4" />
+                    <span className="hidden sm:inline">Simular Impacto</span>
+                </Button>
             </div>
 
             <div className="space-y-6">
@@ -1152,6 +1164,16 @@ export default function CrearFacturaPage() {
                     })()}
                 </DialogContent>
             </Dialog>
+
+            <FiscalSimulatorDialog
+                open={showFiscalSim}
+                onClose={() => setShowFiscalSim(false)}
+                prefill={{
+                    type: "factura",
+                    base_imponible: subtotal,
+                    iva_pct: ivaGlobal,
+                }}
+            />
 
         </div>
     )

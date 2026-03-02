@@ -18,7 +18,8 @@ import {
     CreditCard,
     Building2,
     ChevronUp,
-    ChevronDown
+    ChevronDown,
+    Calculator
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -47,6 +48,7 @@ import { useConfirm } from "@/components/shared/ConfirmDialog";
 import DrawerGastoAdmin from "@/components/admin/drawer/DrawerGastoAdmin";
 import BankImportDialog from "@/components/admin/BankImportDialog";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
+import FiscalSimulatorDialog from "@/components/admin/fiscal/FiscalSimulatorDialog";
 
 type Gasto = {
     id: string;
@@ -73,6 +75,7 @@ export default function GastosPage() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [editingGasto, setEditingGasto] = useState<Gasto | null>(null);
     const [showBankImport, setShowBankImport] = useState(false);
+    const [showFiscalSim, setShowFiscalSim] = useState(false);
 
     // Filters & Search
     const [search, setSearch] = useState("");
@@ -198,6 +201,14 @@ export default function GastosPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <Button
+                        onClick={() => setShowFiscalSim(true)}
+                        variant="outline"
+                        className="rounded-xl h-11 px-5 gap-2 active:scale-95 transition-all border-amber-200 text-amber-700 hover:bg-amber-50"
+                    >
+                        <Calculator size={18} />
+                        <span className="hidden sm:inline">Simular Impacto</span>
+                    </Button>
                     <UniversalExportButton
                         module="gastos"
                         queryParams={{ search, fechaDesde, fechaHasta, categoria: categoriaFilter }}
@@ -416,6 +427,13 @@ export default function GastosPage() {
                 open={showBankImport}
                 onClose={() => setShowBankImport(false)}
                 onSuccess={loadGastos}
+            />
+
+            {/* Fiscal Impact Simulator */}
+            <FiscalSimulatorDialog
+                open={showFiscalSim}
+                onClose={() => setShowFiscalSim(false)}
+                prefill={{ type: "gasto" }}
             />
         </div>
     );
