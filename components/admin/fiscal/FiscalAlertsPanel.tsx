@@ -123,9 +123,10 @@ function RatioBar({ label, value, threshold, format = "percent" }: {
 interface Props {
     year: string;
     trimestre: string;
+    autoOpenSimulator?: boolean;
 }
 
-export default function FiscalAlertsPanel({ year, trimestre }: Props) {
+export default function FiscalAlertsPanel({ year, trimestre, autoOpenSimulator }: Props) {
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<AlertData | null>(null);
     const [configOpen, setConfigOpen] = useState(false);
@@ -149,6 +150,12 @@ export default function FiscalAlertsPanel({ year, trimestre }: Props) {
     useEffect(() => {
         loadAlerts();
     }, [loadAlerts]);
+
+    useEffect(() => {
+        if (autoOpenSimulator && !loading && data) {
+            setSimulatorOpen(true);
+        }
+    }, [autoOpenSimulator, loading, data]);
 
     if (loading) return <LoadingSpinner />;
     if (!data) return <p className="text-sm text-muted-foreground text-center py-8">No se pudieron cargar las alertas.</p>;
@@ -287,6 +294,17 @@ export default function FiscalAlertsPanel({ year, trimestre }: Props) {
                                                 </div>
                                                 <p className="text-sm font-medium text-slate-800">{alert.message}</p>
                                                 <p className="text-xs text-muted-foreground mt-1">{alert.recommendation}</p>
+                                                {alert.details && alert.details.length > 0 && (
+                                                    <div className="mt-2 space-y-1 text-xs border-t pt-2">
+                                                        <p className="font-medium text-slate-600">Gastos afectados:</p>
+                                                        {alert.details.map((d: any, j: number) => (
+                                                            <div key={j} className="flex justify-between text-slate-500 pl-2">
+                                                                <span>{d.proveedor || 'Sin proveedor'} — {d.descripcion?.substring(0, 40) || ''}</span>
+                                                                <span className="font-medium">{formatCurrency(d.total)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </CardContent>

@@ -32,6 +32,7 @@ const BORDER_COLORS: Record<string, string> = {
 export default function FiscalPage() {
     const searchParams = useSearchParams();
     const initialTab = searchParams.get("tab") === "alertas" ? "alertas" : "modelos";
+    const autoOpenSimulator = searchParams.get("openSimulator") === "true";
 
     const [activeTab, setActiveTab] = useState(initialTab);
     const [year, setYear] = useState(new Date().getFullYear().toString());
@@ -401,7 +402,7 @@ export default function FiscalPage() {
 
                 {/* Tab: Inteligencia Fiscal (new) */}
                 <TabsContent value="alertas" className="mt-4">
-                    <FiscalAlertsPanel year={year} trimestre={trimestre} />
+                    <FiscalAlertsPanel year={year} trimestre={trimestre} autoOpenSimulator={autoOpenSimulator} />
                 </TabsContent>
             </Tabs>
         </div>

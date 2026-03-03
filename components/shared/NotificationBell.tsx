@@ -97,6 +97,7 @@ export function NotificationBell({ basePath = "/admin/notificaciones" }: Notific
       case "config_change": return "text-purple-600 bg-purple-50 border-purple-200"
       case "nomina": return "text-green-600 bg-green-50 border-green-200"
       case "ausencia": return "text-indigo-600 bg-indigo-50 border-indigo-200"
+      case "fiscal_alert": return "text-orange-600 bg-orange-50 border-orange-200"
       default: return "text-gray-600 bg-gray-50 border-gray-200"
     }
   }

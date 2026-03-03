@@ -59,7 +59,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import ClientFiscalForm from "@/components/admin/clientes/ClientFiscalForm"
-import FiscalSimulatorDialog from "@/components/admin/fiscal/FiscalSimulatorDialog"
 
 // --- TYPES ---
 interface Linea {
@@ -133,7 +132,6 @@ export default function CrearFacturaPage() {
     const [retencionPorcentaje, setRetencionPorcentaje] = useState(0)
     const [tipoFactura, setTipoFactura] = useState<"NORMAL" | "PROFORMA">("NORMAL")
     const [saving, setSaving] = useState(false)
-    const [showFiscalSim, setShowFiscalSim] = useState(false)
 
     // UI State
     const [clienteOpen, setClienteOpen] = useState(false)
@@ -570,14 +568,6 @@ export default function CrearFacturaPage() {
                         <p className="text-slate-500 text-sm">Crear un nuevo borrador de factura</p>
                     </div>
                 </div>
-                <Button
-                    variant="outline"
-                    onClick={() => setShowFiscalSim(true)}
-                    className="rounded-xl h-11 px-5 gap-2 active:scale-95 transition-all border-amber-200 text-amber-700 hover:bg-amber-50"
-                >
-                    <Calculator className="w-4 h-4" />
-                    <span className="hidden sm:inline">Simular Impacto</span>
-                </Button>
             </div>
 
             <div className="space-y-6">
@@ -1164,16 +1154,6 @@ export default function CrearFacturaPage() {
                     })()}
                 </DialogContent>
             </Dialog>
-
-            <FiscalSimulatorDialog
-                open={showFiscalSim}
-                onClose={() => setShowFiscalSim(false)}
-                prefill={{
-                    type: "factura",
-                    base_imponible: subtotal,
-                    iva_pct: ivaGlobal,
-                }}
-            />
 
         </div>
     )

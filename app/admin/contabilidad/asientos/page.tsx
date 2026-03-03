@@ -78,6 +78,8 @@ type Asiento = {
     estado: string;
     notas?: string;
     revisado_ia?: boolean;
+    pendiente_revision?: boolean;
+    revision_motivo?: string;
     total_debe: number;
     total_haber: number;
     lineas?: AsientoLinea[];
@@ -1639,6 +1641,12 @@ export default function AsientosPage() {
                                                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-600 border border-violet-200 text-[10px] font-medium" title="Clasificado por IA">
                                                             <Bot size={10} />
                                                             IA
+                                                        </span>
+                                                    )}
+                                                    {asiento.pendiente_revision && (
+                                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-medium" title={asiento.revision_motivo || "Revisión pendiente"}>
+                                                            <AlertTriangle size={10} />
+                                                            Revisar
                                                         </span>
                                                     )}
                                                 </div>
