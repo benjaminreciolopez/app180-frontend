@@ -4,14 +4,12 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
-import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import {
   RefreshCw, Euro, X
 } from "lucide-react";
 import { saveAs } from "file-saver";
 
 // --- Imported Types & Widgets ---
-import { DashboardData } from "@/types/dashboard";
 import { BeneficioRealCard } from "@/components/admin/dashboard/BeneficioRealCard";
 import {
   KpiEmpleados, KpiFichajes, KpiSospechosos, KpiCalendario,
@@ -23,29 +21,25 @@ import { TrabajosPendientesModal } from "@/components/admin/dashboard/TrabajosPe
 import { SkeletonDashboard } from "@/components/ui/skeletons";
 import { ALL_DASHBOARD_WIDGETS } from "@/lib/dashboard-widgets";
 import { cn } from "@/lib/utils";
-
-interface WidgetConfig {
-  id: string;
-  visible: boolean;
-  order: number;
-}
+import { useDashboard } from "@/hooks/useDashboard";
 
 const ALL_WIDGETS = ALL_DASHBOARD_WIDGETS;
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [modulos, setModulos] = useState<Record<string, boolean> | null>(null);
-  const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
-  const [widgetsLoaded, setWidgetsLoaded] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { dashData: data, widgets: fetchedWidgets, modulos, isLoading: loading, isRefetching, error, refetch } = useDashboard();
+
+  // Derive widget visibility
+  const widgets = fetchedWidgets.length > 0
+    ? fetchedWidgets
+    : (data ? ALL_WIDGETS.map((wd, index) => ({ id: wd.id, visible: true, order: index })) : []);
+  const widgetsLoaded = !!data;
+
   const [refreshing, setRefreshing] = useState(false);
   const [pullProgress, setPullProgress] = useState(0);
-  // Refs necesarios para pull-to-refresh con listeners nativos
   const pullProgressRef = useRef(0);
   const refreshingRef = useRef(false);
-  const loadAllRef = useRef<() => void>(() => { });
+  const refetchRef = useRef(refetch);
 
   // Estados para previsualización PDF
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -85,48 +79,17 @@ export default function DashboardPage() {
     return isWidgetVisible(id);
   };
 
-  async function loadAll() {
-    try {
-      setLoading(true);
+  // Keep refs updated
+  useEffect(() => { refetchRef.current = refetch; });
+  useEffect(() => { refreshingRef.current = refreshing; }, [refreshing]);
 
-      const isLargeScreen = typeof window !== "undefined" && window.innerWidth >= 1024;
-      const isPwaMobile = isMobileDevice() && isStandalone();
-      const useMobileProfile = isPwaMobile && !isLargeScreen;
-
-      const [dashRes, widgetRes, modsRes] = await Promise.all([
-        api.get("/api/admin/dashboard"),
-        api.get("/admin/configuracion/widgets").catch(() => ({ data: { widgets: [] } })),
-        api.get(useMobileProfile ? "/auth/me/modules?mobile=true" : "/auth/me/modules").catch(() => ({ data: {} })),
-      ]);
-
-      setData(dashRes.data as DashboardData);
-      setModulos(modsRes.data || {});
-
-      let w = useMobileProfile ? (widgetRes.data?.widgets_mobile || []) : (widgetRes.data?.widgets || []);
-      if (w.length === 0) {
-        w = ALL_WIDGETS.map((wd, index) => ({ id: wd.id, visible: true, order: index }));
-        // Persistir defaults para que no se recreen cada vez
-        try {
-          const payload = useMobileProfile ? { widgets_mobile: w } : { widgets: w };
-          api.put("/admin/configuracion/widgets", payload).catch(() => {});
-        } catch (_) {}
-      }
-      setWidgets(w);
-      setWidgetsLoaded(true);
-    } catch (err: any) {
-      console.error("Error cargando dashboard:", err);
-      setError(err.response?.data?.error || "Error al cargar datos");
-    } finally {
-      setLoading(false);
+  // Sync pull-to-refresh state with React Query
+  useEffect(() => {
+    if (!isRefetching && refreshing) {
       setRefreshing(false);
       setPullProgress(0);
     }
-  }
-
-  // Mantener loadAllRef actualizado en cada render
-  useEffect(() => { loadAllRef.current = loadAll; });
-  // Mantener refreshingRef sincronizado
-  useEffect(() => { refreshingRef.current = refreshing; }, [refreshing]);
+  }, [isRefetching, refreshing]);
 
   // Pull-to-Refresh con listeners nativos (evita problemas de eventos sintéticos de React)
   useEffect(() => {
@@ -163,7 +126,7 @@ export default function DashboardPage() {
       if (pullProgressRef.current > 0.4 && !refreshingRef.current) {
         refreshingRef.current = true;
         setRefreshing(true);
-        loadAllRef.current();
+        refetchRef.current();
       }
       pullProgressRef.current = 0;
       startY = 0;
@@ -183,23 +146,22 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    loadAll();
-    const handleRefresh = () => loadAllRef.current();
+    const handleRefresh = () => refetchRef.current();
     window.addEventListener("session-updated", handleRefresh);
     return () => window.removeEventListener("session-updated", handleRefresh);
   }, []);
 
-  if ((loading || refreshing) && !data) return <SkeletonDashboard />;
+  if (loading && !data) return <SkeletonDashboard />;
   if (error) return (
     <div className="p-8 text-center">
       <p className="text-red-500 mb-4">{error}</p>
-      <button onClick={() => { setError(null); loadAll(); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Reintentar</button>
+      <button onClick={refetch} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Reintentar</button>
     </div>
   );
   if (!data) return (
     <div className="p-8 text-center">
       <p className="text-gray-500 mb-4">No se pudieron cargar los datos</p>
-      <button onClick={() => loadAll()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Reintentar</button>
+      <button onClick={refetch} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Reintentar</button>
     </div>
   );
 
@@ -208,7 +170,7 @@ export default function DashboardPage() {
       className="p-2 md:p-8 w-full space-y-4 md:space-y-8 pb-20 md:pb-8 min-w-0 overflow-x-hidden relative"
     >
       {/* Overlay solo en refresh manual (no en carga inicial, que ya tiene skeleton) */}
-      {refreshing && !pullProgress && (
+      {(refreshing || isRefetching) && !pullProgress && data && (
         <div className="fixed inset-0 z-[100] bg-background/40 backdrop-blur-[2px] flex items-center justify-center transition-all">
           <div className="bg-card/80 p-6 rounded-2xl shadow-xl border flex flex-col items-center gap-4">
             <RefreshCw className="w-10 h-10 animate-spin text-primary" />

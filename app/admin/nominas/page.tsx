@@ -5,7 +5,7 @@ import { api } from "@/services/api"
 import { showSuccess, showError } from "@/lib/toast"
 import {
   FileText, Upload, Trash2, Loader2, Download, Search, Plus, X, Send,
-  CheckSquare, Square, Mail, ClipboardList
+  CheckSquare, Square, Mail, ClipboardList, BarChart3, ChevronDown, ChevronUp
 } from "lucide-react"
 import Link from "next/link"
 
@@ -76,6 +76,16 @@ export default function AdminNominasPage() {
   const [formIRPF, setFormIRPF] = useState("")
   const [formLiquido, setFormLiquido] = useState("")
   const [formFile, setFormFile] = useState<File | null>(null)
+  const [formBaseCotizacion, setFormBaseCotizacion] = useState("")
+  const [formContingencias, setFormContingencias] = useState("")
+  const [formDesempleo, setFormDesempleo] = useState("")
+  const [formFormacion, setFormFormacion] = useState("")
+  const [formHorasExtra, setFormHorasExtra] = useState("")
+  const [formComplementos, setFormComplementos] = useState("")
+  const [showDesglose, setShowDesglose] = useState(false)
+  const [showResumen, setShowResumen] = useState(false)
+  const [resumenData, setResumenData] = useState<any>(null)
+  const [loadingResumen, setLoadingResumen] = useState(false)
 
   useEffect(() => {
     loadNominas()
@@ -121,12 +131,21 @@ export default function AdminNominasPage() {
       formData.append("seguridad_social_empleado", formSSEmpleado || "0")
       formData.append("irpf_retencion", formIRPF || "0")
       formData.append("liquido", formLiquido || "0")
+      formData.append("base_cotizacion", formBaseCotizacion || "0")
+      formData.append("tipo_contingencias_comunes", formContingencias || "0")
+      formData.append("tipo_desempleo", formDesempleo || "0")
+      formData.append("tipo_formacion", formFormacion || "0")
+      formData.append("horas_extra", formHorasExtra || "0")
+      formData.append("complementos", formComplementos || "0")
       if (formFile) formData.append("file", formFile)
 
       const res = await api.post("/api/admin/nominas", formData, {
         headers: { "Content-Type": "multipart/form-data" }
       })
       if (res.data?.success) {
+        if (res.data.warnings?.length) {
+          showError(res.data.warnings[0])
+        }
         showSuccess("Nomina creada correctamente")
         resetForm()
         loadNominas()
@@ -205,6 +224,13 @@ export default function AdminNominasPage() {
         setFormSSEmpleado(String(d.seguridad_social_empleado || ""))
         setFormIRPF(String(d.irpf_retencion || ""))
         setFormLiquido(String(d.liquido || ""))
+        setFormBaseCotizacion(String(d.base_cotizacion || ""))
+        setFormContingencias(String(d.tipo_contingencias_comunes || ""))
+        setFormDesempleo(String(d.tipo_desempleo || ""))
+        setFormFormacion(String(d.tipo_formacion || ""))
+        setFormHorasExtra(String(d.horas_extra || ""))
+        setFormComplementos(String(d.complementos || ""))
+        if (d.base_cotizacion > 0 || d.tipo_contingencias_comunes > 0) setShowDesglose(true)
         showSuccess("Datos extraidos del PDF con IA")
       }
     } catch {
@@ -221,6 +247,25 @@ export default function AdminNominasPage() {
     setFormIRPF("")
     setFormLiquido("")
     setFormFile(null)
+    setFormBaseCotizacion("")
+    setFormContingencias("")
+    setFormDesempleo("")
+    setFormFormacion("")
+    setFormHorasExtra("")
+    setFormComplementos("")
+    setShowDesglose(false)
+  }
+
+  async function loadResumenAnual() {
+    setLoadingResumen(true)
+    try {
+      const res = await api.get("/api/admin/nominas/resumen-anual", { params: { year } })
+      if (res.data?.success) setResumenData(res.data)
+    } catch {
+      showError("Error cargando resumen anual")
+    } finally {
+      setLoadingResumen(false)
+    }
   }
 
   function toggleSelect(id: string) {
@@ -284,6 +329,18 @@ export default function AdminNominasPage() {
           ))}
         </select>
 
+        <button
+          onClick={() => {
+            if (showResumen) { setShowResumen(false) } else { loadResumenAnual(); setShowResumen(true) }
+          }}
+          disabled={loadingResumen}
+          className="flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 text-sm font-medium rounded-xl hover:bg-purple-100 transition-colors disabled:opacity-50"
+        >
+          {loadingResumen ? <Loader2 className="w-4 h-4 animate-spin" /> : <BarChart3 className="w-4 h-4" />}
+          Resumen anual
+          {showResumen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        </button>
+
         {selected.size > 0 && (
           <button
             onClick={handleEnviarLote}
@@ -295,6 +352,63 @@ export default function AdminNominasPage() {
           </button>
         )}
       </div>
+
+      {/* Resumen Anual */}
+      {showResumen && resumenData && (
+        <div className="bg-white rounded-2xl border border-purple-200 shadow-sm overflow-hidden">
+          <div className="bg-purple-50 px-5 py-3 border-b border-purple-100">
+            <h3 className="font-semibold text-sm text-purple-800">Resumen Anual {resumenData.year}</h3>
+            <p className="text-xs text-purple-600">{resumenData.totals?.num_nominas || 0} nominas registradas</p>
+          </div>
+
+          {resumenData.empleados?.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="text-left px-4 py-2.5 font-medium text-gray-600">Empleado</th>
+                    <th className="text-right px-3 py-2.5 font-medium text-gray-600">Nominas</th>
+                    <th className="text-right px-3 py-2.5 font-medium text-gray-600">Bruto</th>
+                    <th className="text-right px-3 py-2.5 font-medium text-gray-600">Neto</th>
+                    <th className="text-right px-3 py-2.5 font-medium text-gray-600">IRPF</th>
+                    <th className="text-right px-3 py-2.5 font-medium text-gray-600">SS Empl.</th>
+                    <th className="text-right px-3 py-2.5 font-medium text-gray-600">SS Empr.</th>
+                    <th className="text-right px-3 py-2.5 font-medium text-gray-600">% IRPF</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resumenData.empleados.map((emp: any) => (
+                    <tr key={emp.empleado_id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                      <td className="px-4 py-2.5 font-medium text-gray-900">{emp.nombre_empleado || "Sin asignar"}</td>
+                      <td className="text-right px-3 py-2.5 text-gray-600">{emp.num_nominas}</td>
+                      <td className="text-right px-3 py-2.5 font-medium text-gray-800">{Number(emp.total_bruto).toFixed(2)}</td>
+                      <td className="text-right px-3 py-2.5 font-semibold text-green-700">{Number(emp.total_liquido).toFixed(2)}</td>
+                      <td className="text-right px-3 py-2.5 text-red-600">{Number(emp.total_irpf).toFixed(2)}</td>
+                      <td className="text-right px-3 py-2.5 text-gray-600">{Number(emp.total_ss_empleado).toFixed(2)}</td>
+                      <td className="text-right px-3 py-2.5 text-gray-600">{Number(emp.total_ss_empresa).toFixed(2)}</td>
+                      <td className="text-right px-3 py-2.5 text-orange-600">{Number(emp.tipo_irpf_medio).toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                  <tr className="font-semibold">
+                    <td className="px-4 py-2.5 text-gray-900">TOTAL</td>
+                    <td className="text-right px-3 py-2.5 text-gray-700">{resumenData.totals?.num_nominas || 0}</td>
+                    <td className="text-right px-3 py-2.5 text-gray-900">{Number(resumenData.totals?.total_bruto || 0).toFixed(2)}</td>
+                    <td className="text-right px-3 py-2.5 text-green-700">{Number(resumenData.totals?.total_liquido || 0).toFixed(2)}</td>
+                    <td className="text-right px-3 py-2.5 text-red-600">{Number(resumenData.totals?.total_irpf || 0).toFixed(2)}</td>
+                    <td className="text-right px-3 py-2.5 text-gray-700">{Number(resumenData.totals?.total_ss_empleado || 0).toFixed(2)}</td>
+                    <td className="text-right px-3 py-2.5 text-gray-700">{Number(resumenData.totals?.total_ss_empresa || 0).toFixed(2)}</td>
+                    <td className="text-right px-3 py-2.5 text-gray-400">-</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            <div className="px-5 py-8 text-center text-sm text-gray-500">No hay datos de nominas para {resumenData.year}</div>
+          )}
+        </div>
+      )}
 
       {/* Formulario nueva nomina */}
       {showForm && (
@@ -373,6 +487,63 @@ export default function AdminNominasPage() {
               <input type="number" step="0.01" value={formIRPF} onChange={(e) => setFormIRPF(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
             </div>
           </div>
+
+          {/* Validation warning */}
+          {formBruto && formLiquido && (() => {
+            const b = parseFloat(formBruto) || 0
+            const l = parseFloat(formLiquido) || 0
+            const irpf = parseFloat(formIRPF) || 0
+            const ss = parseFloat(formSSEmpleado) || 0
+            if (b > 0 && l > 0) {
+              const expected = b - irpf - ss
+              const dev = Math.abs(expected - l)
+              const pct = (dev / b) * 100
+              if (pct > 5) return (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+                  Aviso: Desviacion del {pct.toFixed(1)}% entre bruto y liquido. Esperado ~{expected.toFixed(2)} EUR, indicado {l.toFixed(2)} EUR.
+                </div>
+              )
+            }
+            return null
+          })()}
+
+          {/* SS Desglose toggle */}
+          <button
+            type="button"
+            onClick={() => setShowDesglose(!showDesglose)}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+          >
+            {showDesglose ? "Ocultar desglose SS" : "Mostrar desglose SS (opcional)"}
+          </button>
+
+          {showDesglose && (
+            <div className="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Base Cotizacion</label>
+                <input type="number" step="0.01" value={formBaseCotizacion} onChange={(e) => setFormBaseCotizacion(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Contingencias Comunes</label>
+                <input type="number" step="0.01" value={formContingencias} onChange={(e) => setFormContingencias(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Desempleo</label>
+                <input type="number" step="0.01" value={formDesempleo} onChange={(e) => setFormDesempleo(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Formacion Prof.</label>
+                <input type="number" step="0.01" value={formFormacion} onChange={(e) => setFormFormacion(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Horas Extra</label>
+                <input type="number" step="0.01" value={formHorasExtra} onChange={(e) => setFormHorasExtra(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Complementos</label>
+                <input type="number" step="0.01" value={formComplementos} onChange={(e) => setFormComplementos(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+            </div>
+          )}
 
           {/* Botones */}
           <div className="flex gap-3">

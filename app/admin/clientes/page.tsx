@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,55 +24,15 @@ import ClientFiscalFields from "@/components/admin/clientes/ClientFiscalFields";
 import ClientTarifasPanel from "@/components/admin/clientes/ClientTarifasPanel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
+import { useClientes, useNextClienteCode, useSaveCliente, useDeactivateCliente, type Cliente } from "@/hooks/useClientes";
 
 const GeoPicker = dynamic(() => import("@/components/GeoPicker"), {
   ssr: false,
 });
 
 /* =====================================================
-   Types
+   Types — imported from @/hooks/useClientes
 ===================================================== */
-
-type Cliente = {
-  id: string;
-  nombre: string;
-  codigo?: string | null;
-  activo: boolean;
-  modo_defecto: string;
-  requiere_geo: boolean;
-  geo_policy: string | null;
-  lat?: number | null;
-  lng?: number | null;
-  radio_m?: number | null;
-  notas?: string | null;
-
-  // Fiscal Fields (from client_fiscal_data_180)
-  razon_social?: string | null;
-  nif_cif?: string | null;
-  tipo_fiscal?: string | null;
-  pais?: string | null;
-  provincia?: string | null;
-  municipio?: string | null;
-  codigo_postal?: string | null;
-  direccion_fiscal?: string | null;
-  email_factura?: string | null;
-  telefono_factura?: string | null;
-  persona_contacto?: string | null;
-  iva_defecto?: string | null;
-  exento_iva?: boolean | null;
-  forma_pago?: string | null;
-  iban?: string | null;
-
-  // Legacy fields (backward compatibility)
-  nif?: string | null;
-  direccion?: string | null;
-  poblacion?: string | null;
-  cp?: string | null;
-  telefono?: string | null;
-  email?: string | null;
-  contacto_nombre?: string | null;
-  contacto_email?: string | null;
-};
 
 const clienteSchema = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio").max(200, "Máximo 200 caracteres"),
@@ -98,39 +58,18 @@ function loadSortConfig(): SortConfig {
 }
 
 /* =====================================================
-   API helper
-===================================================== */
-
-async function api(url: string, options: RequestInit = {}) {
-  const token = localStorage.getItem("token");
-
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Error API");
-  }
-
-  return res.json();
-}
-
-/* =====================================================
    Page
 ===================================================== */
 
 export default function AdminClientesPage() {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [geoOpen, setGeoOpen] = useState(false);
+  const { data: clientes = [], isLoading: loading, error: queryError } = useClientes();
+  const nextCode = useNextClienteCode();
+  const saveCliente = useSaveCliente();
+  const deactivateCliente = useDeactivateCliente();
 
+  const error = queryError ? (queryError as Error).message : null;
+
+  const [geoOpen, setGeoOpen] = useState(false);
   const [editing, setEditing] = useState<Cliente | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig>(loadSortConfig);
@@ -192,35 +131,13 @@ export default function AdminClientesPage() {
   }, [clientes, sortConfig]);
 
   /* =========================
-     Load
-  ========================= */
-
-  const BASE = "/admin/clientes";
-
-  async function load() {
-    try {
-      setLoading(true);
-      const data = await api(BASE);
-      setClientes(data);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  /* =========================
-     Actions
+     Actions (React Query mutations)
   ========================= */
 
   async function openCreate() {
     try {
       setFormErrors({});
-      const r = await api("/admin/clientes/next-code");
+      const r = await nextCode.mutateAsync();
 
       setEditing({
         id: "",
@@ -235,7 +152,7 @@ export default function AdminClientesPage() {
         poblacion: "",
         provincia: "",
         cp: "",
-        telefono: "", // Added
+        telefono: "",
         email: "",
         nif: "",
         nif_cif: "",
@@ -257,7 +174,6 @@ export default function AdminClientesPage() {
 
   function openEdit(c: Cliente) {
     setFormErrors({});
-    // Asegurar que iva_defecto tenga un valor por defecto si viene null
     const clienteConDefaults = {
       ...c,
       iva_defecto: c.iva_defecto || "21",
@@ -271,7 +187,6 @@ export default function AdminClientesPage() {
   async function save() {
     if (!editing) return;
 
-    // Validate with Zod
     const result = clienteSchema.safeParse(editing);
     if (!result.success) {
       const errors: Record<string, string> = {};
@@ -286,39 +201,12 @@ export default function AdminClientesPage() {
     setFormErrors({});
 
     try {
-      setLoading(true);
-
-      // Normalizar datos antes de enviar
-      const dataToSend = {
-        ...editing,
-        razon_social: editing.razon_social || null,
-        nif_cif: editing.nif_cif || null,
-        forma_pago: editing.forma_pago || null,
-        iban: editing.iban || null,
-        iva_defecto: editing.iva_defecto || null,
-      };
-
-      let result;
-      if (editing.id) {
-        result = await api(`${BASE}/${editing.id}`, {
-          method: "PUT",
-          body: JSON.stringify(dataToSend),
-        });
-      } else {
-        result = await api(BASE, {
-          method: "POST",
-          body: JSON.stringify(dataToSend),
-        });
-      }
-
+      await saveCliente.mutateAsync(editing);
       setDrawerOpen(false);
       setEditing(null);
-      await load();
       showSuccess("Cliente guardado correctamente");
     } catch (e: any) {
       showError(e.message || "Error al guardar");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -332,11 +220,7 @@ export default function AdminClientesPage() {
     if (!ok) return;
 
     try {
-      await api(`${BASE}/${id}`, {
-        method: "DELETE",
-      });
-
-      await load();
+      await deactivateCliente.mutateAsync(id);
       showSuccess("Cliente desactivado");
     } catch (e: any) {
       showError(e.message || "Error al desactivar");
@@ -811,10 +695,10 @@ export default function AdminClientesPage() {
                 </Button>
                 <Button 
                   className="flex-[2] rounded-xl h-12 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200" 
-                  disabled={loading} 
+                  disabled={saveCliente.isPending}
                   onClick={save}
                 >
-                  {loading ? "Guardando..." : "Guardar Cliente"}
+                  {saveCliente.isPending ? "Guardando..." : "Guardar Cliente"}
                 </Button>
               </div>
             </motion.div>

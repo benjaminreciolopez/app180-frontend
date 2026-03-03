@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,21 +32,10 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, Search, FolderTree, ChevronRight, ChevronDown, Pencil, Merge, Loader2 } from "lucide-react";
-import { authenticatedFetch } from "@/utils/api";
 import ExportButton from "@/components/admin/contabilidad/ExportButton";
+import { useCuentas, useCreateCuenta, useUpdateCuenta, useMergeCuentas, useInitializePGC, type Cuenta } from "@/hooks/useCuentas";
 
-interface Cuenta {
-    id: number;
-    codigo: string;
-    nombre: string;
-    tipo: string;
-    grupo: number;
-    subgrupo: number | null;
-    nivel: number;
-    padre_codigo: string | null;
-    activa: boolean;
-    es_estandar: boolean;
-}
+// Cuenta type imported from @/hooks/useCuentas
 
 const GRUPOS: Record<number, string> = {
     1: "Financiacion basica",
@@ -78,13 +67,29 @@ const NIVEL_INDENT: Record<number, string> = {
 const isTercero = (codigo: string) => /^(4300|4000)\d+/.test(codigo);
 
 export default function PlanCuentasPage() {
-    const [cuentas, setCuentas] = useState<Cuenta[]>([]);
-    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [filtroGrupo, setFiltroGrupo] = useState<string>("todos");
     const [filtroTipo, setFiltroTipo] = useState<string>("todos");
     const [showInactive, setShowInactive] = useState(false);
     const [collapsedGrupos, setCollapsedGrupos] = useState<Set<number>>(new Set());
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    // React Query hooks
+    const { data: cuentas = [], isLoading: loading } = useCuentas({
+        grupo: filtroGrupo,
+        tipo: filtroTipo,
+        search: debouncedSearch,
+    });
+    const createCuenta = useCreateCuenta();
+    const updateCuenta = useUpdateCuenta();
+    const mergeCuentas = useMergeCuentas();
+    const initPGC = useInitializePGC();
 
     // New cuenta dialog
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -94,96 +99,39 @@ export default function PlanCuentasPage() {
         tipo: "activo",
         grupo: "1",
     });
-    const [saving, setSaving] = useState(false);
-    const [initializing, setInitializing] = useState(false);
 
     // Edit cuenta dialog
     const [editingCuenta, setEditingCuenta] = useState<Cuenta | null>(null);
     const [editNombre, setEditNombre] = useState("");
     const [editActiva, setEditActiva] = useState(true);
-    const [editSaving, setEditSaving] = useState(false);
 
     // Merge dialog
     const [mergeSource, setMergeSource] = useState<Cuenta | null>(null);
     const [mergeTargetCodigo, setMergeTargetCodigo] = useState("");
-    const [mergeSaving, setMergeSaving] = useState(false);
     const [mergeError, setMergeError] = useState("");
     const [mergeResult, setMergeResult] = useState("");
 
-    const fetchCuentas = useCallback(async () => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams();
-            if (filtroGrupo !== "todos") params.set("grupo", filtroGrupo);
-            if (filtroTipo !== "todos") params.set("tipo", filtroTipo);
-            if (searchTerm) params.set("search", searchTerm);
-            const query = params.toString() ? `?${params.toString()}` : "";
-            const res = await authenticatedFetch(`/api/admin/contabilidad/cuentas${query}`);
-            if (res.ok) {
-                const data = await res.json();
-                const list = Array.isArray(data) ? data : data.cuentas || [];
-                setCuentas(list);
-            }
-        } catch (err) {
-            console.error("Error cargando cuentas:", err);
-        } finally {
-            setLoading(false);
-        }
-    }, [filtroGrupo, filtroTipo, searchTerm]);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchCuentas();
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [fetchCuentas]);
-
     const handleInitializePGC = async () => {
-        setInitializing(true);
         try {
-            const res = await authenticatedFetch("/api/admin/contabilidad/cuentas/inicializar-pgc", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-            });
-            if (res.ok) {
-                fetchCuentas();
-            } else {
-                const data = await res.json();
-                alert(data.error || "Error inicializando PGC");
-            }
-        } catch (err) {
-            console.error("Error inicializando PGC:", err);
-        } finally {
-            setInitializing(false);
+            await initPGC.mutateAsync();
+        } catch (err: any) {
+            alert(err.message || "Error inicializando PGC");
         }
     };
 
     const handleCreateCuenta = async () => {
         if (!newCuenta.codigo || !newCuenta.nombre) return;
-        setSaving(true);
         try {
-            const res = await authenticatedFetch("/api/admin/contabilidad/cuentas", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    codigo: newCuenta.codigo,
-                    nombre: newCuenta.nombre,
-                    tipo: newCuenta.tipo,
-                    grupo: parseInt(newCuenta.grupo),
-                }),
+            await createCuenta.mutateAsync({
+                codigo: newCuenta.codigo,
+                nombre: newCuenta.nombre,
+                tipo: newCuenta.tipo,
+                grupo: parseInt(newCuenta.grupo),
             });
-            if (res.ok) {
-                setDialogOpen(false);
-                setNewCuenta({ codigo: "", nombre: "", tipo: "activo", grupo: "1" });
-                fetchCuentas();
-            } else {
-                const data = await res.json();
-                alert(data.error || "Error creando cuenta");
-            }
-        } catch (err) {
-            console.error("Error creando cuenta:", err);
-        } finally {
-            setSaving(false);
+            setDialogOpen(false);
+            setNewCuenta({ codigo: "", nombre: "", tipo: "activo", grupo: "1" });
+        } catch (err: any) {
+            alert(err.message || "Error creando cuenta");
         }
     };
 
@@ -196,24 +144,11 @@ export default function PlanCuentasPage() {
 
     const handleSaveEdit = async () => {
         if (!editingCuenta || !editNombre.trim()) return;
-        setEditSaving(true);
         try {
-            const res = await authenticatedFetch(`/api/admin/contabilidad/cuentas/${editingCuenta.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nombre: editNombre.trim(), activa: editActiva }),
-            });
-            if (res.ok) {
-                setEditingCuenta(null);
-                fetchCuentas();
-            } else {
-                const data = await res.json();
-                alert(data.error || "Error actualizando cuenta");
-            }
-        } catch (err) {
-            console.error("Error actualizando cuenta:", err);
-        } finally {
-            setEditSaving(false);
+            await updateCuenta.mutateAsync({ id: editingCuenta.id, nombre: editNombre.trim(), activa: editActiva });
+            setEditingCuenta(null);
+        } catch (err: any) {
+            alert(err.message || "Error actualizando cuenta");
         }
     };
 
@@ -227,30 +162,17 @@ export default function PlanCuentasPage() {
 
     const handleMerge = async () => {
         if (!mergeSource || !mergeTargetCodigo.trim()) return;
-        setMergeSaving(true);
         setMergeError("");
         setMergeResult("");
         try {
-            const res = await authenticatedFetch("/api/admin/contabilidad/cuentas/fusionar", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    source_codigo: mergeSource.codigo,
-                    target_codigo: mergeTargetCodigo.trim(),
-                }),
+            const data = await mergeCuentas.mutateAsync({
+                source_codigo: mergeSource.codigo,
+                target_codigo: mergeTargetCodigo.trim(),
             });
-            const data = await res.json();
-            if (res.ok) {
-                setMergeResult(`Fusionadas correctamente. ${data.lineas_actualizadas} lineas de asientos actualizadas.`);
-                fetchCuentas();
-                setTimeout(() => { setMergeSource(null); setMergeResult(""); }, 2000);
-            } else {
-                setMergeError(data.error || "Error fusionando cuentas");
-            }
-        } catch (err) {
-            setMergeError("Error de conexion");
-        } finally {
-            setMergeSaving(false);
+            setMergeResult(`Fusionadas correctamente. ${data.lineas_actualizadas} lineas de asientos actualizadas.`);
+            setTimeout(() => { setMergeSource(null); setMergeResult(""); }, 2000);
+        } catch (err: any) {
+            setMergeError(err.message || "Error de conexion");
         }
     };
 
@@ -324,11 +246,11 @@ export default function PlanCuentasPage() {
                     {showInitButton && (
                         <Button
                             onClick={handleInitializePGC}
-                            disabled={initializing}
+                            disabled={initPGC.isPending}
                             variant="outline"
                             className="rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50"
                         >
-                            {initializing ? "Inicializando..." : "Inicializar PGC PYMES"}
+                            {initPGC.isPending ? "Inicializando..." : "Inicializar PGC PYMES"}
                         </Button>
                     )}
                     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -427,10 +349,10 @@ export default function PlanCuentasPage() {
                                 </Button>
                                 <Button
                                     onClick={handleCreateCuenta}
-                                    disabled={saving || !newCuenta.codigo || !newCuenta.nombre}
+                                    disabled={createCuenta.isPending || !newCuenta.codigo || !newCuenta.nombre}
                                     className="rounded-xl"
                                 >
-                                    {saving ? "Guardando..." : "Crear Cuenta"}
+                                    {createCuenta.isPending ? "Guardando..." : "Crear Cuenta"}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -717,11 +639,11 @@ export default function PlanCuentasPage() {
                         </Button>
                         <Button
                             onClick={handleSaveEdit}
-                            disabled={editSaving || !editNombre.trim()}
+                            disabled={updateCuenta.isPending || !editNombre.trim()}
                             className="rounded-xl gap-2"
                         >
-                            {editSaving && <Loader2 size={14} className="animate-spin" />}
-                            {editSaving ? "Guardando..." : "Guardar"}
+                            {updateCuenta.isPending && <Loader2 size={14} className="animate-spin" />}
+                            {updateCuenta.isPending ? "Guardando..." : "Guardar"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -777,11 +699,11 @@ export default function PlanCuentasPage() {
                         </Button>
                         <Button
                             onClick={handleMerge}
-                            disabled={mergeSaving || !mergeTargetCodigo || !!mergeResult}
+                            disabled={mergeCuentas.isPending || !mergeTargetCodigo || !!mergeResult}
                             className="rounded-xl gap-2 bg-indigo-600 hover:bg-indigo-700"
                         >
-                            {mergeSaving && <Loader2 size={14} className="animate-spin" />}
-                            {mergeSaving ? "Fusionando..." : "Fusionar"}
+                            {mergeCuentas.isPending && <Loader2 size={14} className="animate-spin" />}
+                            {mergeCuentas.isPending ? "Fusionando..." : "Fusionar"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

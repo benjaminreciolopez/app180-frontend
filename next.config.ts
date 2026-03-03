@@ -31,6 +31,8 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
 
+  turbopack: {},
+
   webpack(config, { isServer }) {
     if (isServer) {
       config.resolve.conditionNames = ["node", "require", "default"];

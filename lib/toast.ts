@@ -16,6 +16,12 @@ export const dismissToast = (toastId: string) => {
   toast.dismiss(toastId);
 };
 
+export const showWarning = (message: string) => {
+  toast(message, {
+    icon: '⚠️',
+  });
+};
+
 export const showInfo = (message: string) => {
   toast(message, {
     icon: 'ℹ️',

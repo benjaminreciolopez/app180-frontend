@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarOff, BedDouble, Ban, Coffee, Utensils, Route, ChevronLeft } from "lucide-react";
+import { CalendarOff, BedDouble, Ban, Coffee, Utensils, Route, ChevronLeft, WifiOff, CloudUpload } from "lucide-react";
 import { useFichaje } from "./useFichaje";
 import { Button } from "@/components/ui/button";
 
@@ -123,7 +123,7 @@ export function FichajeAction({
   boton: BotonEstado | null;
   reload: () => void;
 }) {
-  const { fichar, loading } = useFichaje(reload);
+  const { fichar, loading, pendingOffline } = useFichaje(reload);
   const [showSubtipos, setShowSubtipos] = useState(false);
 
   if (!boton) return null;
@@ -197,6 +197,24 @@ export function FichajeAction({
 
       {/* MOTIVO DE BLOQUEO */}
       {!boton.visible && <MotivoBloqueo boton={boton} />}
+
+      {/* OFFLINE PENDING BADGE */}
+      {pendingOffline > 0 && (
+        <div className="flex items-center justify-center gap-2 text-amber-600 text-xs bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
+          <CloudUpload className="w-3.5 h-3.5" />
+          <span>
+            {pendingOffline} fichaje{pendingOffline > 1 ? "s" : ""} pendiente{pendingOffline > 1 ? "s" : ""} de sincronizar
+          </span>
+        </div>
+      )}
+
+      {/* OFFLINE INDICATOR */}
+      {typeof navigator !== "undefined" && !navigator.onLine && (
+        <div className="flex items-center justify-center gap-2 text-gray-500 text-xs">
+          <WifiOff className="w-3.5 h-3.5" />
+          <span>Sin conexión — los fichajes se guardarán localmente</span>
+        </div>
+      )}
     </div>
   );
 }

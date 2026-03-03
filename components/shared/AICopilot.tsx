@@ -24,6 +24,63 @@ import { api } from "@/services/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ReactMarkdown from "react-markdown"
+import dynamic from "next/dynamic"
+
+const AICopilotChart = dynamic(() => import("./AICopilotChart"), { ssr: false })
+
+/**
+ * Parse assistant message content to extract chart/action blocks
+ */
+function parseAssistantBlocks(content: string) {
+  const blocks: Array<
+    | { type: "text"; content: string }
+    | { type: "chart"; config: Record<string, unknown> }
+    | { type: "action"; label: string; message: string }
+  > = [];
+
+  // Split by ```chart and ```action code blocks
+  const regex = /```(chart|action)\s*\n([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(content)) !== null) {
+    // Text before this block
+    if (match.index > lastIndex) {
+      const text = content.slice(lastIndex, match.index).trim();
+      if (text) blocks.push({ type: "text", content: text });
+    }
+
+    const blockType = match[1];
+    const blockContent = match[2].trim();
+
+    try {
+      const json = JSON.parse(blockContent);
+      if (blockType === "chart") {
+        blocks.push({ type: "chart", config: json });
+      } else if (blockType === "action") {
+        blocks.push({ type: "action", label: json.label || "Ejecutar", message: json.message || "" });
+      }
+    } catch {
+      // If JSON parsing fails, treat as text
+      blocks.push({ type: "text", content: `\`\`\`${blockType}\n${blockContent}\n\`\`\`` });
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Remaining text after last block
+  if (lastIndex < content.length) {
+    const text = content.slice(lastIndex).trim();
+    if (text) blocks.push({ type: "text", content: text });
+  }
+
+  // If no special blocks found, return as single text block
+  if (blocks.length === 0) {
+    blocks.push({ type: "text", content });
+  }
+
+  return blocks;
+}
 
 interface Mensaje {
   role: "user" | "assistant"
@@ -445,7 +502,26 @@ Preguntame lo que necesites.`,
                     )}
                     {mensaje.role === "assistant" ? (
                       <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0">
-                        <ReactMarkdown>{mensaje.content}</ReactMarkdown>
+                        {parseAssistantBlocks(mensaje.content).map((block, bi) =>
+                          block.type === "chart" ? (
+                            <AICopilotChart key={bi} config={block.config as any} />
+                          ) : block.type === "action" ? (
+                            <button
+                              key={bi}
+                              type="button"
+                              onClick={() => {
+                                setInputValue(block.message)
+                                setTimeout(() => enviarMensaje(block.message), 100)
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors mr-2 mt-1 not-prose"
+                            >
+                              <Zap className="w-3 h-3" />
+                              {block.label}
+                            </button>
+                          ) : (
+                            <ReactMarkdown key={bi}>{block.content}</ReactMarkdown>
+                          )
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm whitespace-pre-wrap">{mensaje.content}</p>
