@@ -40,6 +40,11 @@ export default function AdminLayout({
     screensaver_style: "clock" | "logo" | "minimal";
   }>({ pin_lock_enabled: false, pin_code: null, pin_timeout_minutes: 5, screensaver_enabled: false, screensaver_style: "clock" });
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [pendingLock, setPendingLock] = useState(() => {
+    if (typeof window === "undefined") return false
+    return localStorage.getItem("app180_lock_enabled") === "true"
+      && localStorage.getItem("app180_lock_active") === "true"
+  });
 
   // ============================
   // Helpers
@@ -149,7 +154,8 @@ export default function AdminLayout({
           screensaver_style: res.data.screensaver_style || "clock",
         });
       }
-    }).catch(() => { });
+      setPendingLock(false);
+    }).catch(() => { setPendingLock(false); });
 
     // Fetch company logo for screensaver
     api.get("/admin/facturacion/configuracion/emisor").then(res => {
@@ -430,6 +436,10 @@ export default function AdminLayout({
   return (
     <div className="flex h-[100svh] w-full overflow-hidden">
       <AutoBackupSync />
+      {/* Pre-API lock overlay: blocks UI until PIN config loads */}
+      {pendingLock && !pinConfig.pin_lock_enabled && (
+        <div className="fixed inset-0 z-[9999] bg-slate-900" />
+      )}
       {pinConfig.pin_lock_enabled && pinConfig.pin_code && (
         <LockScreen
           pinCode={pinConfig.pin_code}

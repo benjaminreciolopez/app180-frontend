@@ -176,6 +176,11 @@ export function logout() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
 
+  // Limpieza lock screen (evitar que el siguiente login pida PIN inmediatamente)
+  localStorage.removeItem("app180_lock_active");
+  localStorage.removeItem("app180_lock_hidden_at");
+  localStorage.removeItem("app180_lock_enabled");
+
   // Limpieza sesión (CRÍTICO para evitar persistencia de modo móvil erróneo)
   sessionStorage.removeItem("token");
   sessionStorage.removeItem("user");

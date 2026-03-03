@@ -13,7 +13,10 @@ interface LockScreenProps {
 }
 
 export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screensaverStyle, enabled, companyLogo }: LockScreenProps) {
-  const [isLocked, setIsLocked] = useState(false)
+  const [isLocked, setIsLocked] = useState(() => {
+    if (typeof window === "undefined") return false
+    return localStorage.getItem("app180_lock_active") === "true"
+  })
   const [enteredPin, setEnteredPin] = useState("")
   const [error, setError] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -28,6 +31,69 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
       setEnteredPin("")
       setError(false)
     }, timeoutMinutes * 60 * 1000)
+  }, [enabled, pinCode, timeoutMinutes])
+
+  // Persist lock state to localStorage for cross-session survival
+  useEffect(() => {
+    if (!enabled || !pinCode) return
+    localStorage.setItem("app180_lock_active", isLocked ? "true" : "false")
+  }, [isLocked, enabled, pinCode])
+
+  // Track lock_enabled in localStorage (for pre-API overlay in layout)
+  useEffect(() => {
+    if (enabled && pinCode) {
+      localStorage.setItem("app180_lock_enabled", "true")
+    } else {
+      localStorage.removeItem("app180_lock_enabled")
+      localStorage.removeItem("app180_lock_active")
+    }
+  }, [enabled, pinCode])
+
+  // Visibility-based lock: record when app is hidden, lock when it returns
+  useEffect(() => {
+    if (!enabled || !pinCode) return
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        localStorage.setItem("app180_lock_hidden_at", new Date().toISOString())
+      } else {
+        const hiddenAt = localStorage.getItem("app180_lock_hidden_at")
+        if (hiddenAt) {
+          const elapsed = Date.now() - new Date(hiddenAt).getTime()
+          if (elapsed >= timeoutMinutes * 60 * 1000) {
+            setIsLocked(true)
+            setEnteredPin("")
+            setError(false)
+          }
+          localStorage.removeItem("app180_lock_hidden_at")
+        }
+      }
+    }
+
+    const handleBeforeUnload = () => {
+      localStorage.setItem("app180_lock_hidden_at", new Date().toISOString())
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("beforeunload", handleBeforeUnload)
+    }
+  }, [enabled, pinCode, timeoutMinutes])
+
+  // On fresh mount: check if we should lock based on elapsed time since last hidden
+  useEffect(() => {
+    if (!enabled || !pinCode) return
+    const hiddenAt = localStorage.getItem("app180_lock_hidden_at")
+    if (hiddenAt) {
+      const elapsed = Date.now() - new Date(hiddenAt).getTime()
+      if (elapsed >= timeoutMinutes * 60 * 1000) {
+        setIsLocked(true)
+        setEnteredPin("")
+      }
+      localStorage.removeItem("app180_lock_hidden_at")
+    }
   }, [enabled, pinCode, timeoutMinutes])
 
   // Listen for user activity
@@ -86,6 +152,8 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
       if (newPin === pinCode) {
         setIsLocked(false)
         setEnteredPin("")
+        localStorage.removeItem("app180_lock_active")
+        localStorage.removeItem("app180_lock_hidden_at")
         resetTimer()
       } else {
         setError(true)
