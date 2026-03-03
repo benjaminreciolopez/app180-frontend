@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
     Select,
     SelectContent,
@@ -29,7 +31,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Search, FolderTree, ChevronRight, ChevronDown } from "lucide-react";
+import { Plus, Search, FolderTree, ChevronRight, ChevronDown, Pencil, Merge, Loader2 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import ExportButton from "@/components/admin/contabilidad/ExportButton";
 
@@ -73,6 +75,8 @@ const NIVEL_INDENT: Record<number, string> = {
     4: "pl-18",
 };
 
+const isTercero = (codigo: string) => /^(4300|4000)\d+/.test(codigo);
+
 export default function PlanCuentasPage() {
     const [cuentas, setCuentas] = useState<Cuenta[]>([]);
     const [loading, setLoading] = useState(true);
@@ -92,6 +96,19 @@ export default function PlanCuentasPage() {
     });
     const [saving, setSaving] = useState(false);
     const [initializing, setInitializing] = useState(false);
+
+    // Edit cuenta dialog
+    const [editingCuenta, setEditingCuenta] = useState<Cuenta | null>(null);
+    const [editNombre, setEditNombre] = useState("");
+    const [editActiva, setEditActiva] = useState(true);
+    const [editSaving, setEditSaving] = useState(false);
+
+    // Merge dialog
+    const [mergeSource, setMergeSource] = useState<Cuenta | null>(null);
+    const [mergeTargetCodigo, setMergeTargetCodigo] = useState("");
+    const [mergeSaving, setMergeSaving] = useState(false);
+    const [mergeError, setMergeError] = useState("");
+    const [mergeResult, setMergeResult] = useState("");
 
     const fetchCuentas = useCallback(async () => {
         setLoading(true);
@@ -170,6 +187,73 @@ export default function PlanCuentasPage() {
         }
     };
 
+    // Edit handlers
+    const startEdit = (cuenta: Cuenta) => {
+        setEditingCuenta(cuenta);
+        setEditNombre(cuenta.nombre);
+        setEditActiva(cuenta.activa);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingCuenta || !editNombre.trim()) return;
+        setEditSaving(true);
+        try {
+            const res = await authenticatedFetch(`/api/admin/contabilidad/cuentas/${editingCuenta.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nombre: editNombre.trim(), activa: editActiva }),
+            });
+            if (res.ok) {
+                setEditingCuenta(null);
+                fetchCuentas();
+            } else {
+                const data = await res.json();
+                alert(data.error || "Error actualizando cuenta");
+            }
+        } catch (err) {
+            console.error("Error actualizando cuenta:", err);
+        } finally {
+            setEditSaving(false);
+        }
+    };
+
+    // Merge handlers
+    const startMerge = (cuenta: Cuenta) => {
+        setMergeSource(cuenta);
+        setMergeTargetCodigo("");
+        setMergeError("");
+        setMergeResult("");
+    };
+
+    const handleMerge = async () => {
+        if (!mergeSource || !mergeTargetCodigo.trim()) return;
+        setMergeSaving(true);
+        setMergeError("");
+        setMergeResult("");
+        try {
+            const res = await authenticatedFetch("/api/admin/contabilidad/cuentas/fusionar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    source_codigo: mergeSource.codigo,
+                    target_codigo: mergeTargetCodigo.trim(),
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setMergeResult(`Fusionadas correctamente. ${data.lineas_actualizadas} lineas de asientos actualizadas.`);
+                fetchCuentas();
+                setTimeout(() => { setMergeSource(null); setMergeResult(""); }, 2000);
+            } else {
+                setMergeError(data.error || "Error fusionando cuentas");
+            }
+        } catch (err) {
+            setMergeError("Error de conexion");
+        } finally {
+            setMergeSaving(false);
+        }
+    };
+
     const toggleGrupo = (grupo: number) => {
         setCollapsedGrupos((prev) => {
             const next = new Set(prev);
@@ -196,7 +280,6 @@ export default function PlanCuentasPage() {
         groupedCuentas[cuenta.grupo].push(cuenta);
     }
 
-    // Sort cuentas within each group by codigo
     for (const grupo of Object.keys(groupedCuentas)) {
         groupedCuentas[parseInt(grupo)].sort((a, b) => a.codigo.localeCompare(b.codigo));
     }
@@ -205,8 +288,18 @@ export default function PlanCuentasPage() {
         .map(Number)
         .sort((a, b) => a - b);
 
-    const hasCuentas = cuentas.length > 0 || !loading;
     const showInitButton = !loading && cuentas.length === 0;
+
+    // Get merge target candidates (same prefix as source, excluding source itself)
+    const mergeTargetOptions = mergeSource
+        ? cuentas.filter(
+              (c) =>
+                  c.codigo !== mergeSource.codigo &&
+                  c.activa &&
+                  c.codigo.substring(0, 4) === mergeSource.codigo.substring(0, 4) &&
+                  c.codigo.length > 4
+          )
+        : [];
 
     return (
         <div className="space-y-6">
@@ -349,7 +442,6 @@ export default function PlanCuentasPage() {
             <Card className="bg-white rounded-xl border-slate-100 shadow-sm">
                 <CardContent className="pt-6">
                     <div className="flex flex-col md:flex-row gap-4 items-end">
-                        {/* Search */}
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                             <Input
@@ -359,8 +451,6 @@ export default function PlanCuentasPage() {
                                 className="pl-10 rounded-xl border-slate-200"
                             />
                         </div>
-
-                        {/* Grupo filter */}
                         <div className="space-y-1">
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                                 Grupo
@@ -379,8 +469,6 @@ export default function PlanCuentasPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        {/* Tipo filter */}
                         <div className="space-y-1">
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                                 Tipo
@@ -399,8 +487,6 @@ export default function PlanCuentasPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        {/* Toggle inactive */}
                         <Button
                             variant={showInactive ? "default" : "outline"}
                             onClick={() => setShowInactive(!showInactive)}
@@ -488,12 +574,17 @@ export default function PlanCuentasPage() {
                                                     <TableHead className="font-semibold text-slate-600 w-24 text-center">
                                                         Origen
                                                     </TableHead>
+                                                    <TableHead className="font-semibold text-slate-600 w-20 text-center">
+                                                        Acciones
+                                                    </TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {cuentasGrupo.map((cuenta) => {
                                                     const indent = NIVEL_INDENT[cuenta.nivel] || "pl-0";
                                                     const isBold = cuenta.nivel === 1;
+                                                    const canEdit = !cuenta.es_estandar || isTercero(cuenta.codigo);
+                                                    const canMerge = isTercero(cuenta.codigo) && cuenta.activa;
 
                                                     return (
                                                         <TableRow
@@ -561,6 +652,28 @@ export default function PlanCuentasPage() {
                                                                     </Badge>
                                                                 )}
                                                             </TableCell>
+                                                            <TableCell className="text-center">
+                                                                <div className="flex items-center justify-center gap-1">
+                                                                    {canEdit && (
+                                                                        <button
+                                                                            onClick={() => startEdit(cuenta)}
+                                                                            className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+                                                                            title="Editar"
+                                                                        >
+                                                                            <Pencil size={14} />
+                                                                        </button>
+                                                                    )}
+                                                                    {canMerge && (
+                                                                        <button
+                                                                            onClick={() => startMerge(cuenta)}
+                                                                            className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"
+                                                                            title="Fusionar con otra cuenta"
+                                                                        >
+                                                                            <Merge size={14} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </TableCell>
                                                         </TableRow>
                                                     );
                                                 })}
@@ -573,6 +686,106 @@ export default function PlanCuentasPage() {
                     })}
                 </div>
             )}
+
+            {/* Edit cuenta dialog */}
+            <Dialog open={!!editingCuenta} onOpenChange={(open) => { if (!open) setEditingCuenta(null); }}>
+                <DialogContent className="sm:max-w-md rounded-xl">
+                    <DialogHeader>
+                        <DialogTitle>Editar Cuenta</DialogTitle>
+                        <DialogDescription>
+                            {editingCuenta?.codigo} — {editingCuenta?.nombre}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium text-slate-700">Nombre</Label>
+                            <Input
+                                value={editNombre}
+                                onChange={(e) => setEditNombre(e.target.value)}
+                                className="rounded-xl border-slate-200"
+                                placeholder="Nombre de la cuenta"
+                            />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium text-slate-700">Cuenta activa</Label>
+                            <Switch checked={editActiva} onCheckedChange={setEditActiva} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingCuenta(null)} className="rounded-xl">
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleSaveEdit}
+                            disabled={editSaving || !editNombre.trim()}
+                            className="rounded-xl gap-2"
+                        >
+                            {editSaving && <Loader2 size={14} className="animate-spin" />}
+                            {editSaving ? "Guardando..." : "Guardar"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Merge dialog */}
+            <Dialog open={!!mergeSource} onOpenChange={(open) => { if (!open) { setMergeSource(null); setMergeError(""); setMergeResult(""); } }}>
+                <DialogContent className="sm:max-w-lg rounded-xl">
+                    <DialogHeader>
+                        <DialogTitle>Fusionar Terceros</DialogTitle>
+                        <DialogDescription>
+                            La cuenta origen se desactivara y todos sus asientos se reasignaran a la cuenta destino.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="bg-slate-50 rounded-lg p-3 space-y-1">
+                            <p className="text-xs font-medium text-slate-500 uppercase">Cuenta origen (se desactivara)</p>
+                            <p className="text-sm font-mono font-medium">{mergeSource?.codigo} — {mergeSource?.nombre}</p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium text-slate-700">Cuenta destino</Label>
+                            {mergeTargetOptions.length > 0 ? (
+                                <Select value={mergeTargetCodigo} onValueChange={setMergeTargetCodigo}>
+                                    <SelectTrigger className="rounded-xl border-slate-200">
+                                        <SelectValue placeholder="Seleccionar cuenta destino..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl max-h-60">
+                                        {mergeTargetOptions.map((c) => (
+                                            <SelectItem key={c.codigo} value={c.codigo}>
+                                                {c.codigo} — {c.nombre}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <p className="text-sm text-slate-500 italic">No hay otras cuentas del mismo tipo para fusionar.</p>
+                            )}
+                        </div>
+                        {mergeError && (
+                            <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg border border-red-200">
+                                {mergeError}
+                            </div>
+                        )}
+                        {mergeResult && (
+                            <div className="bg-green-50 text-green-700 text-sm p-3 rounded-lg border border-green-200">
+                                {mergeResult}
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => { setMergeSource(null); setMergeError(""); setMergeResult(""); }} className="rounded-xl">
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleMerge}
+                            disabled={mergeSaving || !mergeTargetCodigo || !!mergeResult}
+                            className="rounded-xl gap-2 bg-indigo-600 hover:bg-indigo-700"
+                        >
+                            {mergeSaving && <Loader2 size={14} className="animate-spin" />}
+                            {mergeSaving ? "Fusionando..." : "Fusionar"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

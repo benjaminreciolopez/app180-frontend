@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { authenticatedFetch } from "@/utils/api";
+import CuentaAutocomplete from "@/components/admin/contabilidad/CuentaAutocomplete";
 import {
     Card,
     CardContent,
@@ -1134,11 +1135,8 @@ export default function AsientosPage() {
                                         <table className="w-full text-sm">
                                             <thead>
                                                 <tr className="border-b border-slate-200 bg-slate-100/50">
-                                                    <th className="text-left p-2.5 font-semibold text-slate-500 text-xs">
+                                                    <th className="text-left p-2.5 font-semibold text-slate-500 text-xs" colSpan={2}>
                                                         Cuenta
-                                                    </th>
-                                                    <th className="text-left p-2.5 font-semibold text-slate-500 text-xs">
-                                                        Nombre
                                                     </th>
                                                     <th className="text-right p-2.5 font-semibold text-slate-500 text-xs w-[120px]">
                                                         Debe
@@ -1155,38 +1153,14 @@ export default function AsientosPage() {
                                                         key={idx}
                                                         className="border-b border-slate-100 last:border-0"
                                                     >
-                                                        <td className="p-1.5">
-                                                            <Input
-                                                                placeholder="4300"
-                                                                value={
-                                                                    linea.cuenta_codigo
-                                                                }
-                                                                onChange={(e) =>
-                                                                    updateLinea(
-                                                                        idx,
-                                                                        "cuenta_codigo",
-                                                                        e.target
-                                                                            .value
-                                                                    )
-                                                                }
-                                                                className="h-8 rounded-lg text-xs bg-white"
-                                                            />
-                                                        </td>
-                                                        <td className="p-1.5">
-                                                            <Input
-                                                                placeholder="Clientes"
-                                                                value={
-                                                                    linea.cuenta_nombre
-                                                                }
-                                                                onChange={(e) =>
-                                                                    updateLinea(
-                                                                        idx,
-                                                                        "cuenta_nombre",
-                                                                        e.target
-                                                                            .value
-                                                                    )
-                                                                }
-                                                                className="h-8 rounded-lg text-xs bg-white"
+                                                        <td className="p-1.5" colSpan={2}>
+                                                            <CuentaAutocomplete
+                                                                codigoValue={linea.cuenta_codigo}
+                                                                nombreValue={linea.cuenta_nombre}
+                                                                onSelect={(codigo, nombre) => {
+                                                                    updateLinea(idx, "cuenta_codigo", codigo);
+                                                                    updateLinea(idx, "cuenta_nombre", nombre);
+                                                                }}
                                                             />
                                                         </td>
                                                         <td className="p-1.5">
@@ -1998,8 +1972,7 @@ export default function AsientosPage() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200 bg-slate-100/50">
-                                            <th className="text-left p-2.5 font-semibold text-slate-500 text-xs">Cuenta</th>
-                                            <th className="text-left p-2.5 font-semibold text-slate-500 text-xs">Nombre</th>
+                                            <th className="text-left p-2.5 font-semibold text-slate-500 text-xs" colSpan={2}>Cuenta</th>
                                             <th className="text-right p-2.5 font-semibold text-slate-500 text-xs w-[120px]">Debe</th>
                                             <th className="text-right p-2.5 font-semibold text-slate-500 text-xs w-[120px]">Haber</th>
                                             <th className="w-[40px]"></th>
@@ -2008,11 +1981,15 @@ export default function AsientosPage() {
                                     <tbody>
                                         {editLineas.map((linea, idx) => (
                                             <tr key={idx} className="border-b border-slate-100 last:border-0">
-                                                <td className="p-1.5">
-                                                    <Input placeholder="4300" value={linea.cuenta_codigo} onChange={(e) => updateEditLinea(idx, "cuenta_codigo", e.target.value)} className="h-8 rounded-lg text-xs bg-white" />
-                                                </td>
-                                                <td className="p-1.5">
-                                                    <Input placeholder="Clientes" value={linea.cuenta_nombre} onChange={(e) => updateEditLinea(idx, "cuenta_nombre", e.target.value)} className="h-8 rounded-lg text-xs bg-white" />
+                                                <td className="p-1.5" colSpan={2}>
+                                                    <CuentaAutocomplete
+                                                        codigoValue={linea.cuenta_codigo}
+                                                        nombreValue={linea.cuenta_nombre}
+                                                        onSelect={(codigo, nombre) => {
+                                                            updateEditLinea(idx, "cuenta_codigo", codigo);
+                                                            updateEditLinea(idx, "cuenta_nombre", nombre);
+                                                        }}
+                                                    />
                                                 </td>
                                                 <td className="p-1.5">
                                                     <Input type="number" step="0.01" min="0" placeholder="0.00" value={linea.debe || ""} onChange={(e) => updateEditLinea(idx, "debe", parseFloat(e.target.value) || 0)} className="h-8 rounded-lg text-xs text-right bg-white" />
