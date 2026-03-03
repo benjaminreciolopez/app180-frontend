@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Check, CheckCheck, X, ExternalLink } from "lucide-react"
+import { Bell, Check, CheckCheck, X, ExternalLink, Trash2 } from "lucide-react"
 import { api } from "@/services/api"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
@@ -88,6 +88,18 @@ export function NotificationBell({ basePath = "/admin/notificaciones" }: Notific
     }
   }
 
+  const limpiarLeidas = async () => {
+    setLoading(true)
+    try {
+      await api.delete(`${basePath}/limpiar`)
+      await fetchNotificaciones()
+    } catch (err) {
+      console.error("Error limpiando notificaciones:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getTipoColor = (tipo: string) => {
     switch (tipo) {
       case "error": return "text-red-600 bg-red-50 border-red-200"
@@ -153,6 +165,18 @@ export function NotificationBell({ basePath = "/admin/notificaciones" }: Notific
                     >
                       <CheckCheck className="h-3 w-3 mr-1" />
                       Marcar todas
+                    </Button>
+                  )}
+                  {notificaciones.some(n => n.leida) && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={limpiarLeidas}
+                      disabled={loading}
+                      className="h-7 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Limpiar
                     </Button>
                   )}
                   <Button
