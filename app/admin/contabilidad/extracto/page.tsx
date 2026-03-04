@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { authenticatedFetch } from "@/utils/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,9 @@ import {
   FileSpreadsheet,
   ArrowRight,
   Sparkles,
+  History,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 type Movimiento = {
@@ -35,6 +38,7 @@ type Movimiento = {
   match_desc?: string | null;
   confianza?: string;
   selected?: boolean;
+  txId?: string;
 };
 
 type Stats = {
@@ -43,6 +47,23 @@ type Stats = {
   medio: number;
   bajo: number;
   sin_match: number;
+};
+
+type Transaccion = {
+  id: string;
+  importacion_id: string;
+  fecha: string;
+  concepto: string;
+  importe: number;
+  referencia?: string;
+  match_tipo?: string | null;
+  match_id?: string | null;
+  match_desc?: string | null;
+  confianza?: string;
+  asiento_id?: number | null;
+  estado: string;
+  filename?: string;
+  created_at: string;
 };
 
 const fmt = new Intl.NumberFormat("es-ES", {
@@ -84,6 +105,12 @@ const CONFIANZA_CONFIG: Record<
   },
 };
 
+const ESTADO_CONFIG: Record<string, { label: string; color: string }> = {
+  pendiente: { label: "Pendiente", color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+  confirmado: { label: "Confirmado", color: "bg-green-100 text-green-700 border-green-200" },
+  omitido: { label: "Omitido", color: "bg-slate-100 text-slate-500 border-slate-200" },
+};
+
 export default function ExtractoBancarioPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [uploading, setUploading] = useState(false);
@@ -93,6 +120,48 @@ export default function ExtractoBancarioPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [filename, setFilename] = useState("");
   const [dragOver, setDragOver] = useState(false);
+
+  // Persistence IDs
+  const [importacionId, setImportacionId] = useState<string | null>(null);
+  const [txIds, setTxIds] = useState<string[]>([]);
+
+  // History state
+  const [historial, setHistorial] = useState<Transaccion[]>([]);
+  const [historialTotal, setHistorialTotal] = useState(0);
+  const [historialOffset, setHistorialOffset] = useState(0);
+  const [historialEstado, setHistorialEstado] = useState("todos");
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+
+  const HISTORIAL_LIMIT = 25;
+
+  // Load history
+  const cargarHistorial = useCallback(async (offsetVal: number = 0, estado: string = "todos") => {
+    setLoadingHistorial(true);
+    try {
+      const params = new URLSearchParams({
+        limit: String(HISTORIAL_LIMIT),
+        offset: String(offsetVal),
+      });
+      if (estado !== "todos") params.set("estado", estado);
+
+      const res = await authenticatedFetch(
+        `/api/admin/contabilidad/extracto/transacciones?${params}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setHistorial(data.transacciones || []);
+        setHistorialTotal(data.total || 0);
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoadingHistorial(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarHistorial(0, "todos");
+  }, [cargarHistorial]);
 
   // Step 1: Upload & Parse
   const handleUpload = useCallback(async (file: File) => {
@@ -113,12 +182,18 @@ export default function ExtractoBancarioPage() {
 
       const data = await res.json();
       setMovimientos(
-        data.movimientos.map((m: Movimiento) => ({ ...m, selected: false }))
+        data.movimientos.map((m: Movimiento, i: number) => ({
+          ...m,
+          selected: false,
+          txId: data.txIds?.[i] || undefined,
+        }))
       );
       setFilename(data.filename || file.name);
+      setImportacionId(data.importacionId || null);
+      setTxIds(data.txIds || []);
       setStep(2);
       showSuccess(
-        `${data.total} movimientos extraídos (${data.ingresos} ingresos, ${data.gastos} gastos)`
+        `${data.total} movimientos extraidos (${data.ingresos} ingresos, ${data.gastos} gastos)`
       );
     } catch (e: any) {
       showError(e.message);
@@ -154,7 +229,10 @@ export default function ExtractoBancarioPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ movimientos }),
+          body: JSON.stringify({
+            movimientos: movimientos.map(({ selected, txId, ...rest }) => rest),
+            txIds,
+          }),
         }
       );
 
@@ -165,9 +243,10 @@ export default function ExtractoBancarioPage() {
 
       const data = await res.json();
       setMovimientos(
-        data.movimientos.map((m: Movimiento) => ({
+        data.movimientos.map((m: Movimiento, i: number) => ({
           ...m,
           selected: m.confianza === "alto" || m.confianza === "medio",
+          txId: txIds[i] || undefined,
         }))
       );
       setStats(data.stats);
@@ -195,7 +274,7 @@ export default function ExtractoBancarioPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ confirmados }),
+          body: JSON.stringify({ confirmados, txIds }),
         }
       );
 
@@ -209,11 +288,14 @@ export default function ExtractoBancarioPage() {
         `${data.generados} asientos generados${data.errores.length > 0 ? ` (${data.errores.length} errores)` : ""}`
       );
 
-      // Reset
+      // Reset wizard & reload history
       setStep(1);
       setMovimientos([]);
       setStats(null);
       setFilename("");
+      setImportacionId(null);
+      setTxIds([]);
+      cargarHistorial(0, historialEstado);
     } catch (e: any) {
       showError(e.message);
     } finally {
@@ -247,8 +329,8 @@ export default function ExtractoBancarioPage() {
           Extracto Bancario
         </h1>
         <p className="text-muted-foreground mt-1">
-          Importa tu extracto bancario y la IA reconciliará los movimientos
-          automáticamente.
+          Importa tu extracto bancario y la IA reconciliara los movimientos
+          automaticamente.
         </p>
       </div>
 
@@ -306,10 +388,10 @@ export default function ExtractoBancarioPage() {
               <h3 className="text-lg font-semibold text-slate-700 mb-2">
                 {uploading
                   ? "Procesando extracto..."
-                  : "Arrastra tu extracto bancario aquí"}
+                  : "Arrastra tu extracto bancario aqui"}
               </h3>
               <p className="text-sm text-slate-500 mb-4">
-                Formatos soportados: CSV, Excel (.xlsx), OFX
+                Formatos soportados: CSV, Excel (.xlsx), OFX, Norma 43 (.n43)
               </p>
               <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold cursor-pointer hover:bg-blue-700 transition-colors">
                 <Upload className="w-4 h-4" />
@@ -317,7 +399,7 @@ export default function ExtractoBancarioPage() {
                 <input
                   type="file"
                   className="hidden"
-                  accept=".csv,.xlsx,.xls,.ofx,.qfx"
+                  accept=".csv,.xlsx,.xls,.ofx,.qfx,.n43,.q43,.c43"
                   onChange={handleFileInput}
                   disabled={uploading}
                 />
@@ -333,7 +415,7 @@ export default function ExtractoBancarioPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-lg">
-                {movimientos.length} movimientos extraídos
+                {movimientos.length} movimientos extraidos
               </CardTitle>
               <p className="text-sm text-slate-500 mt-1">{filename}</p>
             </div>
@@ -525,7 +607,7 @@ export default function ExtractoBancarioPage() {
                           </TableCell>
                           <TableCell className="text-xs">
                             {m.match_desc || (
-                              <span className="text-slate-400">—</span>
+                              <span className="text-slate-400">--</span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -547,6 +629,136 @@ export default function ExtractoBancarioPage() {
           </Card>
         </>
       )}
+
+      {/* History Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <History className="w-5 h-5 text-slate-500" />
+            Historial de importaciones
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <select
+              value={historialEstado}
+              onChange={(e) => {
+                setHistorialEstado(e.target.value);
+                setHistorialOffset(0);
+                cargarHistorial(0, e.target.value);
+              }}
+              className="text-xs border rounded-lg px-2 py-1.5 bg-white"
+            >
+              <option value="todos">Todos</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="omitido">Omitido</option>
+            </select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingHistorial ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+            </div>
+          ) : historial.length === 0 ? (
+            <p className="text-center text-sm text-slate-400 py-8">
+              No hay transacciones importadas
+            </p>
+          ) : (
+            <>
+              <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-24">Fecha</TableHead>
+                      <TableHead>Concepto</TableHead>
+                      <TableHead className="text-right w-28">Importe</TableHead>
+                      <TableHead className="w-44">Match</TableHead>
+                      <TableHead className="w-24">Confianza</TableHead>
+                      <TableHead className="w-24">Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historial.map((tx) => {
+                      const conf = CONFIANZA_CONFIG[tx.confianza || "sin_match"];
+                      const est = ESTADO_CONFIG[tx.estado] || ESTADO_CONFIG.pendiente;
+                      return (
+                        <TableRow key={tx.id}>
+                          <TableCell className="text-xs font-mono">
+                            {fmtDate(tx.fecha)}
+                          </TableCell>
+                          <TableCell className="text-sm max-w-xs truncate">
+                            {tx.concepto}
+                          </TableCell>
+                          <TableCell
+                            className={`text-right font-semibold text-sm ${
+                              Number(tx.importe) > 0 ? "text-green-700" : "text-red-700"
+                            }`}
+                          >
+                            {fmt.format(Number(tx.importe))}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {tx.match_desc || <span className="text-slate-400">--</span>}
+                          </TableCell>
+                          <TableCell>
+                            {tx.confianza && (
+                              <Badge variant="outline" className={`text-xs gap-1 ${conf.color}`}>
+                                {conf.icon}
+                                {conf.label}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={`text-xs ${est.color}`}>
+                              {est.label}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination */}
+              {historialTotal > HISTORIAL_LIMIT && (
+                <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                  <span className="text-xs text-slate-500">
+                    {historialOffset + 1}-{Math.min(historialOffset + HISTORIAL_LIMIT, historialTotal)} de {historialTotal}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={historialOffset === 0}
+                      onClick={() => {
+                        const newOffset = Math.max(0, historialOffset - HISTORIAL_LIMIT);
+                        setHistorialOffset(newOffset);
+                        cargarHistorial(newOffset, historialEstado);
+                      }}
+                      className="rounded-lg h-7 w-7 p-0"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={historialOffset + HISTORIAL_LIMIT >= historialTotal}
+                      onClick={() => {
+                        const newOffset = historialOffset + HISTORIAL_LIMIT;
+                        setHistorialOffset(newOffset);
+                        cargarHistorial(newOffset, historialEstado);
+                      }}
+                      className="rounded-lg h-7 w-7 p-0"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

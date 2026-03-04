@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { authenticatedFetch } from "@/utils/api";
 import { showSuccess, showError } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useConfirm } from "@/components/shared/ConfirmDialog";
+import QRCode from "qrcode";
 import {
   Tablet,
   Plus,
@@ -21,6 +22,9 @@ import {
   Eye,
   EyeOff,
   Copy,
+  QrCode,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 
 interface KioskDevice {
@@ -73,6 +77,13 @@ export default function KioscosAdminPage() {
 
   // Token visibility
   const [visibleTokenId, setVisibleTokenId] = useState<string | null>(null);
+
+  // QR modal
+  const [qrDevice, setQrDevice] = useState<KioskDevice | null>(null);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrExpiresAt, setQrExpiresAt] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
 
   useEffect(() => {
     loadDevices();
@@ -238,6 +249,38 @@ export default function KioscosAdminPage() {
     });
   };
 
+  const handleGenerateQR = useCallback(async (device: KioskDevice) => {
+    setQrDevice(device);
+    setQrLoading(true);
+    setQrUrl(null);
+    setQrDataUrl(null);
+    try {
+      const res = await authenticatedFetch(`/api/kiosk/devices/${device.id}/activation-token`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQrUrl(data.activation_url);
+        setQrExpiresAt(data.expires_at);
+        // Generate QR image
+        const dataUrl = await QRCode.toDataURL(data.activation_url, {
+          width: 300,
+          margin: 2,
+          color: { dark: "#000000", light: "#ffffff" },
+        });
+        setQrDataUrl(dataUrl);
+      } else {
+        const data = await res.json();
+        showError(data.error || "Error al generar QR");
+        setQrDevice(null);
+      }
+    } catch {
+      showError("Error de conexion");
+      setQrDevice(null);
+    }
+    setQrLoading(false);
+  }, []);
+
   const formatDate = (d: string | null) => {
     if (!d) return "Nunca";
     return new Date(d).toLocaleString("es-ES", {
@@ -366,6 +409,13 @@ export default function KioscosAdminPage() {
                 Empleados
               </button>
               <button
+                onClick={() => handleGenerateQR(d)}
+                className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors"
+                title="Generar QR de activacion"
+              >
+                <QrCode className="h-4 w-4" />
+              </button>
+              <button
                 onClick={() => handleToggleActive(d)}
                 className={`p-1.5 rounded-lg transition-colors ${d.activo ? "hover:bg-amber-500/10 text-amber-500" : "hover:bg-emerald-500/10 text-emerald-500"}`}
                 title={d.activo ? "Desactivar" : "Activar"}
@@ -438,19 +488,102 @@ export default function KioscosAdminPage() {
               <>
                 <h2 className="text-lg font-semibold text-emerald-500">Kiosco registrado</h2>
                 <p className="text-sm text-muted-foreground">
-                  Guarda este token. Lo necesitarás para configurar el dispositivo en <code>/kiosko/setup</code>.
+                  Genera un QR para activar el dispositivo de forma remota, o usa el token directamente en <code>/kiosko/setup</code>.
                 </p>
-                <div className="bg-muted p-3 rounded-lg break-all text-xs font-mono select-all">
-                  {newToken}
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      // Find the newly created device and generate QR
+                      const d = devices.find((dev) => dev.device_token === newToken);
+                      if (d) handleGenerateQR(d);
+                      setShowRegister(false);
+                      setNewToken(null);
+                    }}
+                    className="w-full px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center justify-center gap-2"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Generar QR de activacion
+                  </button>
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+                      Ver token manual
+                    </summary>
+                    <div className="mt-2 bg-muted p-3 rounded-lg break-all font-mono select-all">
+                      {newToken}
+                    </div>
+                  </details>
+                  <button
+                    onClick={() => { setShowRegister(false); setNewToken(null); }}
+                    className="w-full px-4 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+                  >
+                    Cerrar
+                  </button>
                 </div>
-                <button
-                  onClick={() => { setShowRegister(false); setNewToken(null); }}
-                  className="w-full px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
-                >
-                  Cerrar
-                </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* QR Activation Modal */}
+      {qrDevice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setQrDevice(null)}>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">QR de activacion</h2>
+              <button onClick={() => setQrDevice(null)} className="p-1 rounded hover:bg-muted">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">{qrDevice.nombre}</p>
+
+            {qrLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              </div>
+            ) : qrDataUrl ? (
+              <div className="space-y-4">
+                <div className="flex justify-center">
+                  <img src={qrDataUrl} alt="QR de activacion" className="rounded-xl" />
+                </div>
+
+                <div className="bg-muted rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground mb-1">URL de activacion:</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-mono break-all flex-1 select-all">{qrUrl}</p>
+                    <button
+                      onClick={() => {
+                        if (qrUrl) navigator.clipboard.writeText(qrUrl);
+                        showSuccess("URL copiada");
+                      }}
+                      className="flex-shrink-0 p-1.5 rounded-lg hover:bg-background transition-colors"
+                      title="Copiar URL"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {qrExpiresAt && (
+                  <p className="text-xs text-center text-amber-500">
+                    Expira a las{" "}
+                    {new Date(qrExpiresAt).toLocaleTimeString("es-ES", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    (30 min)
+                  </p>
+                )}
+
+                <button
+                  onClick={() => handleGenerateQR(qrDevice)}
+                  className="w-full px-4 py-2 text-sm rounded-lg hover:bg-muted transition-colors flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Regenerar QR
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       )}

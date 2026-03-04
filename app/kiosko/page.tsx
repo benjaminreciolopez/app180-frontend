@@ -6,6 +6,7 @@ import { queueOfflineFichaje, getPendingCount } from "@/lib/offlineQueue";
 import { initOfflineSync, onSync, onPendingCountChange } from "@/lib/offlineSync";
 import { Delete, LogIn, LogOut, Coffee, Play, Pause, ChevronLeft, Check, X, Wifi, WifiOff, Clock, Search, Utensils, Route, Mail, Smartphone, RefreshCw, CloudOff, Undo2 } from "lucide-react";
 import CameraCapture from "@/components/kiosk/CameraCapture";
+import LockdownInstructions from "@/components/kiosk/LockdownInstructions";
 import { removeOfflineFichaje } from "@/lib/offlineQueue";
 
 // ─── Types ──────────────────────────────────────────────────
@@ -116,6 +117,11 @@ export default function KioskoPage() {
   const [lastFichajeLocalId, setLastFichajeLocalId] = useState<string | null>(null);
   const [isOfflineFichaje, setIsOfflineFichaje] = useState(false);
   const [undoCountdown, setUndoCountdown] = useState(0);
+
+  // Lockdown help overlay
+  const [showLockdownHelp, setShowLockdownHelp] = useState(false);
+  const lockdownTapCountRef = useRef(0);
+  const lockdownTapTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -520,27 +526,53 @@ export default function KioskoPage() {
           <Clock className="h-10 w-10 text-white/50" />
         </div>
         <h1 className="text-2xl font-semibold mb-2">Dispositivo no configurado</h1>
-        <p className="text-white/50 mb-8 max-w-md">
-          Este dispositivo necesita ser registrado como punto de fichaje.
-          Accede a la configuración desde el panel de administración.
+        <p className="text-white/50 mb-6 max-w-md">
+          Escanea el codigo QR de activacion proporcionado por tu administrador,
+          o configura el dispositivo manualmente.
         </p>
-        <a
-          href="/kiosko/setup"
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
-        >
-          Configurar dispositivo
-        </a>
+        <div className="space-y-3">
+          <a
+            href="/kiosko/setup"
+            className="block px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
+          >
+            Configurar manualmente
+          </a>
+          <p className="text-white/30 text-xs">
+            Tambien puedes activar este dispositivo escaneando un QR desde la camara
+          </p>
+        </div>
       </div>
     );
   }
 
   // ─── IDLE SCREEN ────────────────────────────────────────
   if (screen === "idle") {
+    if (showLockdownHelp) {
+      return (
+        <LockdownInstructions onContinue={() => setShowLockdownHelp(false)} />
+      );
+    }
+
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center cursor-pointer select-none"
         onClick={() => { setScreen("identify"); resetIdleTimeout(); }}
       >
+        {/* Hidden lockdown help trigger — 5 rapid taps top-left corner */}
+        <div
+          className="absolute top-0 left-0 w-16 h-16 z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            lockdownTapCountRef.current += 1;
+            if (lockdownTapTimerRef.current) clearTimeout(lockdownTapTimerRef.current);
+            lockdownTapTimerRef.current = setTimeout(() => { lockdownTapCountRef.current = 0; }, 2000);
+            if (lockdownTapCountRef.current >= 5) {
+              lockdownTapCountRef.current = 0;
+              setShowLockdownHelp(true);
+            }
+          }}
+        />
+
         {/* Online/Offline indicator + pending count */}
         <div className="absolute top-4 right-4 flex items-center gap-3">
           {offlinePendingCount > 0 && (
