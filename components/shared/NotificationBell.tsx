@@ -110,6 +110,13 @@ export function NotificationBell({ basePath = "/admin/notificaciones" }: Notific
       case "nomina": return "text-green-600 bg-green-50 border-green-200"
       case "ausencia": return "text-indigo-600 bg-indigo-50 border-indigo-200"
       case "fiscal_alert": return "text-orange-600 bg-orange-50 border-orange-200"
+      // Asesor notification types
+      case "fiscal_deadline": return "text-red-600 bg-red-50 border-red-200"
+      case "cliente_inactivo": return "text-amber-600 bg-amber-50 border-amber-200"
+      case "alerta_fiscal": return "text-orange-600 bg-orange-50 border-orange-200"
+      case "nuevo_documento": return "text-green-600 bg-green-50 border-green-200"
+      case "nuevo_mensaje": return "text-blue-600 bg-blue-50 border-blue-200"
+      case "sistema": return "text-slate-600 bg-slate-50 border-slate-200"
       default: return "text-gray-600 bg-gray-50 border-gray-200"
     }
   }

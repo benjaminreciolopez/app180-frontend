@@ -161,7 +161,9 @@ export default function MiAsesoriaPage() {
   const [chatInput, setChatInput] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [chatFile, setChatFile] = useState<File | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatFileRef = useRef<HTMLInputElement>(null);
 
   // Export
   const [exportAnio, setExportAnio] = useState(new Date().getFullYear().toString());
@@ -382,17 +384,30 @@ export default function MiAsesoriaPage() {
   };
 
   const handleSendMessage = async () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() && !chatFile) return;
     setSendingMsg(true);
     try {
-      const res = await authenticatedFetch("/admin/asesoria/mensajes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contenido: chatInput.trim(), tipo: "mensaje" }),
-      });
+      let res;
+      if (chatFile) {
+        const formData = new FormData();
+        formData.append("file", chatFile);
+        if (chatInput.trim()) formData.append("contenido", chatInput.trim());
+        res = await authenticatedFetch("/api/admin/asesoria/mensajes/con-adjunto", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        res = await authenticatedFetch("/admin/asesoria/mensajes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contenido: chatInput.trim(), tipo: "mensaje" }),
+        });
+      }
       const json = await res.json();
       if (res.ok && json.success) {
         setChatInput("");
+        setChatFile(null);
+        if (chatFileRef.current) chatFileRef.current.value = "";
         await loadMensajes();
       }
     } catch {
@@ -554,6 +569,12 @@ export default function MiAsesoriaPage() {
             <Download className="size-4" />
             <span className="hidden sm:inline">Exportar</span>
           </TabsTrigger>
+          {vinculo?.estado === "activo" && (
+            <TabsTrigger value="documentos" className="gap-1.5">
+              <Paperclip className="size-4" />
+              <span className="hidden sm:inline">Documentos</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ═══════════════════ TAB: VINCULO ═══════════════════ */}
@@ -732,27 +753,63 @@ export default function MiAsesoriaPage() {
                 )}
               </CardContent>
               {/* Chat input */}
-              <div className="border-t p-3 flex items-center gap-2">
-                <Input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Escribe un mensaje..."
-                  className="flex-1"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  disabled={sendingMsg}
-                />
-                <Button
-                  size="icon"
-                  onClick={handleSendMessage}
-                  disabled={sendingMsg || !chatInput.trim()}
-                >
-                  <Send className="size-4" />
-                </Button>
+              <div className="border-t p-3 space-y-2">
+                {chatFile && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md">
+                    <Paperclip className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-xs truncate flex-1">{chatFile.name}</span>
+                    <button
+                      onClick={() => { setChatFile(null); if (chatFileRef.current) chatFileRef.current.value = ""; }}
+                      className="text-muted-foreground hover:text-destructive text-sm"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={chatFileRef}
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) {
+                        if (f.size > 10 * 1024 * 1024) { alert("Max 10MB"); return; }
+                        setChatFile(f);
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => chatFileRef.current?.click()}
+                    disabled={sendingMsg}
+                    className="shrink-0"
+                  >
+                    <Paperclip className="size-4" />
+                  </Button>
+                  <Input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Escribe un mensaje..."
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    disabled={sendingMsg}
+                  />
+                  <Button
+                    size="icon"
+                    onClick={handleSendMessage}
+                    disabled={sendingMsg || (!chatInput.trim() && !chatFile)}
+                  >
+                    <Send className="size-4" />
+                  </Button>
+                </div>
               </div>
             </Card>
           </TabsContent>
@@ -854,6 +911,13 @@ export default function MiAsesoriaPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ═══════════════════ TAB: DOCUMENTOS ═══════════════════ */}
+        {vinculo?.estado === "activo" && (
+          <TabsContent value="documentos" className="mt-4">
+            <DocumentosTab />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Revoke confirmation dialog */}
@@ -1078,6 +1142,191 @@ function EstadoPendienteRecibido({
             </Button>
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface DocAsesoria {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  mime_type: string;
+  size_bytes: number;
+  subido_por_tipo: "admin" | "asesor";
+  subido_por_nombre: string;
+  folder: string;
+  created_at: string;
+}
+
+function DocumentosTab() {
+  const [docs, setDocs] = useState<DocAsesoria[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [folder, setFolder] = useState("todos");
+  const [uploading, setUploading] = useState(false);
+  const [uploadFolder, setUploadFolder] = useState("general");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const folders = [
+    { value: "todos", label: "Todos" },
+    { value: "facturas", label: "Facturas" },
+    { value: "contratos", label: "Contratos" },
+    { value: "fiscal", label: "Fiscal" },
+    { value: "general", label: "General" },
+  ];
+
+  const loadDocs = useCallback(async () => {
+    setLoadingDocs(true);
+    try {
+      const q = folder !== "todos" ? `?folder=${folder}` : "";
+      const res = await authenticatedFetch(`/api/admin/asesoria/documentos${q}`);
+      const json = await res.json();
+      if (json.success) setDocs(json.data || []);
+    } catch (err) {
+      console.error("Error cargando documentos:", err);
+    } finally {
+      setLoadingDocs(false);
+    }
+  }, [folder]);
+
+  useEffect(() => { loadDocs(); }, [loadDocs]);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", uploadFolder);
+      const res = await authenticatedFetch("/api/admin/asesoria/documentos/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+      if (json.success) loadDocs();
+    } catch (err) {
+      console.error("Error subiendo documento:", err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleDownload(docId: string, nombre: string) {
+    try {
+      const res = await authenticatedFetch(`/api/admin/asesoria/documentos/${docId}/download`);
+      const json = await res.json();
+      if (json.success && json.data?.url) {
+        const a = document.createElement("a");
+        a.href = json.data.url;
+        a.download = nombre;
+        a.target = "_blank";
+        a.click();
+      }
+    } catch (err) {
+      console.error("Error descargando:", err);
+    }
+  }
+
+  async function handleDelete(docId: string) {
+    if (!confirm("Eliminar este documento?")) return;
+    try {
+      await authenticatedFetch(`/api/admin/asesoria/documentos/${docId}`, { method: "DELETE" });
+      loadDocs();
+    } catch (err) {
+      console.error("Error eliminando:", err);
+    }
+  }
+
+  function formatSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Paperclip className="size-5" />
+          Documentos compartidos
+        </CardTitle>
+        <CardDescription>
+          Comparte documentos con tu asesoria de forma segura.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Upload + filter row */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Select value={folder} onValueChange={setFolder}>
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {folders.map((f) => (
+                <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex gap-2 ml-auto">
+            <Select value={uploadFolder} onValueChange={setUploadFolder}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {folders.filter(f => f.value !== "todos").map((f) => (
+                  <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx" />
+            <Button onClick={() => fileInputRef.current?.click()} disabled={uploading} size="sm">
+              {uploading ? <RefreshCw className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
+              Subir
+            </Button>
+          </div>
+        </div>
+
+        {/* Documents list */}
+        {loadingDocs ? (
+          <div className="py-8 flex justify-center"><LoadingSpinner /></div>
+        ) : docs.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground text-sm">
+            <FileText className="size-12 mx-auto mb-2 opacity-20" />
+            <p>No hay documentos</p>
+          </div>
+        ) : (
+          <div className="divide-y rounded-lg border">
+            {docs.map((doc) => (
+              <div key={doc.id} className="flex items-center gap-3 p-3 hover:bg-muted/50">
+                <FileText className="size-5 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{doc.nombre}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px]">
+                      {doc.subido_por_tipo === "admin" ? "Tu" : "Asesor"}
+                    </Badge>
+                    <span>{doc.folder}</span>
+                    <span>{formatSize(doc.size_bytes)}</span>
+                    <span>{formatDateShort(doc.created_at)}</span>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => handleDownload(doc.id, doc.nombre)}>
+                    <Download className="size-4" />
+                  </Button>
+                  {doc.subido_por_tipo === "admin" && (
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(doc.id)} className="text-red-500 hover:text-red-700">
+                      <X className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -22,11 +22,19 @@ import { Badge } from "@/components/ui/badge";
 // Types
 // ---------------------------------------------------------------------------
 
+type Adjunto = {
+  id?: string;
+  nombre: string;
+  mime_type: string;
+  storage_path: string;
+  size_bytes?: number;
+};
+
 type Mensaje = {
   id: string;
   contenido: string;
-  tipo: "mensaje" | "recomendacion" | "alerta" | "solicitud_doc" | "sistema";
-  adjuntos: unknown | null;
+  tipo: "mensaje" | "recomendacion" | "alerta" | "solicitud_doc" | "sistema" | "adjunto";
+  adjuntos: Adjunto[] | null;
   autor_id: string;
   autor_tipo: "asesor" | "admin";
   leido: boolean;
@@ -98,10 +106,12 @@ export default function AsesorMensajesPage() {
   const [clienteName, setClienteName] = useState<string>("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Refs
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFirstLoad = useRef(true);
   const shouldAutoScroll = useRef(true);
@@ -247,18 +257,30 @@ export default function AsesorMensajesPage() {
 
   const sendMessage = useCallback(async () => {
     const trimmed = inputValue.trim();
-    if (!trimmed || sending) return;
+    if ((!trimmed && !selectedFile) || sending) return;
 
     setSending(true);
     try {
-      const res = await authenticatedFetch(
-        `/asesor/clientes/${empresaId}/mensajes`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contenido: trimmed, tipo: "mensaje" }),
-        }
-      );
+      let res;
+      if (selectedFile) {
+        // Send with attachment
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        if (trimmed) formData.append("contenido", trimmed);
+        res = await authenticatedFetch(
+          `/asesor/clientes/${empresaId}/mensajes/con-adjunto`,
+          { method: "POST", body: formData }
+        );
+      } else {
+        res = await authenticatedFetch(
+          `/asesor/clientes/${empresaId}/mensajes`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contenido: trimmed, tipo: "mensaje" }),
+          }
+        );
+      }
       const json = await res.json();
 
       if (!res.ok || !json.success) {
@@ -266,6 +288,8 @@ export default function AsesorMensajesPage() {
       }
 
       setInputValue("");
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
@@ -283,7 +307,7 @@ export default function AsesorMensajesPage() {
       // Re-focus input
       textareaRef.current?.focus();
     }
-  }, [inputValue, sending, empresaId, fetchMessages]);
+  }, [inputValue, selectedFile, sending, empresaId, fetchMessages]);
 
   // -------------------------------------------------------------------------
   // Keyboard handling for textarea
@@ -339,6 +363,41 @@ export default function AsesorMensajesPage() {
   // -------------------------------------------------------------------------
   // Render helpers
   // -------------------------------------------------------------------------
+
+  /** Download an attachment via signed URL */
+  async function handleDownloadAttachment(storagePath: string, nombre: string) {
+    try {
+      // Use document download endpoint - the backend returns a signed URL
+      const res = await authenticatedFetch(
+        `/asesor/clientes/${empresaId}/documentos/download-by-path?path=${encodeURIComponent(storagePath)}`
+      );
+      // If we don't have a specific endpoint, open the storage path directly
+      // For now, we use a generic approach through the documents endpoint
+      if (!res.ok) {
+        // Fallback: try to find the doc by name in documentos
+        const docsRes = await authenticatedFetch(`/asesor/clientes/${empresaId}/documentos`);
+        const docsJson = await docsRes.json();
+        if (docsJson.success) {
+          const doc = (docsJson.data || []).find((d: { nombre: string }) => d.nombre === nombre);
+          if (doc) {
+            const dlRes = await authenticatedFetch(`/asesor/clientes/${empresaId}/documentos/${doc.id}/download`);
+            const dlJson = await dlRes.json();
+            if (dlJson.success && dlJson.data?.url) {
+              window.open(dlJson.data.url, "_blank");
+              return;
+            }
+          }
+        }
+        return;
+      }
+      const json = await res.json();
+      if (json.success && json.data?.url) {
+        window.open(json.data.url, "_blank");
+      }
+    } catch (err) {
+      console.error("Error descargando adjunto:", err);
+    }
+  }
 
   /** Returns the icon and border style for a message type */
   function getMessageTypeStyle(tipo: Mensaje["tipo"]) {
@@ -563,6 +622,26 @@ export default function AsesorMensajesPage() {
                         {msg.contenido}
                       </p>
 
+                      {/* Attachments */}
+                      {msg.adjuntos && msg.adjuntos.length > 0 && (
+                        <div className="mt-1.5 space-y-1">
+                          {msg.adjuntos.map((adj, ai) => (
+                            <button
+                              key={ai}
+                              onClick={() => handleDownloadAttachment(adj.storage_path, adj.nombre)}
+                              className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md transition-colors ${
+                                isMe
+                                  ? "bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground"
+                                  : "bg-muted hover:bg-muted/80 text-foreground"
+                              }`}
+                            >
+                              <Paperclip size={12} />
+                              <span className="truncate max-w-[200px]">{adj.nombre}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Timestamp + read receipts */}
                       <div
                         className={`flex items-center gap-1 mt-1 ${
@@ -602,7 +681,53 @@ export default function AsesorMensajesPage() {
 
       {/* ── Input area ─────────────────────────────────────────────────── */}
       <div className="shrink-0 border-t bg-card px-4 py-3">
+        {/* File preview */}
+        {selectedFile && (
+          <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-muted rounded-lg">
+            <Paperclip size={14} className="text-muted-foreground shrink-0" />
+            <span className="text-xs truncate flex-1">{selectedFile.name}</span>
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {(selectedFile.size / 1024).toFixed(0)} KB
+            </span>
+            <button
+              onClick={() => {
+                setSelectedFile(null);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              className="text-muted-foreground hover:text-destructive shrink-0"
+            >
+              <span className="sr-only">Quitar archivo</span>
+              &times;
+            </button>
+          </div>
+        )}
         <div className="flex items-end gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                if (file.size > 10 * 1024 * 1024) {
+                  alert("El archivo no puede superar 10MB");
+                  return;
+                }
+                setSelectedFile(file);
+              }
+            }}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={sending}
+            title="Adjuntar archivo"
+            className="shrink-0 rounded-xl h-10 w-10"
+          >
+            <Paperclip size={18} />
+          </Button>
           <textarea
             ref={textareaRef}
             value={inputValue}
@@ -617,7 +742,7 @@ export default function AsesorMensajesPage() {
           <Button
             size="icon"
             onClick={sendMessage}
-            disabled={!inputValue.trim() || sending}
+            disabled={(!inputValue.trim() && !selectedFile) || sending}
             title="Enviar mensaje"
             className="shrink-0 rounded-xl h-10 w-10"
           >

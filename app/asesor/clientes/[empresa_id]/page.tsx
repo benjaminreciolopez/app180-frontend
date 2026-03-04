@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ExportDialog } from "@/components/asesor/ExportDialog";
 
 type Permisos = {
   facturas?: { read?: boolean; write?: boolean };
@@ -125,6 +126,7 @@ export default function AsesorClienteDetallePage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ResumenData | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   async function loadResumen() {
     setLoading(true);
@@ -288,17 +290,27 @@ export default function AsesorClienteDetallePage() {
             variant="outline"
             size="sm"
             className="gap-1"
-            onClick={handleExport}
-            disabled={exporting}
+            onClick={() => router.push(`/asesor/clientes/${empresaId}/documentos`)}
           >
-            {exporting ? (
-              <LoadingSpinner size="sm" showText={false} />
-            ) : (
-              <Download size={14} />
-            )}
-            Exportar Datos
+            <FileText size={14} />
+            Documentos
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            onClick={() => setExportOpen(true)}
+          >
+            <Download size={14} />
+            Exportar
           </Button>
         </div>
+
+        <ExportDialog
+          empresaId={empresaId}
+          open={exportOpen}
+          onOpenChange={setExportOpen}
+        />
       </div>
 
       {/* KPI summary cards */}

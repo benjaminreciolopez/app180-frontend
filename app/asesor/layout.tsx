@@ -11,9 +11,11 @@ import {
   Menu,
   X,
   Briefcase,
+  Download,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 
 type AsesorUser = {
   id: string;
@@ -43,6 +45,11 @@ const menuItems = [
     path: "/asesor/clientes",
     label: "Clientes",
     icon: Users,
+  },
+  {
+    path: "/asesor/exportar",
+    label: "Exportar",
+    icon: Download,
   },
   {
     path: "/asesor/configuracion",
@@ -105,6 +112,7 @@ export default function AsesorLayout({
     const titles: Record<string, string> = {
       "/asesor/dashboard": "Dashboard",
       "/asesor/clientes": "Clientes",
+      "/asesor/exportar": "Exportar",
       "/asesor/configuracion": "Configuracion",
     };
 
@@ -256,6 +264,8 @@ export default function AsesorLayout({
           </div>
 
           <div className="flex items-center gap-4">
+            <NotificationBell basePath="/asesor/notificaciones" />
+
             <div className="text-right hidden lg:block">
               <p className="text-sm font-semibold leading-none">
                 {user.nombre}
@@ -293,7 +303,7 @@ export default function AsesorLayout({
           <h1 className="text-xs font-bold tracking-wider text-foreground/80 uppercase">
             CONTENDO ASESORIA
           </h1>
-          <div className="w-10" />
+          <NotificationBell basePath="/asesor/notificaciones" />
         </div>
 
         {/* Page content */}
