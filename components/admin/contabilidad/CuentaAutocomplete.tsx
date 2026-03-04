@@ -134,6 +134,15 @@ export default function CuentaAutocomplete({
                         if (results.length > 0) setShowDropdown(true);
                     }}
                     onBlur={handleBlur}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (showDropdown && results.length > 0) {
+                                const exact = results.find((c) => c.codigo === query);
+                                handleSelect(exact || results[0]);
+                            }
+                        }
+                    }}
                     placeholder={placeholder}
                     className="h-8 rounded-lg text-xs bg-white w-[90px] font-mono"
                 />
