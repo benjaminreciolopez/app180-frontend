@@ -385,20 +385,28 @@ export default function EmpleadosPage() {
                     Autorizar cambio dispositivo
                   </button>
 
-                  <button
-                    type="button"
-                    disabled={togglingId === e.id}
-                    onClick={async () => {
-                      setOpenMenuId(null);
-                      setMenuPos(null);
-                      await cambiarEstadoEmpleado(e.id, !e.activo);
-                    }}
-                    className={`block w-full text-left px-3 py-2 hover:bg-muted disabled:opacity-50 ${
-                      e.activo ? "text-orange-600" : "text-green-600"
-                    }`}
-                  >
-                    {togglingId === e.id ? "Procesando..." : (e.activo ? "Desactivar empleado" : "Activar empleado")}
-                  </button>
+                  {(() => {
+                    const activosCount = empleados.filter(x => x.activo).length;
+                    const esUnicoActivo = e.activo && activosCount === 1;
+                    return (
+                      <button
+                        type="button"
+                        disabled={togglingId === e.id || esUnicoActivo}
+                        title={esUnicoActivo ? "No puedes desactivar el único empleado activo" : undefined}
+                        onClick={async () => {
+                          setOpenMenuId(null);
+                          setMenuPos(null);
+                          await cambiarEstadoEmpleado(e.id, !e.activo);
+                        }}
+                        className={`block w-full text-left px-3 py-2 disabled:opacity-40 disabled:cursor-not-allowed ${
+                          esUnicoActivo ? "" : "hover:bg-muted"
+                        } ${e.activo ? "text-orange-600" : "text-green-600"}`}
+                      >
+                        {togglingId === e.id ? "Procesando..." : (e.activo ? "Desactivar empleado" : "Activar empleado")}
+                        {esUnicoActivo && <span className="ml-1 text-xs text-muted-foreground">(único activo)</span>}
+                      </button>
+                    );
+                  })()}
                 </>
               );
             })()}
