@@ -87,6 +87,7 @@ interface Mensaje {
   content: string
   timestamp: string
   fileName?: string
+  clarificacion?: { pregunta: string; opciones: string[] } | null
 }
 
 const STORAGE_KEY = "contendo_chat_history"
@@ -242,7 +243,8 @@ export function AICopilot() {
       const mensajeAsistente: Mensaje = {
         role: "assistant",
         content: response.data.mensaje,
-        timestamp: response.data.timestamp
+        timestamp: response.data.timestamp,
+        clarificacion: response.data.clarificacion || null
       }
 
       setMensajes(prev => [...prev, mensajeAsistente])
@@ -472,9 +474,13 @@ Preguntame lo que necesites.`,
 
             {/* Mensajes */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-              {mensajes.map((mensaje, index) => (
+              {mensajes.map((mensaje, index) => {
+                const esUltimoAsistente =
+                  mensaje.role === "assistant" &&
+                  index === mensajes.findLastIndex(m => m.role === "assistant")
+                return (
+                <div key={index}>
                 <div
-                  key={index}
                   className={`flex ${mensaje.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   {mensaje.role === "assistant" && (
@@ -536,7 +542,26 @@ Preguntame lo que necesites.`,
                     </div>
                   )}
                 </div>
-              ))}
+
+                {/* Botones de aclaración — solo en el último mensaje del asistente */}
+                {esUltimoAsistente && mensaje.clarificacion && !isLoading && (
+                  <div className="ml-10 mt-1 flex flex-col gap-1.5">
+                    {mensaje.clarificacion.opciones.map((opcion, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => enviarMensaje(opcion)}
+                        disabled={isLoading}
+                        className="text-left text-sm px-3 py-2 rounded-lg border border-blue-200 bg-white hover:bg-blue-50 hover:border-blue-400 transition-colors disabled:opacity-50"
+                      >
+                        {opcion}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                </div>
+                )
+              })}
 
               {isLoading && (
                 <div className="flex justify-start">
