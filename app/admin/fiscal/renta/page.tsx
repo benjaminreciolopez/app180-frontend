@@ -996,9 +996,56 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
-                <Row label="Base Imponible General (505)" value={dossier.renta_anterior.casilla_505} />
-                <Row label="Cuota Liquida (610)" value={dossier.renta_anterior.casilla_610} />
-                <div className="border-t pt-2 flex justify-between font-bold">
+                {/* Rendimientos desglosados */}
+                {(dossier.renta_anterior.rendimientos_trabajo > 0 || dossier.renta_anterior.rendimientos_actividades > 0 || dossier.renta_anterior.rendimientos_capital_mob > 0 || dossier.renta_anterior.rendimientos_capital_inmob > 0 || dossier.renta_anterior.ganancias_patrimoniales > 0) && (
+                  <>
+                    <p className="font-medium text-amber-800 text-xs uppercase tracking-wide">Rendimientos</p>
+                    {dossier.renta_anterior.rendimientos_trabajo > 0 && (
+                      <Row label="Rend. Trabajo (003)" value={dossier.renta_anterior.rendimientos_trabajo} />
+                    )}
+                    {dossier.renta_anterior.rendimientos_actividades > 0 && (
+                      <Row label="Rend. Actividades (109)" value={dossier.renta_anterior.rendimientos_actividades} />
+                    )}
+                    {dossier.renta_anterior.rendimientos_capital_mob > 0 && (
+                      <Row label="Rend. Capital Mob. (027)" value={dossier.renta_anterior.rendimientos_capital_mob} />
+                    )}
+                    {dossier.renta_anterior.rendimientos_capital_inmob > 0 && (
+                      <Row label="Rend. Capital Inmob. (063)" value={dossier.renta_anterior.rendimientos_capital_inmob} />
+                    )}
+                    {dossier.renta_anterior.ganancias_patrimoniales > 0 && (
+                      <Row label="Ganancias Patrimoniales" value={dossier.renta_anterior.ganancias_patrimoniales} />
+                    )}
+                    <div className="border-t border-amber-200 pt-2 flex justify-between font-semibold text-amber-900">
+                      <span>Rendimiento Neto Total</span>
+                      <span>{formatCurrency(dossier.renta_anterior.rendimiento_neto)}</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Retenciones y pagos a cuenta */}
+                {(dossier.renta_anterior.retenciones_trabajo > 0 || dossier.renta_anterior.retenciones_actividades > 0 || dossier.renta_anterior.pagos_fraccionados > 0) && (
+                  <>
+                    <p className="font-medium text-amber-800 text-xs uppercase tracking-wide mt-2">Retenciones y Pagos a Cuenta</p>
+                    {dossier.renta_anterior.retenciones_trabajo > 0 && (
+                      <Row label="Retenciones trabajo" value={dossier.renta_anterior.retenciones_trabajo} />
+                    )}
+                    {dossier.renta_anterior.retenciones_actividades > 0 && (
+                      <Row label="Retenciones actividades" value={dossier.renta_anterior.retenciones_actividades} />
+                    )}
+                    {dossier.renta_anterior.pagos_fraccionados > 0 && (
+                      <Row label="Pagos fraccionados (M130)" value={dossier.renta_anterior.pagos_fraccionados} />
+                    )}
+                  </>
+                )}
+
+                {/* Casillas principales */}
+                <div className="border-t border-amber-200 pt-2 mt-2">
+                  <p className="font-medium text-amber-800 text-xs uppercase tracking-wide mb-2">Casillas Principales</p>
+                  <Row label="Base Imponible General (505)" value={dossier.renta_anterior.casilla_505} />
+                  <Row label="Cuota Liquida (610)" value={dossier.renta_anterior.casilla_610} />
+                </div>
+
+                <div className="border-t border-amber-300 pt-2 flex justify-between font-bold">
                   <span>Resultado {dossier.renta_anterior.ejercicio}</span>
                   <span className={dossier.renta_anterior.resultado >= 0 ? "text-red-600" : "text-green-600"}>
                     {formatCurrency(dossier.renta_anterior.resultado)}
