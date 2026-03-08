@@ -1328,6 +1328,33 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
             </Card>
           )}
 
+          {/* Resultado Estimado */}
+          {dossier.resultado_estimado && (
+            <Card className={`border-2 ${dossier.resultado_estimado.valor < 0 ? 'border-green-300 bg-green-50/50' : dossier.resultado_estimado.valor > 0 ? 'border-red-300 bg-red-50/50' : 'border-slate-200'}`}>
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-full ${dossier.resultado_estimado.valor < 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                      <Calculator className={`w-6 h-6 ${dossier.resultado_estimado.valor < 0 ? 'text-green-600' : 'text-red-600'}`} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">Resultado Estimado {dossier.ejercicio}</h3>
+                      <p className="text-sm text-muted-foreground">{dossier.resultado_estimado.descripcion}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-3xl font-bold ${dossier.resultado_estimado.valor < 0 ? 'text-green-600' : dossier.resultado_estimado.valor > 0 ? 'text-red-600' : 'text-slate-600'}`}>
+                      {formatCurrency(Math.abs(dossier.resultado_estimado.valor))}
+                    </p>
+                    <Badge variant="outline" className={`mt-1 ${dossier.resultado_estimado.valor < 0 ? 'border-green-300 text-green-700 bg-green-50' : dossier.resultado_estimado.valor > 0 ? 'border-red-300 text-red-700 bg-red-50' : ''}`}>
+                      {dossier.resultado_estimado.valor < 0 ? '✅ A DEVOLVER' : dossier.resultado_estimado.valor > 0 ? '⚠️ A INGRESAR' : 'NEUTRO'}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Nota Resumen */}
           <Card className="bg-slate-900 text-white">
             <CardContent className="p-6">
@@ -1337,8 +1364,8 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
                   <h4 className="font-semibold mb-1">Nota del Dossier</h4>
                   <p className="text-sm text-slate-300">{dossier.resumen.nota}</p>
                   <p className="text-xs text-slate-400 mt-2">
-                    Este dossier es orientativo. Los calculos definitivos dependen de la legislacion vigente,
-                    minimos personales y familiares, y otras circunstancias personales que puede evaluar CONTENDO o tu asesor fiscal.
+                    Este dossier es orientativo. Los cálculos definitivos dependen de la legislación vigente,
+                    mínimos personales y familiares, y otras circunstancias personales que puede evaluar CONTENDO o tu asesor fiscal.
                   </p>
                 </div>
               </div>
