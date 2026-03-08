@@ -200,6 +200,7 @@ export default function AdminLayout({
       { path: "/admin/contabilidad", module: "facturacion" }, // Nuevo: Libros
       { path: "/admin/fiscal", module: "fiscal" }, // Nuevo: Modelos (Módulo cobrable)
       { path: "/admin/fiscal/renta", module: "fiscal" },
+      { path: "/admin/fiscal/reglas", module: "fiscal" },
 
       // ✅ Importación OCR / historial dependen de calendario
       {
@@ -248,6 +249,7 @@ export default function AdminLayout({
       "/admin/contabilidad": "Contabilidad",
       "/admin/fiscal": "Fiscalidad",
       "/admin/fiscal/renta": "Declaración Renta",
+      "/admin/fiscal/reglas": "Reglas Fiscales",
       "/admin/nominas": "Nominas",
       "/admin/contabilidad/asientos": "Asientos Contables",
       "/admin/contabilidad/mayor": "Libro Mayor",
@@ -392,6 +394,7 @@ export default function AdminLayout({
       items: [
         { path: "/admin/fiscal", label: "Fiscal y Alertas", module: "fiscal" },
         { path: "/admin/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
+        { path: "/admin/fiscal/reglas", label: "Reglas Fiscales", module: "fiscal" },
       ],
     },
     {
