@@ -817,6 +817,197 @@ function DatosPersonalesTab() {
 }
 
 // =============================================
+// Componente: Datos del ejercicio actual (editable si no hay CONTENDO)
+// =============================================
+function DatosEjercicioActual({ dossier, ejercicio, onUpdate }: { dossier: any, ejercicio: number, onUpdate: () => void }) {
+  const [editingManual, setEditingManual] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [manualData, setManualData] = useState({
+    ingresos: '',
+    gastos: '',
+    retenciones_clientes: '',
+    retenciones_actividades: '',
+    pagos_fraccionados: '',
+  })
+
+  const tieneDataContendo = dossier.fuente_datos === 'contendo'
+
+  // Al abrir edición, pre-rellenar con datos existentes (de renta importada si existe)
+  const startEditing = () => {
+    if (dossier.renta_anterior && !tieneDataContendo) {
+      setManualData({
+        ingresos: dossier.renta_anterior.ingresos_actividades?.toString() || '',
+        gastos: dossier.renta_anterior.gastos_actividades?.toString() || '',
+        retenciones_clientes: '0',
+        retenciones_actividades: dossier.renta_anterior.retenciones_actividades?.toString() || '',
+        pagos_fraccionados: dossier.renta_anterior.pagos_fraccionados?.toString() || '',
+      })
+    } else {
+      setManualData({
+        ingresos: dossier.rendimientos_actividades.ingresos?.toString() || '0',
+        gastos: dossier.rendimientos_actividades.gastos_deducibles?.toString() || '0',
+        retenciones_clientes: dossier.retenciones_y_pagos.retenciones_clientes?.toString() || '0',
+        retenciones_actividades: dossier.retenciones_y_pagos.retenciones_actividades?.toString() || '0',
+        pagos_fraccionados: dossier.retenciones_y_pagos.pagos_fraccionados?.toString() || '0',
+      })
+    }
+    setEditingManual(true)
+  }
+
+  const saveManualData = async () => {
+    setSaving(true)
+    try {
+      const res = await authenticatedFetch(`/api/admin/fiscal/renta/datos-ejercicio/${ejercicio}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ingresos_actividades: parseFloat(manualData.ingresos) || 0,
+          gastos_actividades: parseFloat(manualData.gastos) || 0,
+          retenciones_clientes: parseFloat(manualData.retenciones_clientes) || 0,
+          retenciones_actividades: parseFloat(manualData.retenciones_actividades) || 0,
+          pagos_fraccionados: parseFloat(manualData.pagos_fraccionados) || 0,
+        })
+      })
+      if (res.ok) {
+        toast.success("Datos del ejercicio guardados")
+        setEditingManual(false)
+        onUpdate() // Regenerar dossier
+      } else {
+        toast.error("Error al guardar datos")
+      }
+    } catch {
+      toast.error("Error de conexión")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const ingresosNum = parseFloat(manualData.ingresos) || 0
+  const gastosNum = parseFloat(manualData.gastos) || 0
+  const rendNeto = ingresosNum - gastosNum
+
+  return (
+    <>
+      {/* Detalle Rendimientos */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Building className="w-4 h-4" /> Rendimientos de Actividades Económicas {ejercicio}
+            </CardTitle>
+            {!editingManual && (
+              <Button variant="outline" size="sm" onClick={startEditing}>
+                <Plus className="w-3 h-3 mr-1" />
+                {tieneDataContendo ? 'Ajustar' : 'Introducir datos'}
+              </Button>
+            )}
+          </div>
+          {!tieneDataContendo && !editingManual && (
+            <CardDescription>Datos de CONTENDO no disponibles. Puedes introducir los datos manualmente.</CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {editingManual ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Ingresos actividades (€)</Label>
+                  <Input type="number" step="0.01" value={manualData.ingresos}
+                    onChange={(e) => setManualData(p => ({ ...p, ingresos: e.target.value }))}
+                    placeholder="Ej: 23822.66" />
+                </div>
+                <div>
+                  <Label className="text-xs">Gastos deducibles (€)</Label>
+                  <Input type="number" step="0.01" value={manualData.gastos}
+                    onChange={(e) => setManualData(p => ({ ...p, gastos: e.target.value }))}
+                    placeholder="Ej: 9028.78" />
+                </div>
+                <div>
+                  <Label className="text-xs">Retenciones clientes (€)</Label>
+                  <Input type="number" step="0.01" value={manualData.retenciones_clientes}
+                    onChange={(e) => setManualData(p => ({ ...p, retenciones_clientes: e.target.value }))}
+                    placeholder="Ej: 0" />
+                </div>
+                <div>
+                  <Label className="text-xs">Retenciones actividades (€)</Label>
+                  <Input type="number" step="0.01" value={manualData.retenciones_actividades}
+                    onChange={(e) => setManualData(p => ({ ...p, retenciones_actividades: e.target.value }))}
+                    placeholder="Ej: 0" />
+                </div>
+                <div>
+                  <Label className="text-xs">Pagos fraccionados M130 (€)</Label>
+                  <Input type="number" step="0.01" value={manualData.pagos_fraccionados}
+                    onChange={(e) => setManualData(p => ({ ...p, pagos_fraccionados: e.target.value }))}
+                    placeholder="Ej: 2998.87" />
+                </div>
+              </div>
+              <div className="border-t pt-2 flex justify-between font-bold text-base">
+                <span>Rendimiento Neto (calculado)</span>
+                <span className={rendNeto >= 0 ? "text-green-600" : "text-red-600"}>
+                  {formatCurrency(rendNeto)}
+                </span>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setEditingManual(false)}>
+                  <X className="w-3 h-3 mr-1" /> Cancelar
+                </Button>
+                <Button size="sm" onClick={saveManualData} disabled={saving}>
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
+                  Guardar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <Row label="Ingresos (Base facturada)" value={dossier.rendimientos_actividades.ingresos} positive />
+              <Row label="Gastos: Compras y servicios" value={dossier.rendimientos_actividades.detalle_gastos.compras_servicios} negative />
+              <Row label="Gastos: Nóminas" value={dossier.rendimientos_actividades.detalle_gastos.nominas} negative />
+              <Row label="Gastos: SS Empresa" value={dossier.rendimientos_actividades.detalle_gastos.seguridad_social_empresa} negative />
+              <div className="border-t pt-2 flex justify-between font-bold text-base">
+                <span>Rendimiento Neto</span>
+                <span className={dossier.rendimientos_actividades.rendimiento_neto >= 0 ? "text-green-600" : "text-red-600"}>
+                  {formatCurrency(dossier.rendimientos_actividades.rendimiento_neto)}
+                </span>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Retenciones y Pagos */}
+      {!editingManual && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Wallet className="w-4 h-4" /> Retenciones y Pagos a Cuenta
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <Row label="Retenciones de clientes (fact. emitidas)" value={dossier.retenciones_y_pagos.retenciones_clientes} />
+            <Row label="Retenciones actividades (gastos con ret.)" value={dossier.retenciones_y_pagos.retenciones_actividades} />
+            <Row label="Pagos fraccionados (Mod. 130)" value={dossier.retenciones_y_pagos.pagos_fraccionados} />
+            {dossier.retenciones_y_pagos.detalle_130?.length > 0 && (
+              <div className="pl-4 space-y-1">
+                {dossier.retenciones_y_pagos.detalle_130.map((p: any, i: number) => (
+                  <div key={i} className="flex justify-between text-xs text-muted-foreground">
+                    <span>T{p.trimestre}</span>
+                    <span>{formatCurrency(parseFloat(p.importe))}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="border-t pt-2 flex justify-between font-bold">
+              <span>Total Anticipado a Hacienda</span>
+              <span>{formatCurrency(dossier.retenciones_y_pagos.total_anticipado)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </>
+  )
+}
+
+// =============================================
 // TAB 3: Dossier Pre-Renta
 // =============================================
 function DossierTab({ ejercicio }: { ejercicio: number }) {
@@ -873,127 +1064,102 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
             <Badge variant="outline" className="ml-auto">Ejercicio {dossier.ejercicio}</Badge>
           </div>
 
-          {/* Banner informativo cuando no hay datos en CONTENDO */}
-          {dossier.fuente_datos !== 'contendo' && (
-            <div className={`p-4 rounded-xl border ${dossier.renta_anterior ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+          {/* Banner informativo sobre fuente de datos */}
+          {dossier.fuente_datos === 'manual' && (
+            <div className="p-4 rounded-xl border bg-blue-50 border-blue-200">
               <div className="flex items-start gap-3">
-                <AlertCircle className={`w-5 h-5 mt-0.5 ${dossier.renta_anterior ? 'text-amber-600' : 'text-slate-500'}`} />
+                <CheckCircle2 className="w-5 h-5 mt-0.5 text-blue-600" />
                 <div className="text-sm">
-                  {dossier.renta_anterior ? (
-                    <>
-                      <p className="font-medium text-amber-800">Sin actividad registrada en CONTENDO para {dossier.ejercicio}</p>
-                      <p className="text-amber-700 mt-1">
-                        Los rendimientos del año actual aparecen a 0 porque no hay facturas ni gastos cargados.
-                        Se muestra la <strong>renta importada del ejercicio {dossier.renta_anterior.ejercicio}</strong> como referencia más abajo.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-medium text-slate-700">Sin datos disponibles</p>
-                      <p className="text-slate-600 mt-1">
-                        No hay facturas/gastos en CONTENDO ni declaración anterior importada. Importa un PDF de renta anterior o registra actividad para generar el dossier.
-                      </p>
-                    </>
-                  )}
+                  <p className="font-medium text-blue-800">Datos introducidos manualmente para {dossier.ejercicio}</p>
+                  <p className="text-blue-700 mt-1">
+                    Puedes ajustar los datos con el botón &quot;Ajustar&quot; en la sección de rendimientos.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          {dossier.fuente_datos === 'renta_importada' && (
+            <div className="p-4 rounded-xl border bg-amber-50 border-amber-200">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 mt-0.5 text-amber-600" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800">Sin actividad registrada en CONTENDO para {dossier.ejercicio}</p>
+                  <p className="text-amber-700 mt-1">
+                    Puedes <strong>introducir los datos manualmente</strong> con el botón &quot;Introducir datos&quot; en la sección de rendimientos,
+                    o se muestra la renta importada del ejercicio {dossier.renta_anterior?.ejercicio} como referencia.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          {dossier.fuente_datos === 'sin_datos' && (
+            <div className="p-4 rounded-xl border bg-slate-50 border-slate-200">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 mt-0.5 text-slate-500" />
+                <div className="text-sm">
+                  <p className="font-medium text-slate-700">Sin datos disponibles</p>
+                  <p className="text-slate-600 mt-1">
+                    No hay facturas/gastos ni declaración anterior. Importa un PDF o introduce los datos manualmente.
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* KPIs - Si no hay datos CONTENDO pero sí renta anterior, mostrar datos de la renta importada */}
+          {/* KPIs - datos del ejercicio actual (CONTENDO, manual, o renta anterior como referencia) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard
-              title={dossier.fuente_datos === 'contendo' ? "Ingresos Actividad" : "Ingresos (Renta Ant.)"}
-              value={formatCurrency(dossier.fuente_datos === 'contendo' || !dossier.renta_anterior
-                ? dossier.rendimientos_actividades.ingresos
-                : dossier.renta_anterior.ingresos_actividades)}
+              title={dossier.fuente_datos === 'renta_importada' ? "Ingresos (Renta Ant.)" : "Ingresos Actividad"}
+              value={formatCurrency(dossier.fuente_datos === 'renta_importada' && dossier.renta_anterior
+                ? dossier.renta_anterior.ingresos_actividades
+                : dossier.rendimientos_actividades.ingresos)}
               icon={TrendingUp}
               subtext={dossier.fuente_datos === 'contendo'
                 ? `${dossier.rendimientos_actividades.num_facturas} facturas`
+                : dossier.fuente_datos === 'manual' ? 'Dato manual'
                 : dossier.renta_anterior ? `Ejercicio ${dossier.renta_anterior.ejercicio}` : 'Sin datos'}
               color="green"
             />
             <KpiCard
-              title={dossier.fuente_datos === 'contendo' ? "Gastos Deducibles" : "Gastos (Renta Ant.)"}
-              value={formatCurrency(dossier.fuente_datos === 'contendo' || !dossier.renta_anterior
-                ? dossier.rendimientos_actividades.gastos_deducibles
-                : dossier.renta_anterior.gastos_actividades)}
+              title={dossier.fuente_datos === 'renta_importada' ? "Gastos (Renta Ant.)" : "Gastos Deducibles"}
+              value={formatCurrency(dossier.fuente_datos === 'renta_importada' && dossier.renta_anterior
+                ? dossier.renta_anterior.gastos_actividades
+                : dossier.rendimientos_actividades.gastos_deducibles)}
               icon={TrendingDown}
               subtext={dossier.fuente_datos === 'contendo'
                 ? `${dossier.rendimientos_actividades.num_gastos} gastos`
+                : dossier.fuente_datos === 'manual' ? 'Dato manual'
                 : dossier.renta_anterior ? `Ejercicio ${dossier.renta_anterior.ejercicio}` : 'Sin datos'}
               color="red"
             />
             <KpiCard
-              title={dossier.fuente_datos === 'contendo' ? "Rendimiento Neto" : "Rend. Neto (Renta Ant.)"}
-              value={formatCurrency(dossier.fuente_datos === 'contendo' || !dossier.renta_anterior
-                ? dossier.rendimientos_actividades.rendimiento_neto
-                : dossier.renta_anterior.rendimientos_actividades)}
+              title={dossier.fuente_datos === 'renta_importada' ? "Rend. Neto (Renta Ant.)" : "Rendimiento Neto"}
+              value={formatCurrency(dossier.fuente_datos === 'renta_importada' && dossier.renta_anterior
+                ? dossier.renta_anterior.rendimientos_actividades
+                : dossier.rendimientos_actividades.rendimiento_neto)}
               icon={Wallet}
-              subtext={dossier.fuente_datos === 'contendo' ? "Ingresos - Gastos" : `Ejercicio ${dossier.renta_anterior?.ejercicio || ''}`}
-              color={((dossier.fuente_datos === 'contendo' ? dossier.rendimientos_actividades.rendimiento_neto : dossier.renta_anterior?.rendimientos_actividades) || 0) >= 0 ? "blue" : "red"}
+              subtext={dossier.fuente_datos === 'contendo' ? "Ingresos - Gastos"
+                : dossier.fuente_datos === 'manual' ? 'Dato manual'
+                : `Ejercicio ${dossier.renta_anterior?.ejercicio || ''}`}
+              color={((dossier.fuente_datos === 'renta_importada' && dossier.renta_anterior
+                ? dossier.renta_anterior.rendimientos_actividades
+                : dossier.rendimientos_actividades.rendimiento_neto) || 0) >= 0 ? "blue" : "red"}
             />
             <KpiCard
-              title={dossier.fuente_datos === 'contendo' ? "Total Anticipado" : "Resultado (Renta Ant.)"}
-              value={formatCurrency(dossier.fuente_datos === 'contendo' || !dossier.renta_anterior
-                ? dossier.retenciones_y_pagos.total_anticipado
-                : dossier.renta_anterior.resultado)}
+              title="Total Anticipado"
+              value={formatCurrency(dossier.fuente_datos === 'renta_importada' && dossier.renta_anterior
+                ? dossier.renta_anterior.total_anticipado
+                : dossier.retenciones_y_pagos.total_anticipado)}
               icon={PiggyBank}
-              subtext={dossier.fuente_datos === 'contendo'
-                ? "Retenciones + Pagos 130"
-                : dossier.renta_anterior?.resultado && dossier.renta_anterior.resultado < 0 ? "A devolver" : "A ingresar"}
+              subtext={dossier.fuente_datos === 'contendo' ? "Retenciones + Pagos 130"
+                : dossier.fuente_datos === 'manual' ? 'Dato manual'
+                : 'Ref. año anterior'}
               color="purple"
             />
           </div>
 
-          {/* Detalle Rendimientos */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Building className="w-4 h-4" /> Rendimientos de Actividades Economicas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <Row label="Ingresos (Base facturada)" value={dossier.rendimientos_actividades.ingresos} positive />
-              <Row label="Gastos: Compras y servicios" value={dossier.rendimientos_actividades.detalle_gastos.compras_servicios} negative />
-              <Row label="Gastos: Nominas" value={dossier.rendimientos_actividades.detalle_gastos.nominas} negative />
-              <Row label="Gastos: SS Empresa" value={dossier.rendimientos_actividades.detalle_gastos.seguridad_social_empresa} negative />
-              <div className="border-t pt-2 flex justify-between font-bold text-base">
-                <span>Rendimiento Neto</span>
-                <span className={dossier.rendimientos_actividades.rendimiento_neto >= 0 ? "text-green-600" : "text-red-600"}>
-                  {formatCurrency(dossier.rendimientos_actividades.rendimiento_neto)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Retenciones y Pagos */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Wallet className="w-4 h-4" /> Retenciones y Pagos a Cuenta
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <Row label="Retenciones de clientes (fact. emitidas)" value={dossier.retenciones_y_pagos.retenciones_clientes} />
-              <Row label="Retenciones actividades (gastos con ret.)" value={dossier.retenciones_y_pagos.retenciones_actividades} />
-              <Row label="Pagos fraccionados (Mod. 130)" value={dossier.retenciones_y_pagos.pagos_fraccionados} />
-              {dossier.retenciones_y_pagos.detalle_130?.length > 0 && (
-                <div className="pl-4 space-y-1">
-                  {dossier.retenciones_y_pagos.detalle_130.map((p: any, i: number) => (
-                    <div key={i} className="flex justify-between text-xs text-muted-foreground">
-                      <span>T{p.trimestre}</span>
-                      <span>{formatCurrency(parseFloat(p.importe))}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="border-t pt-2 flex justify-between font-bold">
-                <span>Total Anticipado a Hacienda</span>
-                <span>{formatCurrency(dossier.retenciones_y_pagos.total_anticipado)}</span>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Detalle Rendimientos - con formulario editable si no hay datos CONTENDO */}
+          <DatosEjercicioActual dossier={dossier} ejercicio={ejercicio} onUpdate={loadDossier} />
 
           {/* IVA Anual */}
           <Card>
