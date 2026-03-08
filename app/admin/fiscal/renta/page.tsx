@@ -996,15 +996,28 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
+                {/* Actividades Económicas detalle */}
+                {dossier.renta_anterior.ingresos_actividades > 0 && (
+                  <>
+                    <p className="font-medium text-amber-800 text-xs uppercase tracking-wide">Actividades Economicas</p>
+                    <Row label="Ingresos (180)" value={dossier.renta_anterior.ingresos_actividades} positive />
+                    <Row label="Gastos deducibles (223)" value={dossier.renta_anterior.gastos_actividades} negative />
+                    <div className="flex justify-between text-xs text-amber-700">
+                      <span>Rendimiento neto AAEE</span>
+                      <span>{formatCurrency(dossier.renta_anterior.rendimientos_actividades)}</span>
+                    </div>
+                  </>
+                )}
+
                 {/* Rendimientos desglosados */}
                 {(dossier.renta_anterior.rendimientos_trabajo > 0 || dossier.renta_anterior.rendimientos_actividades > 0 || dossier.renta_anterior.rendimientos_capital_mob > 0 || dossier.renta_anterior.rendimientos_capital_inmob > 0 || dossier.renta_anterior.ganancias_patrimoniales > 0) && (
                   <>
-                    <p className="font-medium text-amber-800 text-xs uppercase tracking-wide">Rendimientos</p>
+                    <p className="font-medium text-amber-800 text-xs uppercase tracking-wide mt-1">Rendimientos</p>
                     {dossier.renta_anterior.rendimientos_trabajo > 0 && (
                       <Row label="Rend. Trabajo (003)" value={dossier.renta_anterior.rendimientos_trabajo} />
                     )}
                     {dossier.renta_anterior.rendimientos_actividades > 0 && (
-                      <Row label="Rend. Actividades (109)" value={dossier.renta_anterior.rendimientos_actividades} />
+                      <Row label="Rend. Actividades (224/235)" value={dossier.renta_anterior.rendimientos_actividades} />
                     )}
                     {dossier.renta_anterior.rendimientos_capital_mob > 0 && (
                       <Row label="Rend. Capital Mob. (027)" value={dossier.renta_anterior.rendimientos_capital_mob} />
@@ -1013,7 +1026,7 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
                       <Row label="Rend. Capital Inmob. (063)" value={dossier.renta_anterior.rendimientos_capital_inmob} />
                     )}
                     {dossier.renta_anterior.ganancias_patrimoniales > 0 && (
-                      <Row label="Ganancias Patrimoniales" value={dossier.renta_anterior.ganancias_patrimoniales} />
+                      <Row label="Ganancias Patrimoniales (420)" value={dossier.renta_anterior.ganancias_patrimoniales} />
                     )}
                     <div className="border-t border-amber-200 pt-2 flex justify-between font-semibold text-amber-900">
                       <span>Rendimiento Neto Total</span>
@@ -1022,10 +1035,23 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
                   </>
                 )}
 
-                {/* Retenciones y pagos a cuenta */}
-                {(dossier.renta_anterior.retenciones_trabajo > 0 || dossier.renta_anterior.retenciones_actividades > 0 || dossier.renta_anterior.pagos_fraccionados > 0) && (
+                {/* Cuotas */}
+                {(dossier.renta_anterior.casilla_545 > 0 || dossier.renta_anterior.casilla_570 > 0) && (
                   <>
-                    <p className="font-medium text-amber-800 text-xs uppercase tracking-wide mt-2">Retenciones y Pagos a Cuenta</p>
+                    <p className="font-medium text-amber-800 text-xs uppercase tracking-wide mt-1">Cuotas</p>
+                    {dossier.renta_anterior.casilla_435 > 0 && <Row label="Base imponible general (435)" value={dossier.renta_anterior.casilla_435} />}
+                    <Row label="Base liquidable general (505)" value={dossier.renta_anterior.casilla_505} />
+                    {dossier.renta_anterior.minimo_personal_familiar > 0 && <Row label="Mínimo personal y familiar" value={dossier.renta_anterior.minimo_personal_familiar} />}
+                    <Row label="Cuota íntegra (545+546)" value={dossier.renta_anterior.casilla_545 + dossier.renta_anterior.casilla_546} />
+                    {dossier.renta_anterior.deducciones_autonomicas > 0 && <Row label="Deducciones autonómicas" value={dossier.renta_anterior.deducciones_autonomicas} negative />}
+                    <Row label="Cuota líquida (570+571)" value={dossier.renta_anterior.casilla_570 + dossier.renta_anterior.casilla_571} />
+                  </>
+                )}
+
+                {/* Retenciones y pagos a cuenta */}
+                {(dossier.renta_anterior.retenciones_trabajo > 0 || dossier.renta_anterior.retenciones_actividades > 0 || dossier.renta_anterior.pagos_fraccionados > 0 || dossier.renta_anterior.total_anticipado > 0) && (
+                  <>
+                    <p className="font-medium text-amber-800 text-xs uppercase tracking-wide mt-1">Retenciones y Pagos a Cuenta</p>
                     {dossier.renta_anterior.retenciones_trabajo > 0 && (
                       <Row label="Retenciones trabajo" value={dossier.renta_anterior.retenciones_trabajo} />
                     )}
@@ -1033,18 +1059,16 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
                       <Row label="Retenciones actividades" value={dossier.renta_anterior.retenciones_actividades} />
                     )}
                     {dossier.renta_anterior.pagos_fraccionados > 0 && (
-                      <Row label="Pagos fraccionados (M130)" value={dossier.renta_anterior.pagos_fraccionados} />
+                      <Row label="Pagos fraccionados M130 (604)" value={dossier.renta_anterior.pagos_fraccionados} />
                     )}
+                    <div className="flex justify-between text-xs font-medium text-amber-800">
+                      <span>Total anticipado</span>
+                      <span>{formatCurrency(dossier.renta_anterior.total_anticipado)}</span>
+                    </div>
                   </>
                 )}
 
-                {/* Casillas principales */}
-                <div className="border-t border-amber-200 pt-2 mt-2">
-                  <p className="font-medium text-amber-800 text-xs uppercase tracking-wide mb-2">Casillas Principales</p>
-                  <Row label="Base Imponible General (505)" value={dossier.renta_anterior.casilla_505} />
-                  <Row label="Cuota Liquida (610)" value={dossier.renta_anterior.casilla_610} />
-                </div>
-
+                {/* Resultado final */}
                 <div className="border-t border-amber-300 pt-2 flex justify-between font-bold">
                   <span>Resultado {dossier.renta_anterior.ejercicio}</span>
                   <span className={dossier.renta_anterior.resultado >= 0 ? "text-red-600" : "text-green-600"}>
