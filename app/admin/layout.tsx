@@ -497,7 +497,11 @@ export default function AdminLayout({
 
         {/* Links por secciones */}
         <nav className="mt-6 flex-1 overflow-y-auto">
-          {visibleSections.map((section, sIdx) => (
+          {visibleSections.map((section, sIdx) => {
+            // Recopilar todas las rutas del menú para detectar rutas más específicas
+            const allMenuPaths = visibleSections.flatMap(s => s.items.map(i => i.path));
+
+            return (
             <div key={section.title} className={sIdx > 0 ? "mt-4" : ""}>
               {section.title !== "INICIO" && (
                 <div className="px-3 mb-1">
@@ -507,12 +511,28 @@ export default function AdminLayout({
                 </div>
               )}
               <ul className="space-y-0.5">
-                {section.items.map((item) => (
+                {section.items.map((item) => {
+                  // Comprobar si la ruta actual es exactamente esta
+                  let isActive = pathname === item.path;
+
+                  // Para rutas que no son dashboard, comprobar rutas hijas
+                  if (!isActive && item.path !== "/admin/dashboard" && pathname.startsWith(item.path + "/")) {
+                    // Solo activar si NO existe una ruta más específica en el menú que también coincida
+                    const hasMoreSpecificMatch = allMenuPaths.some(p =>
+                      p !== item.path &&
+                      p.length > item.path.length &&
+                      p.startsWith(item.path) &&
+                      (pathname === p || pathname.startsWith(p + "/"))
+                    );
+                    isActive = !hasMoreSpecificMatch;
+                  }
+
+                  return (
                   <li key={item.path}>
                     <Link
                       href={item.path}
                       onClick={() => setMenuOpen(false)}
-                      className={`block px-3 py-2 rounded-md text-sm transition ${pathname === item.path || (item.path !== "/admin/dashboard" && pathname.startsWith(item.path + "/"))
+                      className={`block px-3 py-2 rounded-md text-sm transition ${isActive
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-muted"
                         }`}
@@ -520,10 +540,12 @@ export default function AdminLayout({
                       {item.label}
                     </Link>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </div>
-          ))}
+            );
+          })}
         </nav>
 
       </aside>
