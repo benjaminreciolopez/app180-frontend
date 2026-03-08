@@ -13,7 +13,7 @@ import { toast } from "sonner"
 import {
   Upload, FileText, User, FolderOpen, Trash2, Eye, Plus, X,
   Loader2, CheckCircle2, AlertTriangle, TrendingUp, TrendingDown,
-  Building, Wallet, Users, Home, Heart, PiggyBank, Calculator
+  Building, Wallet, Users, Home, Heart, PiggyBank, Calculator, AlertCircle
 } from "lucide-react"
 
 type Tab = "historial" | "datos" | "dossier"
@@ -873,34 +873,75 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
             <Badge variant="outline" className="ml-auto">Ejercicio {dossier.ejercicio}</Badge>
           </div>
 
-          {/* KPIs */}
+          {/* Banner informativo cuando no hay datos en CONTENDO */}
+          {dossier.fuente_datos !== 'contendo' && (
+            <div className={`p-4 rounded-xl border ${dossier.renta_anterior ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex items-start gap-3">
+                <AlertCircle className={`w-5 h-5 mt-0.5 ${dossier.renta_anterior ? 'text-amber-600' : 'text-slate-500'}`} />
+                <div className="text-sm">
+                  {dossier.renta_anterior ? (
+                    <>
+                      <p className="font-medium text-amber-800">Sin actividad registrada en CONTENDO para {dossier.ejercicio}</p>
+                      <p className="text-amber-700 mt-1">
+                        Los rendimientos del año actual aparecen a 0 porque no hay facturas ni gastos cargados.
+                        Se muestra la <strong>renta importada del ejercicio {dossier.renta_anterior.ejercicio}</strong> como referencia más abajo.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-slate-700">Sin datos disponibles</p>
+                      <p className="text-slate-600 mt-1">
+                        No hay facturas/gastos en CONTENDO ni declaración anterior importada. Importa un PDF de renta anterior o registra actividad para generar el dossier.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* KPIs - Si no hay datos CONTENDO pero sí renta anterior, mostrar datos de la renta importada */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard
-              title="Ingresos Actividad"
-              value={formatCurrency(dossier.rendimientos_actividades.ingresos)}
+              title={dossier.fuente_datos === 'contendo' ? "Ingresos Actividad" : "Ingresos (Renta Ant.)"}
+              value={formatCurrency(dossier.fuente_datos === 'contendo' || !dossier.renta_anterior
+                ? dossier.rendimientos_actividades.ingresos
+                : dossier.renta_anterior.ingresos_actividades)}
               icon={TrendingUp}
-              subtext={`${dossier.rendimientos_actividades.num_facturas} facturas`}
+              subtext={dossier.fuente_datos === 'contendo'
+                ? `${dossier.rendimientos_actividades.num_facturas} facturas`
+                : dossier.renta_anterior ? `Ejercicio ${dossier.renta_anterior.ejercicio}` : 'Sin datos'}
               color="green"
             />
             <KpiCard
-              title="Gastos Deducibles"
-              value={formatCurrency(dossier.rendimientos_actividades.gastos_deducibles)}
+              title={dossier.fuente_datos === 'contendo' ? "Gastos Deducibles" : "Gastos (Renta Ant.)"}
+              value={formatCurrency(dossier.fuente_datos === 'contendo' || !dossier.renta_anterior
+                ? dossier.rendimientos_actividades.gastos_deducibles
+                : dossier.renta_anterior.gastos_actividades)}
               icon={TrendingDown}
-              subtext={`${dossier.rendimientos_actividades.num_gastos} gastos`}
+              subtext={dossier.fuente_datos === 'contendo'
+                ? `${dossier.rendimientos_actividades.num_gastos} gastos`
+                : dossier.renta_anterior ? `Ejercicio ${dossier.renta_anterior.ejercicio}` : 'Sin datos'}
               color="red"
             />
             <KpiCard
-              title="Rendimiento Neto"
-              value={formatCurrency(dossier.rendimientos_actividades.rendimiento_neto)}
+              title={dossier.fuente_datos === 'contendo' ? "Rendimiento Neto" : "Rend. Neto (Renta Ant.)"}
+              value={formatCurrency(dossier.fuente_datos === 'contendo' || !dossier.renta_anterior
+                ? dossier.rendimientos_actividades.rendimiento_neto
+                : dossier.renta_anterior.rendimientos_actividades)}
               icon={Wallet}
-              subtext="Ingresos - Gastos"
-              color={dossier.rendimientos_actividades.rendimiento_neto >= 0 ? "blue" : "red"}
+              subtext={dossier.fuente_datos === 'contendo' ? "Ingresos - Gastos" : `Ejercicio ${dossier.renta_anterior?.ejercicio || ''}`}
+              color={((dossier.fuente_datos === 'contendo' ? dossier.rendimientos_actividades.rendimiento_neto : dossier.renta_anterior?.rendimientos_actividades) || 0) >= 0 ? "blue" : "red"}
             />
             <KpiCard
-              title="Total Anticipado"
-              value={formatCurrency(dossier.retenciones_y_pagos.total_anticipado)}
+              title={dossier.fuente_datos === 'contendo' ? "Total Anticipado" : "Resultado (Renta Ant.)"}
+              value={formatCurrency(dossier.fuente_datos === 'contendo' || !dossier.renta_anterior
+                ? dossier.retenciones_y_pagos.total_anticipado
+                : dossier.renta_anterior.resultado)}
               icon={PiggyBank}
-              subtext="Retenciones + Pagos 130"
+              subtext={dossier.fuente_datos === 'contendo'
+                ? "Retenciones + Pagos 130"
+                : dossier.renta_anterior?.resultado && dossier.renta_anterior.resultado < 0 ? "A devolver" : "A ingresar"}
               color="purple"
             />
           </div>
