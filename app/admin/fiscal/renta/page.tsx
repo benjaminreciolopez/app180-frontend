@@ -1331,7 +1331,7 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
           {/* Resultado Estimado */}
           {dossier.resultado_estimado && (
             <Card className={`border-2 ${dossier.resultado_estimado.valor < 0 ? 'border-green-300 bg-green-50/50' : dossier.resultado_estimado.valor > 0 ? 'border-red-300 bg-red-50/50' : 'border-slate-200'}`}>
-              <CardContent className="p-6">
+              <CardContent className="p-6 space-y-4">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className={`p-3 rounded-full ${dossier.resultado_estimado.valor < 0 ? 'bg-green-100' : 'bg-red-100'}`}>
@@ -1347,10 +1347,31 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
                       {formatCurrency(Math.abs(dossier.resultado_estimado.valor))}
                     </p>
                     <Badge variant="outline" className={`mt-1 ${dossier.resultado_estimado.valor < 0 ? 'border-green-300 text-green-700 bg-green-50' : dossier.resultado_estimado.valor > 0 ? 'border-red-300 text-red-700 bg-red-50' : ''}`}>
-                      {dossier.resultado_estimado.valor < 0 ? '✅ A DEVOLVER' : dossier.resultado_estimado.valor > 0 ? '⚠️ A INGRESAR' : 'NEUTRO'}
+                      {dossier.resultado_estimado.valor < 0 ? 'A DEVOLVER' : dossier.resultado_estimado.valor > 0 ? 'A INGRESAR' : 'NEUTRO'}
                     </Badge>
                   </div>
                 </div>
+                {/* Desglose de la simulación IRPF */}
+                {dossier.resultado_estimado.desglose && (
+                  <div className="border-t pt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Rend. Neto</span>
+                      <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.rendimiento_neto)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Min. Personal/Familiar</span>
+                      <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.minimo_personal_familiar)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Cuota Líquida</span>
+                      <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.cuota_liquida)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Total Anticipado</span>
+                      <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.total_anticipado)}</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
