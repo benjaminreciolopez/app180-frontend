@@ -451,6 +451,7 @@ function DatosPersonalesTab() {
     donaciones_otras: 0,
     tipo_declaracion_preferida: "individual",
     comunidad_autonoma: "andalucia",
+    anticipo_familia_numerosa: true,
   })
 
   const CCAA_OPTIONS = [
@@ -506,6 +507,7 @@ function DatosPersonalesTab() {
             donaciones_otras: json.data.donaciones_otras || 0,
             tipo_declaracion_preferida: json.data.tipo_declaracion_preferida || "individual",
             comunidad_autonoma: json.data.comunidad_autonoma || "andalucia",
+            anticipo_familia_numerosa: json.data.anticipo_familia_numerosa !== false,
           })
         }
       }
@@ -724,6 +726,29 @@ function DatosPersonalesTab() {
                   </Button>
                 </div>
               ))}
+            </div>
+          )}
+          {form.descendientes.length >= 3 && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Familia numerosa - Cobro anticipado (Modelo 143)</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Si cobras los 100€/mes anticipados de familia numerosa, el efecto en la declaracion es 0.
+                    Si NO los cobras, se aplica la deduccion integra (1.200€+) en la declaracion.
+                  </p>
+                </div>
+                <Select
+                  value={form.anticipo_familia_numerosa ? "si" : "no"}
+                  onValueChange={v => setForm(prev => ({ ...prev, anticipo_familia_numerosa: v === "si" }))}
+                >
+                  <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="si">Si, cobro anticipado</SelectItem>
+                    <SelectItem value="no">No, en la declaracion</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
         </CardContent>
@@ -1430,7 +1455,12 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
                       {dossier.resultado_estimado.desglose.familia_numerosa?.deduccion_bruta > 0 && (
                         <div>
                           <span className="text-muted-foreground">Fam. Numerosa</span>
-                          <p className="font-semibold text-green-600">-{formatCurrency(dossier.resultado_estimado.desglose.familia_numerosa.deduccion_bruta)}</p>
+                          <p className="font-semibold text-green-600">
+                            -{formatCurrency(dossier.resultado_estimado.desglose.familia_numerosa.deduccion_bruta)}
+                            {dossier.datos_personales?.anticipo_familia_numerosa !== false && (
+                              <span className="text-xs text-muted-foreground ml-1">(anticipado)</span>
+                            )}
+                          </p>
                         </div>
                       )}
                     </div>
