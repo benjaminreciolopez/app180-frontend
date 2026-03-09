@@ -450,7 +450,29 @@ function DatosPersonalesTab() {
     donaciones_ong: 0,
     donaciones_otras: 0,
     tipo_declaracion_preferida: "individual",
+    comunidad_autonoma: "andalucia",
   })
+
+  const CCAA_OPTIONS = [
+    { codigo: "andalucia", nombre: "Andalucía" },
+    { codigo: "aragon", nombre: "Aragón" },
+    { codigo: "asturias", nombre: "Asturias" },
+    { codigo: "baleares", nombre: "Islas Baleares" },
+    { codigo: "canarias", nombre: "Canarias" },
+    { codigo: "cantabria", nombre: "Cantabria" },
+    { codigo: "castilla_la_mancha", nombre: "Castilla-La Mancha" },
+    { codigo: "castilla_y_leon", nombre: "Castilla y León" },
+    { codigo: "cataluna", nombre: "Cataluña" },
+    { codigo: "ceuta_melilla", nombre: "Ceuta y Melilla" },
+    { codigo: "extremadura", nombre: "Extremadura" },
+    { codigo: "galicia", nombre: "Galicia" },
+    { codigo: "madrid", nombre: "Madrid" },
+    { codigo: "murcia", nombre: "Murcia" },
+    { codigo: "la_rioja", nombre: "La Rioja" },
+    { codigo: "valencia", nombre: "Comunitat Valenciana" },
+    { codigo: "pais_vasco", nombre: "País Vasco (Foral)" },
+    { codigo: "navarra", nombre: "Navarra (Foral)" },
+  ]
 
   useEffect(() => {
     loadDatos()
@@ -483,6 +505,7 @@ function DatosPersonalesTab() {
             donaciones_ong: json.data.donaciones_ong || 0,
             donaciones_otras: json.data.donaciones_otras || 0,
             tipo_declaracion_preferida: json.data.tipo_declaracion_preferida || "individual",
+            comunidad_autonoma: json.data.comunidad_autonoma || "andalucia",
           })
         }
       }
@@ -612,6 +635,20 @@ function DatosPersonalesTab() {
                   <SelectItem value="conjunta">Conjunta</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Comunidad Autonoma</Label>
+              <Select value={form.comunidad_autonoma} onValueChange={v => setForm(p => ({ ...p, comunidad_autonoma: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecciona CCAA" /></SelectTrigger>
+                <SelectContent>
+                  {CCAA_OPTIONS.map(cc => (
+                    <SelectItem key={cc.codigo} value={cc.codigo}>{cc.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(form.comunidad_autonoma === "pais_vasco" || form.comunidad_autonoma === "navarra") && (
+                <p className="text-xs text-amber-600 mt-1">Regimen foral: tarifa IRPF propia (no split estatal/autonomico)</p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -1297,6 +1334,10 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
               </CardHeader>
               <CardContent className="text-sm space-y-2">
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground">CCAA:</span>
+                  <span className="font-medium capitalize">{(dossier.datos_personales.comunidad_autonoma || 'andalucia').replace(/_/g, ' ')}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Estado civil:</span>
                   <span className="font-medium capitalize">{dossier.datos_personales.estado_civil}</span>
                 </div>
@@ -1353,22 +1394,45 @@ function DossierTab({ ejercicio }: { ejercicio: number }) {
                 </div>
                 {/* Desglose de la simulación IRPF */}
                 {dossier.resultado_estimado.desglose && (
-                  <div className="border-t pt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">Rend. Neto</span>
-                      <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.rendimiento_neto)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Min. Personal/Familiar</span>
-                      <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.minimo_personal_familiar)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Cuota Líquida</span>
-                      <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.cuota_liquida)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Total Anticipado</span>
-                      <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.total_anticipado)}</p>
+                  <div className="border-t pt-3 space-y-2">
+                    {dossier.resultado_estimado.comunidad_autonoma && (
+                      <p className="text-xs text-muted-foreground">
+                        Tramos aplicados: <span className="font-medium capitalize">{dossier.resultado_estimado.comunidad_autonoma.replace(/_/g, ' ')}</span>
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Rend. Neto</span>
+                        <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.rendimiento_neto)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Min. Personal (Est.)</span>
+                        <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.minimo_personal_familiar)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Cuota Integra</span>
+                        <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.cuota_integra)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Cuota Liquida</span>
+                        <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.cuota_liquida)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Total Anticipado</span>
+                        <p className="font-semibold">{formatCurrency(dossier.resultado_estimado.desglose.total_anticipado)}</p>
+                      </div>
+                      {dossier.resultado_estimado.desglose.deducciones_autonomicas?.total > 0 && (
+                        <div>
+                          <span className="text-muted-foreground">Ded. Autonomicas</span>
+                          <p className="font-semibold text-green-600">-{formatCurrency(dossier.resultado_estimado.desglose.deducciones_autonomicas.total)}</p>
+                        </div>
+                      )}
+                      {dossier.resultado_estimado.desglose.familia_numerosa?.deduccion_bruta > 0 && (
+                        <div>
+                          <span className="text-muted-foreground">Fam. Numerosa</span>
+                          <p className="font-semibold text-green-600">-{formatCurrency(dossier.resultado_estimado.desglose.familia_numerosa.deduccion_bruta)}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
