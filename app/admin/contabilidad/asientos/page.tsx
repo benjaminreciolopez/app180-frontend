@@ -57,8 +57,19 @@ import {
     Save,
     AlertTriangle,
     Bot,
+    Trash2,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // --- Types ---
 
@@ -204,6 +215,8 @@ export default function AsientosPage() {
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [validatingMultiple, setValidatingMultiple] = useState(false);
+    const [deletingMultiple, setDeletingMultiple] = useState(false);
+    const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[]>([]);
 
     // --- State: edit asiento ---
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -339,11 +352,49 @@ export default function AsientosPage() {
     };
 
     const selectAll = () => {
-        setSelectedIds(new Set(borradores.map(b => b.id)));
+        setSelectedIds(new Set(asientos.map(a => a.id)));
     };
 
     const selectNone = () => {
         setSelectedIds(new Set());
+    };
+
+    const handleEliminar = (id: string) => {
+        setConfirmDeleteIds([id]);
+    };
+
+    const handleEliminarMultiple = () => {
+        if (selectedIds.size === 0) return;
+        setConfirmDeleteIds([...selectedIds]);
+    };
+
+    const confirmEliminar = async () => {
+        const ids = confirmDeleteIds;
+        setConfirmDeleteIds([]);
+        if (ids.length === 1) {
+            try {
+                await authenticatedFetch(`/api/admin/contabilidad/asientos/${ids[0]}`, { method: "DELETE" });
+                loadAsientos();
+            } catch (err) {
+                console.error("Error eliminando asiento:", err);
+            }
+        } else {
+            setDeletingMultiple(true);
+            try {
+                await authenticatedFetch(`/api/admin/contabilidad/asientos/eliminar-multiple`, {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ids }),
+                });
+                setSelectionMode(false);
+                setSelectedIds(new Set());
+                loadAsientos();
+            } catch (err) {
+                console.error("Error eliminando asientos:", err);
+            } finally {
+                setDeletingMultiple(false);
+            }
+        }
     };
 
     const toggleSelectionMode = () => {
@@ -1431,7 +1482,7 @@ export default function AsientosPage() {
                     <div className="flex items-center gap-3">
                         <ListChecks size={18} className="text-blue-600" />
                         <span className="text-sm font-medium text-blue-900">
-                            {selectedBorradorIds.length} de {borradores.length} borrador{borradores.length !== 1 ? "es" : ""} seleccionado{selectedBorradorIds.length !== 1 ? "s" : ""}
+                            {selectedIds.size} seleccionado{selectedIds.size !== 1 ? "s" : ""}
                         </span>
                         <div className="flex items-center gap-1.5 ml-2">
                             <Button
@@ -1452,14 +1503,24 @@ export default function AsientosPage() {
                             </Button>
                         </div>
                     </div>
-                    <Button
-                        className="bg-green-600 text-white hover:bg-green-700 rounded-xl h-10 px-5 gap-2 shadow-sm"
-                        onClick={handleValidarMultiple}
-                        disabled={selectedBorradorIds.length === 0 || validatingMultiple}
-                    >
-                        {validatingMultiple ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-                        Validar {selectedBorradorIds.length > 0 ? `(${selectedBorradorIds.length})` : ""}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            className="bg-green-600 text-white hover:bg-green-700 rounded-xl h-10 px-5 gap-2 shadow-sm"
+                            onClick={handleValidarMultiple}
+                            disabled={selectedBorradorIds.length === 0 || validatingMultiple}
+                        >
+                            {validatingMultiple ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                            Validar {selectedBorradorIds.length > 0 ? `(${selectedBorradorIds.length})` : ""}
+                        </Button>
+                        <Button
+                            className="bg-red-600 text-white hover:bg-red-700 rounded-xl h-10 px-5 gap-2 shadow-sm"
+                            onClick={handleEliminarMultiple}
+                            disabled={selectedIds.size === 0 || deletingMultiple}
+                        >
+                            {deletingMultiple ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                            Eliminar {selectedIds.size > 0 ? `(${selectedIds.size})` : ""}
+                        </Button>
+                    </div>
                 </div>
             )}
 
@@ -1570,14 +1631,10 @@ export default function AsientosPage() {
                                         >
                                             {selectionMode && (
                                                 <TableCell className="pl-4 w-[44px]" onClick={(e) => e.stopPropagation()}>
-                                                    {asiento.estado === "borrador" ? (
-                                                        <Checkbox
-                                                            checked={selectedIds.has(asiento.id)}
-                                                            onCheckedChange={() => toggleSelect(asiento.id)}
-                                                        />
-                                                    ) : (
-                                                        <div className="w-4 h-4" />
-                                                    )}
+                                                    <Checkbox
+                                                        checked={selectedIds.has(asiento.id)}
+                                                        onCheckedChange={() => toggleSelect(asiento.id)}
+                                                    />
                                                 </TableCell>
                                             )}
                                             <TableCell className={`${selectionMode ? "" : "pl-6"} font-mono text-xs text-slate-500`}>
@@ -1684,6 +1741,18 @@ export default function AsientosPage() {
                                                             />
                                                         </Button>
                                                     )}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 hover:bg-red-100 hover:text-red-600 text-slate-400"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleEliminar(asiento.id);
+                                                        }}
+                                                        title="Eliminar asiento"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -2127,6 +2196,35 @@ export default function AsientosPage() {
                     </div>
                 </div>
             )}
+        {/* ============================================================ */}
+        {/* AlertDialog: confirmar eliminación */}
+        {/* ============================================================ */}
+        <AlertDialog open={confirmDeleteIds.length > 0} onOpenChange={(open) => { if (!open) setConfirmDeleteIds([]); }}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                        <Trash2 size={18} />
+                        {confirmDeleteIds.length === 1 ? "¿Eliminar asiento?" : `¿Eliminar ${confirmDeleteIds.length} asientos?`}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {confirmDeleteIds.length === 1
+                            ? "Esta acción eliminará permanentemente el asiento y sus líneas contables. No se puede deshacer."
+                            : `Esta acción eliminará permanentemente ${confirmDeleteIds.length} asientos y sus líneas contables. No se puede deshacer.`
+                        }
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                        onClick={confirmEliminar}
+                    >
+                        Eliminar
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
         </div>
     );
 }
