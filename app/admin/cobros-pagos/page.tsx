@@ -222,6 +222,7 @@ export default function CobrosPagosPage() {
         toast.success("Pago anulado y saldos revertidos");
         setPagoToDelete(null);
         loadPagos();
+        loadDeudas();
     } catch(e: any) {
         toast.error(e.response?.data?.error || "Error al anular el pago");
     } finally {
@@ -321,6 +322,7 @@ export default function CobrosPagosPage() {
         toast.success("Pago registrado correctamente");
         setDrawerOpen(false);
         loadPagos();
+        loadDeudas();
         // Reset form
         setNewPay({
             cliente_id: "",
