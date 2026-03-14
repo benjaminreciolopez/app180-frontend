@@ -545,10 +545,11 @@ export default function AsientosPage() {
                 if (!simular) {
                     // After applying corrections, clear the banner and refresh
                     setReviewResult(null);
-                    loadAsientos();
                 } else {
                     setReviewResult(json);
                 }
+                // Always reload — IA marks reviewed asientos even in simulation
+                loadAsientos();
             }
         } catch (err) {
             console.error("Error reviewing:", err);
@@ -1982,7 +1983,38 @@ export default function AsientosPage() {
                         </div>
                     )}
 
-                    {reviewResult.cambios.length === 0 && reviewResult.corregidos === 0 && (
+                    {/* Alertas de problemas detectados */}
+                    {(reviewResult as any).alertas?.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="text-xs font-semibold text-red-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <AlertTriangle size={14} className="text-red-600" />
+                                Problemas detectados ({(reviewResult as any).alertas.length}):
+                            </p>
+                            <div className="bg-white rounded-xl border border-red-100 overflow-hidden divide-y divide-red-50">
+                                {(reviewResult as any).alertas.map((alerta: { asiento_id: string; numero: number; concepto: string; tipo_alerta: string; gravedad: string; mensaje: string }, i: number) => (
+                                    <div key={i} className="p-3 flex items-start gap-3">
+                                        <span className={`mt-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0 ${
+                                            alerta.gravedad === "critica"
+                                                ? "bg-red-100 text-red-700"
+                                                : "bg-yellow-100 text-yellow-700"
+                                        }`}>
+                                            {alerta.gravedad === "critica" ? "!" : "?"}
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-medium text-slate-900 truncate">
+                                                #{alerta.numero} — {alerta.concepto}
+                                            </p>
+                                            <p className={`text-xs mt-0.5 ${alerta.gravedad === "critica" ? "text-red-600" : "text-yellow-600"}`}>
+                                                {alerta.mensaje}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {reviewResult.cambios.length === 0 && reviewResult.corregidos === 0 && !((reviewResult as any).alertas?.length > 0) && (
                         <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-xl p-3 border border-green-200">
                             <CheckCircle size={16} />
                             Todos los asientos tienen las cuentas correctas. No se necesitan correcciones.

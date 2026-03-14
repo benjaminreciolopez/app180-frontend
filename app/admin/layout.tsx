@@ -453,10 +453,10 @@ export default function AdminLayout({
           companyLogo={companyLogo}
         />
       )}
-      {/* Overlay móvil */}
+      {/* Overlay para cerrar sidebar */}
       {menuOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+          className="fixed inset-0 bg-black/40 z-40"
           onClick={() => setMenuOpen(false)}
         />
       )}
@@ -581,9 +581,9 @@ export default function AdminLayout({
 
             <button
               onClick={() => setSelfConfigOpen(true)}
-              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300 hidden md:block"
+              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300"
             >
-              <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-background bg-muted">
+              <div className="relative w-9 h-9 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-background bg-muted">
                 {session.avatar_url ? (
                   <img
                     src={session.avatar_url}
@@ -591,7 +591,7 @@ export default function AdminLayout({
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-lg font-bold">
+                  <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-sm md:text-lg font-bold">
                     {session.nombre.charAt(0)}
                   </div>
                 )}

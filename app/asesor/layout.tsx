@@ -246,10 +246,10 @@ export default function AsesorLayout({
 
   return (
     <div className="flex h-[100svh] w-full overflow-hidden">
-      {/* Mobile overlay */}
+      {/* Overlay para cerrar sidebar */}
       {menuOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+          className="fixed inset-0 bg-black/40 z-40"
           onClick={() => setMenuOpen(false)}
         />
       )}
@@ -383,10 +383,10 @@ export default function AsesorLayout({
 
             <button
               onClick={() => setSelfConfigOpen(true)}
-              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300 hidden md:block"
+              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300"
             >
-              <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-background bg-muted">
-                <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-lg font-bold">
+              <div className="relative w-9 h-9 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-background bg-muted">
+                <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-sm md:text-lg font-bold">
                   {user.nombre.charAt(0).toUpperCase()}
                 </div>
               </div>

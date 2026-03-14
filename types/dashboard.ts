@@ -1,4 +1,10 @@
 
+export interface PeriodoFinanciero {
+    este_mes: number;
+    mes_anterior: number;
+    ytd: number;
+}
+
 export interface DashboardData {
     empleadosActivos: number;
     fichajesHoy: number;
@@ -11,6 +17,8 @@ export interface DashboardData {
     facturasPendientes: number;
     cobrosPendientes: number;
     saldoTotal: number;
+    facturacionMensual?: PeriodoFinanciero;
+    gastosMensuales?: PeriodoFinanciero;
     trabajosPendientes: number;
     trabajosPendientesList?: { id: string; descripcion: string; fecha: string; cliente_nombre: string | null; estado_detalle: string }[];
     partesHoy: number;

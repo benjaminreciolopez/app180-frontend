@@ -1,8 +1,30 @@
 
-import { Users, Clock, AlertTriangle, Calendar, UserCheck, Euro, ClipboardList, RefreshCw, Upload, History } from "lucide-react";
+import { Users, Clock, AlertTriangle, Calendar, UserCheck, Euro, ClipboardList, RefreshCw, Upload, History, Receipt, Wallet, BarChart3, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import Link from "next/link";
-import { DashboardData } from "@/types/dashboard"; // Assuming interface is exported or redefined here
-import { KpiCard } from "./KpiCard"; // Generic KPI Card
+import { DashboardData, PeriodoFinanciero } from "@/types/dashboard";
+import { KpiCard } from "./KpiCard";
+
+const formatCurrency = (v: number) =>
+    v.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+
+function TrendBadge({ current, previous, invertColor }: { current: number; previous: number; invertColor?: boolean }) {
+    if (previous === 0 && current === 0) return null;
+    const pct = previous === 0 ? 100 : Math.round(((current - previous) / previous) * 100);
+    const isUp = pct > 0;
+    const isNeutral = pct === 0;
+    const color = isNeutral
+        ? "text-gray-400"
+        : (invertColor ? !isUp : isUp)
+            ? "text-green-600"
+            : "text-red-500";
+    const Icon = isNeutral ? Minus : isUp ? TrendingUp : TrendingDown;
+    return (
+        <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${color}`}>
+            <Icon size={12} />
+            {isNeutral ? "—" : `${pct > 0 ? "+" : ""}${pct}%`}
+        </span>
+    );
+}
 
 // --- Individual KPI Components ---
 
@@ -125,6 +147,89 @@ export function KpiTrabajos({ pendientes, onOpenModal }: { pendientes: number, o
                 >
                     <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-orange-600" />
                 </button>
+            </div>
+        </div>
+    );
+}
+
+// ── Widgets financieros ──
+
+export function KpiFacturacionMes({ data }: { data: PeriodoFinanciero }) {
+    return (
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <p className="text-xs md:text-sm font-medium text-gray-500">Facturación este mes</p>
+                        <TrendBadge current={data.este_mes} previous={data.mes_anterior} />
+                    </div>
+                    <p className="text-2xl md:text-3xl font-bold">{formatCurrency(data.este_mes)}</p>
+                </div>
+                <Link href="/admin/facturacion/facturas" className="p-2 md:p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                    <Receipt className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                </Link>
+            </div>
+        </div>
+    );
+}
+
+export function KpiGastosMes({ data }: { data: PeriodoFinanciero }) {
+    return (
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <p className="text-xs md:text-sm font-medium text-gray-500">Gastos este mes</p>
+                        <TrendBadge current={data.este_mes} previous={data.mes_anterior} invertColor />
+                    </div>
+                    <p className="text-2xl md:text-3xl font-bold">{formatCurrency(data.este_mes)}</p>
+                </div>
+                <Link href="/admin/gastos" className="p-2 md:p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                    <Wallet className="w-5 h-5 md:w-6 md:h-6 text-red-500" />
+                </Link>
+            </div>
+        </div>
+    );
+}
+
+export function KpiBeneficioMes({ facturacion, gastos }: { facturacion: PeriodoFinanciero; gastos: PeriodoFinanciero }) {
+    const beneficio = facturacion.este_mes - gastos.este_mes;
+    const beneficioAnt = facturacion.mes_anterior - gastos.mes_anterior;
+    return (
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <p className="text-xs md:text-sm font-medium text-gray-500">Beneficio este mes</p>
+                        <TrendBadge current={beneficio} previous={beneficioAnt} />
+                    </div>
+                    <p className={`text-2xl md:text-3xl font-bold ${beneficio >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {formatCurrency(beneficio)}
+                    </p>
+                </div>
+                <div className={`p-2 md:p-3 rounded-lg ${beneficio >= 0 ? "bg-green-50" : "bg-red-50"}`}>
+                    <BarChart3 className={`w-5 h-5 md:w-6 md:h-6 ${beneficio >= 0 ? "text-green-600" : "text-red-500"}`} />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export function KpiFacturacionYtd({ facturacion, gastos }: { facturacion: PeriodoFinanciero; gastos: PeriodoFinanciero }) {
+    const beneficioYtd = facturacion.ytd - gastos.ytd;
+    return (
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-xs md:text-sm font-medium text-gray-500 mb-1">Facturación YTD</p>
+                    <p className="text-2xl md:text-3xl font-bold">{formatCurrency(facturacion.ytd)}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                        Beneficio YTD: <span className={beneficioYtd >= 0 ? "text-green-600" : "text-red-600"}>{formatCurrency(beneficioYtd)}</span>
+                    </p>
+                </div>
+                <div className="p-2 md:p-3 bg-indigo-50 rounded-lg">
+                    <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-indigo-600" />
+                </div>
             </div>
         </div>
     );

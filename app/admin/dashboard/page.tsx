@@ -13,7 +13,8 @@ import { saveAs } from "file-saver";
 import { BeneficioRealCard } from "@/components/admin/dashboard/BeneficioRealCard";
 import {
   KpiEmpleados, KpiFichajes, KpiSospechosos, KpiCalendario,
-  KpiClientes, KpiFacturacion, KpiTrabajos, KpiGCal
+  KpiClientes, KpiFacturacion, KpiTrabajos, KpiGCal,
+  KpiFacturacionMes, KpiGastosMes, KpiBeneficioMes, KpiFacturacionYtd
 } from "@/components/admin/dashboard/widgets/KpiWidgets";
 import { ChartActividad, ChartClientesOrTipos } from "@/components/admin/dashboard/widgets/ChartWidgets";
 import { ListTrabajando, ListFichajes, ListFacturas } from "@/components/admin/dashboard/widgets/ListWidgets";
@@ -29,10 +30,17 @@ export default function DashboardPage() {
   const router = useRouter();
   const { dashData: data, widgets: fetchedWidgets, modulos, isLoading: loading, isRefetching, error, refetch } = useDashboard();
 
-  // Derive widget visibility
-  const widgets = fetchedWidgets.length > 0
-    ? fetchedWidgets
-    : (data ? ALL_WIDGETS.map((wd, index) => ({ id: wd.id, visible: true, order: index })) : []);
+  // Derive widget visibility — merge saved config with new widgets (default visible)
+  const widgets = (() => {
+    if (!data) return [];
+    if (fetchedWidgets.length === 0) return ALL_WIDGETS.map((wd, index) => ({ id: wd.id, visible: true, order: index }));
+    // Merge: keep saved config + add any new widgets not yet in config as visible
+    const savedIds = new Set(fetchedWidgets.map(w => w.id));
+    const newWidgets = ALL_WIDGETS
+      .filter(wd => !savedIds.has(wd.id))
+      .map((wd, i) => ({ id: wd.id, visible: true, order: fetchedWidgets.length + i }));
+    return [...fetchedWidgets, ...newWidgets];
+  })();
   const widgetsLoaded = !!data;
 
   const [refreshing, setRefreshing] = useState(false);
@@ -238,6 +246,18 @@ export default function DashboardPage() {
           <div className="col-span-2 lg:col-span-1 row-span-2 lg:row-span-1 h-full">
             <BeneficioRealCard data={data.beneficioReal} />
           </div>
+        )}
+        {shouldShowWidget("kpi_facturacion_mes", "facturacion") && data.facturacionMensual && (
+          <div className="col-span-1 h-full"><KpiFacturacionMes data={data.facturacionMensual} /></div>
+        )}
+        {shouldShowWidget("kpi_gastos_mes", "facturacion") && data.gastosMensuales && (
+          <div className="col-span-1 h-full"><KpiGastosMes data={data.gastosMensuales} /></div>
+        )}
+        {shouldShowWidget("kpi_beneficio_mes", "facturacion") && data.facturacionMensual && data.gastosMensuales && (
+          <div className="col-span-1 h-full"><KpiBeneficioMes facturacion={data.facturacionMensual} gastos={data.gastosMensuales} /></div>
+        )}
+        {shouldShowWidget("kpi_facturacion_ytd", "facturacion") && data.facturacionMensual && data.gastosMensuales && (
+          <div className="col-span-1 h-full"><KpiFacturacionYtd facturacion={data.facturacionMensual} gastos={data.gastosMensuales} /></div>
         )}
         {shouldShowWidget("kpi_empleados", "empleados") && (
           <div className="col-span-1 h-full"><KpiEmpleados data={data.empleadosActivos} /></div>
