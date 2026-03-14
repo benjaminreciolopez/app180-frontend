@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { authenticatedFetch } from "@/utils/api";
 import CuentaAutocomplete from "@/components/admin/contabilidad/CuentaAutocomplete";
 import {
@@ -1619,9 +1619,8 @@ export default function AsientosPage() {
                                 </TableRow>
                             ) : (
                                 asientos.map((asiento) => (
-                                    <>
+                                    <React.Fragment key={asiento.id}>
                                         <TableRow
-                                            key={asiento.id}
                                             className={`cursor-pointer hover:bg-slate-50/80 transition-colors ${selectionMode && selectedIds.has(asiento.id) ? "bg-blue-50/60" : ""}`}
                                             onClick={() =>
                                                 selectionMode && asiento.estado === "borrador"
@@ -1898,7 +1897,7 @@ export default function AsientosPage() {
                                                 </TableCell>
                                             </TableRow>
                                         )}
-                                    </>
+                                    </React.Fragment>
                                 ))
                             )}
                         </TableBody>

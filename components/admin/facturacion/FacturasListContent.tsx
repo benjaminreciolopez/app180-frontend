@@ -444,6 +444,7 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
     const isValidada = factura.estado === "VALIDADA"
     const isAnulada = factura.estado === "ANULADA"
     const isProforma = factura.tipo_factura === "PROFORMA"
+    const isTest = factura.es_test === true || factura.serie === "TEST"
 
     // Determinar estado de pago
     const pagado = Number(factura.pagado || 0)
@@ -464,6 +465,11 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
                     {isValidada && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0">Validada</Badge>}
                     {isAnulada && <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0">Anulada</Badge>}
                 </div>
+                {isTest && (
+                    <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 shadow-none border-0 text-xs">
+                        Ficticia (Test)
+                    </Badge>
+                )}
                 {isProforma && (
                     <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 shadow-none border-0 text-xs">
                         Proforma

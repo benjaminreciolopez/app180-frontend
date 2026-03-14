@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User, LogOut, Settings } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User, LogOut, Settings, Menu } from "lucide-react";
 import { getUser, refreshMe } from "@/services/auth";
 import { api } from "@/services/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
@@ -467,9 +467,8 @@ export default function AdminLayout({
           fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border p-5
           transform transition-all duration-300 ease-in-out
           ${menuOpen ? "translate-x-0" : "-translate-x-full"}
-          md:static md:translate-x-0 md:flex md:flex-col
           flex flex-col overflow-hidden
-          ${!menuOpen ? "pointer-events-none opacity-0 md:opacity-100 md:pointer-events-auto" : "pointer-events-auto opacity-100"}
+          ${!menuOpen ? "pointer-events-none opacity-0" : "pointer-events-auto opacity-100"}
         `}
       >
         {/* Marca de agua - Avatar de fondo sutil */}
@@ -556,17 +555,23 @@ export default function AdminLayout({
       {/* Main Container */}
       <main className="flex-1 bg-background h-[100svh] flex flex-col relative min-w-0 w-full md:w-auto overflow-x-hidden">
 
-        {/* Header Premium Central */}
-        <header className="hidden md:flex items-center justify-between h-16 px-8 border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-20">
-          <div className="w-10" /> {/* Spacer */}
+        {/* Header unificado con hamburguesa */}
+        <header className="sticky top-0 z-20 flex items-center justify-between h-14 md:h-16 px-4 md:px-8 border-b border-border/50 bg-background/80 backdrop-blur-md shrink-0">
+          <button
+            aria-label="Abrir menú"
+            onClick={() => setMenuOpen(true)}
+            className="p-2 border rounded hover:bg-muted transition-colors"
+          >
+            <Menu size={20} />
+          </button>
 
           <div className="flex-1 flex justify-center">
-            <h1 className="text-sm font-bold tracking-[0.3em] text-foreground/80 uppercase">
+            <h1 className="text-xs md:text-sm font-bold tracking-[0.2em] md:tracking-[0.3em] text-foreground/80 uppercase">
               CONTENDO GESTIONES
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <div className="text-right hidden lg:block">
               <p className="text-sm font-semibold leading-none">{session.nombre}</p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-tighter mt-1">Sesión Administrativa</p>
@@ -576,7 +581,7 @@ export default function AdminLayout({
 
             <button
               onClick={() => setSelfConfigOpen(true)}
-              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300"
+              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300 hidden md:block"
             >
               <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-background bg-muted">
                 {session.avatar_url ? (
@@ -597,25 +602,12 @@ export default function AdminLayout({
             <button
               onClick={logout}
               title="Cerrar sesión"
-              className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full transition-colors ml-2"
+              className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full transition-colors hidden md:block"
             >
               <LogOut size={20} />
             </button>
           </div>
         </header>
-
-        {/* Header móvil */}
-        <div className="md:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b flex items-center justify-between h-14 px-4 shrink-0">
-          <button
-            aria-label="Abrir menú"
-            onClick={() => setMenuOpen(true)}
-            className="p-2 border rounded"
-          >
-            ☰
-          </button>
-          <h1 className="text-xs font-bold tracking-wider text-foreground/80 uppercase">CONTENDO</h1>
-          <NotificationBell />
-        </div>
 
         {/* Contenido */}
         <div className="flex-1 overflow-y-auto md:p-6">{children}</div>

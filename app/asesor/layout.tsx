@@ -260,9 +260,8 @@ export default function AsesorLayout({
           fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border p-5
           transform transition-all duration-300 ease-in-out
           ${menuOpen ? "translate-x-0" : "-translate-x-full"}
-          md:static md:translate-x-0 md:flex md:flex-col
           flex flex-col overflow-hidden
-          ${!menuOpen ? "pointer-events-none opacity-0 md:opacity-100 md:pointer-events-auto" : "pointer-events-auto opacity-100"}
+          ${!menuOpen ? "pointer-events-none opacity-0" : "pointer-events-auto opacity-100"}
         `}
       >
         {/* Mobile close */}
@@ -354,17 +353,23 @@ export default function AsesorLayout({
 
       {/* Main content area */}
       <main className="flex-1 bg-background h-[100svh] flex flex-col relative min-w-0 w-full md:w-auto overflow-x-hidden">
-        {/* Desktop header */}
-        <header className="hidden md:flex items-center justify-between h-16 px-8 border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-20">
-          <div className="w-10" />
+        {/* Header unificado con hamburguesa */}
+        <header className="sticky top-0 z-20 flex items-center justify-between h-14 md:h-16 px-4 md:px-8 border-b border-border/50 bg-background/80 backdrop-blur-md shrink-0">
+          <button
+            aria-label="Abrir menu"
+            onClick={() => setMenuOpen(true)}
+            className="p-2 border rounded hover:bg-muted transition-colors"
+          >
+            <Menu size={20} />
+          </button>
 
           <div className="flex-1 flex justify-center">
-            <h1 className="text-sm font-bold tracking-[0.3em] text-foreground/80 uppercase">
+            <h1 className="text-xs md:text-sm font-bold tracking-[0.2em] md:tracking-[0.3em] text-foreground/80 uppercase">
               CONTENDO ASESORIA
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <div className="text-right hidden lg:block">
               <p className="text-sm font-semibold leading-none">
                 {user.nombre}
@@ -378,7 +383,7 @@ export default function AsesorLayout({
 
             <button
               onClick={() => setSelfConfigOpen(true)}
-              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300"
+              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300 hidden md:block"
             >
               <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-background bg-muted">
                 <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-lg font-bold">
@@ -391,27 +396,12 @@ export default function AsesorLayout({
             <button
               onClick={logout}
               title="Cerrar sesion"
-              className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full transition-colors ml-2"
+              className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full transition-colors hidden md:block"
             >
               <LogOut size={20} />
             </button>
           </div>
         </header>
-
-        {/* Mobile header */}
-        <div className="md:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b flex items-center justify-between h-14 px-4 shrink-0">
-          <button
-            aria-label="Abrir menu"
-            onClick={() => setMenuOpen(true)}
-            className="p-2 border rounded"
-          >
-            <Menu size={20} />
-          </button>
-          <h1 className="text-xs font-bold tracking-wider text-foreground/80 uppercase">
-            CONTENDO ASESORIA
-          </h1>
-          <NotificationBell basePath="/admin/notificaciones" />
-        </div>
 
         {/* Page content */}
         <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
