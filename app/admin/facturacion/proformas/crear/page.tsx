@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useFacturacionBasePath } from "@/hooks/useFacturacionBasePath"
 import {
   ArrowLeft,
   Save,
@@ -73,6 +74,7 @@ interface Cliente {
 
 export default function CrearProformaPage() {
   const router = useRouter()
+  const basePath = useFacturacionBasePath()
 
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [loadingClientes, setLoadingClientes] = useState(false)
@@ -150,7 +152,7 @@ export default function CrearProformaPage() {
 
       const res = await api.post('/admin/facturacion/proformas', payload)
       toast.success(res.data.message || "Proforma creada correctamente")
-      router.push('/admin/facturacion/listado?tab=proformas')
+      router.push(`${basePath}/listado?tab=proformas`)
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error al crear proforma")
     } finally {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { useFacturacionBasePath } from "@/hooks/useFacturacionBasePath"
 import { motion } from "framer-motion"
 import { 
   ArrowLeft, 
@@ -77,6 +78,7 @@ interface Concepto {
 
 export default function EditarFacturaPage() {
   const router = useRouter()
+  const basePath = useFacturacionBasePath()
   const params = useParams()
   const id = params?.id as string
   
@@ -117,13 +119,13 @@ export default function EditarFacturaPage() {
 
         if (!f) {
            toast.error("Factura no encontrada")
-           router.push("/admin/facturacion/listado")
+           router.push(`${basePath}/listado`)
            return
         }
 
         if (f.estado !== 'BORRADOR') {
             toast.warning("Solo se pueden editar facturas en estado BORRADOR")
-            router.push("/admin/facturacion/listado")
+            router.push(`${basePath}/listado`)
             return
         }
 
@@ -341,7 +343,7 @@ export default function EditarFacturaPage() {
 
       await api.put(`/admin/facturacion/facturas/${id}`, payload)
       toast.success("Factura actualizada correctamente")
-      router.push("/admin/facturacion/listado")
+      router.push(`${basePath}/listado`)
     } catch (error: any) {
       console.error(error)
       toast.error(error.response?.data?.error || "Error al actualizar factura")

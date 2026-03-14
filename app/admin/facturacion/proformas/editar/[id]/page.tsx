@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { useFacturacionBasePath } from "@/hooks/useFacturacionBasePath"
 import {
   ArrowLeft,
   Save,
@@ -68,6 +69,7 @@ interface Cliente {
 
 export default function EditarProformaPage() {
   const router = useRouter()
+  const basePath = useFacturacionBasePath()
   const params = useParams()
   const proformaId = params.id as string
 
@@ -119,7 +121,7 @@ export default function EditarProformaPage() {
         }
       } catch (err) {
         toast.error("Error cargando proforma")
-        router.push('/admin/facturacion/listado?tab=proformas')
+        router.push(`${basePath}/listado?tab=proformas`)
       } finally {
         setLoading(false)
       }
@@ -172,7 +174,7 @@ export default function EditarProformaPage() {
 
       await api.put(`/admin/facturacion/proformas/${proformaId}`, payload)
       toast.success("Proforma actualizada")
-      router.push('/admin/facturacion/listado?tab=proformas')
+      router.push(`${basePath}/listado?tab=proformas`)
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error al actualizar proforma")
     } finally {

@@ -25,6 +25,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { useFacturacionBasePath } from "@/hooks/useFacturacionBasePath"
 
 import { api } from "@/services/api"
 import { formatCurrency } from "@/lib/utils"
@@ -69,6 +70,7 @@ import {
 
 export function ProformasListContent() {
   const router = useRouter()
+  const basePath = useFacturacionBasePath()
 
   const [loading, setLoading] = useState(true)
   const [proformas, setProformas] = useState<any[]>([])
@@ -169,7 +171,7 @@ export function ProformasListContent() {
       setNumeroConfirmacion("")
       // Redirigir al listado de facturas para validar
       if (data.factura_id) {
-        router.push(`/admin/facturacion/listado`)
+        router.push(`${basePath}/listado`)
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error al convertir")
@@ -282,7 +284,7 @@ export function ProformasListContent() {
           </Select>
 
           <Button
-            onClick={() => router.push("/admin/facturacion/proformas/crear")}
+            onClick={() => router.push(`${basePath}/proformas/crear`)}
             className="bg-amber-600 hover:bg-amber-700 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -321,7 +323,7 @@ export function ProformasListContent() {
             title="No se encontraron proformas"
             description={estadoFilter !== 'TODOS' || searchTerm ? "Prueba a ajustar los filtros." : "Aún no hay proformas creadas."}
             actionLabel="Nueva Proforma"
-            onAction={() => router.push("/admin/facturacion/proformas/crear")}
+            onAction={() => router.push(`${basePath}/proformas/crear`)}
           />
         ) : (
           <div className="divide-y divide-slate-100">
@@ -330,7 +332,7 @@ export function ProformasListContent() {
                 <ProformaRow
                   key={proforma.id}
                   proforma={proforma}
-                  onEdit={() => router.push(`/admin/facturacion/proformas/editar/${proforma.id}`)}
+                  onEdit={() => router.push(`${basePath}/proformas/editar/${proforma.id}`)}
                   onAnular={() => setProformaToAnular(proforma)}
                   onReactivar={() => handleReactivar(proforma.id)}
                   onConvertir={() => setProformaToConvertir(proforma)}

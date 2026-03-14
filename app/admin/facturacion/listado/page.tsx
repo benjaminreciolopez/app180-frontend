@@ -1,6 +1,7 @@
 "use client"
 
 import { useSearchParams, useRouter } from "next/navigation"
+import { useFacturacionBasePath } from "@/hooks/useFacturacionBasePath"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FileText, Tag } from "lucide-react"
 import { FacturasListContent } from "@/components/admin/facturacion/FacturasListContent"
@@ -10,13 +11,14 @@ export default function FacturasListadoPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
+  const basePath = useFacturacionBasePath()
   const activeTab = searchParams.get("tab") === "proformas" ? "proformas" : "fiscales"
 
   const handleTabChange = (value: string) => {
     if (value === "proformas") {
-      router.replace("/admin/facturacion/listado?tab=proformas")
+      router.replace(`${basePath}/listado?tab=proformas`)
     } else {
-      router.replace("/admin/facturacion/listado")
+      router.replace(`${basePath}/listado`)
     }
   }
 

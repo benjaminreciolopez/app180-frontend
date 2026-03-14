@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useFacturacionBasePath } from "@/hooks/useFacturacionBasePath"
 import { motion } from "framer-motion"
 import {
     ArrowLeft,
@@ -111,6 +112,7 @@ const LEGAL_IVA_TEXTS: Record<number, string> = {
 
 export default function CrearFacturaPage() {
     const router = useRouter()
+    const basePath = useFacturacionBasePath()
 
     // Data State
     const [clientes, setClientes] = useState<Cliente[]>([])
@@ -477,7 +479,7 @@ export default function CrearFacturaPage() {
             toast.success("Borrador creado correctamente")
 
             // Opcional: Redirigir a listado o a vista detalle
-            router.push(`/admin/facturacion/listado`)
+            router.push(`${basePath}/listado`)
 
         } catch (error: any) {
             console.error(error)

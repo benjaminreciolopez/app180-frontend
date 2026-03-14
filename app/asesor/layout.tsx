@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { LogOut, Menu } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
 
 type Modulos = Record<string, boolean>;
 
@@ -128,6 +129,7 @@ export default function AsesorLayout({
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<AsesorUser | null>(null);
   const [checking, setChecking] = useState(true);
+  const [selfConfigOpen, setSelfConfigOpen] = useState(false);
 
   useEffect(() => {
     if (isPublicRoute) {
@@ -374,11 +376,17 @@ export default function AsesorLayout({
 
             <NotificationBell basePath="/admin/notificaciones" />
 
-            <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center">
-              <span className="text-sm font-bold text-primary">
-                {user.nombre.charAt(0).toUpperCase()}
-              </span>
-            </div>
+            <button
+              onClick={() => setSelfConfigOpen(true)}
+              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300"
+            >
+              <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-background bg-muted">
+                <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-lg font-bold">
+                  {user.nombre.charAt(0).toUpperCase()}
+                </div>
+              </div>
+              <div className="absolute inset-0 rounded-full shadow-[0_0_15px_rgba(var(--primary),0.2)] group-hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all" />
+            </button>
 
             <button
               onClick={logout}
@@ -408,6 +416,15 @@ export default function AsesorLayout({
         {/* Page content */}
         <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
       </main>
+
+      {/* Modal Autoconfiguración */}
+      {user?.id && (
+        <AdminSelfConfigModal
+          isOpen={selfConfigOpen}
+          onClose={() => setSelfConfigOpen(false)}
+          adminId={user.id}
+        />
+      )}
     </div>
   );
 }

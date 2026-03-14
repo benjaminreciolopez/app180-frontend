@@ -24,6 +24,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useFacturacionBasePath } from "@/hooks/useFacturacionBasePath"
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton"
 
 import { api } from "@/services/api"
@@ -67,6 +68,7 @@ import {
 
 export function FacturasListContent() {
   const router = useRouter()
+  const basePath = useFacturacionBasePath()
 
   // Estados de control
   const [loading, setLoading] = useState(true)
@@ -345,7 +347,7 @@ export function FacturasListContent() {
                             onValidar={() => handleValidar(factura.id)}
                             onAnular={() => setFacturaToAnular(factura)}
                             onDelete={() => setFacturaToDelete(factura)}
-                            onEdit={() => router.push(`/admin/facturacion/editar/${factura.id}`)}
+                            onEdit={() => router.push(`${basePath}/editar/${factura.id}`)}
                             onConvertir={() => handleConvertirANormal(factura.id)}
                             isProcessing={procesandoId === factura.id}
                             isDownloading={downloadingId === factura.id}
