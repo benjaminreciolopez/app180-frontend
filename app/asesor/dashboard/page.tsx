@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { ALL_ASESOR_DASHBOARD_WIDGETS } from "@/lib/asesor-dashboard-widgets";
 import {
   Card,
   CardContent,
@@ -169,6 +170,9 @@ export default function AsesorDashboardPage() {
   // Client filter for cartera & activity sections
   const [filtroCliente, setFiltroCliente] = useState("todos");
 
+  // Widget config
+  const [widgetConfig, setWidgetConfig] = useState<{ id: string; visible: boolean; order: number }[]>([]);
+
   // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -180,12 +184,30 @@ export default function AsesorDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await authenticatedFetch("/asesor/dashboard/consolidado");
-      const json = await res.json();
-      if (!res.ok || !json.success) {
+      const [dashRes, widgetsRes] = await Promise.all([
+        authenticatedFetch("/asesor/dashboard/consolidado"),
+        authenticatedFetch("/asesor/configuracion/widgets").catch(() => null),
+      ]);
+      const json = await dashRes.json();
+      if (!dashRes.ok || !json.success) {
         throw new Error(json.error || "Error al cargar el dashboard");
       }
       setData(json.data);
+
+      // Load widget config
+      if (widgetsRes && widgetsRes.ok) {
+        const wJson = await widgetsRes.json();
+        const saved: { id: string; visible: boolean; order: number }[] = wJson.widgets || [];
+        // Merge: keep saved config + add any new widgets not yet in config as visible
+        const savedIds = new Set(saved.map((w) => w.id));
+        const newWidgets = ALL_ASESOR_DASHBOARD_WIDGETS
+          .filter((wd) => !savedIds.has(wd.id))
+          .map((wd, i) => ({ id: wd.id, visible: true, order: saved.length + i }));
+        setWidgetConfig([...saved, ...newWidgets]);
+      } else {
+        // Default: all visible
+        setWidgetConfig(ALL_ASESOR_DASHBOARD_WIDGETS.map((wd, i) => ({ id: wd.id, visible: true, order: i })));
+      }
     } catch (err: any) {
       setError(err.message || "Error de conexion");
     } finally {
@@ -317,6 +339,12 @@ export default function AsesorDashboardPage() {
     },
   };
 
+  // ── Widget visibility ──
+  const isWidgetVisible = (id: string) => {
+    const w = widgetConfig.find((w) => w.id === id);
+    return w ? w.visible : true; // default visible if not in config
+  };
+
   // ── Render ──
 
   return (
@@ -357,7 +385,7 @@ export default function AsesorDashboardPage() {
       </div>
 
       {/* ── Section 1: KPIs de la Asesoria (propios) ── */}
-      <div>
+      {isWidgetVisible("seccion_mi_asesoria") && <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <CircleDollarSign size={20} className="text-primary" />
           Mi Asesoria
@@ -402,10 +430,10 @@ export default function AsesorDashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </div>}
 
       {/* ── Section 1b: KPIs agregados de clientes ── */}
-      {data.kpis_basicos.clientes_activos > 0 && (
+      {isWidgetVisible("seccion_cartera_clientes") && data.kpis_basicos.clientes_activos > 0 && (
         <div>
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Users size={20} className="text-primary" />
@@ -476,7 +504,7 @@ export default function AsesorDashboardPage() {
       )}
 
       {/* ── Section 2: Alertas rapidas ── */}
-      <div>
+      {isWidgetVisible("seccion_alertas") && <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <AlertTriangle size={20} className="text-amber-500" />
           Alertas Rapidas
@@ -572,10 +600,10 @@ export default function AsesorDashboardPage() {
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* ── Section 3: Clientes - Semaforo de salud ── */}
-      <div>
+      {isWidgetVisible("seccion_salud_clientes") && <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <Users size={20} className="text-primary" />
           Salud de Clientes
@@ -641,10 +669,10 @@ export default function AsesorDashboardPage() {
             })}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* ── Section 4: Actividad reciente ── */}
-      <div>
+      {isWidgetVisible("seccion_actividad") && <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <Activity size={20} className="text-primary" />
           Actividad Reciente
@@ -687,7 +715,7 @@ export default function AsesorDashboardPage() {
             </CardContent>
           </Card>
         )}
-      </div>
+      </div>}
 
       {/* ── Invite dialog ── */}
       <Dialog

@@ -19,7 +19,12 @@ import {
   Crown,
   Loader2,
   CheckCircle2,
+  LayoutDashboard,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { ALL_ASESOR_DASHBOARD_WIDGETS } from "@/lib/asesor-dashboard-widgets";
+import { Switch } from "@/components/ui/switch";
 
 type Asesoria = {
   id: string;
@@ -56,9 +61,55 @@ export default function AsesorConfiguracionPage() {
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
 
+  // Widget config
+  const [widgetConfig, setWidgetConfig] = useState<{ id: string; visible: boolean; order: number }[]>([]);
+  const [savingWidgets, setSavingWidgets] = useState(false);
+
   useEffect(() => {
     loadConfig();
+    loadWidgets();
   }, []);
+
+  async function loadWidgets() {
+    try {
+      const res = await authenticatedFetch("/asesor/configuracion/widgets");
+      if (res.ok) {
+        const json = await res.json();
+        const saved: { id: string; visible: boolean; order: number }[] = json.widgets || [];
+        const savedIds = new Set(saved.map((w) => w.id));
+        const newWidgets = ALL_ASESOR_DASHBOARD_WIDGETS
+          .filter((wd) => !savedIds.has(wd.id))
+          .map((wd, i) => ({ id: wd.id, visible: true, order: saved.length + i }));
+        setWidgetConfig([...saved, ...newWidgets]);
+      } else {
+        setWidgetConfig(ALL_ASESOR_DASHBOARD_WIDGETS.map((wd, i) => ({ id: wd.id, visible: true, order: i })));
+      }
+    } catch {
+      setWidgetConfig(ALL_ASESOR_DASHBOARD_WIDGETS.map((wd, i) => ({ id: wd.id, visible: true, order: i })));
+    }
+  }
+
+  async function toggleWidget(widgetId: string) {
+    const updated = widgetConfig.map((w) =>
+      w.id === widgetId ? { ...w, visible: !w.visible } : w
+    );
+    setWidgetConfig(updated);
+
+    // Auto-save
+    setSavingWidgets(true);
+    try {
+      await authenticatedFetch("/asesor/configuracion/widgets", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ widgets: updated }),
+      });
+    } catch {
+      // revert on error
+      setWidgetConfig(widgetConfig);
+    } finally {
+      setSavingWidgets(false);
+    }
+  }
 
   async function loadConfig() {
     setLoading(true);
@@ -265,6 +316,51 @@ export default function AsesorConfiguracionPage() {
               )}
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Dashboard widgets config */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <LayoutDashboard size={16} />
+            Secciones del Dashboard
+            {savingWidgets && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground mb-4">
+            Activa o desactiva las secciones que quieres ver en tu dashboard.
+          </p>
+          <div className="space-y-3">
+            {ALL_ASESOR_DASHBOARD_WIDGETS.map((wd) => {
+              const config = widgetConfig.find((w) => w.id === wd.id);
+              const isVisible = config ? config.visible : true;
+              const Icon = wd.icon;
+              return (
+                <div
+                  key={wd.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-1.5 rounded-md ${isVisible ? "bg-primary/10" : "bg-muted"}`}>
+                      <Icon size={16} className={isVisible ? "text-primary" : "text-muted-foreground"} />
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${!isVisible ? "text-muted-foreground" : ""}`}>
+                        {wd.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{wd.description}</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={isVisible}
+                    onCheckedChange={() => toggleWidget(wd.id)}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 
