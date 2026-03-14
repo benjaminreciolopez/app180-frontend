@@ -24,6 +24,7 @@ import {
 import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { ALL_ASESOR_DASHBOARD_WIDGETS } from "@/lib/asesor-dashboard-widgets";
+import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import {
   Card,
   CardContent,
@@ -194,10 +195,12 @@ export default function AsesorDashboardPage() {
       }
       setData(json.data);
 
-      // Load widget config
+      // Load widget config - pick mobile or desktop based on device
       if (widgetsRes && widgetsRes.ok) {
         const wJson = await widgetsRes.json();
-        const saved: { id: string; visible: boolean; order: number }[] = wJson.widgets || [];
+        const isMobilePwa = isMobileDevice() && isStandalone() && typeof window !== "undefined" && window.innerWidth < 1024;
+        const saved: { id: string; visible: boolean; order: number }[] =
+          isMobilePwa ? (wJson.widgets_mobile || wJson.widgets || []) : (wJson.widgets || []);
         // Merge: keep saved config + add any new widgets not yet in config as visible
         const savedIds = new Set(saved.map((w) => w.id));
         const newWidgets = ALL_ASESOR_DASHBOARD_WIDGETS

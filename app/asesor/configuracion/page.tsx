@@ -61,51 +61,79 @@ export default function AsesorConfiguracionPage() {
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
 
-  // Widget config
-  const [widgetConfig, setWidgetConfig] = useState<{ id: string; visible: boolean; order: number }[]>([]);
+  // Widget config - desktop & mobile
+  type WidgetItem = { id: string; visible: boolean; order: number };
+  const [widgetConfig, setWidgetConfig] = useState<WidgetItem[]>([]);
+  const [widgetConfigMobile, setWidgetConfigMobile] = useState<WidgetItem[]>([]);
+  const [activeWidgetTab, setActiveWidgetTab] = useState<"desktop" | "mobile">("desktop");
   const [savingWidgets, setSavingWidgets] = useState(false);
+
+  const currentWidgetConfig = activeWidgetTab === "desktop" ? widgetConfig : widgetConfigMobile;
+  const setCurrentWidgetConfig = activeWidgetTab === "desktop" ? setWidgetConfig : setWidgetConfigMobile;
 
   useEffect(() => {
     loadConfig();
     loadWidgets();
   }, []);
 
+  function mergeWidgets(saved: WidgetItem[]): WidgetItem[] {
+    const savedIds = new Set(saved.map((w) => w.id));
+    const newWidgets = ALL_ASESOR_DASHBOARD_WIDGETS
+      .filter((wd) => !savedIds.has(wd.id))
+      .map((wd, i) => ({ id: wd.id, visible: true, order: saved.length + i }));
+    return [...saved, ...newWidgets];
+  }
+
   async function loadWidgets() {
     try {
       const res = await authenticatedFetch("/asesor/configuracion/widgets");
       if (res.ok) {
         const json = await res.json();
-        const saved: { id: string; visible: boolean; order: number }[] = json.widgets || [];
-        const savedIds = new Set(saved.map((w) => w.id));
-        const newWidgets = ALL_ASESOR_DASHBOARD_WIDGETS
-          .filter((wd) => !savedIds.has(wd.id))
-          .map((wd, i) => ({ id: wd.id, visible: true, order: saved.length + i }));
-        setWidgetConfig([...saved, ...newWidgets]);
+        const savedDesktop: WidgetItem[] = json.widgets || [];
+        const savedMobile: WidgetItem[] = json.widgets_mobile || [];
+        setWidgetConfig(mergeWidgets(savedDesktop));
+        setWidgetConfigMobile(savedMobile.length > 0 ? mergeWidgets(savedMobile) : mergeWidgets(savedDesktop));
       } else {
-        setWidgetConfig(ALL_ASESOR_DASHBOARD_WIDGETS.map((wd, i) => ({ id: wd.id, visible: true, order: i })));
+        const defaults = ALL_ASESOR_DASHBOARD_WIDGETS.map((wd, i) => ({ id: wd.id, visible: true, order: i }));
+        setWidgetConfig(defaults);
+        setWidgetConfigMobile([...defaults]);
       }
     } catch {
-      setWidgetConfig(ALL_ASESOR_DASHBOARD_WIDGETS.map((wd, i) => ({ id: wd.id, visible: true, order: i })));
+      const defaults = ALL_ASESOR_DASHBOARD_WIDGETS.map((wd, i) => ({ id: wd.id, visible: true, order: i }));
+      setWidgetConfig(defaults);
+      setWidgetConfigMobile([...defaults]);
     }
   }
 
   async function toggleWidget(widgetId: string) {
-    const updated = widgetConfig.map((w) =>
+    const source = activeWidgetTab === "desktop" ? widgetConfig : widgetConfigMobile;
+    const updated = source.map((w) =>
       w.id === widgetId ? { ...w, visible: !w.visible } : w
     );
-    setWidgetConfig(updated);
+    if (activeWidgetTab === "desktop") {
+      setWidgetConfig(updated);
+    } else {
+      setWidgetConfigMobile(updated);
+    }
 
     // Auto-save
     setSavingWidgets(true);
     try {
+      const body = activeWidgetTab === "desktop"
+        ? { widgets: updated }
+        : { widgets_mobile: updated };
       await authenticatedFetch("/asesor/configuracion/widgets", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ widgets: updated }),
+        body: JSON.stringify(body),
       });
     } catch {
       // revert on error
-      setWidgetConfig(widgetConfig);
+      if (activeWidgetTab === "desktop") {
+        setWidgetConfig(source);
+      } else {
+        setWidgetConfigMobile(source);
+      }
     } finally {
       setSavingWidgets(false);
     }
@@ -329,12 +357,35 @@ export default function AsesorConfiguracionPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Desktop / Mobile tabs */}
+          <div className="flex border-b mb-4">
+            <button
+              onClick={() => setActiveWidgetTab("desktop")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeWidgetTab === "desktop"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Escritorio
+            </button>
+            <button
+              onClick={() => setActiveWidgetTab("mobile")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeWidgetTab === "mobile"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Movil PWA
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Activa o desactiva las secciones que quieres ver en tu dashboard.
+            Activa o desactiva las secciones que quieres ver en tu dashboard ({activeWidgetTab === "desktop" ? "escritorio" : "movil"}).
           </p>
           <div className="space-y-3">
             {ALL_ASESOR_DASHBOARD_WIDGETS.map((wd) => {
-              const config = widgetConfig.find((w) => w.id === wd.id);
+              const config = currentWidgetConfig.find((w) => w.id === wd.id);
               const isVisible = config ? config.visible : true;
               const Icon = wd.icon;
               return (
