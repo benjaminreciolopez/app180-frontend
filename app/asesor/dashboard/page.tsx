@@ -220,6 +220,11 @@ export default function AsesorDashboardPage() {
 
   useEffect(() => {
     loadDashboard();
+
+    // Recargar cuando se guardan cambios desde el modal de configuración
+    const handleSessionUpdate = () => loadDashboard();
+    window.addEventListener("session-updated", handleSessionUpdate);
+    return () => window.removeEventListener("session-updated", handleSessionUpdate);
   }, []);
 
   async function handleInvite() {

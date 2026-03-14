@@ -109,7 +109,6 @@ const menuSections = [
     title: "OTROS",
     items: [
       { path: "/asesor/exportar", label: "Exportar", module: null },
-      { path: "/asesor/configuracion", label: "Configuracion", module: null },
     ],
   },
 ];
@@ -413,6 +412,7 @@ export default function AsesorLayout({
           isOpen={selfConfigOpen}
           onClose={() => setSelfConfigOpen(false)}
           adminId={user.id}
+          isAsesor={true}
         />
       )}
     </div>

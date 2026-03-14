@@ -17,18 +17,21 @@ import { toast } from "sonner";
 import { get, set } from 'idb-keyval';
 import { useConfirm } from "@/components/shared/ConfirmDialog";
 import { ALL_DASHBOARD_WIDGETS } from "@/lib/dashboard-widgets";
+import { ALL_ASESOR_DASHBOARD_WIDGETS } from "@/lib/asesor-dashboard-widgets";
 import { cn } from "@/lib/utils";
 
 interface AdminSelfConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
   adminId: string;
+  isAsesor?: boolean;
 }
 
 export default function AdminSelfConfigModal({
   isOpen,
   onClose,
   adminId,
+  isAsesor = false,
 }: AdminSelfConfigModalProps) {
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState("perfil");
@@ -152,6 +155,8 @@ export default function AdminSelfConfigModal({
   async function loadData() {
     setLoading(true);
     try {
+      const widgetEndpoint = isAsesor ? "/asesor/configuracion/widgets" : "/admin/configuracion/widgets";
+
       const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes, verifactuRes] = await Promise.all([
         api.get("/employees").catch(err => { console.warn("403/Error employees:", err); return { data: [] }; }),
         api.get("/admin/plantillas").catch(err => { console.warn("403/Error plantillas:", err); return { data: [] }; }),
@@ -160,7 +165,7 @@ export default function AdminSelfConfigModal({
         api.get("/admin/configuracion").catch(err => { console.warn("403/Error global config:", err); return { data: {} }; }),
         api.get("/api/admin/calendar-config").catch(err => { console.warn("403/Error calendar config:", err); return { data: {} }; }),
         api.get("/admin/email-config").catch(err => { console.warn("403/Error email config:", err); return { data: {} }; }),
-        api.get("/admin/configuracion/widgets").catch(err => { console.warn("403/Error widgets:", err); return { data: { widgets: [], widgets_mobile: [] } }; }),
+        api.get(widgetEndpoint).catch(err => { console.warn("403/Error widgets:", err); return { data: { widgets: [], widgets_mobile: [] } }; }),
         api.get("/admin/facturacion/configuracion/verifactu/status").catch(err => { console.warn("403/Error verifactu status:", err); return { data: { data: null } }; })
       ]);
 
@@ -244,6 +249,7 @@ export default function AdminSelfConfigModal({
     if (saving) return;
     setSaving(true);
     try {
+      const widgetEndpoint = isAsesor ? "/asesor/configuracion/widgets" : "/admin/configuracion/widgets";
       const promises = [];
 
       // 1. Guardar Jornada (Perfil)
@@ -279,7 +285,7 @@ export default function AdminSelfConfigModal({
 
       // 5. Guardar Widgets Dashboard
       promises.push(
-        api.put("/admin/configuracion/widgets", {
+        api.put(widgetEndpoint, {
           widgets: dashboardWidgets,
           widgets_mobile: dashboardWidgetsMobile
         }).catch(err => console.warn("403/Error guardando widgets:", err))
@@ -1474,9 +1480,9 @@ export default function AdminSelfConfigModal({
                               </div>
 
                               <div className="bg-muted/20 border border-border rounded-xl p-2 grid grid-cols-1 md:grid-cols-2 gap-1 min-h-[200px]">
-                                {ALL_DASHBOARD_WIDGETS
+                                {(isAsesor ? ALL_ASESOR_DASHBOARD_WIDGETS : ALL_DASHBOARD_WIDGETS
                                   .filter(wd => !wd.module || (activeWidgetProfile === 'desktop' ? sistemaConfig.modulos[wd.module] : sistemaConfig.modulos_mobile[wd.module]))
-                                  .map((wd) => {
+                                ).map((wd) => {
                                     const configList = activeWidgetProfile === 'desktop' ? dashboardWidgets : dashboardWidgetsMobile;
                                     const savedWidget = configList.find((sw: any) => sw.id === wd.id);
                                     const isVisible = savedWidget ? savedWidget.visible : false;
