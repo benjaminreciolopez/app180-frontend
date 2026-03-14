@@ -1,27 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  LayoutDashboard,
-  Users,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Briefcase,
-  Download,
-} from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/shared/NotificationBell";
+
+type Modulos = Record<string, boolean>;
 
 type AsesorUser = {
   id: string;
   nombre: string;
   email: string;
   role: string;
+  empresa_id?: string;
+  modulos?: Modulos;
 };
 
 function getUser(): AsesorUser | null {
@@ -35,26 +29,87 @@ function getUser(): AsesorUser | null {
   }
 }
 
-const menuItems = [
+function hasModule(modules: Modulos | undefined, key: string | null) {
+  if (!key) return true;
+  return modules?.[key] === true;
+}
+
+// Secciones del menu agrupadas (misma estructura que admin)
+const menuSections = [
   {
-    path: "/asesor/dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
+    title: "INICIO",
+    items: [
+      { path: "/asesor/dashboard", label: "Dashboard", module: null },
+    ],
   },
   {
-    path: "/asesor/clientes",
-    label: "Clientes",
-    icon: Users,
+    title: "CLIENTES",
+    items: [
+      { path: "/asesor/clientes", label: "Clientes", module: null },
+    ],
   },
   {
-    path: "/asesor/exportar",
-    label: "Exportar",
-    icon: Download,
+    title: "RECURSOS HUMANOS",
+    items: [
+      { path: "/asesor/empleados", label: "Empleados", module: "empleados" },
+      { path: "/asesor/nominas", label: "Nominas", module: "empleados" },
+    ],
   },
   {
-    path: "/asesor/configuracion",
-    label: "Configuracion",
-    icon: Settings,
+    title: "PLANIFICACION",
+    items: [
+      { path: "/asesor/calendario", label: "Calendario", module: "calendario" },
+      { path: "/asesor/jornadas", label: "Configurar Jornadas", module: "fichajes" },
+    ],
+  },
+  {
+    title: "CONTROL HORARIO",
+    items: [
+      { path: "/asesor/fichajes", label: "Fichajes", module: "fichajes" },
+      { path: "/asesor/fichajes/sospechosos", label: "Sospechosos", module: "fichajes" },
+      { path: "/asesor/kioscos", label: "Kioscos", module: "fichajes" },
+      { path: "/asesor/auditoria", label: "Auditoria", module: "fichajes" },
+      { path: "/asesor/auditoria/rechazados", label: "Rechazados", module: "fichajes" },
+    ],
+  },
+  {
+    title: "TRABAJOS",
+    items: [
+      { path: "/asesor/worklogs", label: "Partes de Trabajo", module: "worklogs" },
+    ],
+  },
+  {
+    title: "FACTURACION",
+    items: [
+      { path: "/asesor/facturacion", label: "Facturacion", module: "facturacion" },
+      { path: "/asesor/gastos", label: "Compras y Gastos", module: "facturacion" },
+      { path: "/asesor/pagos", label: "Cobros y Pagos", module: "pagos" },
+    ],
+  },
+  {
+    title: "CONTABILIDAD",
+    items: [
+      { path: "/asesor/contabilidad", label: "Libros", module: "contabilidad" },
+      { path: "/asesor/contabilidad/asientos", label: "Asientos", module: "contabilidad" },
+      { path: "/asesor/contabilidad/cuentas", label: "Plan de Cuentas", module: "contabilidad" },
+      { path: "/asesor/contabilidad/mayor", label: "Libro Mayor", module: "contabilidad" },
+      { path: "/asesor/contabilidad/balance", label: "Balance", module: "contabilidad" },
+      { path: "/asesor/contabilidad/pyg", label: "PyG", module: "contabilidad" },
+      { path: "/asesor/contabilidad/extracto", label: "Extracto Bancario", module: "contabilidad" },
+    ],
+  },
+  {
+    title: "FISCAL",
+    items: [
+      { path: "/asesor/fiscal", label: "Fiscal y Alertas", module: "fiscal" },
+    ],
+  },
+  {
+    title: "OTROS",
+    items: [
+      { path: "/asesor/exportar", label: "Exportar", module: null },
+      { path: "/asesor/configuracion", label: "Configuracion", module: null },
+    ],
   },
 ];
 
@@ -67,7 +122,6 @@ export default function AsesorLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
@@ -89,6 +143,14 @@ export default function AsesorLayout({
     setUser(currentUser);
     setChecking(false);
   }, [isPublicRoute]);
+
+  // Clear asesor_empresa_id when NOT on client-specific pages
+  useEffect(() => {
+    const isClientPage = pathname.startsWith("/asesor/clientes/") && pathname.split("/").length > 3;
+    if (!isClientPage) {
+      sessionStorage.removeItem("asesor_empresa_id");
+    }
+  }, [pathname]);
 
   // Listen for session updates
   useEffect(() => {
@@ -112,6 +174,21 @@ export default function AsesorLayout({
     const titles: Record<string, string> = {
       "/asesor/dashboard": "Dashboard",
       "/asesor/clientes": "Clientes",
+      "/asesor/empleados": "Empleados",
+      "/asesor/fichajes/sospechosos": "Sospechosos",
+      "/asesor/fichajes": "Fichajes",
+      "/asesor/auditoria/rechazados": "Rechazados",
+      "/asesor/auditoria": "Auditoria",
+      "/asesor/kioscos": "Kioscos",
+      "/asesor/calendario": "Calendario",
+      "/asesor/jornadas": "Jornadas",
+      "/asesor/nominas": "Nominas",
+      "/asesor/gastos": "Compras y Gastos",
+      "/asesor/worklogs": "Partes de Trabajo",
+      "/asesor/facturacion": "Facturacion",
+      "/asesor/pagos": "Cobros y Pagos",
+      "/asesor/contabilidad": "Contabilidad",
+      "/asesor/fiscal": "Fiscal",
       "/asesor/exportar": "Exportar",
       "/asesor/configuracion": "Configuracion",
     };
@@ -141,18 +218,29 @@ export default function AsesorLayout({
     return <>{children}</>;
   }
 
-  // Loading state
   if (checking) {
     return <LoadingSpinner fullPage />;
   }
 
-  // Not authenticated or wrong role
   if (!user) {
     if (typeof window !== "undefined") {
       window.location.href = "/login";
     }
     return null;
   }
+
+  // Filtrar secciones visibles segun modulos
+  const visibleSections = menuSections
+    .map((section) => {
+      const visibleItems = section.items.filter((item) =>
+        hasModule(user.modulos, item.module)
+      );
+      return { ...section, items: visibleItems };
+    })
+    .filter((section) => section.items.length > 0);
+
+  // Recopilar todas las rutas del menu
+  const allMenuPaths = visibleSections.flatMap((s) => s.items.map((i) => i.path));
 
   return (
     <div className="flex h-[100svh] w-full overflow-hidden">
@@ -172,63 +260,76 @@ export default function AsesorLayout({
           ${menuOpen ? "translate-x-0" : "-translate-x-full"}
           md:static md:translate-x-0 md:flex md:flex-col
           flex flex-col overflow-hidden
-          ${
-            !menuOpen
-              ? "pointer-events-none opacity-0 md:opacity-100 md:pointer-events-auto"
-              : "pointer-events-auto opacity-100"
-          }
+          ${!menuOpen ? "pointer-events-none opacity-0 md:opacity-100 md:pointer-events-auto" : "pointer-events-auto opacity-100"}
         `}
       >
         {/* Mobile close */}
         <div className="md:hidden mb-4">
           <button
             onClick={() => setMenuOpen(false)}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm text-muted-foreground"
           >
-            <X size={16} />
-            Cerrar
+            ✕ Cerrar
           </button>
         </div>
 
         {/* Branding */}
-        <div className="relative z-10 mb-8">
-          <div className="flex items-center gap-2">
-            <Briefcase size={22} className="text-primary" />
-            <div>
-              <h2 className="text-xl font-bold tracking-wide">CONTENDO</h2>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] -mt-1">
-                Asesoria
-              </p>
-            </div>
-          </div>
+        <div className="relative z-10">
+          <h2 className="text-xl font-bold tracking-wide">CONTENDO</h2>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] -mt-1">
+            Asesoria
+          </p>
         </div>
 
-        {/* Navigation links */}
-        <nav className="flex-1 overflow-y-auto">
-          <ul className="space-y-1">
-            {menuItems.map((item) => {
-              const isActive =
-                pathname === item.path || pathname.startsWith(item.path + "/");
-              const Icon = item.icon;
+        {/* Navigation by sections */}
+        <nav className="mt-6 flex-1 overflow-y-auto">
+          {visibleSections.map((section, sIdx) => (
+            <div key={section.title} className={sIdx > 0 ? "mt-4" : ""}>
+              {section.title !== "INICIO" && (
+                <div className="px-3 mb-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    {section.title}
+                  </span>
+                </div>
+              )}
+              <ul className="space-y-0.5">
+                {section.items.map((item) => {
+                  let isActive = pathname === item.path;
 
-              return (
-                <li key={item.path}>
-                  <Link
-                    href={item.path}
-                    onClick={() => setMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium ${
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground/70 hover:bg-muted hover:text-foreground"
-                    }`}
-                  >
-                    <Icon size={18} />
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+                  if (
+                    !isActive &&
+                    item.path !== "/asesor/dashboard" &&
+                    pathname.startsWith(item.path + "/")
+                  ) {
+                    const hasMoreSpecificMatch = allMenuPaths.some(
+                      (p) =>
+                        p !== item.path &&
+                        p.length > item.path.length &&
+                        p.startsWith(item.path) &&
+                        (pathname === p || pathname.startsWith(p + "/"))
+                    );
+                    isActive = !hasMoreSpecificMatch;
+                  }
+
+                  return (
+                    <li key={item.path}>
+                      <Link
+                        href={item.path}
+                        onClick={() => setMenuOpen(false)}
+                        className={`block px-3 py-2 rounded-md text-sm transition ${
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         {/* User info and logout */}
@@ -239,15 +340,13 @@ export default function AsesorLayout({
               {user.email}
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={logout}
-            className="w-full justify-start text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors"
           >
-            <LogOut size={16} className="mr-2" />
+            <LogOut size={16} />
             Cerrar sesion
-          </Button>
+          </button>
         </div>
       </aside>
 
@@ -264,8 +363,6 @@ export default function AsesorLayout({
           </div>
 
           <div className="flex items-center gap-4">
-            <NotificationBell basePath="/asesor/notificaciones" />
-
             <div className="text-right hidden lg:block">
               <p className="text-sm font-semibold leading-none">
                 {user.nombre}
@@ -274,6 +371,8 @@ export default function AsesorLayout({
                 Portal Asesor
               </p>
             </div>
+
+            <NotificationBell basePath="/admin/notificaciones" />
 
             <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center">
               <span className="text-sm font-bold text-primary">
@@ -303,11 +402,11 @@ export default function AsesorLayout({
           <h1 className="text-xs font-bold tracking-wider text-foreground/80 uppercase">
             CONTENDO ASESORIA
           </h1>
-          <NotificationBell basePath="/asesor/notificaciones" />
+          <NotificationBell basePath="/admin/notificaciones" />
         </div>
 
         {/* Page content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
       </main>
     </div>
   );

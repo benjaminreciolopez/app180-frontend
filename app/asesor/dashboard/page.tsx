@@ -34,6 +34,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -71,6 +78,7 @@ type PlazoFiscal = {
 
 type ActividadReciente = {
   tipo: "factura" | "gasto";
+  empresa_id: string;
   empresa_nombre: string;
   descripcion: string;
   fecha: string;
@@ -90,9 +98,17 @@ type KpisBasicos = {
   mensajes_no_leidos: number;
 };
 
+type Beneficio = {
+  este_mes: number;
+  ytd: number;
+};
+
 type DashboardConsolidado = {
-  facturacion: Facturacion;
-  gastos: Gastos;
+  facturacion_propia: Facturacion;
+  gastos_propios: Gastos;
+  beneficio_propio: Beneficio;
+  facturacion_clientes: Facturacion;
+  gastos_clientes: Gastos;
   clientes_facturas_pendientes: ClientesFacturasPendientes;
   clientes_con_alertas: number;
   plazos_fiscales: PlazoFiscal[];
@@ -149,6 +165,9 @@ export default function AsesorDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<DashboardConsolidado | null>(null);
+
+  // Client filter for cartera & activity sections
+  const [filtroCliente, setFiltroCliente] = useState("todos");
 
   // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -225,8 +244,20 @@ export default function AsesorDashboardPage() {
 
   // ── Trend helpers ──
 
-  const facTrend = trendPercent(data.facturacion.este_mes, data.facturacion.mes_anterior);
-  const gasTrend = trendPercent(data.gastos.este_mes, data.gastos.mes_anterior);
+  // Filtered client data
+  const clientesFiltrados = filtroCliente === "todos"
+    ? data.clientes_salud
+    : data.clientes_salud.filter((c) => c.empresa_id === filtroCliente);
+  const actividadFiltrada = filtroCliente === "todos"
+    ? data.actividad_reciente
+    : data.actividad_reciente.filter((a) => a.empresa_id === filtroCliente);
+
+  // Trends de la asesoria propia
+  const facPropiaTrend = trendPercent(data.facturacion_propia.este_mes, data.facturacion_propia.mes_anterior);
+  const gasPropiaTrend = trendPercent(data.gastos_propios.este_mes, data.gastos_propios.mes_anterior);
+  // Trends de clientes
+  const facClientesTrend = trendPercent(data.facturacion_clientes.este_mes, data.facturacion_clientes.mes_anterior);
+  const gasClientesTrend = trendPercent(data.gastos_clientes.este_mes, data.gastos_clientes.mes_anterior);
 
   function TrendArrow({ trend, invertColor }: { trend: number | null; invertColor?: boolean }) {
     if (trend === null) {
@@ -299,6 +330,21 @@ export default function AsesorDashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {data.kpis_basicos.clientes_activos > 0 && (
+            <Select value={filtroCliente} onValueChange={setFiltroCliente}>
+              <SelectTrigger className="w-[200px] h-9">
+                <SelectValue placeholder="Todos los clientes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los clientes</SelectItem>
+                {data.clientes_salud.map((c) => (
+                  <SelectItem key={c.empresa_id} value={c.empresa_id}>
+                    {c.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button variant="outline" size="sm" onClick={loadDashboard} className="gap-2">
             <RefreshCw size={14} />
             Actualizar
@@ -310,68 +356,124 @@ export default function AsesorDashboardPage() {
         </div>
       </div>
 
-      {/* ── Section 1: KPIs financieros ── */}
+      {/* ── Section 1: KPIs de la Asesoria (propios) ── */}
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <CircleDollarSign size={20} className="text-primary" />
-          KPIs Financieros
+          Mi Asesoria
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Facturacion este mes */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-sm text-muted-foreground">Facturacion este mes</p>
-                <TrendArrow trend={facTrend} />
+                <TrendArrow trend={facPropiaTrend} />
               </div>
-              <p className="text-2xl font-bold">{formatCurrency(data.facturacion.este_mes)}</p>
+              <p className="text-2xl font-bold">{formatCurrency(data.facturacion_propia.este_mes)}</p>
             </CardContent>
           </Card>
 
-          {/* Facturacion mes anterior */}
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground mb-1">Facturacion mes anterior</p>
-              <p className="text-2xl font-bold">{formatCurrency(data.facturacion.mes_anterior)}</p>
-            </CardContent>
-          </Card>
-
-          {/* Facturacion YTD */}
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground mb-1">Facturacion YTD</p>
-              <p className="text-2xl font-bold">{formatCurrency(data.facturacion.ytd)}</p>
-            </CardContent>
-          </Card>
-
-          {/* Gastos este mes */}
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-sm text-muted-foreground">Gastos este mes</p>
-                <TrendArrow trend={gasTrend} invertColor />
+                <TrendArrow trend={gasPropiaTrend} invertColor />
               </div>
-              <p className="text-2xl font-bold">{formatCurrency(data.gastos.este_mes)}</p>
+              <p className="text-2xl font-bold">{formatCurrency(data.gastos_propios.este_mes)}</p>
             </CardContent>
           </Card>
 
-          {/* Gastos mes anterior */}
           <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground mb-1">Gastos mes anterior</p>
-              <p className="text-2xl font-bold">{formatCurrency(data.gastos.mes_anterior)}</p>
+              <p className="text-sm text-muted-foreground mb-1">Beneficio este mes</p>
+              <p className={`text-2xl font-bold ${data.beneficio_propio.este_mes >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {formatCurrency(data.beneficio_propio.este_mes)}
+              </p>
             </CardContent>
           </Card>
 
-          {/* Gastos YTD */}
           <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground mb-1">Gastos YTD</p>
-              <p className="text-2xl font-bold">{formatCurrency(data.gastos.ytd)}</p>
+              <p className="text-sm text-muted-foreground mb-1">Facturacion YTD</p>
+              <p className="text-2xl font-bold">{formatCurrency(data.facturacion_propia.ytd)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Beneficio YTD: <span className={data.beneficio_propio.ytd >= 0 ? "text-green-600" : "text-red-600"}>{formatCurrency(data.beneficio_propio.ytd)}</span>
+              </p>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* ── Section 1b: KPIs agregados de clientes ── */}
+      {data.kpis_basicos.clientes_activos > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <Users size={20} className="text-primary" />
+            Cartera de Clientes
+            {filtroCliente !== "todos" && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {data.clientes_salud.find((c) => c.empresa_id === filtroCliente)?.nombre}
+              </Badge>
+            )}
+          </h2>
+          {filtroCliente === "todos" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm text-muted-foreground">Facturacion clientes</p>
+                    <TrendArrow trend={facClientesTrend} />
+                  </div>
+                  <p className="text-2xl font-bold">{formatCurrency(data.facturacion_clientes.este_mes)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Este mes</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm text-muted-foreground">Gastos clientes</p>
+                    <TrendArrow trend={gasClientesTrend} invertColor />
+                  </div>
+                  <p className="text-2xl font-bold">{formatCurrency(data.gastos_clientes.este_mes)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Este mes</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground mb-1">Facturacion clientes YTD</p>
+                  <p className="text-2xl font-bold">{formatCurrency(data.facturacion_clientes.ytd)}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground mb-1">Gastos clientes YTD</p>
+                  <p className="text-2xl font-bold">{formatCurrency(data.gastos_clientes.ytd)}</p>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Filtrando por: <span className="font-semibold">{data.clientes_salud.find((c) => c.empresa_id === filtroCliente)?.nombre}</span>
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => router.push(`/asesor/clientes/${filtroCliente}`)}
+                >
+                  Ver detalle del cliente
+                  <ArrowRight size={14} className="ml-1" />
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* ── Section 2: Alertas rapidas ── */}
       <div>
@@ -478,7 +580,7 @@ export default function AsesorDashboardPage() {
           <Users size={20} className="text-primary" />
           Salud de Clientes
         </h2>
-        {data.clientes_salud.length === 0 ? (
+        {clientesFiltrados.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Users size={48} className="mx-auto text-muted-foreground/30 mb-4" />
@@ -498,7 +600,7 @@ export default function AsesorDashboardPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {data.clientes_salud.map((cliente) => {
+            {clientesFiltrados.map((cliente) => {
               const cfg = estadoConfig[cliente.estado];
               return (
                 <Card
@@ -547,7 +649,7 @@ export default function AsesorDashboardPage() {
           <Activity size={20} className="text-primary" />
           Actividad Reciente
         </h2>
-        {data.actividad_reciente.length === 0 ? (
+        {actividadFiltrada.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
               <Activity size={36} className="mx-auto text-muted-foreground/30 mb-3" />
@@ -558,7 +660,7 @@ export default function AsesorDashboardPage() {
           <Card>
             <CardContent className="pt-4 pb-2">
               <div className="divide-y">
-                {data.actividad_reciente.map((act, i) => (
+                {actividadFiltrada.map((act, i) => (
                   <div key={`act-${i}`} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
                     <div
                       className={`p-2 rounded-lg shrink-0 ${

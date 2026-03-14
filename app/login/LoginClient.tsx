@@ -171,7 +171,7 @@ export default function LoginClient() {
             <button
               type="button"
               onClick={() => setShowEmailForm(!showEmailForm)}
-              className="bg-white px-3 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              className="bg-white px-4 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-200 rounded-full hover:bg-blue-50 transition-colors cursor-pointer"
             >
               {showEmailForm ? "Ocultar" : "Acceso con email"}
             </button>
@@ -238,6 +238,11 @@ export default function LoginClient() {
             </Button>
           </form>
         )}
+
+        <p className="text-sm text-center text-gray-500">
+          No tienes cuenta?{" "}
+          <a href="/registro" className="text-blue-600 font-medium hover:underline">Crear cuenta</a>
+        </p>
 
         <p className="text-xs text-center text-gray-400">
           Al continuar, aceptas los{" "}

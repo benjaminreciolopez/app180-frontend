@@ -74,13 +74,14 @@ type SectionLink = {
   permisoKey: string;
 };
 
-const sectionLinks: SectionLink[] = [
+// Las secciones apuntan a sub-rutas dentro del portal asesor (NO al panel admin del cliente)
+const buildSectionLinks = (empresaId: string): SectionLink[] => [
   {
     key: "facturas",
     label: "Facturacion",
     description: "Facturas emitidas, listados y configuracion",
     icon: FileText,
-    href: "/admin/facturacion",
+    href: `/asesor/clientes/${empresaId}/facturas`,
     permisoKey: "facturas",
   },
   {
@@ -88,7 +89,7 @@ const sectionLinks: SectionLink[] = [
     label: "Gastos",
     description: "Compras, gastos y proveedores",
     icon: Receipt,
-    href: "/admin/gastos",
+    href: `/asesor/clientes/${empresaId}/gastos`,
     permisoKey: "gastos",
   },
   {
@@ -96,7 +97,7 @@ const sectionLinks: SectionLink[] = [
     label: "Empleados",
     description: "Plantilla, nominas y fichajes",
     icon: UsersIcon,
-    href: "/admin/empleados",
+    href: `/asesor/clientes/${empresaId}/empleados`,
     permisoKey: "empleados",
   },
   {
@@ -104,7 +105,7 @@ const sectionLinks: SectionLink[] = [
     label: "Modelos Fiscales",
     description: "Modelos 303, 130, 111, 115, 349",
     icon: Calculator,
-    href: "/admin/fiscal",
+    href: `/asesor/clientes/${empresaId}/fiscal`,
     permisoKey: "fiscal",
   },
   {
@@ -112,7 +113,7 @@ const sectionLinks: SectionLink[] = [
     label: "Contabilidad",
     description: "Libros contables, asientos y balances",
     icon: ShieldCheck,
-    href: "/admin/contabilidad",
+    href: `/asesor/clientes/${empresaId}/contabilidad`,
     permisoKey: "contabilidad",
   },
 ];
@@ -239,6 +240,7 @@ export default function AsesorClienteDetallePage() {
 
   if (!data) return null;
 
+  const sectionLinks = buildSectionLinks(empresaId);
   const allowedSections = sectionLinks.filter((s) => hasPermiso(s.permisoKey));
 
   return (
