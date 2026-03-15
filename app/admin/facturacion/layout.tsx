@@ -77,15 +77,17 @@ export default function FacturacionLayout({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => router.push("/admin/facturacion/crear")}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all hover:scale-105 active:scale-95"
-          >
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Nueva Factura
-          </Button>
-        </div>
+        {!pathname.includes("/crear") && !pathname.includes("/editar") && (
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => router.push("/admin/facturacion/crear")}
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all hover:scale-105 active:scale-95"
+            >
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Nueva Factura
+            </Button>
+          </div>
+        )}
       </header>
 
       {/* Sub-navegación estilo pestañas */}
