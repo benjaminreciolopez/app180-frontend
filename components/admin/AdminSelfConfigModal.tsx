@@ -402,6 +402,9 @@ export default function AdminSelfConfigModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset input value so same file can be re-selected
+    e.target.value = "";
+
     if (file.size > 5 * 1024 * 1024) {
       toast.error("El archivo es demasiado grande (máx 5MB)");
       return;
@@ -410,7 +413,11 @@ export default function AdminSelfConfigModal({
     try {
       setSaving(true);
       const reader = new FileReader();
-      reader.onloadend = async () => {
+      reader.onerror = () => {
+        toast.error("Error al leer el archivo");
+        setSaving(false);
+      };
+      reader.onload = async () => {
         const base64String = reader.result as string;
 
         if (type === 'certificado') {

@@ -86,12 +86,21 @@ type ActividadReciente = {
   fecha: string;
 };
 
+type ClienteFinancials = {
+  este_mes: number;
+  mes_anterior: number;
+  ytd: number;
+};
+
 type ClienteSalud = {
   empresa_id: string;
   nombre: string;
   estado: "green" | "yellow" | "red";
   facturas_mes: number;
   alertas: number;
+  facturacion?: ClienteFinancials;
+  gastos?: ClienteFinancials;
+  beneficio?: { este_mes: number; ytd: number };
 };
 
 type KpisBasicos = {
@@ -168,8 +177,8 @@ export default function AsesorDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<DashboardConsolidado | null>(null);
 
-  // Client filter for cartera & activity sections
-  const [filtroCliente, setFiltroCliente] = useState("todos");
+  // Client filter for cartera & activity sections (empty = no client selected)
+  const [filtroCliente, setFiltroCliente] = useState("");
 
   // Widget config
   const [widgetConfig, setWidgetConfig] = useState<{ id: string; visible: boolean; order: number }[]>([]);
@@ -275,19 +284,21 @@ export default function AsesorDashboardPage() {
   // ── Trend helpers ──
 
   // Filtered client data
-  const clientesFiltrados = filtroCliente === "todos"
-    ? data.clientes_salud
-    : data.clientes_salud.filter((c) => c.empresa_id === filtroCliente);
-  const actividadFiltrada = filtroCliente === "todos"
-    ? data.actividad_reciente
-    : data.actividad_reciente.filter((a) => a.empresa_id === filtroCliente);
+  const hayClienteEspecifico = filtroCliente && filtroCliente !== "todos";
+  const clientesFiltrados = hayClienteEspecifico
+    ? data.clientes_salud.filter((c) => c.empresa_id === filtroCliente)
+    : data.clientes_salud;
+  const clienteSeleccionado = hayClienteEspecifico
+    ? data.clientes_salud.find((c) => c.empresa_id === filtroCliente) || null
+    : null;
+  // Actividad: sin cliente seleccionado = toda la actividad; con cliente = solo ese
+  const actividadFiltrada = hayClienteEspecifico
+    ? data.actividad_reciente.filter((a) => a.empresa_id === filtroCliente)
+    : data.actividad_reciente;
 
   // Trends de la asesoria propia
   const facPropiaTrend = trendPercent(data.facturacion_propia.este_mes, data.facturacion_propia.mes_anterior);
   const gasPropiaTrend = trendPercent(data.gastos_propios.este_mes, data.gastos_propios.mes_anterior);
-  // Trends de clientes
-  const facClientesTrend = trendPercent(data.facturacion_clientes.este_mes, data.facturacion_clientes.mes_anterior);
-  const gasClientesTrend = trendPercent(data.gastos_clientes.este_mes, data.gastos_clientes.mes_anterior);
 
   function TrendArrow({ trend, invertColor }: { trend: number | null; invertColor?: boolean }) {
     if (trend === null) {
@@ -368,8 +379,8 @@ export default function AsesorDashboardPage() {
         <div className="flex items-center gap-2">
           {data.kpis_basicos.clientes_activos > 0 && (
             <Select value={filtroCliente} onValueChange={setFiltroCliente}>
-              <SelectTrigger className="w-[200px] h-9">
-                <SelectValue placeholder="Todos los clientes" />
+              <SelectTrigger className="w-[220px] h-9">
+                <SelectValue placeholder="Seleccionar cliente..." />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los clientes</SelectItem>
@@ -440,73 +451,87 @@ export default function AsesorDashboardPage() {
         </div>
       </div>}
 
-      {/* ── Section 1b: KPIs agregados de clientes ── */}
+      {/* ── Section 1b: KPIs del cliente seleccionado ── */}
       {isWidgetVisible("seccion_cartera_clientes") && data.kpis_basicos.clientes_activos > 0 && (
         <div>
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Users size={20} className="text-primary" />
             Cartera de Clientes
-            {filtroCliente !== "todos" && (
+            {clienteSeleccionado && (
               <Badge variant="secondary" className="text-xs font-normal">
-                {data.clientes_salud.find((c) => c.empresa_id === filtroCliente)?.nombre}
+                {clienteSeleccionado.nombre}
               </Badge>
             )}
           </h2>
-          {filtroCliente === "todos" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm text-muted-foreground">Facturacion clientes</p>
-                    <TrendArrow trend={facClientesTrend} />
-                  </div>
-                  <p className="text-2xl font-bold">{formatCurrency(data.facturacion_clientes.este_mes)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Este mes</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm text-muted-foreground">Gastos clientes</p>
-                    <TrendArrow trend={gasClientesTrend} invertColor />
-                  </div>
-                  <p className="text-2xl font-bold">{formatCurrency(data.gastos_clientes.este_mes)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Este mes</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground mb-1">Facturacion clientes YTD</p>
-                  <p className="text-2xl font-bold">{formatCurrency(data.facturacion_clientes.ytd)}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground mb-1">Gastos clientes YTD</p>
-                  <p className="text-2xl font-bold">{formatCurrency(data.gastos_clientes.ytd)}</p>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
+          {!clienteSeleccionado ? (
             <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Filtrando por: <span className="font-semibold">{data.clientes_salud.find((c) => c.empresa_id === filtroCliente)?.nombre}</span>
+              <CardContent className="py-10 text-center">
+                <Users size={40} className="mx-auto text-muted-foreground/30 mb-3" />
+                <p className="text-muted-foreground text-sm">
+                  Selecciona un cliente en el filtro superior para ver sus datos financieros
                 </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {data.kpis_basicos.clientes_activos} cliente{data.kpis_basicos.clientes_activos !== 1 ? "s" : ""} activo{data.kpis_basicos.clientes_activos !== 1 ? "s" : ""}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-muted-foreground">Facturación este mes</p>
+                      <TrendArrow trend={trendPercent(clienteSeleccionado.facturacion?.este_mes || 0, clienteSeleccionado.facturacion?.mes_anterior || 0)} />
+                    </div>
+                    <p className="text-2xl font-bold">{formatCurrency(clienteSeleccionado.facturacion?.este_mes || 0)}</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-muted-foreground">Gastos este mes</p>
+                      <TrendArrow trend={trendPercent(clienteSeleccionado.gastos?.este_mes || 0, clienteSeleccionado.gastos?.mes_anterior || 0)} invertColor />
+                    </div>
+                    <p className="text-2xl font-bold">{formatCurrency(clienteSeleccionado.gastos?.este_mes || 0)}</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-sm text-muted-foreground mb-1">Beneficio este mes</p>
+                    <p className={`text-2xl font-bold ${(clienteSeleccionado.beneficio?.este_mes || 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      {formatCurrency(clienteSeleccionado.beneficio?.este_mes || 0)}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-sm text-muted-foreground mb-1">Facturación YTD</p>
+                    <p className="text-2xl font-bold">{formatCurrency(clienteSeleccionado.facturacion?.ytd || 0)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Beneficio YTD: <span className={(clienteSeleccionado.beneficio?.ytd || 0) >= 0 ? "text-green-600" : "text-red-600"}>
+                        {formatCurrency(clienteSeleccionado.beneficio?.ytd || 0)}
+                      </span>
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="flex justify-end mt-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="mt-3"
                   onClick={() => router.push(`/asesor/clientes/${filtroCliente}`)}
+                  className="gap-1"
                 >
-                  Ver detalle del cliente
-                  <ArrowRight size={14} className="ml-1" />
+                  Ver detalle completo
+                  <ArrowRight size={14} />
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -684,6 +709,11 @@ export default function AsesorDashboardPage() {
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <Activity size={20} className="text-primary" />
           Actividad Reciente
+          {clienteSeleccionado && (
+            <Badge variant="secondary" className="text-xs font-normal">
+              {clienteSeleccionado.nombre}
+            </Badge>
+          )}
         </h2>
         {actividadFiltrada.length === 0 ? (
           <Card>
