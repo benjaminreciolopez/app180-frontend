@@ -14,10 +14,8 @@ import {
   Trash2,
   Upload,
   FolderOpen,
-  ArrowLeft,
   RefreshCw,
 } from "lucide-react";
-import Link from "next/link";
 
 interface DocAsesoria {
   id: string;
@@ -136,20 +134,11 @@ export default function AsesorDocumentosClientePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={`/asesor/clientes/${empresaId}`}>
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="size-4 mr-1" />
-            Volver
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-xl font-bold">Documentos</h1>
-          <p className="text-sm text-muted-foreground">
-            Documentos compartidos con este cliente
-          </p>
-        </div>
+      <div>
+        <h1 className="text-lg font-bold">Documentos</h1>
+        <p className="text-sm text-muted-foreground">
+          Documentos compartidos con este cliente
+        </p>
       </div>
 
       <Card>

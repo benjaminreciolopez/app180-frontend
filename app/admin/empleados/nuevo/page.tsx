@@ -5,9 +5,11 @@ import { api } from "@/services/api";
 import { useRouter } from "next/navigation";
 import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { useBasePath } from "@/hooks/useBasePath";
 
 export default function NuevoEmpleadoPage() {
   const router = useRouter();
+  const basePath = useBasePath();
 
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
@@ -26,7 +28,7 @@ export default function NuevoEmpleadoPage() {
       });
 
       showSuccess('Empleado creado correctamente\n\nContraseña inicial: 123456');
-      router.push("/admin/empleados");
+      router.push(`${basePath}/empleados`);
     } catch (err) {
       console.error(err);
       showError('Error creando empleado');

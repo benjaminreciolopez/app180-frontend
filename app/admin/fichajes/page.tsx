@@ -7,6 +7,7 @@ import { UniversalExportButton } from "@/components/shared/UniversalExportButton
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Clock, ShieldCheck, ShieldX, ShieldAlert, ChevronDown, ChevronUp, Loader2, RefreshCw, AlertTriangle, MessageSquareWarning } from "lucide-react";
+import { useBasePath } from "@/hooks/useBasePath";
 
 type TipoFichaje = "entrada" | "salida" | "descanso_inicio" | "descanso_fin";
 
@@ -144,6 +145,7 @@ function withLocalOffset(dateStr: string, timeStr: string) {
 }
 
 export default function FichajesPage() {
+  const basePath = useBasePath();
   const [loading, setLoading] = useState(true);
 
   // datos raw
@@ -609,7 +611,7 @@ export default function FichajesPage() {
               {/* Correcciones pendientes */}
               {correccionesPendientes > 0 && (
                 <a
-                  href="/admin/fichajes/correcciones"
+                  href={`${basePath}/fichajes/correcciones`}
                   className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-800 rounded text-sm font-medium hover:bg-amber-200"
                 >
                   <MessageSquareWarning className="w-4 h-4" />

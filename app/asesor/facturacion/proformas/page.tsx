@@ -1,2 +1,5 @@
-"use client";
-export { default } from "@/app/admin/facturacion/proformas/page";
+import { redirect } from "next/navigation"
+
+export default function AsesorProformasRedirect() {
+  redirect("/asesor/facturacion/listado?tab=proformas")
+}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getTurnos } from "@/services/turnos";
 import { api } from "@/services/api";
 import { useParams, useRouter } from "next/navigation";
+import { useBasePath } from "@/hooks/useBasePath";
 
 interface Turno {
   id: string;
@@ -13,6 +14,7 @@ interface Turno {
 export default function AsignarTurnoEmpleado() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const basePath = useBasePath();
 
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [turnoId, setTurnoId] = useState<string>("");
@@ -39,7 +41,7 @@ export default function AsignarTurnoEmpleado() {
       await api.put(`/employees/${id}/turno`, {
         turno_id: turnoId || null,
       });
-      router.push("/admin/empleados");
+      router.push(`${basePath}/empleados`);
     } catch {
       alert("Error al asignar turno");
     } finally {

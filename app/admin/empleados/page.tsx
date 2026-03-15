@@ -10,6 +10,7 @@ import { showSuccess, showError } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Users, Building2, MapPin } from "lucide-react";
+import { useBasePath } from "@/hooks/useBasePath";
 
 interface Empleado {
   id: string;
@@ -33,6 +34,7 @@ interface Empleado {
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 
 export default function EmpleadosPage() {
+  const basePath = useBasePath();
   const [loading, setLoading] = useState(true);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   
@@ -124,7 +126,7 @@ export default function EmpleadosPage() {
             <button
             type="button"
             className="btn-primary w-fit"
-            onClick={() => (window.location.href = "/admin/empleados/nuevo")}
+            onClick={() => (window.location.href = `${basePath}/empleados/nuevo`)}
             >
             + Nuevo empleado
             </button>
@@ -164,7 +166,7 @@ export default function EmpleadosPage() {
                     title="Sin empleados"
                     description="Aún no hay empleados registrados."
                     actionLabel="+ Nuevo empleado"
-                    onAction={() => (window.location.href = "/admin/empleados/nuevo")}
+                    onAction={() => (window.location.href = `${basePath}/empleados/nuevo`)}
                   />
                 </td>
               </tr>

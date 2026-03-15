@@ -1,21 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, useMemo } from "react";
+import { useParams } from "next/navigation";
 import { api } from "@/services/api";
 import { showError } from "@/lib/toast";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Euro } from "lucide-react";
+import { FileText, X } from "lucide-react";
 
 interface Factura {
   id: string;
   numero: string;
   fecha: string;
   cliente_nombre: string;
-  base_imponible: number;
+  subtotal: number;
   total: number;
   estado: string;
 }
@@ -25,15 +25,14 @@ const formatCurrency = (amount: number) =>
 
 export default function AsesorClienteFacturasPage() {
   const params = useParams();
-  const router = useRouter();
   const empresaId = params.empresa_id as string;
 
   const [loading, setLoading] = useState(true);
   const [facturas, setFacturas] = useState<Factura[]>([]);
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
 
   useEffect(() => {
-    // Set context for API calls
-    sessionStorage.setItem("asesor_empresa_id", empresaId);
     loadFacturas();
   }, [empresaId]);
 
@@ -50,36 +49,64 @@ export default function AsesorClienteFacturasPage() {
     }
   }
 
+  const filtered = useMemo(() => {
+    return facturas.filter((f) => {
+      const fecha = f.fecha?.slice(0, 10);
+      if (desde && fecha < desde) return false;
+      if (hasta && fecha > hasta) return false;
+      return true;
+    });
+  }, [facturas, desde, hasta]);
+
   if (loading) return <LoadingSpinner fullPage />;
 
-  const totalImporte = facturas.reduce((s, f) => s + (f.total || 0), 0);
+  const totalImporte = filtered.reduce((s, f) => s + (parseFloat(String(f.total)) || 0), 0);
+  const hasFilter = desde || hasta;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push(`/asesor/clientes/${empresaId}`)}
-          className="gap-1"
-        >
-          <ArrowLeft size={16} />
-          Volver al cliente
-        </Button>
-        <div className="h-6 w-px bg-border" />
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Facturas del cliente</h1>
-          <p className="text-xs text-muted-foreground">
-            {facturas.length} facturas - {formatCurrency(totalImporte)} total
-          </p>
-        </div>
+      <div>
+        <h1 className="text-lg font-bold tracking-tight">Facturas del cliente</h1>
+        <p className="text-xs text-muted-foreground">
+          {filtered.length} facturas - {formatCurrency(totalImporte)} total
+          {hasFilter && facturas.length !== filtered.length && ` (de ${facturas.length})`}
+        </p>
       </div>
 
-      {facturas.length === 0 ? (
+      {/* Filtros de fecha */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-muted-foreground">Desde</label>
+          <input
+            type="date"
+            value={desde}
+            onChange={(e) => setDesde(e.target.value)}
+            className="border rounded-md px-2 py-1 text-sm bg-background"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-muted-foreground">Hasta</label>
+          <input
+            type="date"
+            value={hasta}
+            onChange={(e) => setHasta(e.target.value)}
+            className="border rounded-md px-2 py-1 text-sm bg-background"
+          />
+        </div>
+        {hasFilter && (
+          <Button variant="ghost" size="sm" onClick={() => { setDesde(""); setHasta(""); }}>
+            <X className="size-3 mr-1" /> Limpiar
+          </Button>
+        )}
+      </div>
+
+      {filtered.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <FileText size={48} className="mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground">El cliente no tiene facturas emitidas</p>
+            <p className="text-muted-foreground">
+              {hasFilter ? "No hay facturas en este rango de fechas" : "El cliente no tiene facturas emitidas"}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -89,7 +116,7 @@ export default function AsesorClienteFacturasPage() {
           </CardHeader>
           <CardContent>
             <div className="divide-y">
-              {facturas.map((f) => (
+              {filtered.map((f) => (
                 <div key={f.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                   <div>
                     <div className="flex items-center gap-2">
@@ -106,8 +133,8 @@ export default function AsesorClienteFacturasPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-sm">{formatCurrency(f.total)}</p>
-                    <p className="text-[10px] text-muted-foreground">Base: {formatCurrency(f.base_imponible)}</p>
+                    <p className="font-bold text-sm">{formatCurrency(parseFloat(String(f.total)) || 0)}</p>
+                    <p className="text-[10px] text-muted-foreground">Base: {formatCurrency(parseFloat(String(f.subtotal)) || 0)}</p>
                   </div>
                 </div>
               ))}

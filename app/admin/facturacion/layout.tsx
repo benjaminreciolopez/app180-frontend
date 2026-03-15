@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useBasePath } from "@/hooks/useBasePath"
 
 export default function FacturacionLayout({
   children,
@@ -23,42 +24,43 @@ export default function FacturacionLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const basePath = useBasePath()
 
   const tabs = [
     {
       label: "Dashboard",
       icon: BarChart3,
-      href: "/admin/facturacion/dashboard",
+      href: `${basePath}/facturacion/dashboard`,
       active: pathname.includes("/dashboard"),
     },
     {
       label: "Facturas",
       icon: FileText,
-      href: "/admin/facturacion/listado",
-      active: pathname.includes("/listado") || pathname.includes("/proformas") || pathname === "/admin/facturacion",
+      href: `${basePath}/facturacion/listado`,
+      active: pathname.includes("/listado") || pathname.includes("/proformas") || pathname.endsWith("/facturacion"),
     },
     {
       label: "Conceptos",
       icon: BookOpen,
-      href: "/admin/facturacion/conceptos",
+      href: `${basePath}/facturacion/conceptos`,
       active: pathname.includes("/conceptos"),
     },
     {
       label: "Informes",
       icon: PieChart,
-      href: "/admin/facturacion/informes",
+      href: `${basePath}/facturacion/informes`,
       active: pathname.includes("/informes"),
     },
     {
       label: "Auditoría Veri*Factu",
       icon: ShieldCheck,
-      href: "/admin/facturacion/auditoria",
+      href: `${basePath}/facturacion/auditoria`,
       active: pathname.includes("/auditoria"),
     },
     {
       label: "Almacenamiento",
       icon: HardDrive,
-      href: "/admin/facturacion/almacenamiento",
+      href: `${basePath}/facturacion/almacenamiento`,
       active: pathname.includes("/almacenamiento"),
     },
   ]
@@ -80,7 +82,7 @@ export default function FacturacionLayout({
         {!pathname.includes("/crear") && !pathname.includes("/editar") && (
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => router.push("/admin/facturacion/crear")}
+              onClick={() => router.push(`${basePath}/facturacion/crear`)}
               className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all hover:scale-105 active:scale-95"
             >
               <PlusCircle className="w-4 h-4 mr-2" />

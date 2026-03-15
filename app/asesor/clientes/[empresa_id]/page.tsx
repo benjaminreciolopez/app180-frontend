@@ -4,20 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft,
   FileText,
   Receipt,
   Users as UsersIcon,
   Calculator,
   ExternalLink,
-  MessageSquare,
   Download,
   Eye,
   Pencil,
   ShieldCheck,
-  Building2,
-  TrendingUp,
-  Calendar,
   Briefcase,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
@@ -141,9 +136,6 @@ export default function AsesorClienteDetallePage() {
         throw new Error(json.error || "Error al cargar el resumen");
       }
       setData(json.data);
-
-      // Store empresa_id for subsequent admin section API calls
-      sessionStorage.setItem("asesor_empresa_id", empresaId);
     } catch (err: any) {
       setError(err.message || "Error de conexion");
     } finally {
@@ -157,14 +149,6 @@ export default function AsesorClienteDetallePage() {
     }
   }, [empresaId]);
 
-  // Clean up asesor_empresa_id when leaving
-  useEffect(() => {
-    return () => {
-      // Note: This runs on unmount. We keep asesor_empresa_id in session
-      // since it's needed by the admin pages. It will be cleared when
-      // the asesor returns to the client list or dashboard.
-    };
-  }, []);
 
   function hasPermiso(key: string): boolean {
     if (!data?.permisos) return false;
@@ -208,11 +192,6 @@ export default function AsesorClienteDetallePage() {
     }
   }
 
-  function handleNavigateToSection(href: string) {
-    // Ensure asesor_empresa_id is set before navigating
-    sessionStorage.setItem("asesor_empresa_id", empresaId);
-    router.push(href);
-  }
 
   if (loading) {
     return <LoadingSpinner fullPage />;
@@ -227,10 +206,7 @@ export default function AsesorClienteDetallePage() {
         </Button>
         <Button
           variant="ghost"
-          onClick={() => {
-            sessionStorage.removeItem("asesor_empresa_id");
-            router.push("/asesor/clientes");
-          }}
+          onClick={() => router.push("/asesor/clientes")}
         >
           Volver a clientes
         </Button>
@@ -245,58 +221,17 @@ export default function AsesorClienteDetallePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header with back button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              sessionStorage.removeItem("asesor_empresa_id");
-              router.push("/asesor/clientes");
-            }}
-            className="gap-1"
-          >
-            <ArrowLeft size={16} />
-            Volver
-          </Button>
-          <div className="h-6 w-px bg-border" />
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Building2 size={18} className="text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">
-                {data.nombre || "Cliente"}
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Datos del ejercicio {data.anio}
-              </p>
-            </div>
-          </div>
+      {/* Header actions */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold tracking-tight">
+            Resumen del cliente
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Datos del ejercicio {data.anio}
+          </p>
         </div>
-
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1"
-            onClick={() =>
-              router.push(`/asesor/clientes/${empresaId}/mensajes`)
-            }
-          >
-            <MessageSquare size={14} />
-            Chat con Cliente
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1"
-            onClick={() => router.push(`/asesor/clientes/${empresaId}/documentos`)}
-          >
-            <FileText size={14} />
-            Documentos
-          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -433,7 +368,7 @@ export default function AsesorClienteDetallePage() {
                 <Card
                   key={section.key}
                   className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all duration-200 group"
-                  onClick={() => handleNavigateToSection(section.href)}
+                  onClick={() => router.push(section.href)}
                 >
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between mb-3">

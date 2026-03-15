@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { api } from "@/services/api";
 import { showError } from "@/lib/toast";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 interface Empleado {
   id: string;
@@ -20,25 +19,29 @@ interface Empleado {
 
 export default function AsesorClienteEmpleadosPage() {
   const params = useParams();
-  const router = useRouter();
   const empresaId = params.empresa_id as string;
 
   const [loading, setLoading] = useState(true);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [moduloDesactivado, setModuloDesactivado] = useState(false);
 
   useEffect(() => {
-    sessionStorage.setItem("asesor_empresa_id", empresaId);
     loadEmpleados();
   }, [empresaId]);
 
   async function loadEmpleados() {
     try {
       setLoading(true);
+      setModuloDesactivado(false);
       const res = await api.get("/employees");
       const arr = res.data?.data ?? res.data;
       setEmpleados(Array.isArray(arr) ? arr : []);
     } catch (err: any) {
-      showError(err.response?.data?.error || "Error al cargar empleados");
+      const msg = err.response?.data?.error || "";
+      if (err.response?.status === 403 && (msg.includes("desactivado") || msg.includes("No autorizado"))) {
+        setModuloDesactivado(true);
+      }
+      setEmpleados([]);
     } finally {
       setLoading(false);
     }
@@ -50,30 +53,22 @@ export default function AsesorClienteEmpleadosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push(`/asesor/clientes/${empresaId}`)}
-          className="gap-1"
-        >
-          <ArrowLeft size={16} />
-          Volver al cliente
-        </Button>
-        <div className="h-6 w-px bg-border" />
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Empleados del cliente</h1>
-          <p className="text-xs text-muted-foreground">
-            {activos.length} activos de {empleados.length} total
-          </p>
-        </div>
+      <div>
+        <h1 className="text-lg font-bold tracking-tight">Empleados del cliente</h1>
+        <p className="text-xs text-muted-foreground">
+          {activos.length} activos de {empleados.length} total
+        </p>
       </div>
 
       {empleados.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Users size={48} className="mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground">El cliente no tiene empleados registrados</p>
+            <p className="text-muted-foreground">
+              {moduloDesactivado
+                ? "El módulo de empleados está desactivado para este cliente"
+                : "El cliente no tiene empleados registrados"}
+            </p>
           </CardContent>
         </Card>
       ) : (
