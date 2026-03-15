@@ -35,7 +35,8 @@ export default function AsesorClienteEmpleadosPage() {
     try {
       setLoading(true);
       const res = await api.get("/employees");
-      setEmpleados(res.data || []);
+      const arr = res.data?.data ?? res.data;
+      setEmpleados(Array.isArray(arr) ? arr : []);
     } catch (err: any) {
       showError(err.response?.data?.error || "Error al cargar empleados");
     } finally {

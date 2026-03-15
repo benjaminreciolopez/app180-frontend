@@ -40,8 +40,9 @@ export default function AsesorClienteGastosPage() {
   async function loadGastos() {
     try {
       setLoading(true);
-      const res = await api.get("/admin/gastos");
-      setGastos(res.data?.gastos || res.data || []);
+      const res = await api.get("/admin/purchases");
+      const arr = res.data?.data ?? res.data?.gastos ?? res.data;
+      setGastos(Array.isArray(arr) ? arr : []);
     } catch (err: any) {
       showError(err.response?.data?.error || "Error al cargar gastos");
     } finally {

@@ -48,7 +48,7 @@ export function NotificationBell({ basePath = "/admin/notificaciones" }: Notific
       if (interval) clearInterval(interval)
       interval = setInterval(() => {
         if (!document.hidden) fetchNotificaciones()
-      }, 60000)
+      }, 15000)
     }
 
     const onVisibilityChange = () => {

@@ -7,6 +7,7 @@ import { LogOut, Menu } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
+import { AICopilot } from "@/components/shared/AICopilot";
 
 type Modulos = Record<string, boolean>;
 
@@ -53,13 +54,14 @@ const menuSections = [
     title: "RECURSOS HUMANOS",
     items: [
       { path: "/asesor/empleados", label: "Empleados", module: "empleados" },
-      { path: "/asesor/nominas", label: "Nominas", module: "empleados" },
+      { path: "/asesor/nominas", label: "Nóminas", module: "empleados" },
     ],
   },
   {
-    title: "PLANIFICACION",
+    title: "PLANIFICACIÓN",
     items: [
       { path: "/asesor/calendario", label: "Calendario", module: "calendario" },
+      { path: "/asesor/planings", label: "Gestión Planings", module: "calendario" },
       { path: "/asesor/jornadas", label: "Configurar Jornadas", module: "fichajes" },
     ],
   },
@@ -69,20 +71,22 @@ const menuSections = [
       { path: "/asesor/fichajes", label: "Fichajes", module: "fichajes" },
       { path: "/asesor/fichajes/sospechosos", label: "Sospechosos", module: "fichajes" },
       { path: "/asesor/kioscos", label: "Kioscos", module: "fichajes" },
-      { path: "/asesor/auditoria", label: "Auditoria", module: "fichajes" },
+      { path: "/asesor/auditoria", label: "Auditoría", module: "fichajes" },
       { path: "/asesor/auditoria/rechazados", label: "Rechazados", module: "fichajes" },
     ],
   },
   {
     title: "TRABAJOS",
     items: [
+      { path: "/asesor/partes-dia", label: "Partes del día", module: "worklogs" },
       { path: "/asesor/worklogs", label: "Partes de Trabajo", module: "worklogs" },
+      { path: "/asesor/reportes/rentabilidad", label: "Reporte Rentabilidad", module: "fichajes" },
     ],
   },
   {
-    title: "FACTURACION",
+    title: "FACTURACIÓN",
     items: [
-      { path: "/asesor/facturacion", label: "Facturacion", module: "facturacion" },
+      { path: "/asesor/facturacion", label: "Facturación", module: "facturacion" },
       { path: "/asesor/gastos", label: "Compras y Gastos", module: "facturacion" },
       { path: "/asesor/pagos", label: "Cobros y Pagos", module: "pagos" },
     ],
@@ -90,19 +94,19 @@ const menuSections = [
   {
     title: "CONTABILIDAD",
     items: [
-      { path: "/asesor/contabilidad", label: "Libros", module: "contabilidad" },
-      { path: "/asesor/contabilidad/asientos", label: "Asientos", module: "contabilidad" },
-      { path: "/asesor/contabilidad/cuentas", label: "Plan de Cuentas", module: "contabilidad" },
-      { path: "/asesor/contabilidad/mayor", label: "Libro Mayor", module: "contabilidad" },
-      { path: "/asesor/contabilidad/balance", label: "Balance", module: "contabilidad" },
-      { path: "/asesor/contabilidad/pyg", label: "PyG", module: "contabilidad" },
-      { path: "/asesor/contabilidad/extracto", label: "Extracto Bancario", module: "contabilidad" },
+      { path: "/asesor/contabilidad/asientos", label: "Asientos Contables", module: "facturacion" },
+      { path: "/asesor/contabilidad/balance", label: "Balance", module: "facturacion" },
+      { path: "/asesor/contabilidad/pyg", label: "Pérdidas y Ganancias", module: "facturacion" },
+      { path: "/asesor/contabilidad/mayor", label: "Libro Mayor", module: "facturacion" },
+      { path: "/asesor/contabilidad/cuentas", label: "Plan de Cuentas", module: "facturacion" },
     ],
   },
   {
     title: "FISCAL",
     items: [
       { path: "/asesor/fiscal", label: "Fiscal y Alertas", module: "fiscal" },
+      { path: "/asesor/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
+      { path: "/asesor/fiscal/reglas", label: "Reglas Fiscales", module: "fiscal" },
     ],
   },
   {
@@ -177,21 +181,27 @@ export default function AsesorLayout({
       "/asesor/clientes": "Clientes",
       "/asesor/empleados": "Empleados",
       "/asesor/fichajes/sospechosos": "Sospechosos",
+      "/asesor/fichajes/correcciones": "Correcciones",
       "/asesor/fichajes": "Fichajes",
       "/asesor/auditoria/rechazados": "Rechazados",
-      "/asesor/auditoria": "Auditoria",
+      "/asesor/auditoria": "Auditoría",
       "/asesor/kioscos": "Kioscos",
       "/asesor/calendario": "Calendario",
+      "/asesor/planings": "Gestión Planings",
       "/asesor/jornadas": "Jornadas",
-      "/asesor/nominas": "Nominas",
+      "/asesor/nominas": "Nóminas",
       "/asesor/gastos": "Compras y Gastos",
+      "/asesor/partes-dia": "Partes del día",
       "/asesor/worklogs": "Partes de Trabajo",
-      "/asesor/facturacion": "Facturacion",
+      "/asesor/reportes/rentabilidad": "Reporte Rentabilidad",
+      "/asesor/facturacion": "Facturación",
       "/asesor/pagos": "Cobros y Pagos",
       "/asesor/contabilidad": "Contabilidad",
+      "/asesor/fiscal/renta": "Declaración Renta",
+      "/asesor/fiscal/reglas": "Reglas Fiscales",
       "/asesor/fiscal": "Fiscal",
       "/asesor/exportar": "Exportar",
-      "/asesor/configuracion": "Configuracion",
+      "/asesor/configuracion": "Configuración",
     };
 
     const match = Object.entries(titles)
@@ -378,7 +388,7 @@ export default function AsesorLayout({
               </p>
             </div>
 
-            <NotificationBell basePath="/admin/notificaciones" />
+            <NotificationBell basePath="/asesor/notificaciones" />
 
             <button
               onClick={() => setSelfConfigOpen(true)}
@@ -405,6 +415,9 @@ export default function AsesorLayout({
         {/* Page content */}
         <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
       </main>
+
+      {/* AI Copilot - Bot flotante */}
+      <AICopilot />
 
       {/* Modal Autoconfiguración */}
       {user?.id && (

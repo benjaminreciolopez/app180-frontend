@@ -41,7 +41,8 @@ export default function AsesorClienteFacturasPage() {
     try {
       setLoading(true);
       const res = await api.get("/admin/facturacion/facturas");
-      setFacturas(res.data?.facturas || res.data || []);
+      const arr = res.data?.data ?? res.data?.facturas ?? res.data;
+      setFacturas(Array.isArray(arr) ? arr : []);
     } catch (err: any) {
       showError(err.response?.data?.error || "Error al cargar facturas");
     } finally {
