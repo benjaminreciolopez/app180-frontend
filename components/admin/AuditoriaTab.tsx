@@ -263,8 +263,12 @@ export function AuditoriaTab() {
                                             <TableCell className="text-xs text-slate-600">
                                                 {ev.user_nombre || 'Sistema'}
                                             </TableCell>
-                                            <TableCell className="text-xs leading-relaxed max-w-sm truncate" title={ev.descripcion}>
-                                                {ev.descripcion}
+                                            <TableCell className="text-xs leading-relaxed max-w-lg">
+                                                <span className={cn(
+                                                    ev.tipo_evento === 'ERROR' && 'text-red-600 font-medium'
+                                                )}>
+                                                    {ev.descripcion}
+                                                </span>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <code className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500" title={ev.hash_actual}>
