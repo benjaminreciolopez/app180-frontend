@@ -400,18 +400,16 @@ export default function AdminSelfConfigModal({
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'certificado') => {
-    console.log("[handleFileChange] triggered, type:", type);
     const file = e.target.files?.[0];
-    console.log("[handleFileChange] file:", file?.name, file?.size);
     if (!file) return;
-
-    // Reset input value so same file can be re-selected
-    e.target.value = "";
 
     if (file.size > 5 * 1024 * 1024) {
       toast.error("El archivo es demasiado grande (máx 5MB)");
       return;
     }
+
+    // Capture file input ref to reset AFTER reading
+    const inputEl = e.target;
 
     try {
       setSaving(true);
@@ -419,8 +417,11 @@ export default function AdminSelfConfigModal({
       reader.onerror = () => {
         toast.error("Error al leer el archivo");
         setSaving(false);
+        inputEl.value = "";
       };
       reader.onload = async () => {
+        // Reset input AFTER reading so same file can be re-selected
+        inputEl.value = "";
         const base64String = reader.result as string;
 
         if (type === 'certificado') {
@@ -448,6 +449,7 @@ export default function AdminSelfConfigModal({
   };
 
   const handleUploadCertWithPass = async () => {
+    console.log("[handleUploadCertWithPass] called, password length:", certPassword?.length, "pendingCert:", !!pendingCert);
     if (!certPassword) {
       toast.error("Debes introducir la contraseña del certificado");
       return;

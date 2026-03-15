@@ -310,7 +310,7 @@ export default function DashboardPage() {
             data={data.facturasPendientesList}
             loadingPdfId={loadingPdfId}
             onPreview={handleOpenPreview}
-            onEdit={(id) => router.push(`/admin/facturacion/facturas/editar/${id}`)}
+            onEdit={(id) => router.push(`/admin/facturacion/editar/${id}`)}
           />
         )}
       </div>

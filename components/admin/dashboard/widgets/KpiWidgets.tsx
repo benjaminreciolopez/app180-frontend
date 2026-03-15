@@ -165,7 +165,7 @@ export function KpiFacturacionMes({ data }: { data: PeriodoFinanciero }) {
                     </div>
                     <p className="text-2xl md:text-3xl font-bold">{formatCurrency(data.este_mes)}</p>
                 </div>
-                <Link href="/admin/facturacion/facturas" className="p-2 md:p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                <Link href="/admin/facturacion/listado" className="p-2 md:p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
                     <Receipt className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                 </Link>
             </div>
