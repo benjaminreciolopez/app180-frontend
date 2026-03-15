@@ -359,7 +359,7 @@ export default function EditarFacturaPage() {
   )
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-20">
+    <div className="max-w-7xl mx-auto space-y-6 pb-20">
       
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
@@ -714,7 +714,7 @@ export default function EditarFacturaPage() {
 
 function EditSkeleton() {
     return (
-        <div className="max-w-5xl mx-auto space-y-6 pb-20">
+        <div className="max-w-7xl mx-auto space-y-6 pb-20">
             <div className="h-10 w-48 bg-slate-200 rounded animate-pulse" />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">

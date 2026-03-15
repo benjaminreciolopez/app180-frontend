@@ -500,7 +500,12 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
 
             {/* Estado de Pago */}
             <div className="col-span-3 md:col-span-1 hidden md:flex justify-center">
-                {isValidada && (
+                {isTest && (
+                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0 text-xs">
+                        Test
+                    </Badge>
+                )}
+                {isValidada && !isTest && (
                     <>
                         {estadoPago === 'pagado' && (
                             <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 shadow-none border-0 text-xs">
@@ -519,7 +524,7 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
                         )}
                     </>
                 )}
-                {(isBorrador || isAnulada) && (
+                {(isBorrador || isAnulada) && !isTest && (
                     <span className="text-xs text-slate-400">—</span>
                 )}
             </div>
