@@ -394,12 +394,15 @@ export default function AdminSelfConfigModal({
   };
 
   const handleFileUploadTrigger = (type: 'logo' | 'certificado') => {
+    console.log("[handleFileUploadTrigger] type:", type, "ref exists:", type === 'logo' ? !!logoInputRef.current : !!certInputRef.current);
     if (type === 'logo') logoInputRef.current?.click();
     else certInputRef.current?.click();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'certificado') => {
+    console.log("[handleFileChange] triggered, type:", type);
     const file = e.target.files?.[0];
+    console.log("[handleFileChange] file:", file?.name, file?.size);
     if (!file) return;
 
     // Reset input value so same file can be re-selected
@@ -516,6 +519,21 @@ export default function AdminSelfConfigModal({
 
   return (
     <>
+      {/* Hidden file inputs OUTSIDE AnimatePresence to prevent unmount issues */}
+      <input
+        type="file"
+        ref={logoInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={(e) => handleFileChange(e, 'logo')}
+      />
+      <input
+        type="file"
+        ref={certInputRef}
+        className="hidden"
+        accept=".pfx,.p12,application/x-pkcs12"
+        onChange={(e) => handleFileChange(e, 'certificado')}
+      />
       <AnimatePresence>
         {isOpen && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[100] transition-opacity flex items-center justify-center p-4">
@@ -677,13 +695,6 @@ export default function AdminSelfConfigModal({
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-4">
                                 <Label className="text-sm font-medium">Logotipo de Empresa</Label>
-                                <input
-                                  type="file"
-                                  ref={logoInputRef}
-                                  className="hidden"
-                                  accept="image/*"
-                                  onChange={(e) => handleFileChange(e, 'logo')}
-                                />
                                 <div
                                   className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2 hover:bg-muted/50 transition-colors cursor-pointer aspect-video bg-muted/20"
                                   onClick={() => handleFileUploadTrigger('logo')}
@@ -706,13 +717,6 @@ export default function AdminSelfConfigModal({
 
                               <div className="space-y-4">
                                 <Label className="text-sm font-medium">Certificado Digital (.p12 / .pfx)</Label>
-                                <input
-                                  type="file"
-                                  ref={certInputRef}
-                                  className="hidden"
-                                  accept=".pfx,.p12"
-                                  onChange={(e) => handleFileChange(e, 'certificado')}
-                                />
                                 <div className="border border-border rounded-xl p-4 bg-muted/30 h-[calc(100%-2rem)] flex flex-col justify-between">
                                   <div className="flex items-start gap-3">
                                     <div className={`p-2 rounded-lg ${empresaData.certificado_path ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}>
