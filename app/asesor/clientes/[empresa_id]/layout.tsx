@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   MessageSquare,
   FolderOpen,
+  Banknote,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,11 @@ const tabs = [
     label: "Empleados",
     icon: Users,
     segment: "empleados",
+  },
+  {
+    label: "Nóminas",
+    icon: Banknote,
+    segment: "nominas",
   },
   {
     label: "Documentos",

@@ -291,10 +291,10 @@ export default function AsesorDashboardPage() {
   const clienteSeleccionado = hayClienteEspecifico
     ? data.clientes_salud.find((c) => c.empresa_id === filtroCliente) || null
     : null;
-  // Actividad: sin cliente seleccionado = toda la actividad; con cliente = solo ese
+  // Actividad: solo se muestra cuando hay un cliente seleccionado
   const actividadFiltrada = hayClienteEspecifico
     ? data.actividad_reciente.filter((a) => a.empresa_id === filtroCliente)
-    : data.actividad_reciente;
+    : [];
 
   // Trends de la asesoria propia
   const facPropiaTrend = trendPercent(data.facturacion_propia.este_mes, data.facturacion_propia.mes_anterior);
