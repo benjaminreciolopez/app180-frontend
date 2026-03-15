@@ -263,10 +263,18 @@ export function AuditoriaTab() {
                                             <TableCell className="text-xs text-slate-600">
                                                 {ev.user_nombre || 'Sistema'}
                                             </TableCell>
-                                            <TableCell className="text-xs leading-relaxed max-w-lg">
-                                                <span className={cn(
-                                                    ev.tipo_evento === 'ERROR' && 'text-red-600 font-medium'
-                                                )}>
+                                            <TableCell className="text-xs leading-relaxed max-w-sm">
+                                                <span
+                                                    className={cn(
+                                                        "block truncate cursor-pointer hover:whitespace-normal hover:overflow-visible hover:text-clip",
+                                                        ev.tipo_evento === 'ERROR' && 'text-red-600 font-medium'
+                                                    )}
+                                                    title={ev.descripcion}
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(ev.descripcion)
+                                                        toast.success("Descripción copiada al portapapeles")
+                                                    }}
+                                                >
                                                     {ev.descripcion}
                                                 </span>
                                             </TableCell>
