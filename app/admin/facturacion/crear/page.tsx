@@ -146,6 +146,7 @@ export default function CrearFacturaPage() {
     // Client Edit Modal State
     const [isClientEditOpen, setIsClientEditOpen] = useState(false)
     const [minFecha, setMinFecha] = useState<string>("")
+    const [nextNumero, setNextNumero] = useState<string | null>(null)
 
     // Column Resizing State
     const [colWidths, setColWidths] = useState<Record<string, number>>({
@@ -219,8 +220,20 @@ export default function CrearFacturaPage() {
             }
         }
 
+        const fetchNextNumero = async () => {
+            try {
+                const res = await api.get('/admin/facturacion/facturas/preview-numero')
+                if (res.data.success && res.data.numero) {
+                    setNextNumero(res.data.numero)
+                }
+            } catch (e) {
+                console.error("Error fetching next number preview", e)
+            }
+        }
+
         fetchClientes()
         fetchMinFecha()
+        fetchNextNumero()
         loadIvas()
     }, [])
 
@@ -568,6 +581,11 @@ export default function CrearFacturaPage() {
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">Nueva Factura</h1>
                         <p className="text-slate-500 text-sm">Crear un nuevo borrador de factura</p>
+                        {nextNumero && (
+                            <p className="text-slate-400 text-xs mt-0.5">
+                                Siguiente nº al validar: <span className="font-mono">{nextNumero}</span>
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
