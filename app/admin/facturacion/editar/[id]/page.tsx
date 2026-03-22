@@ -359,8 +359,8 @@ export default function EditarFacturaPage() {
   )
 
   return (
-    <div className="max-w-[1400px] mx-auto space-y-6 pb-20">
-      
+    <div className="w-full px-4 md:px-6 lg:px-8 mx-auto space-y-6 pb-20">
+
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -511,14 +511,22 @@ export default function EditarFacturaPage() {
             </div>
             
             <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-sm text-left table-fixed">
+                    <colgroup>
+                        <col className="w-auto" />
+                        <col className="w-[130px]" />
+                        <col className="w-[200px]" />
+                        <col className="w-[180px]" />
+                        <col className="w-[160px]" />
+                        <col className="w-12" />
+                    </colgroup>
                     <thead className="bg-white text-slate-500 font-medium">
                         <tr className="border-b border-slate-100">
                             <th className="p-4 text-left">Descripción / Servicio</th>
-                            <th className="p-4 w-36 text-center">Cant.</th>
-                            <th className="p-4 w-56 text-center">Precio Unit.</th>
-                            <th className="p-4 min-w-[120px] text-center">IVA %</th>
-                            <th className="p-4 w-44 text-right">Subtotal</th>
+                            <th className="p-4 text-center">Cant.</th>
+                            <th className="p-4 text-center">Precio Unit.</th>
+                            <th className="p-4 text-center">IVA %</th>
+                            <th className="p-4 text-right">Subtotal</th>
                             <th className="p-4 w-12"></th>
                         </tr>
                     </thead>
@@ -646,13 +654,13 @@ export default function EditarFacturaPage() {
 
             {/* SECCIÓN DE TOTALES */}
             <div className="border-t bg-slate-50/50 p-6 flex flex-col md:flex-row justify-between items-start gap-8 mt-2">
-                <div className="w-full md:w-1/2">
-                    <div className="bg-white border rounded-lg p-3 text-xs text-slate-500 italic max-w-sm">
+                <div className="flex-1 min-w-0">
+                    <div className="bg-white border rounded-lg p-3 text-xs text-slate-500 italic max-w-md">
                         Estás editando el borrador #{numero}. Los cambios no afectarán a Veri*Factu hasta que valides la factura.
                     </div>
                 </div>
 
-                <div className="w-full md:w-[400px] space-y-4">
+                <div className="w-full md:w-[450px] shrink-0 space-y-4">
                     <div className="space-y-2 text-sm">
                         <div className="flex justify-between text-slate-600 px-2">
                             <span>Base Imponible</span>
@@ -714,7 +722,7 @@ export default function EditarFacturaPage() {
 
 function EditSkeleton() {
     return (
-        <div className="max-w-[1400px] mx-auto space-y-6 pb-20">
+        <div className="w-full px-4 md:px-6 lg:px-8 mx-auto space-y-6 pb-20">
             <div className="h-10 w-48 bg-slate-200 rounded animate-pulse" />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">

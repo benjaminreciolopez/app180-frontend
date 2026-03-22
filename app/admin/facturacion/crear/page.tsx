@@ -557,7 +557,7 @@ export default function CrearFacturaPage() {
     }
 
     return (
-        <div className="max-w-[1400px] mx-auto space-y-6 pb-20">
+        <div className="w-full px-4 md:px-6 lg:px-8 mx-auto space-y-6 pb-20">
 
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
@@ -805,12 +805,20 @@ export default function CrearFacturaPage() {
                         </div>
 
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                            <table className="w-full text-sm text-left table-fixed">
+                                <colgroup>
+                                    <col className="w-auto" />
+                                    <col style={{ width: colWidths.cant }} />
+                                    <col style={{ width: colWidths.precio }} />
+                                    <col style={{ width: colWidths.iva }} />
+                                    <col style={{ width: colWidths.subtotal }} />
+                                    <col className="w-12" />
+                                </colgroup>
                                 <thead className="bg-white text-slate-500 font-medium">
                                     <tr className="border-b border-slate-100">
                                         <th className="p-4 text-left">Descripción / Servicio</th>
 
-                                        <th className="p-4 text-center relative" style={{ width: colWidths.cant }}>
+                                        <th className="p-4 text-center relative">
                                             Cant.
                                             <div
                                                 className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-300 transition-colors z-10"
@@ -819,7 +827,7 @@ export default function CrearFacturaPage() {
                                             />
                                         </th>
 
-                                        <th className="p-4 text-center relative" style={{ width: colWidths.precio }}>
+                                        <th className="p-4 text-center relative">
                                             Precio Unit.
                                             <div
                                                 className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-300 transition-colors z-10"
@@ -828,7 +836,7 @@ export default function CrearFacturaPage() {
                                             />
                                         </th>
 
-                                        <th className="p-4 text-center relative" style={{ minWidth: colWidths.iva }}>
+                                        <th className="p-4 text-center relative">
                                             IVA %
                                             <div
                                                 className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-300 transition-colors z-10"
@@ -837,7 +845,7 @@ export default function CrearFacturaPage() {
                                             />
                                         </th>
 
-                                        <th className="p-4 text-right relative" style={{ width: colWidths.subtotal }}>
+                                        <th className="p-4 text-right relative">
                                             Subtotal
                                             <div
                                                 className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-300 transition-colors z-10"
@@ -981,13 +989,13 @@ export default function CrearFacturaPage() {
 
                         {/* SECCIÓN DE TOTALES DEBAJO DE LA TABLA */}
                         <div className="border-t bg-slate-50/50 p-6 flex flex-col md:flex-row justify-between items-start gap-8 mt-2">
-                            <div className="w-full md:w-1/2">
-                                <div className="bg-white border rounded-lg p-3 text-xs text-slate-500 italic max-w-sm">
+                            <div className="flex-1 min-w-0">
+                                <div className="bg-white border rounded-lg p-3 text-xs text-slate-500 italic max-w-md">
                                     Consejo: Puedes guardar conceptos frecuentes con el icono <Save className="w-3 h-3 inline mx-1" /> para agilizar la creación de futuras facturas.
                                 </div>
                             </div>
 
-                            <div className="w-full md:w-[400px] space-y-4">
+                            <div className="w-full md:w-[450px] shrink-0 space-y-4">
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between text-slate-600 px-2">
                                         <span>Base Imponible</span>
