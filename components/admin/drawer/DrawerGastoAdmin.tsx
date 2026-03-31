@@ -23,7 +23,7 @@ import {
     AlertTriangle
 } from "lucide-react";
 import { api } from "@/services/api";
-import { showSuccess, showError } from "@/lib/toast";
+import { showSuccess, showError, showInfo } from "@/lib/toast";
 import IOSDrawer from "@/components/ui/IOSDrawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +83,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const [currentInvoiceIndex, setCurrentInvoiceIndex] = useState(0);
     const [lastSavedDocumentUrl, setLastSavedDocumentUrl] = useState<string | null>(null);
     const [showPreviewModal, setShowPreviewModal] = useState(false);
+    const [cuentaContableProveedor, setCuentaContableProveedor] = useState<string | null>(null);
+    const lastProveedorChecked = useRef<string>("");
 
     const {
         register,
@@ -201,6 +203,37 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         setNewPaymentMethodName("");
     };
 
+    const handleProveedorBlur = async () => {
+        const proveedor = getValues("proveedor")?.trim();
+        if (!proveedor || proveedor === lastProveedorChecked.current || editingGasto) return;
+        lastProveedorChecked.current = proveedor;
+
+        try {
+            const res = await api.get(`/api/admin/purchases/provider-defaults?proveedor=${encodeURIComponent(proveedor)}`);
+            const defaults = res.data?.data;
+            if (defaults) {
+                if (defaults.categoria && getValues("categoria") === "general") {
+                    setValue("categoria", defaults.categoria);
+                }
+                if (defaults.metodo_pago && getValues("metodo_pago") === "efectivo") {
+                    setValue("metodo_pago", defaults.metodo_pago);
+                }
+                if (defaults.iva_porcentaje !== undefined && defaults.iva_porcentaje !== null) {
+                    setValue("iva_porcentaje", Number(defaults.iva_porcentaje));
+                }
+                if (defaults.retencion_porcentaje && Number(defaults.retencion_porcentaje) > 0) {
+                    setValue("retencion_porcentaje", Number(defaults.retencion_porcentaje));
+                }
+                if (defaults.cuenta_contable) {
+                    setCuentaContableProveedor(defaults.cuenta_contable);
+                }
+                showInfo("Datos autocompletados del proveedor anterior");
+            }
+        } catch (err) {
+            // Silencioso - no bloquear el flujo
+        }
+    };
+
     useEffect(() => {
         if (isOpen) {
             // Cargar categorías existentes
@@ -243,6 +276,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             setLastSavedDocumentUrl(null);
             setInvoicesToReview([]);
             setCurrentInvoiceIndex(0);
+            setCuentaContableProveedor(null);
+            lastProveedorChecked.current = editingGasto.proveedor || "";
         } else {
             reset({
                 categoria: "general",
@@ -262,6 +297,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             setUploadedFile(null);
             setSelectedFileObj(null);
             setLastSavedDocumentUrl(null);
+            setCuentaContableProveedor(null);
+            lastProveedorChecked.current = "";
             setInvoicesToReview([]);
             setCurrentInvoiceIndex(0);
         }
@@ -384,6 +421,10 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
             if (!selectedFileObj && lastSavedDocumentUrl) {
                 formData.append("documento_url", lastSavedDocumentUrl);
+            }
+
+            if (cuentaContableProveedor && !editingGasto) {
+                formData.append("cuenta_contable", cuentaContableProveedor);
             }
 
             let res;
@@ -560,6 +601,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                 id="proveedor"
                                 placeholder="Amazon, Repsol..."
                                 {...register("proveedor")}
+                                onBlur={handleProveedorBlur}
                                 className="bg-slate-50/10 h-11 rounded-xl"
                             />
                         </div>
