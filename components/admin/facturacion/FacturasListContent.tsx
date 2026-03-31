@@ -18,7 +18,12 @@ import {
   Calendar as CalendarIcon,
   ChevronsUpDown,
   FileText,
-  Loader2
+  Loader2,
+  CheckSquare,
+  Square,
+  MinusSquare,
+  CheckCircle,
+  XCircle
 } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -87,6 +92,12 @@ export function FacturasListContent() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [facturaToAnular, setFacturaToAnular] = useState<any>(null)
+
+  // Multivalidación
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [batchValidating, setBatchValidating] = useState(false)
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false)
+  const [batchResults, setBatchResults] = useState<{ validated: any[], failed: any[] } | null>(null)
 
   // Cargar datos
   const loadFacturas = useCallback(async () => {
@@ -249,6 +260,56 @@ export function FacturasListContent() {
     }
   }
 
+  // Borradores visibles (para checkbox select-all)
+  const borradores = filteredFacturas.filter(f => f.estado === "BORRADOR")
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === borradores.length && borradores.length > 0) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(borradores.map(f => f.id)))
+    }
+  }
+
+  const handleBatchValidar = async () => {
+    if (selectedIds.size === 0) return
+    setBatchValidating(true)
+    setBatchResults(null)
+    try {
+      const res = await api.post("/admin/facturacion/facturas/batch/validar", {
+        ids: Array.from(selectedIds),
+        fecha: new Date().toISOString().split('T')[0]
+      })
+      setBatchResults(res.data)
+      if (res.data.validated?.length > 0) {
+        toast.success(`${res.data.validated.length} facturas validadas correctamente`)
+      }
+      if (res.data.failed?.length > 0) {
+        toast.error(`${res.data.failed.length} facturas con errores`)
+      }
+      setSelectedIds(new Set())
+      loadFacturas()
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Error en la validación en lote")
+    } finally {
+      setBatchValidating(false)
+    }
+  }
+
+  // Limpiar selección al cambiar filtros
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [estadoFilter, yearFilter, searchTerm])
+
   return (
     <div className="space-y-6">
 
@@ -302,13 +363,58 @@ export function FacturasListContent() {
         </div>
       </div>
 
+      {/* --- BARRA FLOTANTE MULTIVALIDACIÓN --- */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl px-6 py-3 flex items-center gap-4"
+          >
+            <span className="text-sm font-medium">
+              {selectedIds.size} {selectedIds.size === 1 ? "borrador seleccionado" : "borradores seleccionados"}
+            </span>
+            <Button
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => setBatchDialogOpen(true)}
+              disabled={batchValidating}
+            >
+              {batchValidating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileCheck className="w-4 h-4 mr-2" />}
+              Validar selección
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-slate-300 hover:text-white hover:bg-slate-800"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Cancelar
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* --- TABLA DE FACTURAS --- */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {/* Header Tabla */}
         <div className="grid grid-cols-12 gap-4 p-4 border-b bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            <div className="col-span-2 md:col-span-1">Estado</div>
+            {borradores.length > 0 && (
+              <div className="col-span-1 flex items-center justify-center md:col-span-1">
+                <button onClick={toggleSelectAll} className="text-slate-400 hover:text-slate-700 transition-colors">
+                  {selectedIds.size === borradores.length && borradores.length > 0
+                    ? <CheckSquare className="w-4 h-4 text-green-600" />
+                    : selectedIds.size > 0
+                    ? <MinusSquare className="w-4 h-4 text-blue-500" />
+                    : <Square className="w-4 h-4" />
+                  }
+                </button>
+              </div>
+            )}
+            <div className={`col-span-2 ${borradores.length > 0 ? 'md:col-span-1' : 'md:col-span-1'}`}>Estado</div>
             <div className="col-span-3 md:col-span-2">Número / Fecha</div>
-            <div className="col-span-4 md:col-span-3">Cliente</div>
+            <div className={`col-span-4 ${borradores.length > 0 ? 'md:col-span-2' : 'md:col-span-3'}`}>Cliente</div>
             <div className="col-span-3 md:col-span-1 text-center hidden md:block">Pago</div>
             <div className="col-span-3 md:col-span-2 text-right">Importe</div>
             <div className="col-span-12 md:col-span-3 text-right hidden md:block">Acciones</div>
@@ -351,10 +457,13 @@ export function FacturasListContent() {
                             onConvertir={() => handleConvertirANormal(factura.id)}
                             isProcessing={procesandoId === factura.id}
                             isDownloading={downloadingId === factura.id}
-                            isGlobalBusy={!!procesandoId || !!downloadingId}
+                            isGlobalBusy={!!procesandoId || !!downloadingId || batchValidating}
                             onGenerar={() => handleGenerarPDF(factura.id)}
                             onOpen={() => handleOpenPDF(factura.id)}
                             onPreview={() => handleOpenPreview(factura.id)}
+                            showCheckbox={borradores.length > 0}
+                            isSelected={selectedIds.has(factura.id)}
+                            onToggleSelect={() => toggleSelect(factura.id)}
                         />
                     ))}
                 </AnimatePresence>
@@ -411,6 +520,101 @@ export function FacturasListContent() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Diálogo Multivalidación */}
+      <AlertDialog open={batchDialogOpen} onOpenChange={setBatchDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <FileCheck className="w-5 h-5 text-green-600" />
+              Validar {selectedIds.size} {selectedIds.size === 1 ? "factura" : "facturas"}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Se validarán <strong>{selectedIds.size}</strong> borradores con numeración correlativa.
+                  Se generará número oficial, VeriFactu, asiento contable y PDF para cada una.
+                </p>
+                <p className="text-sm text-amber-600 font-medium">
+                  Esta acción no se puede deshacer.
+                </p>
+                {(() => {
+                  const selectedFacturas = facturas.filter(f => selectedIds.has(f.id))
+                  const totalImporte = selectedFacturas.reduce((sum: number, f: any) => sum + Number(f.total || 0), 0)
+                  return (
+                    <div className="bg-slate-50 rounded-lg p-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Importe total:</span>
+                        <span className="font-bold">{formatCurrency(totalImporte)}</span>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={batchValidating}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleBatchValidar()
+                setBatchDialogOpen(false)
+              }}
+              className="bg-green-600 hover:bg-green-700"
+              disabled={batchValidating}
+            >
+              {batchValidating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Confirmar validación
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo Resultados Multivalidación */}
+      <Dialog open={!!batchResults} onOpenChange={() => setBatchResults(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileCheck className="w-5 h-5 text-green-600" />
+              Resultados de validación
+            </DialogTitle>
+          </DialogHeader>
+          {batchResults && (
+            <div className="space-y-4">
+              {batchResults.validated.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-700 font-medium text-sm">
+                    <CheckCircle className="w-4 h-4" />
+                    {batchResults.validated.length} validadas correctamente
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto">
+                    {batchResults.validated.map((v: any) => (
+                      <div key={v.id} className="text-xs flex justify-between">
+                        <span className="font-mono">{v.numero}</span>
+                        <span>{formatCurrency(v.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {batchResults.failed.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-red-700 font-medium text-sm">
+                    <XCircle className="w-4 h-4" />
+                    {batchResults.failed.length} con errores
+                  </div>
+                  <div className="bg-red-50 rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto">
+                    {batchResults.failed.map((f: any) => (
+                      <div key={f.id} className="text-xs text-red-600">{f.error}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Visor de PDF Rápido */}
       <Dialog open={isPreviewOpen} onOpenChange={(open) => {
           if(!open) {
@@ -439,7 +643,7 @@ export function FacturasListContent() {
   )
 }
 
-function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular, onDelete, onEdit, onConvertir, isProcessing, isDownloading, isGlobalBusy }: any) {
+function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular, onDelete, onEdit, onConvertir, isProcessing, isDownloading, isGlobalBusy, showCheckbox, isSelected, onToggleSelect }: any) {
     const isBorrador = factura.estado === "BORRADOR"
     const isValidada = factura.estado === "VALIDADA"
     const isAnulada = factura.estado === "ANULADA"
@@ -456,8 +660,24 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group"
+            className={`grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group ${isSelected ? 'bg-green-50 hover:bg-green-50' : ''}`}
         >
+            {/* Checkbox */}
+            {showCheckbox && (
+              <div className="col-span-1 flex items-center justify-center">
+                {isBorrador ? (
+                  <button onClick={onToggleSelect} className="text-slate-400 hover:text-slate-700 transition-colors">
+                    {isSelected
+                      ? <CheckSquare className="w-4 h-4 text-green-600" />
+                      : <Square className="w-4 h-4" />
+                    }
+                  </button>
+                ) : (
+                  <span className="w-4" />
+                )}
+              </div>
+            )}
+
             {/* Estado */}
             <div className="col-span-2 md:col-span-1 flex flex-col gap-1">
                 <div>
@@ -489,7 +709,7 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
             </div>
 
             {/* Cliente */}
-            <div className="col-span-4 md:col-span-3">
+            <div className={`col-span-4 ${showCheckbox ? 'md:col-span-2' : 'md:col-span-3'}`}>
                 <div className="font-medium text-slate-800 text-sm truncate">
                     {factura.cliente_nombre || <span className="text-slate-400 italic">Cliente sin asignar</span>}
                 </div>

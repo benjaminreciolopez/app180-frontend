@@ -3,10 +3,11 @@
 import { useSearchParams, useRouter } from "next/navigation"
 import { useFacturacionBasePath } from "@/hooks/useFacturacionBasePath"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileText, Tag, FlaskConical } from "lucide-react"
+import { FileText, Tag, FlaskConical, RefreshCw } from "lucide-react"
 import { FacturasListContent } from "@/components/admin/facturacion/FacturasListContent"
 import { ProformasListContent } from "@/components/admin/facturacion/ProformasListContent"
 import { TestFacturasListContent } from "@/components/admin/facturacion/TestFacturasListContent"
+import { FacturasRecurrentesContent } from "@/components/admin/facturacion/FacturasRecurrentesContent"
 
 export default function FacturasListadoPage() {
   const searchParams = useSearchParams()
@@ -14,15 +15,14 @@ export default function FacturasListadoPage() {
 
   const basePath = useFacturacionBasePath()
   const tabParam = searchParams.get("tab")
-  const activeTab = tabParam === "proformas" ? "proformas" : tabParam === "test" ? "test" : "fiscales"
+  const validTabs = ["fiscales", "proformas", "test", "recurrentes"]
+  const activeTab = validTabs.includes(tabParam || "") ? tabParam! : "fiscales"
 
   const handleTabChange = (value: string) => {
-    if (value === "proformas") {
-      router.replace(`${basePath}/listado?tab=proformas`)
-    } else if (value === "test") {
-      router.replace(`${basePath}/listado?tab=test`)
-    } else {
+    if (value === "fiscales") {
       router.replace(`${basePath}/listado`)
+    } else {
+      router.replace(`${basePath}/listado?tab=${value}`)
     }
   }
 
@@ -50,6 +50,13 @@ export default function FacturasListadoPage() {
           <FlaskConical className="w-4 h-4 mr-2" />
           Test VeriFActu
         </TabsTrigger>
+        <TabsTrigger
+          value="recurrentes"
+          className="data-[state=active]:bg-white data-[state=active]:shadow-sm cursor-pointer"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Recurrentes
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="fiscales" className="mt-4">
@@ -62,6 +69,10 @@ export default function FacturasListadoPage() {
 
       <TabsContent value="test" className="mt-4">
         <TestFacturasListContent />
+      </TabsContent>
+
+      <TabsContent value="recurrentes" className="mt-4">
+        <FacturasRecurrentesContent />
       </TabsContent>
     </Tabs>
   )
