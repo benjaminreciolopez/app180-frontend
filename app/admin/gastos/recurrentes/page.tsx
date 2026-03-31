@@ -180,7 +180,7 @@ export default function GastosRecurrentesPage() {
                 </div>
             ) : filtered.length === 0 ? (
                 <EmptyState
-                    icon={<RefreshCw size={48} className="text-muted-foreground" />}
+                    icon={RefreshCw}
                     title="Sin gastos recurrentes"
                     description="Crea una plantilla para automatizar tus gastos mensuales."
                 />
