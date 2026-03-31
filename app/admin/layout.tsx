@@ -197,6 +197,7 @@ export default function AdminLayout({
       { path: "/admin/partes-dia", module: "worklogs" },
       { path: "/admin/trabajos", module: "worklogs" },
       { path: "/admin/gastos", module: "facturacion" },
+      { path: "/admin/gastos/recurrentes", module: "facturacion" },
       { path: "/admin/contabilidad", module: "facturacion" }, // Nuevo: Libros
       { path: "/admin/fiscal", module: "fiscal" }, // Nuevo: Modelos (Módulo cobrable)
       { path: "/admin/fiscal/renta", module: "fiscal" },
@@ -246,6 +247,7 @@ export default function AdminLayout({
       "/admin/perfil": "Mi Perfil",
       "/admin/reportes/rentabilidad": "Rentabilidad",
       "/admin/gastos": "Compras y Gastos",
+      "/admin/gastos/recurrentes": "Gastos Recurrentes",
       "/admin/contabilidad": "Contabilidad",
       "/admin/fiscal": "Fiscalidad",
       "/admin/fiscal/renta": "Declaración Renta",
@@ -376,6 +378,7 @@ export default function AdminLayout({
       items: [
         { path: "/admin/facturacion", label: "Facturación", module: "facturacion" },
         { path: "/admin/gastos", label: "Compras y Gastos", module: "facturacion" },
+        { path: "/admin/gastos/recurrentes", label: "Gastos Recurrentes", module: "facturacion" },
         { path: "/admin/cobros-pagos", label: "Cobros y Pagos", module: "pagos" },
       ],
     },
