@@ -73,7 +73,7 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
     const [loading, setLoading] = useState(false);
 
     const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<FormValues>({
-        resolver: zodResolver(schema),
+        resolver: zodResolver(schema) as any,
         defaultValues: {
             nombre: "",
             proveedor: "",
