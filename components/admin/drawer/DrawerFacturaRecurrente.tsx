@@ -78,6 +78,7 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
   const [loading, setLoading] = useState(false)
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [clienteOpen, setClienteOpen] = useState(false)
+  const [conceptos, setConceptos] = useState<any[]>([])
 
   const { register, handleSubmit, setValue, watch, reset, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
@@ -116,6 +117,14 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
       setClientes(data)
     }).catch(() => {})
   }, [isOpen])
+
+  // Fetch conceptos when client changes
+  useEffect(() => {
+    if (!isOpen) return
+    api.get(`/admin/facturacion/conceptos?cliente_id=${clienteId || ''}`)
+      .then((res) => setConceptos(res.data.data || []))
+      .catch(() => {})
+  }, [isOpen, clienteId])
 
   // Load editing data
   useEffect(() => {
@@ -328,12 +337,55 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
               return (
                 <div key={field.id} className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200">
                   <div className="flex items-start gap-2">
-                    <div className="flex-1">
+                    <div className="flex-1 relative group/desc">
                       <Input
                         {...register(`lineas.${index}.descripcion`)}
                         placeholder="Descripción del concepto"
-                        className="bg-white"
+                        className="bg-white pr-10"
                       />
+                      {conceptos.length > 0 && (
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-600 hover:bg-blue-50 rounded-full" type="button">
+                                <Search className="w-3.5 h-3.5" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[400px] p-0 z-[10000]" align="end">
+                              <Command>
+                                <CommandInput placeholder="Buscar concepto guardado..." />
+                                <CommandList>
+                                  <CommandEmpty>No hay conceptos guardados.</CommandEmpty>
+                                  <CommandGroup>
+                                    {conceptos.map((c: any) => (
+                                      <CommandItem
+                                        key={c.id}
+                                        className="rounded-lg p-2 cursor-pointer mb-1"
+                                        onSelect={() => {
+                                          const price = parseFloat(String(c.precio_unitario || 0).replace(',', '.')) || 0
+                                          setValue(`lineas.${index}.descripcion`, c.descripcion || c.nombre)
+                                          if (price > 0) setValue(`lineas.${index}.precio_unitario`, price)
+                                          if (c.iva_default) setValue(`lineas.${index}.iva`, Number(c.iva_default))
+                                        }}
+                                      >
+                                        <div className="flex flex-col w-full gap-0.5">
+                                          <div className="flex justify-between font-medium text-sm">
+                                            <span>{c.nombre}</span>
+                                            <span className="text-blue-600">{formatCurrency(c.precio_unitario)}</span>
+                                          </div>
+                                          {c.descripcion && c.descripcion !== c.nombre && (
+                                            <span className="text-xs text-slate-500 italic line-clamp-1">{c.descripcion}</span>
+                                          )}
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      )}
                       {errors.lineas?.[index]?.descripcion && (
                         <p className="text-xs text-red-500 mt-0.5">{errors.lineas[index]?.descripcion?.message}</p>
                       )}
