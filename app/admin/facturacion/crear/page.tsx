@@ -333,14 +333,18 @@ export default function CrearFacturaPage() {
                 // Si el campo es IVA y el nuevo valor tiene una descripción en la lista de IVAs,
                 // y el mensaje_iva actual está vacío, lo sugerimos/ponemos.
                 if (field === 'iva') {
-                    const selectedIva = ivas.find(i => i.porcentaje === value);
-                    // Si el IVA configurado tiene descripción, prevalece
-                    if (selectedIva?.descripcion && (!mensajeIva || mensajeIva.trim() === "")) {
-                        setMensajeIva(selectedIva.descripcion);
-                    }
-                    // Si no tiene descripción pero hay un texto legal estándar, lo sugerimos
-                    else if (LEGAL_IVA_TEXTS[value as number] && (!mensajeIva || mensajeIva.trim() === "")) {
-                        setMensajeIva(LEGAL_IVA_TEXTS[value as number]);
+                    const pctValue = Number(value);
+                    // No auto-rellenar mensaje para IVA 21% (tipo general, no requiere texto legal)
+                    if (pctValue !== 21) {
+                        const selectedIva = ivas.find(i => i.porcentaje === value);
+                        // Si el IVA configurado tiene descripción, prevalece
+                        if (selectedIva?.descripcion && (!mensajeIva || mensajeIva.trim() === "")) {
+                            setMensajeIva(selectedIva.descripcion);
+                        }
+                        // Si no tiene descripción pero hay un texto legal estándar, lo sugerimos
+                        else if (LEGAL_IVA_TEXTS[value as number] && (!mensajeIva || mensajeIva.trim() === "")) {
+                            setMensajeIva(LEGAL_IVA_TEXTS[value as number]);
+                        }
                     }
                 }
                 return { ...l, [field]: value };
@@ -632,8 +636,8 @@ export default function CrearFacturaPage() {
                                                                 // Si el cliente tiene IVA defecto o exención, sugerir mensaje
                                                                 if (cliente.exento_iva && cliente.texto_exento) {
                                                                     setMensajeIva(cliente.texto_exento)
-                                                                } else if (cliente.iva_defecto) {
-                                                                    // Buscar si el IVA tiene descripción
+                                                                } else if (cliente.iva_defecto && Number(cliente.iva_defecto) !== 21) {
+                                                                    // Buscar si el IVA tiene descripción (no para 21% estándar)
                                                                     const ivaObj = ivas.find(i => i.porcentaje === cliente.iva_defecto)
                                                                     if (ivaObj?.descripcion) setMensajeIva(ivaObj.descripcion)
                                                                 }
