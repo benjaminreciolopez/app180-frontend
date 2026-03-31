@@ -381,6 +381,17 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         if (ocrPreviewData.anio) setValue("anio", ocrPreviewData.anio);
         if (ocrPreviewData.trimestre) setValue("trimestre", ocrPreviewData.trimestre);
 
+        // Auto-rellenar categoría y método de pago (historial del proveedor > sugerencia IA > default)
+        if (ocrPreviewData.categoria_sugerida) {
+            setValue("categoria", ocrPreviewData.categoria_sugerida);
+        }
+        if (ocrPreviewData.metodo_pago_historial) {
+            setValue("metodo_pago", ocrPreviewData.metodo_pago_historial);
+        }
+        if (ocrPreviewData.cuenta_contable) {
+            setCuentaContableProveedor(ocrPreviewData.cuenta_contable);
+        }
+
         setShowPreviewModal(false);
     };
 
