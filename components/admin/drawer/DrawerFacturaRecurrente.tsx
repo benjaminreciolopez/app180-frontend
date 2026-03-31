@@ -219,30 +219,33 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
             <PopoverContent className="w-[380px] p-0">
               <Command>
                 <CommandInput placeholder="Buscar cliente..." />
-                <CommandEmpty>No encontrado.</CommandEmpty>
-                <CommandGroup className="max-h-[300px] overflow-auto">
-                  {clientes.map((cliente) => (
-                    <CommandItem
-                      key={cliente.id}
-                      value={cliente.nombre}
-                      onSelect={() => {
-                        setValue("cliente_id", String(cliente.id))
-                        setClienteOpen(false)
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          clienteId === String(cliente.id) ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      <div className="flex flex-col">
-                        <span className="font-medium text-slate-900">{cliente.nombre}</span>
-                        <span className="text-xs text-slate-500">{cliente.nif}</span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+                <CommandList>
+                  <CommandEmpty>No encontrado.</CommandEmpty>
+                  <CommandGroup>
+                    {clientes.map((cliente) => (
+                      <CommandItem
+                        key={cliente.id}
+                        value={cliente.nombre}
+                        onSelect={() => {
+                          setValue("cliente_id", String(cliente.id))
+                          setClienteOpen(false)
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            clienteId === String(cliente.id) ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-medium text-slate-900">{cliente.nombre}</span>
+                          <span className="text-xs text-slate-500">{cliente.nif}</span>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
               </Command>
             </PopoverContent>
           </Popover>
