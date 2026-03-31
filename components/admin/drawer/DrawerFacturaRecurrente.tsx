@@ -216,7 +216,7 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
                 <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[380px] p-0">
+            <PopoverContent className="w-[380px] p-0 z-[10000]">
               <Command>
                 <CommandInput placeholder="Buscar cliente..." />
                 <CommandList>
@@ -258,7 +258,7 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
             <Label className="mb-1.5 block">IVA global %</Label>
             <Select value={String(ivaGlobal)} onValueChange={(v) => setValue("iva_global", Number(v))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[10000]">
                 <SelectItem value="0">0%</SelectItem>
                 <SelectItem value="4">4%</SelectItem>
                 <SelectItem value="10">10%</SelectItem>
@@ -270,7 +270,7 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
             <Label className="mb-1.5 block">Método de pago</Label>
             <Select value={watch("metodo_pago")} onValueChange={(v) => setValue("metodo_pago", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[10000]">
                 <SelectItem value="TRANSFERENCIA">Transferencia</SelectItem>
                 <SelectItem value="CONTADO">Contado</SelectItem>
                 <SelectItem value="TARJETA">Tarjeta</SelectItem>
@@ -282,7 +282,7 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
             <Label className="mb-1.5 block">Día generación</Label>
             <Select value={String(watch("dia_generacion"))} onValueChange={(v) => setValue("dia_generacion", Number(v))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[10000]">
                 {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
                   <SelectItem key={d} value={String(d)}>Día {d}</SelectItem>
                 ))}
@@ -360,7 +360,7 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
                         onValueChange={(v) => setValue(`lineas.${index}.iva`, Number(v))}
                       >
                         <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[10000]">
                           <SelectItem value="0">0%</SelectItem>
                           <SelectItem value="4">4%</SelectItem>
                           <SelectItem value="10">10%</SelectItem>
