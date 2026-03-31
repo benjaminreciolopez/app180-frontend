@@ -197,7 +197,16 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
     };
 
     return (
-        <IOSDrawer isOpen={isOpen} onClose={onClose} title={editing ? "Editar gasto recurrente" : "Nuevo gasto recurrente"}>
+        <IOSDrawer
+            open={isOpen}
+            onClose={onClose}
+            header={{
+                title: editing ? "Editar gasto recurrente" : "Nuevo gasto recurrente",
+                canGoBack: false,
+                onBack: () => {},
+                onClose,
+            }}
+        >
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
                 {/* Nombre */}
                 <div>
