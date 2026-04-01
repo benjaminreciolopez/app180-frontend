@@ -58,7 +58,7 @@ const CATEGORIAS = [
     "general", "material", "combustible", "herramientas", "transporte",
     "seguros", "suministros", "alquiler", "telefono", "software",
     "profesionales", "formacion", "publicidad", "limpieza", "autonomo",
-    "impuestos", "otros"
+    "autónomo", "servicios", "impuestos", "otros"
 ];
 
 const METODOS_PAGO = [
@@ -128,6 +128,13 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                 dia_ejecucion: editing.dia_ejecucion || 1,
             });
         } else if (prefillData) {
+            // Normalizar categoría para que coincida con las opciones del Select
+            const catRaw = (prefillData.categoria || "general").toLowerCase();
+            const catMatch = CATEGORIAS.includes(catRaw) ? catRaw : "general";
+            // Normalizar método de pago
+            const mpRaw = (prefillData.metodo_pago || "transferencia").toLowerCase();
+            const mpMatch = METODOS_PAGO.find(m => m.value === mpRaw)?.value || "transferencia";
+
             reset({
                 nombre: prefillData.nombre || "",
                 proveedor: prefillData.proveedor || "",
@@ -138,8 +145,8 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                 retencion_porcentaje: Number(prefillData.retencion_porcentaje) || 0,
                 retencion_importe: Number(prefillData.retencion_importe) || 0,
                 total: Number(prefillData.total) || 0,
-                categoria: prefillData.categoria || "general",
-                metodo_pago: prefillData.metodo_pago || "transferencia",
+                categoria: catMatch,
+                metodo_pago: mpMatch,
                 cuenta_contable: prefillData.cuenta_contable || "",
                 dia_ejecucion: 1,
             });
