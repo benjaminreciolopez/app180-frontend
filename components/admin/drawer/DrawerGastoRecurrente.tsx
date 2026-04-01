@@ -38,8 +38,8 @@ const schema = z.object({
     retencion_porcentaje: z.coerce.number().min(0).optional(),
     retencion_importe: z.coerce.number().min(0).optional(),
     total: z.coerce.number().min(0.01, "El total debe ser mayor que 0"),
-    categoria: z.string().min(1),
-    metodo_pago: z.string().min(1),
+    categoria: z.string().min(1, "Selecciona una categoría"),
+    metodo_pago: z.string().min(1, "Selecciona un método de pago"),
     cuenta_contable: z.string().optional(),
     dia_ejecucion: z.coerce.number().min(1).max(28),
 });
@@ -112,21 +112,31 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
         if (!isOpen) return;
 
         if (editing) {
+            const eCat = (editing.categoria || "general").toLowerCase();
+            const eCatMatch = CATEGORIAS.includes(eCat) ? eCat : "general";
+            const eMp = (editing.metodo_pago || "transferencia").toLowerCase();
+            const eMpMatch = METODOS_PAGO.find(m => m.value === eMp)?.value || "transferencia";
+            const eIva = editing.iva_porcentaje != null ? Number(editing.iva_porcentaje) : 21;
             reset({
                 nombre: editing.nombre || "",
                 proveedor: editing.proveedor || "",
                 descripcion: editing.descripcion || "",
                 base_imponible: Number(editing.base_imponible) || 0,
-                iva_porcentaje: Number(editing.iva_porcentaje) || 21,
+                iva_porcentaje: eIva,
                 iva_importe: Number(editing.iva_importe) || 0,
                 retencion_porcentaje: Number(editing.retencion_porcentaje) || 0,
                 retencion_importe: Number(editing.retencion_importe) || 0,
                 total: Number(editing.total) || 0,
-                categoria: editing.categoria || "general",
-                metodo_pago: editing.metodo_pago || "transferencia",
+                categoria: eCatMatch,
+                metodo_pago: eMpMatch,
                 cuenta_contable: editing.cuenta_contable || "",
                 dia_ejecucion: editing.dia_ejecucion || 1,
             });
+            setTimeout(() => {
+                setValue("categoria", eCatMatch);
+                setValue("metodo_pago", eMpMatch);
+                setValue("iva_porcentaje", eIva);
+            }, 50);
         } else if (prefillData) {
             // Normalizar categoría para que coincida con las opciones del Select
             const catRaw = (prefillData.categoria || "general").toLowerCase();
@@ -140,7 +150,7 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                 proveedor: prefillData.proveedor || "",
                 descripcion: prefillData.descripcion || "",
                 base_imponible: Number(prefillData.base_imponible) || 0,
-                iva_porcentaje: Number(prefillData.iva_porcentaje) || 21,
+                iva_porcentaje: prefillData.iva_porcentaje != null ? Number(prefillData.iva_porcentaje) : 21,
                 iva_importe: Number(prefillData.iva_importe) || 0,
                 retencion_porcentaje: Number(prefillData.retencion_porcentaje) || 0,
                 retencion_importe: Number(prefillData.retencion_importe) || 0,
@@ -150,6 +160,12 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                 cuenta_contable: prefillData.cuenta_contable || "",
                 dia_ejecucion: 1,
             });
+            // Forzar actualización de Selects controlados
+            setTimeout(() => {
+                setValue("categoria", catMatch);
+                setValue("metodo_pago", mpMatch);
+                setValue("iva_porcentaje", prefillData.iva_porcentaje != null ? Number(prefillData.iva_porcentaje) : 21);
+            }, 50);
         } else {
             reset({
                 nombre: "", proveedor: "", descripcion: "",
