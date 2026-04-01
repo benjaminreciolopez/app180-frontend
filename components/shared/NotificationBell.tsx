@@ -104,11 +104,22 @@ export function NotificationBell({ basePath = "/admin/notificaciones" }: Notific
   const responderSugerencia = async (id: string, respuesta: 'aceptar' | 'rechazar') => {
     setRespondiendo(prev => ({ ...prev, [id]: true }))
     try {
-      const res = await api.post(`${basePath}/${id}/responder-sugerencia`, { respuesta })
+      await api.post(`${basePath}/${id}/responder-sugerencia`, { respuesta })
       fetchNotificaciones()
-      // Toast visual feedback could be added here
     } catch (err) {
       console.error("Error respondiendo sugerencia:", err)
+    } finally {
+      setRespondiendo(prev => ({ ...prev, [id]: false }))
+    }
+  }
+
+  const responderPagoModelo = async (id: string, respuesta: 'aceptar' | 'rechazar') => {
+    setRespondiendo(prev => ({ ...prev, [id]: true }))
+    try {
+      await api.post(`${basePath}/${id}/responder-pago-modelo`, { respuesta })
+      fetchNotificaciones()
+    } catch (err) {
+      console.error("Error respondiendo pago modelo:", err)
     } finally {
       setRespondiendo(prev => ({ ...prev, [id]: false }))
     }
@@ -132,6 +143,7 @@ export function NotificationBell({ basePath = "/admin/notificaciones" }: Notific
       case "nuevo_mensaje": return "text-blue-600 bg-blue-50 border-blue-200"
       case "sistema": return "text-slate-600 bg-slate-50 border-slate-200"
       case "GASTO_RECURRENTE_SUGERIDO": return "text-emerald-600 bg-emerald-50 border-emerald-200"
+      case "PAGO_MODELO_FISCAL": return "text-blue-600 bg-blue-50 border-blue-200"
       default: return "text-gray-600 bg-gray-50 border-gray-200"
     }
   }
@@ -260,7 +272,7 @@ export function NotificationBell({ basePath = "/admin/notificaciones" }: Notific
                                   Marcar leida
                                 </button>
                               )}
-                              {notif.tipo !== 'GASTO_RECURRENTE_SUGERIDO' && notif.accion_url && notif.accion_label && (
+                              {notif.tipo !== 'GASTO_RECURRENTE_SUGERIDO' && notif.tipo !== 'PAGO_MODELO_FISCAL' && notif.accion_url && notif.accion_label && (
                                 <Link
                                   href={notif.accion_url}
                                   onClick={() => {
@@ -302,6 +314,36 @@ export function NotificationBell({ basePath = "/admin/notificaciones" }: Notific
                                 notif.metadata.respondido === 'aceptar' ? 'text-green-600' : 'text-slate-400'
                               }`}>
                                 {notif.metadata.respondido === 'aceptar' ? 'Gasto recurrente creado' : 'Proveedor silenciado'}
+                              </div>
+                            )}
+                            {notif.tipo === 'PAGO_MODELO_FISCAL' && notif.metadata?.modelos && !notif.metadata?.respondido && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Button
+                                  size="sm"
+                                  className="h-6 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                                  disabled={respondiendo[notif.id]}
+                                  onClick={() => responderPagoModelo(notif.id, 'aceptar')}
+                                >
+                                  <Check className="h-3 w-3 mr-1" />
+                                  Sí, registrar pagos
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 text-xs"
+                                  disabled={respondiendo[notif.id]}
+                                  onClick={() => responderPagoModelo(notif.id, 'rechazar')}
+                                >
+                                  <X className="h-3 w-3 mr-1" />
+                                  Descartar
+                                </Button>
+                              </div>
+                            )}
+                            {notif.tipo === 'PAGO_MODELO_FISCAL' && notif.metadata?.respondido && (
+                              <div className={`text-[10px] font-medium mt-1 ${
+                                notif.metadata.respondido === 'aceptar' ? 'text-green-600' : 'text-slate-400'
+                              }`}>
+                                {notif.metadata.respondido === 'aceptar' ? 'Pagos registrados y asientos generados' : 'Descartado'}
                               </div>
                             )}
                           </div>
