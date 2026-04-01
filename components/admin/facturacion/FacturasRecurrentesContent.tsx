@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import {
   Plus,
   Search,
@@ -87,6 +88,12 @@ export function FacturasRecurrentesContent() {
   const [loteFecha, setLoteFecha] = useState(new Date().toISOString().split("T")[0])
   const [loteLoading, setLoteLoading] = useState(false)
 
+  // Prefill desde factura existente
+  const [prefillData, setPrefillData] = useState<any>(null)
+  const searchParams = useSearchParams()
+  const desdeFacturaId = searchParams.get("desde_factura")
+  const prefillProcessed = useRef(false)
+
   const confirm = useConfirm()
 
   const loadPlantillas = useCallback(async () => {
@@ -104,6 +111,29 @@ export function FacturasRecurrentesContent() {
   useEffect(() => {
     loadPlantillas()
   }, [loadPlantillas])
+
+  // Abrir drawer con datos pre-rellenados desde una factura existente
+  useEffect(() => {
+    if (desdeFacturaId && !prefillProcessed.current) {
+      prefillProcessed.current = true
+      api.get(`/admin/facturacion/facturas/${desdeFacturaId}`)
+        .then((res) => {
+          const f = res.data.data || res.data
+          setPrefillData({
+            nombre: `Recurrente - ${f.cliente_nombre || ""}`,
+            cliente_id: String(f.cliente_id || ""),
+            lineas: f.lineas || [],
+            iva_global: Number(f.iva_porcentaje) || 21,
+            mensaje_iva: f.mensaje_iva || "",
+            metodo_pago: f.metodo_pago || "TRANSFERENCIA",
+            retencion_porcentaje: Number(f.retencion_porcentaje) || 0,
+          })
+          setEditing(null)
+          setDrawerOpen(true)
+        })
+        .catch(() => showError("Error al cargar datos de la factura"))
+    }
+  }, [desdeFacturaId])
 
   const filtered = plantillas.filter((p) => {
     if (!searchTerm) return true
@@ -384,9 +414,10 @@ export function FacturasRecurrentesContent() {
       {/* Drawer crear/editar */}
       <DrawerFacturaRecurrente
         isOpen={drawerOpen}
-        onClose={() => { setDrawerOpen(false); setEditing(null) }}
+        onClose={() => { setDrawerOpen(false); setEditing(null); setPrefillData(null) }}
         onSuccess={loadPlantillas}
         editing={editing}
+        prefillData={prefillData}
       />
 
       {/* Dialog generar borrador individual */}

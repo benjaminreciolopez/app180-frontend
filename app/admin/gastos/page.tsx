@@ -19,9 +19,11 @@ import {
     Building2,
     ChevronUp,
     ChevronDown,
+    RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
 import { formatCurrency } from "@/lib/utils";
 import { showSuccess, showError } from "@/lib/toast";
@@ -65,6 +67,7 @@ type SortConfig = {
 };
 
 export default function GastosPage() {
+    const router = useRouter();
     const confirm = useConfirm();
     const [loading, setLoading] = useState(true);
     const [gastos, setGastos] = useState<Gasto[]>([]);
@@ -368,6 +371,33 @@ export default function GastosPage() {
                                                         onClick={(e) => { e.stopPropagation(); openEdit(gasto); }}
                                                     >
                                                         <Pencil size={14} />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600 text-slate-600"
+                                                        title="Hacer recurrente"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const g = gasto as any;
+                                                            const params = new URLSearchParams({
+                                                                crear: 'true',
+                                                                nombre: g.proveedor || g.descripcion || '',
+                                                                proveedor: g.proveedor || '',
+                                                                base_imponible: String(g.base_imponible || 0),
+                                                                iva_porcentaje: String(g.iva_porcentaje || 21),
+                                                                iva_importe: String(g.iva_importe || 0),
+                                                                total: String(g.total || 0),
+                                                                categoria: g.categoria || 'general',
+                                                                metodo_pago: g.metodo_pago || 'transferencia',
+                                                                retencion_porcentaje: String(g.retencion_porcentaje || 0),
+                                                                retencion_importe: String(g.retencion_importe || 0),
+                                                                cuenta_contable: g.cuenta_contable || '',
+                                                            });
+                                                            router.push(`/admin/gastos/recurrentes?${params.toString()}`);
+                                                        }}
+                                                    >
+                                                        <RefreshCw size={14} />
                                                     </Button>
                                                     <Button
                                                         variant="ghost"

@@ -10,6 +10,7 @@ import {
   FileCheck,
   FileX,
   RefreshCcw,
+  RefreshCw,
   Download,
   Mail,
   Eye,
@@ -461,6 +462,7 @@ export function FacturasListContent() {
                             onGenerar={() => handleGenerarPDF(factura.id)}
                             onOpen={() => handleOpenPDF(factura.id)}
                             onPreview={() => handleOpenPreview(factura.id)}
+                            basePath={basePath}
                             showCheckbox={borradores.length > 0}
                             isSelected={selectedIds.has(factura.id)}
                             onToggleSelect={() => toggleSelect(factura.id)}
@@ -643,7 +645,8 @@ export function FacturasListContent() {
   )
 }
 
-function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular, onDelete, onEdit, onConvertir, isProcessing, isDownloading, isGlobalBusy, showCheckbox, isSelected, onToggleSelect }: any) {
+function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular, onDelete, onEdit, onConvertir, isProcessing, isDownloading, isGlobalBusy, showCheckbox, isSelected, onToggleSelect, basePath }: any) {
+    const router = useRouter()
     const isBorrador = factura.estado === "BORRADOR"
     const isValidada = factura.estado === "VALIDADA"
     const isAnulada = factura.estado === "ANULADA"
@@ -845,6 +848,12 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
                                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                                 <DropdownMenuItem onClick={() => {}} disabled className="cursor-not-allowed opacity-50">
                                     <Mail className="w-4 h-4 mr-2" /> Enviar por Email
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    className="cursor-pointer"
+                                    onClick={() => router.push(`${basePath}/listado?tab=recurrentes&desde_factura=${factura.id}`)}
+                                >
+                                    <RefreshCw className="w-4 h-4 mr-2" /> Hacer recurrente
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer" onClick={onAnular}>

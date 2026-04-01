@@ -66,6 +66,7 @@ interface Props {
   onClose: () => void
   onSuccess: () => void
   editing?: any
+  prefillData?: any
 }
 
 type Cliente = {
@@ -74,7 +75,7 @@ type Cliente = {
   nif: string
 }
 
-export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, editing }: Props) {
+export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, editing, prefillData }: Props) {
   const [loading, setLoading] = useState(false)
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [clienteOpen, setClienteOpen] = useState(false)
@@ -149,6 +150,25 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
             }))
           : [{ descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }],
       })
+    } else if (prefillData) {
+      const lineas = Array.isArray(prefillData.lineas) && prefillData.lineas.length > 0
+        ? prefillData.lineas.map((l: any) => ({
+            descripcion: l.descripcion || l.concepto_nombre || "",
+            cantidad: Number(l.cantidad) || 1,
+            precio_unitario: Number(l.precio_unitario) || 0,
+            iva: Number(l.iva || l.iva_porcentaje) || 21,
+          }))
+        : [{ descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }]
+      reset({
+        nombre: prefillData.nombre || "",
+        cliente_id: String(prefillData.cliente_id || ""),
+        iva_global: Number(prefillData.iva_global) || 21,
+        mensaje_iva: prefillData.mensaje_iva || "",
+        metodo_pago: prefillData.metodo_pago || "TRANSFERENCIA",
+        retencion_porcentaje: Number(prefillData.retencion_porcentaje) || 0,
+        dia_generacion: 1,
+        lineas,
+      })
     } else {
       reset({
         nombre: "",
@@ -161,7 +181,7 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
         lineas: [{ descripcion: "", cantidad: 1, precio_unitario: 0, iva: 21 }],
       })
     }
-  }, [isOpen, editing, reset])
+  }, [isOpen, editing, prefillData, reset])
 
   // Sync IVA global to new lines
   const handleAddLine = () => {
