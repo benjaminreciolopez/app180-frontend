@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Settings, Save, Loader2 } from "lucide-react";
+import { Settings, Save, Loader2, Plus, X, Search } from "lucide-react";
 
 const SECTOR_LABELS: Record<string, string> = {
     servicios_profesionales: "Servicios Profesionales",
@@ -21,6 +21,12 @@ const SECTOR_LABELS: Record<string, string> = {
     formacion: "Formación / Educación",
 };
 
+interface Epigrafe {
+    codigo: string;
+    descripcion: string;
+    custom?: boolean;
+}
+
 interface Props {
     open: boolean;
     onClose: () => void;
@@ -31,6 +37,7 @@ export default function FiscalAlertConfigDrawer({ open, onClose, onSaved }: Prop
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [sectors, setSectors] = useState<string[]>([]);
+    const [epigrafes, setEpigrafes] = useState<Record<string, Epigrafe[]>>({});
 
     const [sector, setSector] = useState("default");
     const [iaeCode, setIaeCode] = useState("");
@@ -38,6 +45,10 @@ export default function FiscalAlertConfigDrawer({ open, onClose, onSaved }: Prop
     const [gastosRatio, setGastosRatio] = useState("");
     const [ivaRatio, setIvaRatio] = useState("");
     const [cashPct, setCashPct] = useState("");
+    const [epigrafeBuscar, setEpigrafeBuscar] = useState("");
+    const [showAddEpigrafe, setShowAddEpigrafe] = useState(false);
+    const [newEpCodigo, setNewEpCodigo] = useState("");
+    const [newEpDescripcion, setNewEpDescripcion] = useState("");
 
     useEffect(() => {
         if (!open) return;
@@ -53,6 +64,7 @@ export default function FiscalAlertConfigDrawer({ open, onClose, onSaved }: Prop
                 if (json.success) {
                     const d = json.data;
                     setSectors(json.sectors || []);
+                    setEpigrafes(json.epigrafes || {});
                     setSector(d.sector || "default");
                     setIaeCode(d.iae_code || "");
                     setEnabled(d.enabled !== false);
@@ -98,9 +110,47 @@ export default function FiscalAlertConfigDrawer({ open, onClose, onSaved }: Prop
         }
     };
 
+    const sectorEpigrafes = epigrafes[sector] || [];
+    const filteredEpigrafes = epigrafeBuscar
+        ? sectorEpigrafes.filter(e =>
+            e.codigo.toLowerCase().includes(epigrafeBuscar.toLowerCase()) ||
+            e.descripcion.toLowerCase().includes(epigrafeBuscar.toLowerCase())
+        )
+        : sectorEpigrafes;
+
+    const handleAddEpigrafe = async () => {
+        if (!newEpCodigo.trim() || !newEpDescripcion.trim()) return;
+        try {
+            const res = await authenticatedFetch("/api/admin/fiscal/epigrafes", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sector, codigo: newEpCodigo.trim(), descripcion: newEpDescripcion.trim() }),
+            });
+            if (res.ok) {
+                setNewEpCodigo("");
+                setNewEpDescripcion("");
+                setShowAddEpigrafe(false);
+                loadConfig();
+            }
+        } catch (err) {
+            console.error("Error adding epigrafe:", err);
+        }
+    };
+
+    const handleDeleteEpigrafe = async (codigo: string) => {
+        try {
+            const res = await authenticatedFetch(`/api/admin/fiscal/epigrafes/${encodeURIComponent(codigo)}?sector=${sector}`, {
+                method: "DELETE",
+            });
+            if (res.ok) loadConfig();
+        } catch (err) {
+            console.error("Error deleting epigrafe:", err);
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Settings className="w-5 h-5" /> Configuración de Alertas Fiscales
@@ -128,7 +178,7 @@ export default function FiscalAlertConfigDrawer({ open, onClose, onSaved }: Prop
                         {/* Sector */}
                         <div className="space-y-1.5">
                             <Label className="text-sm">Sector de actividad</Label>
-                            <Select value={sector} onValueChange={setSector}>
+                            <Select value={sector} onValueChange={(v) => { setSector(v); setIaeCode(""); setEpigrafeBuscar(""); }}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Seleccionar sector" />
                                 </SelectTrigger>
@@ -145,16 +195,93 @@ export default function FiscalAlertConfigDrawer({ open, onClose, onSaved }: Prop
                             </p>
                         </div>
 
-                        {/* IAE Code */}
-                        <div className="space-y-1.5">
-                            <Label className="text-sm">Epígrafe IAE (opcional)</Label>
-                            <Input
-                                value={iaeCode}
-                                onChange={e => setIaeCode(e.target.value)}
-                                placeholder="Ej: 8411, 6731..."
-                                maxLength={10}
-                            />
-                        </div>
+                        {/* Epígrafe IAE */}
+                        {sector && sector !== "default" && (
+                            <div className="space-y-2">
+                                <Label className="text-sm">Epígrafe IAE</Label>
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                    <Input
+                                        value={epigrafeBuscar}
+                                        onChange={e => setEpigrafeBuscar(e.target.value)}
+                                        placeholder="Buscar epígrafe por código o descripción..."
+                                        className="pl-8 text-xs"
+                                    />
+                                </div>
+                                <div className="border rounded-lg max-h-36 overflow-y-auto">
+                                    {filteredEpigrafes.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground text-center py-3">No se encontraron epígrafes</p>
+                                    ) : (
+                                        filteredEpigrafes.map(ep => (
+                                            <div
+                                                key={ep.codigo}
+                                                className={`flex items-center justify-between px-3 py-1.5 text-xs cursor-pointer hover:bg-slate-50 border-b last:border-0 ${
+                                                    iaeCode === ep.codigo ? "bg-blue-50 text-blue-700 font-medium" : ""
+                                                }`}
+                                                onClick={() => setIaeCode(ep.codigo)}
+                                            >
+                                                <span>
+                                                    <span className="font-mono font-semibold">{ep.codigo}</span>
+                                                    {" — "}
+                                                    {ep.descripcion}
+                                                </span>
+                                                {ep.custom && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteEpigrafe(ep.codigo); }}
+                                                        className="text-red-400 hover:text-red-600 ml-2 shrink-0"
+                                                        title="Eliminar epígrafe personalizado"
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                                {iaeCode && (
+                                    <p className="text-xs text-blue-600 font-medium">
+                                        Seleccionado: {iaeCode} — {sectorEpigrafes.find(e => e.codigo === iaeCode)?.descripcion || iaeCode}
+                                    </p>
+                                )}
+
+                                {/* Añadir epígrafe personalizado */}
+                                {!showAddEpigrafe ? (
+                                    <button
+                                        onClick={() => setShowAddEpigrafe(true)}
+                                        className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                                    >
+                                        <Plus className="h-3 w-3" /> Añadir epígrafe al sector
+                                    </button>
+                                ) : (
+                                    <div className="border rounded-lg p-3 space-y-2 bg-slate-50">
+                                        <p className="text-xs font-semibold text-slate-600">Nuevo epígrafe para {SECTOR_LABELS[sector]}</p>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                value={newEpCodigo}
+                                                onChange={e => setNewEpCodigo(e.target.value)}
+                                                placeholder="Código"
+                                                className="w-24 text-xs"
+                                                maxLength={20}
+                                            />
+                                            <Input
+                                                value={newEpDescripcion}
+                                                onChange={e => setNewEpDescripcion(e.target.value)}
+                                                placeholder="Descripción"
+                                                className="flex-1 text-xs"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button size="sm" className="h-7 text-xs" onClick={handleAddEpigrafe} disabled={!newEpCodigo.trim() || !newEpDescripcion.trim()}>
+                                                <Plus className="h-3 w-3 mr-1" /> Añadir
+                                            </Button>
+                                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setShowAddEpigrafe(false); setNewEpCodigo(""); setNewEpDescripcion(""); }}>
+                                                Cancelar
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Custom thresholds */}
                         <div className="border-t pt-4 space-y-3">
