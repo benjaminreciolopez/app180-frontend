@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -71,6 +71,7 @@ const METODOS_PAGO = [
 
 export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, editing, prefillData }: Props) {
     const [loading, setLoading] = useState(false);
+    const skipAutoCalc = useRef(false);
 
     const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<FormValues>({
         resolver: zodResolver(schema) as any,
@@ -95,8 +96,9 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
     const ivaPorcentaje = watch("iva_porcentaje");
     const retencionPorcentaje = watch("retencion_porcentaje");
 
-    // Auto-calcular IVA y total
+    // Auto-calcular IVA y total (skip during programmatic reset)
     useEffect(() => {
+        if (skipAutoCalc.current) return;
         if (baseImponible > 0) {
             const ivaImporte = +(baseImponible * (ivaPorcentaje || 0) / 100).toFixed(2);
             const retImporte = +(baseImponible * (retencionPorcentaje || 0) / 100).toFixed(2);
@@ -117,6 +119,7 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
             const eMp = (editing.metodo_pago || "transferencia").toLowerCase();
             const eMpMatch = METODOS_PAGO.find(m => m.value === eMp)?.value || "transferencia";
             const eIva = editing.iva_porcentaje != null ? Number(editing.iva_porcentaje) : 21;
+            skipAutoCalc.current = true;
             reset({
                 nombre: editing.nombre || "",
                 proveedor: editing.proveedor || "",
@@ -136,7 +139,8 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                 setValue("categoria", eCatMatch);
                 setValue("metodo_pago", eMpMatch);
                 setValue("iva_porcentaje", eIva);
-            }, 50);
+                skipAutoCalc.current = false;
+            }, 100);
         } else if (prefillData) {
             // Normalizar categoría para que coincida con las opciones del Select
             const catRaw = (prefillData.categoria || "general").toLowerCase();
@@ -145,6 +149,7 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
             const mpRaw = (prefillData.metodo_pago || "transferencia").toLowerCase();
             const mpMatch = METODOS_PAGO.find(m => m.value === mpRaw)?.value || "transferencia";
 
+            skipAutoCalc.current = true;
             reset({
                 nombre: prefillData.nombre || "",
                 proveedor: prefillData.proveedor || "",
@@ -165,7 +170,8 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                 setValue("categoria", catMatch);
                 setValue("metodo_pago", mpMatch);
                 setValue("iva_porcentaje", prefillData.iva_porcentaje != null ? Number(prefillData.iva_porcentaje) : 21);
-            }, 50);
+                skipAutoCalc.current = false;
+            }, 100);
         } else {
             reset({
                 nombre: "", proveedor: "", descripcion: "",
