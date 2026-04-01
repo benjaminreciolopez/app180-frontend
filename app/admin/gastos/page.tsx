@@ -384,6 +384,7 @@ export default function GastosPage() {
                                                                 crear: 'true',
                                                                 nombre: g.proveedor || g.descripcion || '',
                                                                 proveedor: g.proveedor || '',
+                                                                descripcion: g.descripcion || '',
                                                                 base_imponible: String(g.base_imponible || 0),
                                                                 iva_porcentaje: String(g.iva_porcentaje || 21),
                                                                 iva_importe: String(g.iva_importe || 0),

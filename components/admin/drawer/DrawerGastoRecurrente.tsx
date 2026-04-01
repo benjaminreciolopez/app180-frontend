@@ -32,12 +32,12 @@ const schema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
     proveedor: z.string().optional(),
     descripcion: z.string().optional(),
-    base_imponible: z.coerce.number().min(0.01, "La base imponible es obligatoria"),
+    base_imponible: z.coerce.number().min(0.01, "La base imponible debe ser mayor que 0"),
     iva_porcentaje: z.coerce.number().min(0),
     iva_importe: z.coerce.number().min(0),
     retencion_porcentaje: z.coerce.number().min(0).optional(),
     retencion_importe: z.coerce.number().min(0).optional(),
-    total: z.coerce.number().min(0.01, "El total es obligatorio"),
+    total: z.coerce.number().min(0.01, "El total debe ser mayor que 0"),
     categoria: z.string().min(1),
     metodo_pago: z.string().min(1),
     cuenta_contable: z.string().optional(),
@@ -335,6 +335,15 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
 
                 {/* Cuenta contable (oculto, se rellena por proveedor) */}
                 <input type="hidden" {...register("cuenta_contable")} />
+
+                {/* Errores de validación */}
+                {Object.keys(errors).length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-600 space-y-1">
+                        {Object.entries(errors).map(([key, err]: any) => (
+                            <div key={key}>• {err?.message || `Campo "${key}" inválido`}</div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Submit */}
                 <Button type="submit" className="w-full" disabled={loading}>
