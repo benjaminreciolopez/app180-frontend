@@ -135,6 +135,12 @@ export function NotificationBell({ basePath = "/admin/notificaciones" }: Notific
       case "nomina": return "text-green-600 bg-green-50 border-green-200"
       case "ausencia": return "text-indigo-600 bg-indigo-50 border-indigo-200"
       case "fiscal_alert": return "text-orange-600 bg-orange-50 border-orange-200"
+      // Invitation / vinculo types
+      case "invitacion_asesoria": return "text-violet-600 bg-violet-50 border-violet-200"
+      case "invitacion_cliente": return "text-violet-600 bg-violet-50 border-violet-200"
+      case "vinculo_aceptado": return "text-green-600 bg-green-50 border-green-200"
+      case "vinculo_rechazado": return "text-red-600 bg-red-50 border-red-200"
+      case "vinculo_revocado": return "text-red-600 bg-red-50 border-red-200"
       // Asesor notification types
       case "fiscal_deadline": return "text-red-600 bg-red-50 border-red-200"
       case "cliente_inactivo": return "text-amber-600 bg-amber-50 border-amber-200"
