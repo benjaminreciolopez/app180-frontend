@@ -262,6 +262,7 @@ export default function AdminLayout({
       "/admin/mi-asesoria": "Mi Asesoría",
       "/admin/sugerencias": "Sugerencias",
       "/admin/fabricante": "Fabricante",
+      "/admin/mcp": "Control IA (MCP)",
     };
 
     // Match most specific path first
@@ -408,6 +409,7 @@ export default function AdminLayout({
         { path: "/admin/mi-asesoria", label: "Mi Asesoría", module: null },
         { path: "/admin/sugerencias", label: "Sugerencias", module: null },
         { path: "/admin/fabricante", label: "Fabricante", module: null },
+        { path: "/admin/mcp", label: "Control IA (MCP)", module: null },
         { path: "/admin/configuracion/calendario/importar", label: "Importar calendario", module: "calendario" },
         { path: "/admin/configuracion/calendario/importaciones", label: "Historial importaciones", module: "calendario" },
       ],
@@ -424,6 +426,7 @@ export default function AdminLayout({
       const visibleItems = section.items
         .filter((item) => {
           if (item.path === "/admin/fabricante") return isFabricante && isPwaMobile;
+          if (item.path === "/admin/mcp") return isFabricante;
           if (isPwaMobile && (item.path.includes('/calendario/importar') || item.path.includes('/calendario/importaciones'))) return false;
           if (item.path === "/admin/jornadas") return hasModule(session.modulos, "fichajes") || hasModule(session.modulos, "calendario");
           return hasModule(session.modulos, item.module);
