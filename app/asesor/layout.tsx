@@ -47,7 +47,8 @@ const menuSections = [
   {
     title: "CLIENTES",
     items: [
-      { path: "/asesor/clientes", label: "Clientes", module: null },
+      { path: "/asesor/clientes", label: "Clientes Vinculados", module: null },
+      { path: "/asesor/mis-clientes", label: "Mis Clientes", module: null },
     ],
   },
   {

@@ -15,6 +15,9 @@ import {
   Eye,
   Pencil,
   ShieldCheck,
+  Link2,
+  Check,
+  X as XIcon,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
@@ -60,6 +63,7 @@ type ClienteVinculado = {
   nombre: string;
   cif: string;
   estado: "activo" | "pendiente" | "rechazado" | "revocado";
+  invitado_por: "empresa" | "asesoria";
   permisos: Permisos;
   connected_at: string | null;
   email: string;
@@ -106,6 +110,7 @@ export default function AsesorClientesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clientes, setClientes] = useState<ClienteVinculado[]>([]);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
   // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -157,6 +162,39 @@ export default function AsesorClientesPage() {
       setInviteError(err.message || "Error al invitar");
     } finally {
       setInviting(false);
+    }
+  }
+
+  async function handleAccept(vinculoId: string) {
+    setActionLoading((prev) => ({ ...prev, [vinculoId]: true }));
+    try {
+      const res = await authenticatedFetch(`/asesor/clientes/aceptar/${vinculoId}`, {
+        method: "PUT",
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Error");
+      loadClientes();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [vinculoId]: false }));
+    }
+  }
+
+  async function handleReject(vinculoId: string) {
+    if (!confirm("Rechazar esta solicitud?")) return;
+    setActionLoading((prev) => ({ ...prev, [vinculoId]: true }));
+    try {
+      const res = await authenticatedFetch(`/asesor/clientes/rechazar/${vinculoId}`, {
+        method: "PUT",
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Error");
+      loadClientes();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [vinculoId]: false }));
     }
   }
 
@@ -224,15 +262,21 @@ export default function AsesorClientesPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Clientes Vinculados</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Gestiona tus clientes vinculados
+            Empresas que usan la app y estan vinculadas a tu asesoria
           </p>
         </div>
-        <Button onClick={() => setInviteOpen(true)} className="gap-2">
-          <Plus size={16} />
-          Invitar Cliente
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.push("/asesor/mis-clientes")} className="gap-2">
+            <Users size={16} />
+            Mis Clientes
+          </Button>
+          <Button onClick={() => setInviteOpen(true)} className="gap-2">
+            <Plus size={16} />
+            Invitar Cliente
+          </Button>
+        </div>
       </div>
 
       {/* Client count */}
@@ -315,21 +359,48 @@ export default function AsesorClientesPage() {
                             {formatDate(cliente.connected_at)}
                           </TableCell>
                           <TableCell className="text-right">
-                            {cliente.estado === "activo" && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1"
-                                onClick={() =>
-                                  router.push(
-                                    `/asesor/clientes/${cliente.empresa_id}`
-                                  )
-                                }
-                              >
-                                Acceder
-                                <ExternalLink size={14} />
-                              </Button>
-                            )}
+                            <div className="flex items-center justify-end gap-1">
+                              {cliente.estado === "activo" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1"
+                                  onClick={() =>
+                                    router.push(
+                                      `/asesor/clientes/${cliente.empresa_id}`
+                                    )
+                                  }
+                                >
+                                  Acceder
+                                  <ExternalLink size={14} />
+                                </Button>
+                              )}
+                              {cliente.estado === "pendiente" && cliente.invitado_por === "empresa" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    className="gap-1 bg-green-600 hover:bg-green-700"
+                                    disabled={actionLoading[cliente.vinculo_id]}
+                                    onClick={() => handleAccept(cliente.vinculo_id)}
+                                  >
+                                    <Check size={14} />
+                                    Aceptar
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1 text-destructive border-destructive/30"
+                                    disabled={actionLoading[cliente.vinculo_id]}
+                                    onClick={() => handleReject(cliente.vinculo_id)}
+                                  >
+                                    <XIcon size={14} />
+                                  </Button>
+                                </>
+                              )}
+                              {cliente.estado === "pendiente" && cliente.invitado_por === "asesoria" && (
+                                <span className="text-xs text-muted-foreground">Esperando respuesta</span>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -391,6 +462,32 @@ export default function AsesorClientesPage() {
                         Acceder
                         <ExternalLink size={14} />
                       </Button>
+                    )}
+                    {cliente.estado === "pendiente" && cliente.invitado_por === "empresa" && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1 gap-1 bg-green-600 hover:bg-green-700"
+                          disabled={actionLoading[cliente.vinculo_id]}
+                          onClick={() => handleAccept(cliente.vinculo_id)}
+                        >
+                          <Check size={14} />
+                          Aceptar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 text-destructive border-destructive/30"
+                          disabled={actionLoading[cliente.vinculo_id]}
+                          onClick={() => handleReject(cliente.vinculo_id)}
+                        >
+                          <XIcon size={14} />
+                          Rechazar
+                        </Button>
+                      </div>
+                    )}
+                    {cliente.estado === "pendiente" && cliente.invitado_por === "asesoria" && (
+                      <p className="text-xs text-muted-foreground text-center">Esperando respuesta del cliente</p>
                     )}
                   </CardContent>
                 </Card>
