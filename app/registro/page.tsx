@@ -25,6 +25,8 @@ import {
   ClipboardList,
   CalendarClock,
   BarChart3,
+  Calculator,
+  Scale,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,7 +105,47 @@ const MODULOS_DISPONIBLES: ModuloConfig[] = [
     icon: <Wallet className="w-4 h-4" />,
     defaultOn: false,
   },
+  {
+    key: "contable",
+    label: "Contabilidad",
+    description: "Asientos, balance, PyG y plan de cuentas",
+    icon: <Calculator className="w-4 h-4" />,
+    defaultOn: false,
+  },
+  {
+    key: "fiscal",
+    label: "Fiscal",
+    description: "Modelos fiscales, IVA y alertas",
+    icon: <Scale className="w-4 h-4" />,
+    defaultOn: false,
+  },
 ];
+
+const EMPRESA_DEFAULTS: Record<string, boolean> = {
+  empleados: true,
+  fichajes: true,
+  calendario: true,
+  calendario_import: true,
+  clientes: true,
+  worklogs: true,
+  facturacion: false,
+  pagos: false,
+  contable: false,
+  fiscal: false,
+};
+
+const ASESORIA_DEFAULTS: Record<string, boolean> = {
+  empleados: true,
+  fichajes: true,
+  calendario: true,
+  calendario_import: true,
+  clientes: true,
+  worklogs: true,
+  facturacion: true,
+  pagos: true,
+  contable: true,
+  fiscal: true,
+};
 
 function getPasswordStrength(password: string) {
   let score = 0;
@@ -152,6 +194,12 @@ export default function RegistroPage() {
   const [error, setError] = useState("");
 
   const passwordStrength = password ? getPasswordStrength(password) : null;
+
+  function selectModo(m: Modo) {
+    setModo(m);
+    const defaults = m === "asesoria" ? ASESORIA_DEFAULTS : EMPRESA_DEFAULTS;
+    setModulos({ ...defaults });
+  }
 
   function toggleModulo(key: string) {
     setModulos((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -324,7 +372,7 @@ export default function RegistroPage() {
                 <div className="grid grid-cols-1 gap-3">
                   <button
                     type="button"
-                    onClick={() => setModo("empresa")}
+                    onClick={() => selectModo("empresa")}
                     className={`flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all ${
                       modo === "empresa"
                         ? "border-blue-500 bg-blue-50 shadow-sm"
@@ -348,7 +396,7 @@ export default function RegistroPage() {
 
                   <button
                     type="button"
-                    onClick={() => setModo("asesoria")}
+                    onClick={() => selectModo("asesoria")}
                     className={`flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all ${
                       modo === "asesoria"
                         ? "border-indigo-500 bg-indigo-50 shadow-sm"

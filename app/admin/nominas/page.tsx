@@ -297,13 +297,7 @@ export default function AdminNominasPage() {
             <ClipboardList className="w-4 h-4" />
             Entregas
           </Link>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {showForm ? "Cerrar" : "Nueva"}
-          </button>
+          {/* Creación de nóminas solo disponible para gestorías */}
         </div>
       </div>
 
@@ -410,151 +404,7 @@ export default function AdminNominasPage() {
         </div>
       )}
 
-      {/* Formulario nueva nomina */}
-      {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-4">
-          <h2 className="font-semibold text-sm text-gray-700">Nueva nomina</h2>
-
-          {/* Empleado */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Empleado</label>
-            <select
-              value={formEmpleado}
-              onChange={(e) => setFormEmpleado(e.target.value)}
-              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm"
-            >
-              <option value="">Seleccionar...</option>
-              {empleados.map(emp => (
-                <option key={emp.id} value={emp.id}>{emp.nombre} ({emp.email})</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Periodo */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Mes</label>
-              <select value={formMes} onChange={(e) => setFormMes(Number(e.target.value))} className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm">
-                {MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Anio</label>
-              <input type="number" value={formAnio} onChange={(e) => setFormAnio(Number(e.target.value))} className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
-            </div>
-          </div>
-
-          {/* PDF upload + OCR */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">PDF de la nomina (opcional)</label>
-            <div className="flex gap-2">
-              <input
-                type="file"
-                accept=".pdf,.png,.jpg,.jpeg"
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) {
-                    setFormFile(f)
-                    handleOCR(f)
-                  }
-                }}
-                className="flex-1 text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:font-medium file:text-xs"
-              />
-            </div>
-            <p className="text-[10px] text-gray-400 mt-1">Sube el PDF y los datos se extraen automaticamente con IA</p>
-          </div>
-
-          {/* Importes */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Bruto</label>
-              <input type="number" step="0.01" value={formBruto} onChange={(e) => setFormBruto(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Liquido (neto)</label>
-              <input type="number" step="0.01" value={formLiquido} onChange={(e) => setFormLiquido(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">SS Empresa</label>
-              <input type="number" step="0.01" value={formSSEmpresa} onChange={(e) => setFormSSEmpresa(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">SS Empleado</label>
-              <input type="number" step="0.01" value={formSSEmpleado} onChange={(e) => setFormSSEmpleado(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">IRPF Retencion</label>
-              <input type="number" step="0.01" value={formIRPF} onChange={(e) => setFormIRPF(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
-            </div>
-          </div>
-
-          {/* Validation warning */}
-          {formBruto && formLiquido && (() => {
-            const b = parseFloat(formBruto) || 0
-            const l = parseFloat(formLiquido) || 0
-            const irpf = parseFloat(formIRPF) || 0
-            const ss = parseFloat(formSSEmpleado) || 0
-            if (b > 0 && l > 0) {
-              const expected = b - irpf - ss
-              const dev = Math.abs(expected - l)
-              const pct = (dev / b) * 100
-              if (pct > 5) return (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
-                  Aviso: Desviacion del {pct.toFixed(1)}% entre bruto y liquido. Esperado ~{expected.toFixed(2)} EUR, indicado {l.toFixed(2)} EUR.
-                </div>
-              )
-            }
-            return null
-          })()}
-
-          {/* SS Desglose toggle */}
-          <button
-            type="button"
-            onClick={() => setShowDesglose(!showDesglose)}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-          >
-            {showDesglose ? "Ocultar desglose SS" : "Mostrar desglose SS (opcional)"}
-          </button>
-
-          {showDesglose && (
-            <div className="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Base Cotizacion</label>
-                <input type="number" step="0.01" value={formBaseCotizacion} onChange={(e) => setFormBaseCotizacion(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Contingencias Comunes</label>
-                <input type="number" step="0.01" value={formContingencias} onChange={(e) => setFormContingencias(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Desempleo</label>
-                <input type="number" step="0.01" value={formDesempleo} onChange={(e) => setFormDesempleo(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Formacion Prof.</label>
-                <input type="number" step="0.01" value={formFormacion} onChange={(e) => setFormFormacion(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Horas Extra</label>
-                <input type="number" step="0.01" value={formHorasExtra} onChange={(e) => setFormHorasExtra(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Complementos</label>
-                <input type="number" step="0.01" value={formComplementos} onChange={(e) => setFormComplementos(e.target.value)} placeholder="0.00" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" />
-              </div>
-            </div>
-          )}
-
-          {/* Botones */}
-          <div className="flex gap-3">
-            <button type="button" onClick={resetForm} className="flex-1 py-2.5 border-2 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 text-sm font-medium">Cancelar</button>
-            <button type="submit" disabled={sending} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-medium disabled:opacity-50">
-              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {sending ? "Guardando..." : "Guardar nomina"}
-            </button>
-          </div>
-        </form>
-      )}
+      {/* Nota: La creación de nóminas está disponible solo para gestorías */}
 
       {/* Lista */}
       {loading ? (
@@ -626,14 +476,7 @@ export default function AdminNominasPage() {
                       <Download className="w-4 h-4" />
                     </a>
                   )}
-                  <button
-                    onClick={() => handleDelete(n.id)}
-                    disabled={deleting === n.id}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                    title="Eliminar"
-                  >
-                    {deleting === n.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
+                  {/* Eliminación solo disponible para gestorías */}
                 </div>
               </div>
             </div>

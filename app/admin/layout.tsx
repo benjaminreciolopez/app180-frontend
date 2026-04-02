@@ -198,7 +198,8 @@ export default function AdminLayout({
       { path: "/admin/trabajos", module: "worklogs" },
       { path: "/admin/gastos", module: "facturacion" },
       { path: "/admin/gastos/recurrentes", module: "facturacion" },
-      { path: "/admin/contabilidad", module: "facturacion" }, // Nuevo: Libros
+      { path: "/admin/contabilidad", module: "contable" },
+      { path: "/admin/nominas", module: "contable" },
       { path: "/admin/fiscal", module: "fiscal" }, // Nuevo: Modelos (Módulo cobrable)
       { path: "/admin/fiscal/renta", module: "fiscal" },
       { path: "/admin/fiscal/reglas", module: "fiscal" },
@@ -338,7 +339,6 @@ export default function AdminLayout({
       title: "RECURSOS HUMANOS",
       items: [
         { path: "/admin/empleados", label: "Empleados", module: "empleados" },
-        { path: "/admin/nominas", label: "Nóminas", module: "empleados" },
       ],
     },
     {
@@ -385,11 +385,13 @@ export default function AdminLayout({
     {
       title: "CONTABILIDAD",
       items: [
-        { path: "/admin/contabilidad/asientos", label: "Asientos Contables", module: "facturacion" },
-        { path: "/admin/contabilidad/balance", label: "Balance", module: "facturacion" },
-        { path: "/admin/contabilidad/pyg", label: "Pérdidas y Ganancias", module: "facturacion" },
-        { path: "/admin/contabilidad/mayor", label: "Libro Mayor", module: "facturacion" },
-        { path: "/admin/contabilidad/cuentas", label: "Plan de Cuentas", module: "facturacion" },
+        { path: "/admin/contabilidad/asientos", label: "Asientos Contables", module: "contable" },
+        { path: "/admin/contabilidad/balance", label: "Balance", module: "contable" },
+        { path: "/admin/contabilidad/pyg", label: "Pérdidas y Ganancias", module: "contable" },
+        { path: "/admin/contabilidad/mayor", label: "Libro Mayor", module: "contable" },
+        { path: "/admin/contabilidad/cuentas", label: "Plan de Cuentas", module: "contable" },
+        { path: "/admin/nominas", label: "Nóminas", module: "contable" },
+        { path: "/admin/nominas/entregas", label: "Entregas Nóminas", module: "contable" },
       ],
     },
     {

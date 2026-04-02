@@ -20,6 +20,8 @@ type Modulos = {
   empleados?: boolean;
   facturacion?: boolean;
   pagos?: boolean;
+  fiscal?: boolean;
+  contable?: boolean;
 };
 
 const DEFAULTS: Modulos = {
@@ -28,6 +30,8 @@ const DEFAULTS: Modulos = {
   empleados: true,
   facturacion: false,
   pagos: false,
+  fiscal: false,
+  contable: false,
 };
 
 export default function AdminConfiguracionPage() {
@@ -190,6 +194,18 @@ export default function AdminConfiguracionPage() {
             label="Cobros y Pagos"
             value={currentModulos?.pagos}
             onChange={() => toggle("pagos")}
+          />
+
+          <Toggle
+            label="Contabilidad"
+            value={currentModulos?.contable}
+            onChange={() => toggle("contable")}
+          />
+
+          <Toggle
+            label="Fiscal"
+            value={currentModulos?.fiscal}
+            onChange={() => toggle("fiscal")}
           />
         </div>
 

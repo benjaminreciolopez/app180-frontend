@@ -17,11 +17,10 @@ export default function ContabilidadPage() {
     useEffect(() => {
         const user = getUser();
         if (user && user.modulos) {
-            // Requisito: Empleados + Facturación para ver Nóminas
-            // (La parte Fiscal se separa en otra ruta protegida por módulo fiscal)
+            // Requisito: Empleados + Contable para ver Nóminas
             const hasEmpleados = user.modulos.empleados !== false;
-            const hasFacturacion = user.modulos.facturacion !== false;
-            setShowNominas(hasEmpleados && hasFacturacion);
+            const hasContable = user.modulos.contable !== false;
+            setShowNominas(hasEmpleados && hasContable);
         }
     }, []);
 

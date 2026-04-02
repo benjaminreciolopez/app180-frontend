@@ -54,7 +54,6 @@ const menuSections = [
     title: "RECURSOS HUMANOS",
     items: [
       { path: "/asesor/empleados", label: "Empleados", module: "empleados" },
-      { path: "/asesor/nominas", label: "Nóminas", module: "empleados" },
     ],
   },
   {
@@ -94,11 +93,13 @@ const menuSections = [
   {
     title: "CONTABILIDAD",
     items: [
-      { path: "/asesor/contabilidad/asientos", label: "Asientos Contables", module: "facturacion" },
-      { path: "/asesor/contabilidad/balance", label: "Balance", module: "facturacion" },
-      { path: "/asesor/contabilidad/pyg", label: "Pérdidas y Ganancias", module: "facturacion" },
-      { path: "/asesor/contabilidad/mayor", label: "Libro Mayor", module: "facturacion" },
-      { path: "/asesor/contabilidad/cuentas", label: "Plan de Cuentas", module: "facturacion" },
+      { path: "/asesor/contabilidad/asientos", label: "Asientos Contables", module: "contable" },
+      { path: "/asesor/contabilidad/balance", label: "Balance", module: "contable" },
+      { path: "/asesor/contabilidad/pyg", label: "Pérdidas y Ganancias", module: "contable" },
+      { path: "/asesor/contabilidad/mayor", label: "Libro Mayor", module: "contable" },
+      { path: "/asesor/contabilidad/cuentas", label: "Plan de Cuentas", module: "contable" },
+      { path: "/asesor/nominas", label: "Nóminas", module: "contable" },
+      { path: "/asesor/nominas/generar", label: "Generar Nóminas", module: "contable" },
     ],
   },
   {
