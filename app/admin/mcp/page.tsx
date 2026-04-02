@@ -119,6 +119,8 @@ export default function MCPPage() {
   const [period, setPeriod] = useState("month");
   const [selectedUser, setSelectedUser] = useState<MCPUser | null>(null);
   const [quotaForm, setQuotaForm] = useState({ maxCalls: "", quotaType: "daily", targetAppId: "app180" });
+  const [editingCredit, setEditingCredit] = useState<string | null>(null);
+  const [creditEditValue, setCreditEditValue] = useState("");
 
   // ── Data Loading ──
   const loadUsers = useCallback(async () => {
@@ -194,6 +196,21 @@ export default function MCPPage() {
       loadUsers();
     } catch {
       showError("Error actualizando app");
+    }
+  }
+
+  async function saveCredit(provider: string) {
+    try {
+      await api.put("/admin/ai/mcp/provider-credits", {
+        provider,
+        initialAmount: parseFloat(creditEditValue) || 0,
+        creditType: "credit",
+      });
+      showSuccess("Credito actualizado");
+      setEditingCredit(null);
+      loadCredits();
+    } catch {
+      showError("Error actualizando credito");
     }
   }
 
@@ -712,6 +729,35 @@ export default function MCPPage() {
                     <span>Inicial: {formatCost(c.initial_amount)}</span>
                     <span>Usado: {formatCost(c.consumed)}</span>
                   </div>
+
+                  {editingCredit === c.provider ? (
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={creditEditValue}
+                        onChange={(e) => setCreditEditValue(e.target.value)}
+                        className="w-24 h-8 text-sm"
+                        autoFocus
+                      />
+                      <Button size="sm" onClick={() => saveCredit(c.provider)}>
+                        Guardar
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingCredit(null)}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setEditingCredit(c.provider);
+                        setCreditEditValue(String(c.initial_amount));
+                      }}
+                      className="text-xs text-blue-500 hover:text-blue-700 pt-2 border-t w-full text-left"
+                    >
+                      {c.credit_type === "credit" ? "Actualizar credito" : "Resetear tras pago"}
+                    </button>
+                  )}
                 </div>
               );
             })}
