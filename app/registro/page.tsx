@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import {
   Building2,
   Briefcase,
@@ -193,7 +193,22 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // OTP verification states
+  const [otpCode, setOtpCode] = useState(["", "", "", "", "", ""]);
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [destinoParcial, setDestinoParcial] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   const passwordStrength = password ? getPasswordStrength(password) : null;
+
+  // Cooldown timer for resend
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   function selectModo(m: Modo) {
     setModo(m);
@@ -219,42 +234,120 @@ export default function RegistroPage() {
     setStep((s) => Math.max(1, s - 1));
   }
 
+  function validateStep3(): boolean {
+    if (!nombre.trim() || !email.trim() || !password) {
+      setError("Todos los campos obligatorios deben estar completos");
+      return false;
+    }
+    if (password.length < 6) {
+      setError("La contrasena debe tener al menos 6 caracteres");
+      return false;
+    }
+    if (password !== confirmPassword) {
+      setError("Las contrasenas no coinciden");
+      return false;
+    }
+    if (modo === "empresa" && !empresaNombre.trim()) {
+      setError("El nombre de la empresa es obligatorio");
+      return false;
+    }
+    if (modo === "asesoria") {
+      if (!asesoriaNombre.trim()) {
+        setError("El nombre de la asesoria es obligatorio");
+        return false;
+      }
+      if (!emailContacto.trim()) {
+        setError("El email de contacto de la asesoria es obligatorio");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function handleSendOtp() {
+    if (!validateStep3()) return;
+    setSendingOtp(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE}/auth/send-verification-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Error enviando codigo");
+        setSendingOtp(false);
+        return;
+      }
+      setDestinoParcial(data.destino_parcial);
+      setOtpSent(true);
+      setOtpCode(["", "", "", "", "", ""]);
+      setResendCooldown(60);
+      setStep(4);
+    } catch {
+      setError("Error de conexion. Intentalo de nuevo.");
+    } finally {
+      setSendingOtp(false);
+    }
+  }
+
+  function handleOtpChange(index: number, value: string) {
+    if (!/^\d*$/.test(value)) return;
+    const newCode = [...otpCode];
+    newCode[index] = value.slice(-1);
+    setOtpCode(newCode);
+    if (value && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  }
+
+  function handleOtpKeyDown(index: number, e: React.KeyboardEvent) {
+    if (e.key === "Backspace" && !otpCode[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  }
+
+  function handleOtpPaste(e: React.ClipboardEvent) {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length === 6) {
+      setOtpCode(pasted.split(""));
+      otpInputRefs.current[5]?.focus();
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (loading) return;
 
-    // Validation
-    if (!nombre.trim() || !email.trim() || !password) {
-      setError("Todos los campos obligatorios deben estar completos");
+    const code = otpCode.join("");
+    if (code.length !== 6) {
+      setError("Introduce el codigo de 6 digitos");
       return;
-    }
-    if (password.length < 6) {
-      setError("La contrasena debe tener al menos 6 caracteres");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Las contrasenas no coinciden");
-      return;
-    }
-
-    if (modo === "empresa" && !empresaNombre.trim()) {
-      setError("El nombre de la empresa es obligatorio");
-      return;
-    }
-
-    if (modo === "asesoria") {
-      if (!asesoriaNombre.trim()) {
-        setError("El nombre de la asesoria es obligatorio");
-        return;
-      }
-      if (!emailContacto.trim()) {
-        setError("El email de contacto de la asesoria es obligatorio");
-        return;
-      }
     }
 
     setLoading(true);
     setError("");
+
+    // Verify OTP first
+    try {
+      const verifyRes = await fetch(`${API_BASE}/auth/verify-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), code }),
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok) {
+        setError(verifyData.error || "Codigo incorrecto o expirado");
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setError("Error de conexion. Intentalo de nuevo.");
+      setLoading(false);
+      return;
+    }
 
     try {
       let res: Response;
@@ -335,7 +428,7 @@ export default function RegistroPage() {
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-2 mb-6">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
@@ -348,9 +441,9 @@ export default function RegistroPage() {
               >
                 {s < step ? <CheckCircle2 className="w-4 h-4" /> : s}
               </div>
-              {s < 3 && (
+              {s < 4 && (
                 <div
-                  className={`w-12 h-0.5 ${
+                  className={`w-8 h-0.5 ${
                     s < step ? "bg-blue-400" : "bg-gray-200"
                   }`}
                 />
@@ -499,7 +592,7 @@ export default function RegistroPage() {
 
             {/* STEP 3: Registration form */}
             {step === 3 && (
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-5">
                 {error && (
                   <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
                     <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -721,16 +814,16 @@ export default function RegistroPage() {
                     <ArrowLeft className="w-4 h-4 mr-1" />
                     Atras
                   </Button>
-                  <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? (
+                  <Button type="button" onClick={handleSendOtp} disabled={sendingOtp} className="flex-1">
+                    {sendingOtp ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Creando...
+                        Enviando...
                       </>
                     ) : (
                       <>
-                        Crear cuenta
-                        <ArrowRight className="w-4 h-4 ml-1" />
+                        <Mail className="w-4 h-4 mr-1" />
+                        Verificar email
                       </>
                     )}
                   </Button>
@@ -746,6 +839,85 @@ export default function RegistroPage() {
                     politica de privacidad
                   </a>
                 </p>
+              </div>
+            )}
+
+            {/* STEP 4: OTP Verification */}
+            {step === 4 && (
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="text-center mb-2">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                    <Mail className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <h2 className="text-lg font-semibold">Verifica tu email</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Hemos enviado un codigo de 6 digitos a
+                  </p>
+                  <p className="text-sm font-medium text-gray-700">{destinoParcial}</p>
+                </div>
+
+                {error && (
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                {/* OTP Input */}
+                <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                  {otpCode.map((digit, i) => (
+                    <input
+                      key={i}
+                      ref={(el) => { otpInputRefs.current[i] = el; }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(i, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                      className="w-12 h-14 text-center text-xl font-bold border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                      autoFocus={i === 0}
+                    />
+                  ))}
+                </div>
+
+                {/* Resend */}
+                <div className="text-center">
+                  {resendCooldown > 0 ? (
+                    <p className="text-xs text-gray-400">
+                      Reenviar codigo en {resendCooldown}s
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={sendingOtp}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
+                    >
+                      {sendingOtp ? "Enviando..." : "Reenviar codigo"}
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <Button type="button" variant="outline" onClick={() => { setStep(3); setError(""); }} className="flex-1">
+                    <ArrowLeft className="w-4 h-4 mr-1" />
+                    Atras
+                  </Button>
+                  <Button type="submit" disabled={loading || otpCode.join("").length !== 6} className="flex-1">
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Creando...
+                      </>
+                    ) : (
+                      <>
+                        Crear cuenta
+                        <CheckCircle2 className="w-4 h-4 ml-1" />
+                      </>
+                    )}
+                  </Button>
+                </div>
               </form>
             )}
           </CardContent>
