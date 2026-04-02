@@ -84,14 +84,15 @@ interface DailyTrend {
 }
 
 // ── Helpers ──
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
-  return String(n);
+function formatTokens(n: number | string | null | undefined): string {
+  const v = Number(n) || 0;
+  if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + "M";
+  if (v >= 1_000) return (v / 1_000).toFixed(1) + "K";
+  return String(v);
 }
 
-function formatCost(n: number): string {
-  return "$" + n.toFixed(4);
+function formatCost(n: number | string | null | undefined): string {
+  return "$" + (Number(n) || 0).toFixed(4);
 }
 
 function formatDate(d: string): string {
