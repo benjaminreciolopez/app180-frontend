@@ -102,6 +102,9 @@ export async function login(
   // STORAGE
   // =========================
   if (typeof window !== "undefined") {
+    // Limpiar estado de sesión anterior (evita datos cruzados entre usuarios)
+    sessionStorage.removeItem("asesor_empresa_id");
+
     if (remember) {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));

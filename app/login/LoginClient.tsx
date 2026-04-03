@@ -48,6 +48,7 @@ export default function LoginClient() {
       localStorage.setItem("user", JSON.stringify(user));
       sessionStorage.removeItem("token");
       sessionStorage.removeItem("user");
+      sessionStorage.removeItem("asesor_empresa_id");
       setAuthToken(token);
 
       showSuccess(is_new_user ? "Cuenta creada correctamente" : "Inicio de sesión exitoso");

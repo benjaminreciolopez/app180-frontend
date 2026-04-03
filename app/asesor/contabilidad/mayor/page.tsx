@@ -69,6 +69,27 @@ export default function LibroMayorPage() {
     const [loading, setLoading] = useState(false);
     const [searching, setSearching] = useState(false);
     const [sortAsc, setSortAsc] = useState(true);
+    const [allCuentas, setAllCuentas] = useState<Cuenta[]>([]);
+    const [loadingCuentas, setLoadingCuentas] = useState(true);
+
+    // Load all accounts on mount
+    useEffect(() => {
+        async function loadAllCuentas() {
+            try {
+                setLoadingCuentas(true);
+                const res = await authenticatedFetch("/api/admin/contabilidad/cuentas");
+                if (res.ok) {
+                    const data = await res.json();
+                    setAllCuentas(Array.isArray(data) ? data : data.cuentas || []);
+                }
+            } catch (err) {
+                console.error("Error cargando cuentas:", err);
+            } finally {
+                setLoadingCuentas(false);
+            }
+        }
+        loadAllCuentas();
+    }, []);
 
     // Search cuentas
     const searchCuentas = useCallback(async (term: string) => {
@@ -380,18 +401,54 @@ export default function LibroMayorPage() {
                 </Card>
             )}
 
-            {/* Empty state when no cuenta selected */}
+            {/* Account list when no cuenta selected */}
             {!selectedCuenta && !mayorData && (
                 <Card className="bg-white rounded-xl border-slate-100 shadow-sm">
-                    <CardContent className="py-16">
-                        <div className="text-center text-slate-400">
-                            <BookOpen className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                            <p className="text-lg font-medium">Selecciona una cuenta contable</p>
-                            <p className="text-sm mt-1">
-                                Busca por codigo o nombre para ver los movimientos del libro mayor
-                            </p>
-                        </div>
-                    </CardContent>
+                    {allCuentas.length > 0 ? (
+                        <>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-lg">
+                                    Cuentas disponibles
+                                    <span className="text-sm font-normal text-slate-500 ml-2">
+                                        ({allCuentas.length} cuenta{allCuentas.length !== 1 ? "s" : ""})
+                                    </span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[500px] overflow-y-auto">
+                                    {allCuentas.map((c) => (
+                                        <button
+                                            key={c.codigo}
+                                            onClick={() => {
+                                                setSelectedCuenta(c);
+                                                setSearchTerm(`${c.codigo} - ${c.nombre}`);
+                                            }}
+                                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-100 hover:border-blue-300 hover:bg-blue-50/50 transition-colors text-left"
+                                        >
+                                            <span className="font-mono text-sm font-semibold text-blue-700 shrink-0">
+                                                {c.codigo}
+                                            </span>
+                                            <span className="text-sm text-slate-700 truncate">{c.nombre}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </>
+                    ) : (
+                        <CardContent className="py-16">
+                            <div className="text-center text-slate-400">
+                                <BookOpen className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                                <p className="text-lg font-medium">
+                                    {loadingCuentas ? "Cargando cuentas..." : "No hay cuentas contables"}
+                                </p>
+                                <p className="text-sm mt-1">
+                                    {loadingCuentas
+                                        ? "Obteniendo las cuentas disponibles..."
+                                        : "Crea asientos contables o inicializa el Plan de Cuentas para ver las cuentas aqui"}
+                                </p>
+                            </div>
+                        </CardContent>
+                    )}
                 </Card>
             )}
         </div>
