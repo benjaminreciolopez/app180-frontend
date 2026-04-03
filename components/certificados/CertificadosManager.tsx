@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   ShieldCheck, ShieldAlert, ShieldX, ShieldOff,
-  Plus, Pencil, Trash2, Clock, FileText, ChevronDown, ChevronUp,
+  Plus, Trash2, Clock, FileText, ChevronDown, ChevronUp,
+  Upload, CheckCircle2, AlertTriangle, Loader2, Download,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,30 +17,29 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 
 // ─── Types ───────────────────────────────────────────────────
 type Certificado = {
   id: string;
   empresa_id: string;
-  nombre: string;
+  nombre_alias: string;
   tipo: string;
   titular_nombre: string;
   titular_nif: string;
   emisor: string | null;
   numero_serie: string | null;
   fecha_emision: string | null;
-  fecha_caducidad: string;
+  fecha_caducidad: string | null;
   archivo_nombre: string | null;
-  password_hint: string | null;
-  instalado_en: string[] | null;
   estado: string;
-  estado_calculado: string;
-  dias_hasta_caducidad: number;
   notas: string | null;
   created_at: string;
+  // Legacy fields from metadata-only system
+  nombre?: string;
+  password_hint?: string;
+  instalado_en?: string[] | null;
+  estado_calculado?: string;
+  dias_hasta_caducidad?: number;
 };
 
 type LogEntry = {
@@ -50,41 +50,6 @@ type LogEntry = {
   usuario_nombre: string | null;
   created_at: string;
 };
-
-type FormData = {
-  nombre: string;
-  tipo: string;
-  titular_nombre: string;
-  titular_nif: string;
-  emisor: string;
-  numero_serie: string;
-  fecha_emision: string;
-  fecha_caducidad: string;
-  archivo_nombre: string;
-  password_hint: string;
-  instalado_en: string[];
-  notas: string;
-};
-
-const EMPTY_FORM: FormData = {
-  nombre: "", tipo: "persona_fisica", titular_nombre: "", titular_nif: "",
-  emisor: "", numero_serie: "", fecha_emision: "", fecha_caducidad: "",
-  archivo_nombre: "", password_hint: "", instalado_en: [], notas: "",
-};
-
-const INSTALACION_OPTIONS = [
-  { value: "aeat_sede", label: "Sede Electrónica AEAT" },
-  { value: "seguridad_social", label: "Seguridad Social" },
-  { value: "local", label: "Equipo local" },
-  { value: "navegador", label: "Navegador" },
-  { value: "otro", label: "Otro" },
-];
-
-const TIPO_OPTIONS = [
-  { value: "persona_fisica", label: "Persona Física" },
-  { value: "persona_juridica", label: "Persona Jurídica" },
-  { value: "representante", label: "Representante" },
-];
 
 // ─── Helpers ─────────────────────────────────────────────────
 function estadoBadge(estado: string) {
@@ -102,11 +67,13 @@ function estadoBadge(estado: string) {
   }
 }
 
-function diasColor(dias: number): string {
-  if (dias < 0) return "text-red-600 font-bold";
-  if (dias <= 30) return "text-red-500 font-semibold";
-  if (dias <= 60) return "text-amber-500 font-semibold";
-  return "text-green-600";
+function diasHastaCaducidad(fecha: string | null): { dias: number; text: string; color: string } {
+  if (!fecha) return { dias: 0, text: "Sin fecha", color: "text-muted-foreground" };
+  const diff = Math.floor((new Date(fecha).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return { dias: diff, text: `Caducado hace ${Math.abs(diff)} dias`, color: "text-red-600 font-bold" };
+  if (diff <= 30) return { dias: diff, text: `${diff} dias`, color: "text-red-500 font-semibold" };
+  if (diff <= 60) return { dias: diff, text: `${diff} dias`, color: "text-amber-500 font-semibold" };
+  return { dias: diff, text: `${diff} dias`, color: "text-green-600" };
 }
 
 function formatDate(d: string | null): string {
@@ -114,32 +81,135 @@ function formatDate(d: string | null): string {
   return new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+function getEstadoCalculado(cert: Certificado): string {
+  if (cert.estado_calculado) return cert.estado_calculado;
+  if (cert.estado === "revocado") return "revocado";
+  if (!cert.fecha_caducidad) return cert.estado || "activo";
+  const dias = Math.floor((new Date(cert.fecha_caducidad).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (dias < 0) return "caducado";
+  if (dias <= 30) return "proximo_caducar";
+  return "activo";
+}
+
 // ─── Component ───────────────────────────────────────────────
 export function CertificadosManager({ empresaId }: { empresaId: string }) {
   const [certificados, setCertificados] = useState<Certificado[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormData>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
   const [logs, setLogs] = useState<Record<string, LogEntry[]>>({});
+  const [verifying, setVerifying] = useState<string | null>(null);
+
+  // Upload form state
+  const [file, setFile] = useState<File | null>(null);
+  const [password, setPassword] = useState("");
+  const [nombreAlias, setNombreAlias] = useState("");
+  const [notas, setNotas] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Determine API base path based on user context
+  // Asesor mode uses /asesor/clientes/:empresa_id/certificados (real upload routes)
+  // Admin mode uses /api/admin/certificados
+  const isAsesorMode = typeof window !== "undefined" && !!sessionStorage.getItem("asesor_empresa_id");
+  const apiBase = isAsesorMode
+    ? `/asesor/clientes/${empresaId}/certificados`
+    : `/api/admin/certificados`;
 
   const fetchCertificados = useCallback(async () => {
     try {
-      const res = await authenticatedFetch(`/asesor/certificados/clientes/${empresaId}/certificados`);
+      const res = await authenticatedFetch(apiBase);
       if (res.ok) {
-        const data = await res.json();
-        setCertificados(data);
+        const json = await res.json();
+        // Handle both { success, data } and raw array responses
+        const data = json.data || json;
+        setCertificados(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error("Error fetching certificados", err);
     } finally {
       setLoading(false);
     }
-  }, [empresaId]);
+  }, [apiBase]);
 
   useEffect(() => { fetchCertificados(); }, [fetchCertificados]);
+
+  // ── Upload handler ──
+  const handleUpload = async () => {
+    if (!file || !password) return;
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("password", password);
+      if (nombreAlias) formData.append("nombre_alias", nombreAlias);
+      if (notas) formData.append("notas", notas);
+
+      // authenticatedFetch adds Authorization header automatically
+      // Do NOT set Content-Type — browser sets it with boundary for multipart
+      const res = await authenticatedFetch(apiBase, {
+        method: "POST",
+        body: formData,
+        // Explicitly omit Content-Type so browser sets multipart boundary
+      });
+
+      const json = await res.json();
+
+      if (res.ok && json.success) {
+        setUploadOpen(false);
+        resetUploadForm();
+        fetchCertificados();
+      } else {
+        setUploadError(json.error || "Error subiendo certificado");
+      }
+    } catch (err) {
+      console.error("Error uploading certificate", err);
+      setUploadError("Error de conexion al subir el certificado");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const resetUploadForm = () => {
+    setFile(null);
+    setPassword("");
+    setNombreAlias("");
+    setNotas("");
+    setUploadError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // ── Verify handler ──
+  const handleVerify = async (certId: string) => {
+    setVerifying(certId);
+    try {
+      const res = await authenticatedFetch(`${apiBase}/${certId}/verificar`, { method: "POST" });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        fetchCertificados();
+      } else {
+        alert(json.error || "Error verificando certificado");
+      }
+    } catch (err) {
+      console.error("Error verifying", err);
+    } finally {
+      setVerifying(null);
+    }
+  };
+
+  // ── Delete handler ──
+  const handleDelete = async (certId: string) => {
+    if (!confirm("Eliminar este certificado? Se marcara como revocado y no se podra usar.")) return;
+    try {
+      const res = await authenticatedFetch(`${apiBase}/${certId}`, { method: "DELETE" });
+      if (res.ok) fetchCertificados();
+    } catch (err) {
+      console.error("Error deleting", err);
+    }
+  };
 
   // ── Log toggle ──
   const toggleLog = async (certId: string) => {
@@ -147,12 +217,11 @@ export function CertificadosManager({ empresaId }: { empresaId: string }) {
     setExpandedLogs(prev => ({ ...prev, [certId]: !isOpen }));
     if (!isOpen && !logs[certId]) {
       try {
-        const res = await authenticatedFetch(
-          `/asesor/certificados/clientes/${empresaId}/certificados/${certId}/log`
-        );
+        const res = await authenticatedFetch(`${apiBase}/${certId}/log`);
         if (res.ok) {
-          const data = await res.json();
-          setLogs(prev => ({ ...prev, [certId]: data }));
+          const json = await res.json();
+          const data = json.data || json;
+          setLogs(prev => ({ ...prev, [certId]: Array.isArray(data) ? data : [] }));
         }
       } catch (err) {
         console.error("Error fetching log", err);
@@ -160,83 +229,23 @@ export function CertificadosManager({ empresaId }: { empresaId: string }) {
     }
   };
 
-  // ── Form handlers ──
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setDialogOpen(true);
-  };
-
-  const openEdit = (cert: Certificado) => {
-    setEditingId(cert.id);
-    setForm({
-      nombre: cert.nombre,
-      tipo: cert.tipo,
-      titular_nombre: cert.titular_nombre,
-      titular_nif: cert.titular_nif,
-      emisor: cert.emisor || "",
-      numero_serie: cert.numero_serie || "",
-      fecha_emision: cert.fecha_emision ? cert.fecha_emision.split("T")[0] : "",
-      fecha_caducidad: cert.fecha_caducidad.split("T")[0],
-      archivo_nombre: cert.archivo_nombre || "",
-      password_hint: cert.password_hint || "",
-      instalado_en: cert.instalado_en || [],
-      notas: cert.notas || "",
-    });
-    setDialogOpen(true);
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const url = editingId
-        ? `/asesor/certificados/clientes/${empresaId}/certificados/${editingId}`
-        : `/asesor/certificados/clientes/${empresaId}/certificados`;
-      const method = editingId ? "PUT" : "POST";
-
-      const res = await authenticatedFetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          instalado_en: form.instalado_en.length > 0 ? form.instalado_en : null,
-        }),
-      });
-
-      if (res.ok) {
-        setDialogOpen(false);
-        fetchCertificados();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Error guardando certificado");
+  // ── File input handler ──
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) {
+      const name = f.name.toLowerCase();
+      if (!name.endsWith(".p12") && !name.endsWith(".pfx")) {
+        setUploadError("Solo se aceptan archivos .p12 o .pfx");
+        setFile(null);
+        return;
       }
-    } catch (err) {
-      console.error("Error saving", err);
-    } finally {
-      setSaving(false);
+      setUploadError(null);
+      setFile(f);
+      // Auto-fill alias from filename
+      if (!nombreAlias) {
+        setNombreAlias(f.name.replace(/\.(p12|pfx)$/i, ""));
+      }
     }
-  };
-
-  const handleDelete = async (certId: string) => {
-    if (!confirm("Revocar este certificado? (No se eliminará, se marcará como revocado)")) return;
-    try {
-      const res = await authenticatedFetch(
-        `/asesor/certificados/clientes/${empresaId}/certificados/${certId}`,
-        { method: "DELETE" }
-      );
-      if (res.ok) fetchCertificados();
-    } catch (err) {
-      console.error("Error deleting", err);
-    }
-  };
-
-  const toggleInstalado = (value: string) => {
-    setForm(prev => ({
-      ...prev,
-      instalado_en: prev.instalado_en.includes(value)
-        ? prev.instalado_en.filter(v => v !== value)
-        : [...prev.instalado_en, value],
-    }));
   };
 
   // ── Render ──
@@ -249,233 +258,244 @@ export function CertificadosManager({ empresaId }: { empresaId: string }) {
           <ShieldCheck className="w-5 h-5" />
           Certificados Digitales
         </h3>
-        <Button onClick={openCreate} size="sm">
-          <Plus className="w-4 h-4 mr-1" /> Nuevo Certificado
+        <Button onClick={() => { resetUploadForm(); setUploadOpen(true); }} size="sm">
+          <Upload className="w-4 h-4 mr-1" /> Subir Certificado
         </Button>
+      </div>
+
+      {/* Info banner */}
+      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-700 dark:text-blue-300">
+        <p className="font-medium flex items-center gap-1.5">
+          <ShieldCheck className="w-4 h-4" />
+          Certificados electronicos para presentacion de modelos
+        </p>
+        <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+          Sube el archivo .p12/.pfx del cliente con su contrasena. Se almacena encriptado (AES-256-GCM).
+          {isAsesorMode ? " Los certificados se comparten bidireccionalmente: si el cliente los sube en su panel, aparecen aqui automaticamente y viceversa." : ""}
+        </p>
       </div>
 
       {certificados.length === 0 ? (
         <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            No hay certificados registrados para esta empresa.
+          <CardContent className="py-10 text-center">
+            <ShieldOff className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">No hay certificados digitales registrados.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Sube un archivo .p12 o .pfx para poder presentar modelos AEAT, Seguridad Social, etc.
+            </p>
+            <Button onClick={() => { resetUploadForm(); setUploadOpen(true); }} className="mt-4" size="sm" variant="outline">
+              <Upload className="w-4 h-4 mr-1" /> Subir primer certificado
+            </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {certificados.map(cert => (
-            <Card key={cert.id} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-base">{cert.nombre}</span>
-                      {estadoBadge(cert.estado_calculado || cert.estado)}
-                      <Badge variant="outline" className="text-xs">
-                        {TIPO_OPTIONS.find(t => t.value === cert.tipo)?.label || cert.tipo}
-                      </Badge>
+          {certificados.map(cert => {
+            const estado = getEstadoCalculado(cert);
+            const caducidad = diasHastaCaducidad(cert.fecha_caducidad);
+            const certName = cert.nombre_alias || cert.nombre || cert.archivo_nombre || "Certificado";
+
+            return (
+              <Card key={cert.id} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-base">{certName}</span>
+                        {estadoBadge(estado)}
+                        {cert.archivo_nombre && (
+                          <Badge variant="outline" className="text-xs font-mono">
+                            <Download className="w-3 h-3 mr-1" />
+                            {cert.archivo_nombre}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1 space-y-0.5">
+                        {cert.titular_nombre && (
+                          <p><strong>Titular:</strong> {cert.titular_nombre} {cert.titular_nif ? `(${cert.titular_nif})` : ""}</p>
+                        )}
+                        {cert.emisor && <p><strong>Emisor:</strong> {cert.emisor}</p>}
+                        {cert.numero_serie && <p><strong>N/S:</strong> <span className="font-mono text-xs">{cert.numero_serie}</span></p>}
+                        {cert.fecha_caducidad && (
+                          <p>
+                            <strong>Caducidad:</strong> {formatDate(cert.fecha_caducidad)}
+                            {" "}<span className={caducidad.color}>({caducidad.text})</span>
+                          </p>
+                        )}
+                        {cert.fecha_emision && (
+                          <p><strong>Emision:</strong> {formatDate(cert.fecha_emision)}</p>
+                        )}
+                        {cert.notas && <p className="italic mt-1">{cert.notas}</p>}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground mt-1 space-y-0.5">
-                      <p><strong>Titular:</strong> {cert.titular_nombre} ({cert.titular_nif})</p>
-                      {cert.emisor && <p><strong>Emisor:</strong> {cert.emisor}</p>}
-                      {cert.numero_serie && <p><strong>N/S:</strong> {cert.numero_serie}</p>}
-                      <p>
-                        <strong>Caducidad:</strong> {formatDate(cert.fecha_caducidad)}
-                        {" "}<span className={diasColor(cert.dias_hasta_caducidad)}>
-                          ({cert.dias_hasta_caducidad > 0
-                            ? `${cert.dias_hasta_caducidad} dias`
-                            : `Caducado hace ${Math.abs(cert.dias_hasta_caducidad)} dias`})
-                        </span>
-                      </p>
-                      {cert.instalado_en && cert.instalado_en.length > 0 && (
-                        <p>
-                          <strong>Instalado en:</strong>{" "}
-                          {cert.instalado_en.map(v =>
-                            INSTALACION_OPTIONS.find(o => o.value === v)?.label || v
-                          ).join(", ")}
-                        </p>
-                      )}
-                      {cert.password_hint && (
-                        <p><strong>Pista password:</strong> {cert.password_hint}</p>
-                      )}
-                      {cert.notas && <p className="italic">{cert.notas}</p>}
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleVerify(cert.id)}
+                        disabled={verifying === cert.id}
+                        title="Verificar certificado"
+                      >
+                        {verifying === cert.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4" />
+                        )}
+                        <span className="ml-1 hidden sm:inline">Verificar</span>
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(cert.id)} title="Revocar/Eliminar">
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(cert)} title="Editar">
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(cert.id)} title="Revocar">
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </div>
-                </div>
 
-                {/* Log accordion */}
-                <button
-                  onClick={() => toggleLog(cert.id)}
-                  className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <FileText className="w-3 h-3" />
-                  Historial de uso
-                  {expandedLogs[cert.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                </button>
+                  {/* Log accordion */}
+                  <button
+                    onClick={() => toggleLog(cert.id)}
+                    className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <FileText className="w-3 h-3" />
+                    Historial de uso
+                    {expandedLogs[cert.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
 
-                {expandedLogs[cert.id] && (
-                  <div className="mt-2 pl-4 border-l-2 border-muted space-y-1">
-                    {!logs[cert.id] ? (
-                      <p className="text-xs text-muted-foreground">Cargando...</p>
-                    ) : logs[cert.id].length === 0 ? (
-                      <p className="text-xs text-muted-foreground">Sin registros de uso</p>
-                    ) : (
-                      logs[cert.id].map(log => (
-                        <div key={log.id} className="text-xs flex items-start gap-2">
-                          <Clock className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
-                          <div>
-                            <span className="font-medium">{log.accion}</span>
-                            {log.modelo_aeat && <span className="ml-1 text-muted-foreground">(Modelo {log.modelo_aeat})</span>}
-                            {log.detalle && <span className="ml-1">- {log.detalle}</span>}
-                            <span className="ml-2 text-muted-foreground">
-                              {formatDate(log.created_at)}
-                              {log.usuario_nombre && ` por ${log.usuario_nombre}`}
-                            </span>
+                  {expandedLogs[cert.id] && (
+                    <div className="mt-2 pl-4 border-l-2 border-muted space-y-1">
+                      {!logs[cert.id] ? (
+                        <p className="text-xs text-muted-foreground">Cargando...</p>
+                      ) : logs[cert.id].length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Sin registros de uso</p>
+                      ) : (
+                        logs[cert.id].map(log => (
+                          <div key={log.id} className="text-xs flex items-start gap-2">
+                            <Clock className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
+                            <div>
+                              <span className="font-medium">{log.accion}</span>
+                              {log.modelo_aeat && <span className="ml-1 text-muted-foreground">(Modelo {log.modelo_aeat})</span>}
+                              {log.detalle && <span className="ml-1">- {log.detalle}</span>}
+                              <span className="ml-2 text-muted-foreground">
+                                {formatDate(log.created_at)}
+                                {log.usuario_nombre && ` por ${log.usuario_nombre}`}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                        ))
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      {/* ── Create/Edit Dialog ── */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      {/* ── Upload Dialog ── */}
+      <Dialog open={uploadOpen} onOpenChange={(open) => { setUploadOpen(open); if (!open) resetUploadForm(); }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Editar Certificado" : "Nuevo Certificado"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5" />
+              Subir Certificado Digital
+            </DialogTitle>
             <DialogDescription>
-              {editingId
-                ? "Modifica los datos del certificado digital."
-                : "Registra un nuevo certificado digital (.p12/.pfx) del cliente."}
+              Sube un archivo .p12 o .pfx con su contrasena. Los datos del titular, emisor y fechas se extraen automaticamente del certificado.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Nombre */}
+            {/* File input */}
             <div>
-              <Label htmlFor="cert-nombre">Nombre / Alias *</Label>
-              <Input id="cert-nombre" value={form.nombre}
-                onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))}
-                placeholder="Ej: Certificado FNMT Juan" />
+              <Label htmlFor="cert-file">Archivo .p12 / .pfx *</Label>
+              <div className="mt-1">
+                <input
+                  ref={fileInputRef}
+                  id="cert-file"
+                  type="file"
+                  accept=".p12,.pfx"
+                  onChange={handleFileChange}
+                  className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer cursor-pointer"
+                />
+              </div>
+              {file && (
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                </p>
+              )}
             </div>
 
-            {/* Tipo */}
+            {/* Password */}
             <div>
-              <Label>Tipo *</Label>
-              <Select value={form.tipo} onValueChange={v => setForm(p => ({ ...p, tipo: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {TIPO_OPTIONS.map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="cert-password">Contrasena del certificado *</Label>
+              <Input
+                id="cert-password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Contrasena del archivo .p12/.pfx"
+                autoComplete="off"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Se almacena encriptada con AES-256-GCM. Necesaria para firmar envios.
+              </p>
             </div>
 
-            {/* Titular */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="cert-titular">Titular *</Label>
-                <Input id="cert-titular" value={form.titular_nombre}
-                  onChange={e => setForm(p => ({ ...p, titular_nombre: e.target.value }))}
-                  placeholder="Nombre completo" />
-              </div>
-              <div>
-                <Label htmlFor="cert-nif">NIF *</Label>
-                <Input id="cert-nif" value={form.titular_nif}
-                  onChange={e => setForm(p => ({ ...p, titular_nif: e.target.value }))}
-                  placeholder="12345678A" />
-              </div>
-            </div>
-
-            {/* Emisor y N/S */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="cert-emisor">Emisor</Label>
-                <Input id="cert-emisor" value={form.emisor}
-                  onChange={e => setForm(p => ({ ...p, emisor: e.target.value }))}
-                  placeholder="FNMT, ACCV..." />
-              </div>
-              <div>
-                <Label htmlFor="cert-ns">N. Serie</Label>
-                <Input id="cert-ns" value={form.numero_serie}
-                  onChange={e => setForm(p => ({ ...p, numero_serie: e.target.value }))} />
-              </div>
-            </div>
-
-            {/* Fechas */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="cert-fe">Fecha Emisión</Label>
-                <Input id="cert-fe" type="date" value={form.fecha_emision}
-                  onChange={e => setForm(p => ({ ...p, fecha_emision: e.target.value }))} />
-              </div>
-              <div>
-                <Label htmlFor="cert-fc">Fecha Caducidad *</Label>
-                <Input id="cert-fc" type="date" value={form.fecha_caducidad}
-                  onChange={e => setForm(p => ({ ...p, fecha_caducidad: e.target.value }))} />
-              </div>
-            </div>
-
-            {/* Archivo y password hint */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="cert-file">Nombre archivo original</Label>
-                <Input id="cert-file" value={form.archivo_nombre}
-                  onChange={e => setForm(p => ({ ...p, archivo_nombre: e.target.value }))}
-                  placeholder="certificado.p12" />
-              </div>
-              <div>
-                <Label htmlFor="cert-hint">Pista password</Label>
-                <Input id="cert-hint" value={form.password_hint}
-                  onChange={e => setForm(p => ({ ...p, password_hint: e.target.value }))}
-                  placeholder="Solo pista, nunca el password real" />
-              </div>
-            </div>
-
-            {/* Instalado en */}
+            {/* Alias */}
             <div>
-              <Label>Instalado en</Label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {INSTALACION_OPTIONS.map(opt => (
-                  <label key={opt.value}
-                    className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
-                    <input type="checkbox"
-                      checked={form.instalado_en.includes(opt.value)}
-                      onChange={() => toggleInstalado(opt.value)}
-                      className="rounded border-gray-300" />
-                    {opt.label}
-                  </label>
-                ))}
-              </div>
+              <Label htmlFor="cert-alias">Nombre / Alias</Label>
+              <Input
+                id="cert-alias"
+                value={nombreAlias}
+                onChange={e => setNombreAlias(e.target.value)}
+                placeholder="Ej: Certificado FNMT Juan Garcia"
+              />
             </div>
 
             {/* Notas */}
             <div>
               <Label htmlFor="cert-notas">Notas</Label>
-              <textarea id="cert-notas" value={form.notas}
-                onChange={e => setForm(p => ({ ...p, notas: e.target.value }))}
+              <textarea
+                id="cert-notas"
+                value={notas}
+                onChange={e => setNotas(e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px]"
-                placeholder="Observaciones internas..." />
+                placeholder="Observaciones internas..."
+              />
+            </div>
+
+            {/* Error */}
+            {uploadError && (
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-700 dark:text-red-300 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{uploadError}</span>
+              </div>
+            )}
+
+            {/* Security note */}
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5 text-xs text-amber-700 dark:text-amber-300">
+              <p className="font-medium">Seguridad</p>
+              <p className="mt-0.5">El archivo se procesa en memoria (no se guarda en disco). Los datos binarios y la contrasena se almacenan encriptados en la base de datos.</p>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving || !form.nombre || !form.titular_nombre || !form.titular_nif || !form.fecha_caducidad}>
-              {saving ? "Guardando..." : editingId ? "Guardar cambios" : "Crear certificado"}
+            <Button variant="outline" onClick={() => setUploadOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={handleUpload}
+              disabled={uploading || !file || !password}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-1" />
+                  Subir certificado
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
