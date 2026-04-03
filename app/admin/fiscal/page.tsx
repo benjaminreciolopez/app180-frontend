@@ -24,12 +24,20 @@ const MODELOS_CONFIG = [
     { id: "349", label: "Modelo 349", desc: "Op. Intracomunitarias", color: "teal", icon: Globe, defaultOn: false },
 ];
 
+const MODELOS_ANUALES_CONFIG = [
+    { id: "390", label: "Modelo 390", desc: "IVA Resumen Anual", color: "blue", icon: FileText, defaultOn: false, annual: true },
+    { id: "190", label: "Modelo 190", desc: "Retenciones Resumen Anual", color: "purple", icon: FileText, defaultOn: false, annual: true },
+    { id: "180", label: "Modelo 180", desc: "Arrendamientos Resumen Anual", color: "rose", icon: FileText, defaultOn: false, annual: true },
+    { id: "347", label: "Modelo 347", desc: "Operaciones Terceros", color: "emerald", icon: FileText, defaultOn: false, annual: true },
+];
+
 const BORDER_COLORS: Record<string, string> = {
     blue: "border-l-blue-500",
     orange: "border-l-orange-500",
     purple: "border-l-purple-500",
     rose: "border-l-rose-500",
     teal: "border-l-teal-500",
+    emerald: "border-l-emerald-500",
 };
 
 export default function FiscalPage() {
@@ -43,6 +51,8 @@ export default function FiscalPage() {
     const [trimestre, setTrimestre] = useState("1");
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<any>(null);
+    const [loadingAnual, setLoadingAnual] = useState(false);
+    const [dataAnual, setDataAnual] = useState<Record<string, any>>({});
 
     // Checklist de modelos visibles
     const [visibleModelos, setVisibleModelos] = useState<Set<string>>(() => {
@@ -53,12 +63,30 @@ export default function FiscalPage() {
         return new Set(MODELOS_CONFIG.filter(m => m.defaultOn).map(m => m.id));
     });
 
+    const [visibleAnuales, setVisibleAnuales] = useState<Set<string>>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("fiscal-anuales-visibles");
+            if (saved) return new Set(JSON.parse(saved));
+        }
+        return new Set(MODELOS_ANUALES_CONFIG.filter(m => m.defaultOn).map(m => m.id));
+    });
+
     const toggleModelo = (id: string) => {
         setVisibleModelos(prev => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
             else next.add(id);
             localStorage.setItem("fiscal-modelos-visibles", JSON.stringify([...next]));
+            return next;
+        });
+    };
+
+    const toggleAnual = (id: string) => {
+        setVisibleAnuales(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            localStorage.setItem("fiscal-anuales-visibles", JSON.stringify([...next]));
             return next;
         });
     };
@@ -84,9 +112,42 @@ export default function FiscalPage() {
         }
     };
 
+    const loadAnualData = async () => {
+        if (visibleAnuales.size === 0) return;
+        setLoadingAnual(true);
+        const results: Record<string, any> = {};
+        try {
+            const modeloIds = ["390", "190", "180", "347"];
+            const endpoints: Record<string, string> = {
+                "390": "modelo390",
+                "190": "modelo190",
+                "180": "modelo180",
+                "347": "modelo347",
+            };
+            await Promise.all(
+                modeloIds.filter(id => visibleAnuales.has(id)).map(async (id) => {
+                    const res = await authenticatedFetch(`/api/admin/fiscal/${endpoints[id]}?year=${year}`);
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json.success) results[id] = json.data;
+                    }
+                })
+            );
+            setDataAnual(results);
+        } catch (error) {
+            console.error("Error loading annual data:", error);
+        } finally {
+            setLoadingAnual(false);
+        }
+    };
+
     useEffect(() => {
         if (activeTab === "modelos") loadData();
     }, [year, trimestre, activeTab]);
+
+    useEffect(() => {
+        if (activeTab === "modelos") loadAnualData();
+    }, [year, activeTab, visibleAnuales.size]);
 
     const handleDownload = async (modelo: string) => {
         try {
@@ -105,6 +166,26 @@ export default function FiscalPage() {
         } catch (e) {
             console.error(e);
             alert("Error al descargar el fichero BOE");
+        }
+    };
+
+    const handleDownloadAnual = async (modelo: string) => {
+        try {
+            const res = await authenticatedFetch(`/api/admin/fiscal/download-boe-anual?year=${year}&modelo=${modelo}`);
+            if (!res.ok) throw new Error("Error en la descarga");
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Modelo_${modelo}_${year}_Anual.txt`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+            alert("Error al descargar el fichero BOE anual");
         }
     };
 
@@ -414,6 +495,236 @@ export default function FiscalPage() {
                                     <CardFooter>
                                         <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownload('349')}>
                                             <FileText className="mr-2 h-4 w-4" /> Descargar datos
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Modelos Anuales */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Modelos Anuales</p>
+                        <div className="flex flex-wrap gap-2">
+                            {MODELOS_ANUALES_CONFIG.map(m => {
+                                const isActive = visibleAnuales.has(m.id);
+                                const Icon = m.icon;
+                                return (
+                                    <button
+                                        key={m.id}
+                                        onClick={() => toggleAnual(m.id)}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border ${
+                                            isActive
+                                                ? "bg-slate-900 text-white border-slate-900"
+                                                : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
+                                        }`}
+                                    >
+                                        {isActive ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                                        <Icon className="w-4 h-4" />
+                                        <span className="hidden sm:inline">{m.label}</span>
+                                        <span className="sm:hidden">{m.id}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {loadingAnual && <LoadingSpinner />}
+
+                    {!loadingAnual && visibleAnuales.size > 0 && (
+                        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+
+                            {/* Modelo 390 - IVA Resumen Anual */}
+                            {visibleAnuales.has("390") && dataAnual["390"] && (
+                                <Card className={`border-l-4 ${BORDER_COLORS.blue}`}>
+                                    <CardHeader className="pb-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <CardTitle className="text-base">Modelo 390 (IVA Anual)</CardTitle>
+                                                <CardDescription className="text-xs">Resumen Anual IVA - {year}</CardDescription>
+                                            </div>
+                                            <Badge variant="outline" className="text-xs">Anual</Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">IVA Devengado Total:</span>
+                                            <span className="font-medium text-green-600">+{formatCurrency(dataAnual["390"].devengado.cuota_total)}</span>
+                                        </div>
+                                        {/* Desglose por tipo */}
+                                        <div className="text-xs text-muted-foreground pl-2 space-y-0.5">
+                                            <div className="flex justify-between"><span>4%:</span><span>{formatCurrency(dataAnual["390"].devengado.por_tipo.al_4.cuota)}</span></div>
+                                            <div className="flex justify-between"><span>10%:</span><span>{formatCurrency(dataAnual["390"].devengado.por_tipo.al_10.cuota)}</span></div>
+                                            <div className="flex justify-between"><span>21%:</span><span>{formatCurrency(dataAnual["390"].devengado.por_tipo.al_21.cuota)}</span></div>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">IVA Deducible Total:</span>
+                                            <span className="font-medium text-red-600">-{formatCurrency(dataAnual["390"].deducible.cuota_total)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Compensaciones:</span>
+                                            <span className="font-medium">{formatCurrency(dataAnual["390"].compensaciones)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                            <span>Op. exentas:</span>
+                                            <span>{formatCurrency(dataAnual["390"].operaciones_exentas)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                            <span>Op. intracomunitarias:</span>
+                                            <span>{formatCurrency(dataAnual["390"].operaciones_intracomunitarias)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                            <span>Volumen operaciones:</span>
+                                            <span>{formatCurrency(dataAnual["390"].volumen_operaciones)}</span>
+                                        </div>
+                                        <div className="border-t pt-2 flex justify-between font-bold text-base">
+                                            <span>Resultado Anual:</span>
+                                            <span>{formatCurrency(dataAnual["390"].resultado_final)}</span>
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter className="flex gap-2">
+                                        <Button variant="outline" className="flex-1" size="sm" onClick={() => handleDownloadAnual('390')}>
+                                            <FileText className="mr-2 h-4 w-4" /> Generar BOE
+                                        </Button>
+                                        <Button variant="outline" size="sm" onClick={() => window.location.href = `/admin/fiscal/modelo390?year=${year}`}>
+                                            Ver detalle
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            )}
+
+                            {/* Modelo 190 - Retenciones Resumen Anual */}
+                            {visibleAnuales.has("190") && dataAnual["190"] && (
+                                <Card className={`border-l-4 ${BORDER_COLORS.purple}`}>
+                                    <CardHeader className="pb-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <CardTitle className="text-base">Modelo 190 (Retenciones)</CardTitle>
+                                                <CardDescription className="text-xs">Resumen Anual Retenciones - {year}</CardDescription>
+                                            </div>
+                                            <Badge variant="outline" className="text-xs">Anual</Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Perceptores trabajo:</span>
+                                            <span className="font-medium">{dataAnual["190"].totales_trabajo.perceptores}</span>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground pl-2">
+                                            Rend: {formatCurrency(dataAnual["190"].totales_trabajo.rendimientos)} | Ret: {formatCurrency(dataAnual["190"].totales_trabajo.retenciones)}
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Perceptores profesionales:</span>
+                                            <span className="font-medium">{dataAnual["190"].totales_profesionales.perceptores}</span>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground pl-2">
+                                            Rend: {formatCurrency(dataAnual["190"].totales_profesionales.rendimientos)} | Ret: {formatCurrency(dataAnual["190"].totales_profesionales.retenciones)}
+                                        </div>
+                                        <div className="border-t pt-2 flex justify-between font-bold text-base">
+                                            <span>Total Retenciones:</span>
+                                            <span>{formatCurrency(dataAnual["190"].total_retenciones)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                            <span>Total perceptores:</span>
+                                            <span>{dataAnual["190"].total_perceptores}</span>
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownloadAnual('190')}>
+                                            <FileText className="mr-2 h-4 w-4" /> Generar BOE
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            )}
+
+                            {/* Modelo 180 - Arrendamientos Resumen Anual */}
+                            {visibleAnuales.has("180") && dataAnual["180"] && (
+                                <Card className={`border-l-4 ${BORDER_COLORS.rose}`}>
+                                    <CardHeader className="pb-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <CardTitle className="text-base">Modelo 180 (Alquileres)</CardTitle>
+                                                <CardDescription className="text-xs">Resumen Anual Arrendamientos - {year}</CardDescription>
+                                            </div>
+                                            <Badge variant="outline" className="text-xs">Anual</Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Arrendadores:</span>
+                                            <span className="font-medium">{dataAnual["180"].total_arrendadores}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Total alquileres:</span>
+                                            <span className="font-medium">{formatCurrency(dataAnual["180"].total_alquileres)}</span>
+                                        </div>
+                                        <div className="border-t pt-2 flex justify-between font-bold text-base">
+                                            <span>Total Retenciones:</span>
+                                            <span>{formatCurrency(dataAnual["180"].total_retenciones)}</span>
+                                        </div>
+                                        {dataAnual["180"].arrendadores?.length > 0 && (
+                                            <div className="border-t pt-2 space-y-1">
+                                                <p className="text-xs font-semibold text-slate-500 uppercase">Desglose</p>
+                                                {dataAnual["180"].arrendadores.map((a: any, i: number) => (
+                                                    <div key={i} className="flex justify-between text-xs">
+                                                        <span className="text-muted-foreground truncate mr-2">{a.arrendador}</span>
+                                                        <span className="font-medium whitespace-nowrap">{formatCurrency(a.total_retenciones)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {dataAnual["180"].total_arrendadores === 0 && (
+                                            <div className="bg-slate-50 p-2 rounded-md text-xs text-slate-500 text-center">
+                                                Sin gastos de arrendamiento en este ejercicio
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownloadAnual('180')}>
+                                            <FileText className="mr-2 h-4 w-4" /> Generar BOE
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            )}
+
+                            {/* Modelo 347 - Operaciones con Terceros */}
+                            {visibleAnuales.has("347") && dataAnual["347"] && (
+                                <Card className={`border-l-4 ${BORDER_COLORS.emerald}`}>
+                                    <CardHeader className="pb-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <CardTitle className="text-base">Modelo 347 (Terceros)</CardTitle>
+                                                <CardDescription className="text-xs">Op. con terceros &gt;3.005,06 EUR - {year}</CardDescription>
+                                            </div>
+                                            <Badge variant="outline" className="text-xs">Anual</Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Clientes declarados:</span>
+                                            <span className="font-medium">{dataAnual["347"].total_clientes}</span>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground pl-2">
+                                            Importe: {formatCurrency(dataAnual["347"].importe_total_clientes)}
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Proveedores declarados:</span>
+                                            <span className="font-medium">{dataAnual["347"].total_proveedores}</span>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground pl-2">
+                                            Importe: {formatCurrency(dataAnual["347"].importe_total_proveedores)}
+                                        </div>
+                                        <div className="border-t pt-2 flex justify-between font-bold text-base">
+                                            <span>Total Declarados:</span>
+                                            <span>{dataAnual["347"].total_terceros} ({formatCurrency(dataAnual["347"].importe_total)})</span>
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter className="flex gap-2">
+                                        <Button variant="outline" className="flex-1" size="sm" onClick={() => handleDownloadAnual('347')}>
+                                            <FileText className="mr-2 h-4 w-4" /> Generar BOE
+                                        </Button>
+                                        <Button variant="outline" size="sm" onClick={() => window.location.href = `/admin/fiscal/modelo347?year=${year}`}>
+                                            Ver detalle
                                         </Button>
                                     </CardFooter>
                                 </Card>

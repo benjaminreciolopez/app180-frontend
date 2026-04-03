@@ -14,6 +14,10 @@ import {
   MessageSquare,
   FolderOpen,
   Banknote,
+  Briefcase,
+  Radio,
+  Wallet,
+  Building,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
@@ -52,14 +56,34 @@ const tabs = [
     segment: "fiscal",
   },
   {
+    label: "Renta",
+    icon: Wallet,
+    segment: "renta",
+  },
+  {
+    label: "Sociedades",
+    icon: Building,
+    segment: "sociedades",
+  },
+  {
     label: "Empleados",
     icon: Users,
     segment: "empleados",
   },
   {
+    label: "Laboral",
+    icon: Briefcase,
+    segment: "laboral",
+  },
+  {
     label: "Nóminas",
     icon: Banknote,
     segment: "nominas",
+  },
+  {
+    label: "SII",
+    icon: Radio,
+    segment: "sii",
   },
   {
     label: "Documentos",

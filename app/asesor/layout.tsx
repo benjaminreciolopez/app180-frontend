@@ -57,6 +57,7 @@ const menuSections = [
     title: "RECURSOS HUMANOS",
     items: [
       { path: "/asesor/empleados", label: "Empleados", module: "empleados" },
+      { path: "/asesor/laboral", label: "Laboral", module: "empleados" },
     ],
   },
   {
@@ -191,6 +192,7 @@ export default function AsesorLayout({
       "/asesor/auditoria": "Auditoría",
       "/asesor/calendario": "Calendario",
       "/asesor/jornadas": "Jornadas",
+      "/asesor/laboral": "Laboral",
       "/asesor/nominas": "Nóminas",
       "/asesor/gastos": "Compras y Gastos",
       "/asesor/partes-dia": "Partes del día",

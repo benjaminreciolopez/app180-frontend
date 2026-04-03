@@ -24,6 +24,13 @@ import {
 import { RetaTramoVisualizer } from "@/components/reta/RetaTramoVisualizer";
 import { RetaRegularizacionGauge } from "@/components/reta/RetaRegularizacionGauge";
 
+// Helper para formatear numeros con null safety
+const fmt = (val: any, decimals = 2): string => {
+  if (val == null || val === '') return '0.00';
+  const n = parseFloat(val);
+  return isNaN(n) ? '0.00' : n.toFixed(decimals);
+};
+
 const TIPOS_EVENTO = [
   { value: "vacaciones", label: "Vacaciones" },
   { value: "baja_it", label: "Baja IT (enfermedad)" },
@@ -219,7 +226,7 @@ export default function ClienteRetaDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Regularizacion gauge */}
               <RetaRegularizacionGauge
-                riesgo={estimacion ? parseFloat(estimacion.riesgo_regularizacion_anual) : null}
+                riesgo={estimacion?.riesgo_regularizacion_anual != null ? parseFloat(estimacion.riesgo_regularizacion_anual) : null}
                 confianza={estimacion?.confianza_pct}
               />
 
@@ -232,28 +239,28 @@ export default function ClienteRetaDetailPage() {
                 <CardContent className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Ingresos proyectados</span>
-                    <span className="font-mono font-medium">{parseFloat(estimacion.ingresos_proyectados_anual).toFixed(2)} €</span>
+                    <span className="font-mono font-medium">{fmt(estimacion.ingresos_proyectados_anual)} €</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Gastos proyectados</span>
-                    <span className="font-mono font-medium">{parseFloat(estimacion.gastos_proyectados_anual).toFixed(2)} €</span>
+                    <span className="font-mono font-medium">{fmt(estimacion.gastos_proyectados_anual)} €</span>
                   </div>
                   <hr />
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Rendimiento neto</span>
-                    <span className="font-mono font-semibold">{parseFloat(estimacion.rendimiento_neto_anual).toFixed(2)} €</span>
+                    <span className="font-mono font-semibold">{fmt(estimacion.rendimiento_neto_anual)} €</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Deduccion gastos dificil justif.</span>
-                    <span className="font-mono">{parseFloat(estimacion.deduccion_gastos_dificil).toFixed(2)} €</span>
+                    <span className="font-mono">{fmt(estimacion.deduccion_gastos_dificil)} €</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Rend. neto reducido</span>
-                    <span className="font-mono font-semibold">{parseFloat(estimacion.rendimiento_neto_reducido).toFixed(2)} €</span>
+                    <span className="font-mono font-semibold">{fmt(estimacion.rendimiento_neto_reducido)} €</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Rend. neto mensual</span>
-                    <span className="font-mono font-bold text-base">{parseFloat(estimacion.rendimiento_neto_mensual).toFixed(2)} €</span>
+                    <span className="font-mono font-bold text-base">{fmt(estimacion.rendimiento_neto_mensual)} €</span>
                   </div>
                   <hr />
                   <div className="flex justify-between">
@@ -262,11 +269,11 @@ export default function ClienteRetaDetailPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Base recomendada</span>
-                    <span className="font-mono font-semibold">{parseFloat(estimacion.base_recomendada).toFixed(2)} €</span>
+                    <span className="font-mono font-semibold">{fmt(estimacion.base_recomendada)} €</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Cuota recomendada</span>
-                    <span className="font-mono font-bold text-base">{parseFloat(estimacion.cuota_recomendada).toFixed(2)} €/mes</span>
+                    <span className="font-mono font-bold text-base">{fmt(estimacion.cuota_recomendada)} €/mes</span>
                   </div>
                 </CardContent>
               </Card>
@@ -281,9 +288,9 @@ export default function ClienteRetaDetailPage() {
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4 text-center text-sm">
                     {[
-                      { label: "Pesimista", data: JSON.parse(typeof estimacion.escenario_pesimista === 'string' ? estimacion.escenario_pesimista : JSON.stringify(estimacion.escenario_pesimista)), color: "text-red-600" },
-                      { label: "Realista", data: { tramo: estimacion.tramo_recomendado, cuota: parseFloat(estimacion.cuota_recomendada), rendimientoNetoMensual: parseFloat(estimacion.rendimiento_neto_mensual) }, color: "text-foreground" },
-                      { label: "Optimista", data: JSON.parse(typeof estimacion.escenario_optimista === 'string' ? estimacion.escenario_optimista : JSON.stringify(estimacion.escenario_optimista)), color: "text-green-600" },
+                      { label: "Pesimista", data: (() => { try { return typeof estimacion.escenario_pesimista === 'string' ? JSON.parse(estimacion.escenario_pesimista) : estimacion.escenario_pesimista || {}; } catch { return {}; } })(), color: "text-red-600" },
+                      { label: "Realista", data: { tramo: estimacion.tramo_recomendado, cuota: parseFloat(estimacion.cuota_recomendada) || 0, rendimientoNetoMensual: parseFloat(estimacion.rendimiento_neto_mensual) || 0 }, color: "text-foreground" },
+                      { label: "Optimista", data: (() => { try { return typeof estimacion.escenario_optimista === 'string' ? JSON.parse(estimacion.escenario_optimista) : estimacion.escenario_optimista || {}; } catch { return {}; } })(), color: "text-green-600" },
                     ].map((esc) => (
                       <div key={esc.label} className="space-y-1">
                         <p className={`font-medium ${esc.color}`}>{esc.label}</p>
@@ -307,15 +314,15 @@ export default function ClienteRetaDetailPage() {
               <CardContent className="grid grid-cols-3 gap-4 text-center text-sm">
                 <div>
                   <p className="text-muted-foreground">Ingresos</p>
-                  <p className="font-mono font-semibold">{parseFloat(estimacion.ingresos_reales_ytd).toFixed(2)} €</p>
+                  <p className="font-mono font-semibold">{fmt(estimacion.ingresos_reales_ytd)} €</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Gastos</p>
-                  <p className="font-mono font-semibold">{parseFloat(estimacion.gastos_reales_ytd).toFixed(2)} €</p>
+                  <p className="font-mono font-semibold">{fmt(estimacion.gastos_reales_ytd)} €</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Nominas</p>
-                  <p className="font-mono font-semibold">{parseFloat(estimacion.nominas_reales_ytd).toFixed(2)} €</p>
+                  <p className="font-mono font-semibold">{fmt(estimacion.nominas_reales_ytd)} €</p>
                 </div>
               </CardContent>
             </Card>
@@ -333,7 +340,7 @@ export default function ClienteRetaDetailPage() {
                   tramos={tramos || []}
                   tramoActual={perfil?.tramo_actual}
                   tramoRecomendado={estimacion?.tramo_recomendado}
-                  rendimientoMensual={estimacion ? parseFloat(estimacion.rendimiento_neto_mensual) : null}
+                  rendimientoMensual={estimacion?.rendimiento_neto_mensual != null ? parseFloat(estimacion.rendimiento_neto_mensual) : null}
                 />
               </CardContent>
             </Card>
@@ -442,35 +449,35 @@ export default function ClienteRetaDetailPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <p className="text-muted-foreground">Ingresos simulados</p>
-                        <p className="font-mono font-semibold">{simResult.ingresos.toFixed(2)} €</p>
+                        <p className="font-mono font-semibold">{fmt(simResult.ingresos)} €</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Gastos simulados</p>
-                        <p className="font-mono font-semibold">{simResult.gastos.toFixed(2)} €</p>
+                        <p className="font-mono font-semibold">{fmt(simResult.gastos)} €</p>
                       </div>
                     </div>
                     <hr />
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Rend. neto mensual</span>
-                      <span className="font-mono font-bold">{simResult.rendimientoNetoMensual.toFixed(2)} €</span>
+                      <span className="font-mono font-bold">{fmt(simResult.rendimientoNetoMensual)} €</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Tramo</span>
-                      <Badge variant="outline">{simResult.baseOptima.tramo}</Badge>
+                      <Badge variant="outline">{simResult.baseOptima?.tramo ?? '-'}</Badge>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Base recomendada</span>
-                      <span className="font-mono font-semibold">{simResult.baseOptima.baseRecomendada.toFixed(2)} €</span>
+                      <span className="font-mono font-semibold">{fmt(simResult.baseOptima?.baseRecomendada)} €</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Cuota mensual</span>
-                      <span className="font-mono font-bold">{simResult.baseOptima.cuota.toFixed(2)} €</span>
+                      <span className="font-mono font-bold">{fmt(simResult.baseOptima?.cuota)} €</span>
                     </div>
                     <hr />
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Regularizacion estimada</span>
-                      <span className={`font-mono font-bold ${simResult.riesgo.riesgoAnual > 0 ? "text-red-600" : "text-green-600"}`}>
-                        {simResult.riesgo.riesgoAnual > 0 ? "+" : ""}{simResult.riesgo.riesgoAnual.toFixed(2)} €
+                      <span className={`font-mono font-bold ${(simResult.riesgo?.riesgoAnual ?? 0) > 0 ? "text-red-600" : "text-green-600"}`}>
+                        {(simResult.riesgo?.riesgoAnual ?? 0) > 0 ? "+" : ""}{fmt(simResult.riesgo?.riesgoAnual)} €
                       </span>
                     </div>
                   </div>
@@ -559,7 +566,7 @@ export default function ClienteRetaDetailPage() {
             </div>
             <div>
               <Label>Base recomendada</Label>
-              <p className="font-mono text-lg font-bold">{estimacion ? parseFloat(estimacion.base_recomendada).toFixed(2) : "-"} €</p>
+              <p className="font-mono text-lg font-bold">{estimacion?.base_recomendada != null ? fmt(estimacion.base_recomendada) : "-"} €</p>
             </div>
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-3">
               <p className="text-xs text-amber-800 dark:text-amber-400">
