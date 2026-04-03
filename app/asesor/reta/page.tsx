@@ -18,6 +18,7 @@ type ClienteReta = {
   empresaId: string;
   nombre: string;
   nifCif: string | null;
+  tipoContribuyente: "autonomo" | "sociedad" | null;
   baseActual: number | null;
   cuotaActual: number | null;
   tramoActual: number | null;
@@ -39,6 +40,14 @@ type ResumenReta = {
   conRiesgoAlto: number;
   conAlertasPendientes: number;
   sinEstimacion: number;
+  sinConfigurar: number;
+  totalEmpresas: number;
+};
+
+type EmpresaSinConfigurar = {
+  empresaId: string;
+  nombre: string;
+  nifCif: string | null;
 };
 
 export default function RetaDashboardPage() {
@@ -46,6 +55,7 @@ export default function RetaDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [resumen, setResumen] = useState<ResumenReta | null>(null);
   const [clientes, setClientes] = useState<ClienteReta[]>([]);
+  const [sinConfigurar, setSinConfigurar] = useState<EmpresaSinConfigurar[]>([]);
   const [recalculando, setRecalculando] = useState(false);
 
   const fetchDashboard = async () => {
@@ -55,6 +65,7 @@ export default function RetaDashboardPage() {
       const data = await res.json();
       setResumen(data.resumen);
       setClientes(data.clientes);
+      setSinConfigurar(data.sinConfigurar || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -71,6 +82,28 @@ export default function RetaDashboardPage() {
     if (abs > 500) return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
     return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
   };
+
+  async function marcarComoAutonomo(empresaId: string) {
+    try {
+      const res = await authenticatedFetch(`/asesor/clientes/${empresaId}/tipo-contribuyente`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo_contribuyente: "autonomo" }),
+      });
+      if (res.ok) fetchDashboard();
+    } catch { /* silent */ }
+  }
+
+  async function marcarComoSociedad(empresaId: string) {
+    try {
+      const res = await authenticatedFetch(`/asesor/clientes/${empresaId}/tipo-contribuyente`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo_contribuyente: "sociedad" }),
+      });
+      if (res.ok) fetchDashboard();
+    } catch { /* silent */ }
+  }
 
   if (loading) return <div className="flex items-center justify-center p-8"><LoadingSpinner /></div>;
 
@@ -148,19 +181,67 @@ export default function RetaDashboardPage() {
         </div>
       )}
 
+      {/* Banner: clientes sin configurar */}
+      {sinConfigurar.length > 0 && (
+        <Card className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-amber-800 dark:text-amber-300">
+              <AlertTriangle className="w-5 h-5" />
+              {sinConfigurar.length} cliente{sinConfigurar.length !== 1 ? "s" : ""} sin tipo definido
+            </CardTitle>
+            <CardDescription className="text-amber-700/80 dark:text-amber-400/80">
+              Indica si cada cliente es autonomo o sociedad para activar el modulo RETA
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {sinConfigurar.map((e) => (
+                <div key={e.empresaId} className="flex items-center justify-between gap-3 bg-white dark:bg-background rounded-lg px-3 py-2 border">
+                  <div>
+                    <p className="text-sm font-medium">{e.nombre}</p>
+                    {e.nifCif && <p className="text-xs text-muted-foreground">{e.nifCif}</p>}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => marcarComoAutonomo(e.empresaId)} className="text-xs h-7">
+                      Autonomo
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => marcarComoSociedad(e.empresaId)} className="text-xs h-7 text-muted-foreground">
+                      Sociedad
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabla de clientes */}
       <Card>
         <CardHeader>
           <CardTitle>Clientes Autonomos</CardTitle>
           <CardDescription>
-            Ordenados por riesgo de regularizacion (mayor primero)
+            {clientes.length > 0
+              ? "Ordenados por riesgo de regularizacion (mayor primero)"
+              : resumen && resumen.totalEmpresas > 0
+                ? `Tienes ${resumen.totalEmpresas} clientes vinculados. Marca los que sean autonomos para ver sus estimaciones RETA.`
+                : "Vincula clientes desde la seccion de Clientes para empezar"
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
           {clientes.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No hay clientes autonomos vinculados.
-            </p>
+            <div className="text-center py-8">
+              <Users className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
+              <p className="text-muted-foreground">
+                {sinConfigurar.length > 0
+                  ? "Configura el tipo de tus clientes arriba para empezar"
+                  : "No hay clientes autonomos vinculados"}
+              </p>
+              <Button variant="outline" className="mt-4" onClick={() => router.push("/asesor/clientes")}>
+                Ir a Clientes
+              </Button>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

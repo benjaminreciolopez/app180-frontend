@@ -62,6 +62,7 @@ type ClienteVinculado = {
   empresa_id: string;
   nombre: string;
   cif: string;
+  tipo_contribuyente: "autonomo" | "sociedad" | null;
   estado: "activo" | "pendiente" | "rechazado" | "revocado";
   invitado_por: "empresa" | "asesoria";
   permisos: Permisos;
@@ -198,6 +199,25 @@ export default function AsesorClientesPage() {
     }
   }
 
+  async function handleTipoChange(empresaId: string, tipo: "autonomo" | "sociedad") {
+    try {
+      const res = await authenticatedFetch(`/asesor/clientes/${empresaId}/tipo-contribuyente`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo_contribuyente: tipo }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Error");
+      setClientes((prev) =>
+        prev.map((c) =>
+          c.empresa_id === empresaId ? { ...c, tipo_contribuyente: tipo } : c
+        )
+      );
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
   function formatDate(dateStr: string | null) {
     if (!dateStr) return "-";
     try {
@@ -315,7 +335,7 @@ export default function AsesorClientesPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Empresa</TableHead>
-                      <TableHead>CIF</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead>Permisos</TableHead>
@@ -338,8 +358,25 @@ export default function AsesorClientesPage() {
                               {cliente.nombre}
                             </div>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {cliente.cif || "-"}
+                          <TableCell>
+                            {cliente.estado === "activo" ? (
+                              <select
+                                value={cliente.tipo_contribuyente || ""}
+                                onChange={(e) => {
+                                  const val = e.target.value as "autonomo" | "sociedad";
+                                  if (val) handleTipoChange(cliente.empresa_id, val);
+                                }}
+                                className="text-xs border rounded px-2 py-1 bg-background"
+                              >
+                                <option value="">Sin definir</option>
+                                <option value="autonomo">Autonomo</option>
+                                <option value="sociedad">Sociedad</option>
+                              </select>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                {cliente.tipo_contribuyente === "autonomo" ? "Autonomo" : cliente.tipo_contribuyente === "sociedad" ? "Sociedad" : "-"}
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {cliente.email || "-"}
@@ -437,6 +474,24 @@ export default function AsesorClientesPage() {
                         {estado.label}
                       </Badge>
                     </div>
+
+                    {cliente.estado === "activo" && (
+                      <div className="mb-3">
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Tipo</label>
+                        <select
+                          value={cliente.tipo_contribuyente || ""}
+                          onChange={(e) => {
+                            const val = e.target.value as "autonomo" | "sociedad";
+                            if (val) handleTipoChange(cliente.empresa_id, val);
+                          }}
+                          className="text-xs border rounded px-2 py-1 bg-background w-full mt-1"
+                        >
+                          <option value="">Sin definir</option>
+                          <option value="autonomo">Autonomo</option>
+                          <option value="sociedad">Sociedad</option>
+                        </select>
+                      </div>
+                    )}
 
                     <div className="mb-3">
                       {renderPermisos(cliente.permisos || {})}
