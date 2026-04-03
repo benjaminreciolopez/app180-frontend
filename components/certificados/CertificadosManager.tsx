@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   ShieldCheck, ShieldAlert, ShieldX, ShieldOff,
   Plus, Trash2, Clock, FileText, ChevronDown, ChevronUp,
-  Upload, CheckCircle2, AlertTriangle, Loader2, Download,
+  Upload, CheckCircle2, AlertTriangle, Loader2, Download, RefreshCw, ExternalLink,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
@@ -93,6 +93,11 @@ function getEstadoCalculado(cert: Certificado): string {
   if (dias <= 30) return "proximo_caducar";
   return "activo";
 }
+
+const FNMT_URLS = {
+  renovar: "https://www.sede.fnmt.gob.es/certificados/persona-fisica/renovar",
+  solicitar: "https://www.sede.fnmt.gob.es/certificados/persona-fisica/obtener",
+};
 
 // ─── Component ───────────────────────────────────────────────
 export function CertificadosManager({ empresaId }: { empresaId: string }) {
@@ -332,6 +337,26 @@ export function CertificadosManager({ empresaId }: { empresaId: string }) {
                       </div>
                     </div>
                     <div className="flex gap-1 shrink-0">
+                      {/* Renovar en FNMT - visible cuando caduca en <= 60 dias o ya caducado */}
+                      {caducidad.dias <= 60 && (
+                        <a
+                          href={caducidad.dias < -365 ? FNMT_URLS.solicitar : FNMT_URLS.renovar}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                            title={caducidad.dias < -365 ? "Solicitar nuevo certificado en FNMT" : "Renovar certificado en FNMT"}
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            <span className="ml-1 hidden sm:inline">
+                              {caducidad.dias < -365 ? "Solicitar" : "Renovar"}
+                            </span>
+                          </Button>
+                        </a>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"

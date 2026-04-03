@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ShieldCheck, ShieldAlert, ShieldX, Filter,
-  Building2, ExternalLink, AlertTriangle,
+  Building2, ExternalLink, AlertTriangle, RefreshCw,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -101,6 +102,16 @@ function formatDate(d: string | null): string {
     month: "2-digit",
     year: "numeric",
   });
+}
+
+const FNMT_URLS = {
+  renovar: "https://www.sede.fnmt.gob.es/certificados/persona-fisica/renovar",
+  solicitar: "https://www.sede.fnmt.gob.es/certificados/persona-fisica/obtener",
+};
+
+function canRenew(dias: number | null | undefined): boolean {
+  // FNMT permite renovar hasta 60 dias antes de caducidad
+  return dias != null && dias <= 60 && dias > -365;
 }
 
 // ─── Page ────────────────────────────────────────────────────
@@ -257,13 +268,14 @@ export default function CertificadosClientesPage() {
       ) : (
         <div className="space-y-2">
           {/* Table header (desktop) */}
-          <div className="hidden md:grid md:grid-cols-[1fr_1fr_1fr_120px_100px_100px] gap-3 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <div className="hidden md:grid md:grid-cols-[1fr_1fr_1fr_120px_100px_100px_80px] gap-3 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
             <span>Empresa</span>
             <span>Certificado</span>
             <span>Titular</span>
             <span>Caducidad</span>
             <span>Tiempo</span>
             <span>Estado</span>
+            <span>Acciones</span>
           </div>
 
           {filtered.map((cert) => (
@@ -277,7 +289,7 @@ export default function CertificadosClientesPage() {
               >
                 <CardContent className="p-4">
                   {/* Desktop layout */}
-                  <div className="hidden md:grid md:grid-cols-[1fr_1fr_1fr_120px_100px_100px] gap-3 items-center">
+                  <div className="hidden md:grid md:grid-cols-[1fr_1fr_1fr_120px_100px_100px_80px] gap-3 items-center">
                     <div className="flex items-center gap-2 min-w-0">
                       <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
                       <div className="min-w-0">
@@ -301,7 +313,24 @@ export default function CertificadosClientesPage() {
                     </span>
                     <div className="flex items-center gap-1">
                       {estadoBadge(cert.estado_calculado)}
-                      <ExternalLink className="w-3 h-3 text-muted-foreground ml-auto shrink-0" />
+                    </div>
+                    <div className="flex items-center gap-1" onClick={(e) => e.preventDefault()}>
+                      {canRenew(cert.dias_hasta_caducidad) ? (
+                        <a
+                          href={FNMT_URLS.renovar}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Renovar en FNMT"
+                        >
+                          <Button variant="outline" size="sm" className="h-7 px-2 text-xs text-amber-600 border-amber-300 hover:bg-amber-50">
+                            <RefreshCw className="w-3 h-3 mr-1" />
+                            Renovar
+                          </Button>
+                        </a>
+                      ) : (
+                        <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                      )}
                     </div>
                   </div>
 
@@ -332,6 +361,20 @@ export default function CertificadosClientesPage() {
                           {diasLabel(cert.dias_hasta_caducidad)}
                         </span>
                       </div>
+                      {canRenew(cert.dias_hasta_caducidad) && (
+                        <a
+                          href={FNMT_URLS.renovar}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-block mt-1"
+                        >
+                          <Button variant="outline" size="sm" className="h-7 px-2 text-xs text-amber-600 border-amber-300 hover:bg-amber-50">
+                            <RefreshCw className="w-3 h-3 mr-1" />
+                            Renovar en FNMT
+                          </Button>
+                        </a>
+                      )}
                     </div>
                   </div>
                 </CardContent>
