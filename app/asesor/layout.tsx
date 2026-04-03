@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, ChevronDown, ChevronRight } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
@@ -38,8 +38,11 @@ function hasModule(modules: Modulos | undefined, key: string | null) {
   return modules?.[key] === true;
 }
 
-// Secciones del menu agrupadas (misma estructura que admin)
-const menuSections = [
+// ─────────────────────────────────────────────────────────
+// MI DESPACHO: gestión interna de la propia asesoría
+// Replica la estructura del modo empresa (admin)
+// ─────────────────────────────────────────────────────────
+const miDespachoSections = [
   {
     title: "INICIO",
     items: [
@@ -47,39 +50,18 @@ const menuSections = [
     ],
   },
   {
-    title: "CLIENTES",
+    title: "EQUIPO",
     items: [
-      { path: "/asesor/clientes", label: "Clientes Vinculados", module: null },
-      { path: "/asesor/mis-clientes", label: "Mis Clientes", module: null },
-    ],
-  },
-  {
-    title: "RECURSOS HUMANOS",
-    items: [
-      { path: "/asesor/empleados", label: "Empleados", module: "empleados" },
-      { path: "/asesor/laboral", label: "Laboral", module: "empleados" },
-    ],
-  },
-  {
-    title: "PLANIFICACIÓN",
-    items: [
+      { path: "/asesor/mi-equipo", label: "Empleados", module: "empleados" },
       { path: "/asesor/calendario", label: "Calendario", module: "calendario" },
+      { path: "/asesor/planings", label: "Gestión Planings", module: "calendario" },
       { path: "/asesor/jornadas", label: "Configurar Jornadas", module: "fichajes" },
-    ],
-  },
-  {
-    title: "CONTROL HORARIO",
-    items: [
       { path: "/asesor/fichajes", label: "Fichajes", module: "fichajes" },
       { path: "/asesor/fichajes/sospechosos", label: "Sospechosos", module: "fichajes" },
-      { path: "/asesor/auditoria", label: "Auditoría", module: "fichajes" },
+      { path: "/asesor/kioscos", label: "Kioscos", module: "fichajes" },
+      { path: "/asesor/auditoria", label: "Auditoria", module: "fichajes" },
       { path: "/asesor/auditoria/rechazados", label: "Rechazados", module: "fichajes" },
-    ],
-  },
-  {
-    title: "TRABAJOS",
-    items: [
-      { path: "/asesor/partes-dia", label: "Partes del día", module: "worklogs" },
+      { path: "/asesor/partes-dia", label: "Partes del dia", module: "worklogs" },
       { path: "/asesor/worklogs", label: "Partes de Trabajo", module: "worklogs" },
       { path: "/asesor/reportes/rentabilidad", label: "Reporte Rentabilidad", module: "fichajes" },
     ],
@@ -100,8 +82,9 @@ const menuSections = [
       { path: "/asesor/contabilidad/pyg", label: "Pérdidas y Ganancias", module: "contable" },
       { path: "/asesor/contabilidad/mayor", label: "Libro Mayor", module: "contable" },
       { path: "/asesor/contabilidad/cuentas", label: "Plan de Cuentas", module: "contable" },
+      { path: "/asesor/contabilidad/extracto", label: "Extracto Bancario", module: "contable" },
       { path: "/asesor/nominas", label: "Nóminas", module: "contable" },
-      { path: "/asesor/nominas/generar", label: "Generar Nóminas", module: "contable" },
+      { path: "/asesor/nominas/entregas", label: "Entregas Nóminas", module: "contable" },
     ],
   },
   {
@@ -112,15 +95,44 @@ const menuSections = [
       { path: "/asesor/fiscal/modelos-anuales", label: "Modelos Anuales", module: "fiscal" },
       { path: "/asesor/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
       { path: "/asesor/fiscal/reglas", label: "Reglas Fiscales", module: "fiscal" },
-      { path: "/asesor/reta", label: "RETA Autónomos", module: "fiscal" },
       { path: "/asesor/sii", label: "SII", module: "fiscal" },
     ],
   },
   {
-    title: "ADMINISTRACIÓN",
+    title: "CONFIGURACIÓN",
     items: [
-      { path: "/asesor/certificados", label: "Certificados Digitales", module: null },
+      { path: "/asesor/configuracion", label: "Configuración", module: null },
+      { path: "/asesor/certificados", label: "Certificados", module: null },
       { path: "/asesor/exportar", label: "Exportar", module: null },
+    ],
+  },
+];
+
+// ─────────────────────────────────────────────────────────
+// MIS CLIENTES: gestión profesional de la cartera
+// Cross-client views + acceso per-client
+// ─────────────────────────────────────────────────────────
+const misClientesSections = [
+  {
+    title: "CLIENTES",
+    items: [
+      { path: "/asesor/clientes", label: "Clientes Vinculados", module: null },
+      { path: "/asesor/mis-clientes", label: "Directorio Clientes", module: null },
+    ],
+  },
+  {
+    title: "LABORAL",
+    items: [
+      { path: "/asesor/empleados", label: "Empleados", module: "empleados" },
+      { path: "/asesor/laboral", label: "Laboral", module: "empleados" },
+      { path: "/asesor/nominas/generar", label: "Generar Nóminas", module: "contable" },
+    ],
+  },
+  {
+    title: "ESPECIALIZADO",
+    items: [
+      { path: "/asesor/reta", label: "RETA Autónomos", module: "fiscal" },
+      { path: "/asesor/certificados-clientes", label: "Certificados Digitales", module: null },
     ],
   },
 ];
@@ -141,6 +153,11 @@ export default function AsesorLayout({
   const [user, setUser] = useState<AsesorUser | null>(null);
   const [checking, setChecking] = useState(true);
   const [selfConfigOpen, setSelfConfigOpen] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
+  function toggleGroup(group: string) {
+    setCollapsedGroups((prev) => ({ ...prev, [group]: !prev[group] }));
+  }
 
   useEffect(() => {
     if (isPublicRoute) {
@@ -187,29 +204,46 @@ export default function AsesorLayout({
     const titles: Record<string, string> = {
       "/asesor/dashboard": "Dashboard",
       "/asesor/clientes": "Clientes",
-      "/asesor/empleados": "Empleados",
+      "/asesor/mis-clientes": "Directorio Clientes",
+      "/asesor/mi-equipo": "Equipo del Despacho",
+      "/asesor/empleados": "Empleados Clientes",
       "/asesor/fichajes/sospechosos": "Sospechosos",
       "/asesor/fichajes/correcciones": "Correcciones",
       "/asesor/fichajes": "Fichajes",
       "/asesor/auditoria/rechazados": "Rechazados",
-      "/asesor/auditoria": "Auditoría",
+      "/asesor/auditoria": "Auditoria",
       "/asesor/calendario": "Calendario",
+      "/asesor/planings": "Planings",
       "/asesor/jornadas": "Jornadas",
       "/asesor/laboral": "Laboral",
+      "/asesor/nominas/generar": "Generar Nóminas",
+      "/asesor/nominas/entregas": "Entregas Nóminas",
       "/asesor/nominas": "Nóminas",
       "/asesor/gastos": "Compras y Gastos",
-      "/asesor/partes-dia": "Partes del día",
+      "/asesor/partes-dia": "Partes del dia",
       "/asesor/worklogs": "Partes de Trabajo",
       "/asesor/reportes/rentabilidad": "Reporte Rentabilidad",
       "/asesor/facturacion": "Facturación",
       "/asesor/pagos": "Cobros y Pagos",
+      "/asesor/contabilidad/asientos": "Asientos Contables",
+      "/asesor/contabilidad/balance": "Balance",
+      "/asesor/contabilidad/pyg": "Pérdidas y Ganancias",
+      "/asesor/contabilidad/mayor": "Libro Mayor",
+      "/asesor/contabilidad/cuentas": "Plan de Cuentas",
+      "/asesor/contabilidad/extracto": "Extracto Bancario",
       "/asesor/contabilidad": "Contabilidad",
       "/asesor/fiscal/cierre": "Cierre Ejercicio",
+      "/asesor/fiscal/modelos-anuales": "Modelos Anuales",
       "/asesor/fiscal/renta": "Declaración Renta",
       "/asesor/fiscal/reglas": "Reglas Fiscales",
       "/asesor/fiscal": "Fiscal",
+      "/asesor/sii": "SII",
+      "/asesor/reta": "RETA Autónomos",
       "/asesor/exportar": "Exportar",
       "/asesor/configuracion": "Configuración",
+      "/asesor/certificados": "Certificados",
+      "/asesor/certificados-clientes": "Certificados Clientes",
+      "/asesor/kioscos": "Kioscos",
     };
 
     const match = Object.entries(titles)
@@ -248,18 +282,110 @@ export default function AsesorLayout({
     return null;
   }
 
-  // Filtrar secciones visibles segun modulos
-  const visibleSections = menuSections
-    .map((section) => {
-      const visibleItems = section.items.filter((item) =>
-        hasModule(user.modulos, item.module)
-      );
-      return { ...section, items: visibleItems };
-    })
-    .filter((section) => section.items.length > 0);
+  // ─── Filtrar secciones visibles según módulos ───
+  type MenuSection = { title: string; items: { path: string; label: string; module: string | null }[] };
+  function filterSections(sections: MenuSection[]) {
+    return sections
+      .map((section) => {
+        const visibleItems = section.items.filter((item) =>
+          hasModule(user!.modulos, item.module)
+        );
+        return { ...section, items: visibleItems };
+      })
+      .filter((section) => section.items.length > 0);
+  }
 
-  // Recopilar todas las rutas del menu
-  const allMenuPaths = visibleSections.flatMap((s) => s.items.map((i) => i.path));
+  const visibleDespacho = filterSections(miDespachoSections);
+  const visibleClientes = filterSections(misClientesSections);
+
+  // Recopilar todas las rutas del menú para active-state matching
+  const allMenuPaths = [
+    ...visibleDespacho.flatMap((s) => s.items.map((i) => i.path)),
+    ...visibleClientes.flatMap((s) => s.items.map((i) => i.path)),
+  ];
+
+  // ─── Render de una sección del menú ───
+  function renderSection(section: { title: string; items: { path: string; label: string; module: string | null }[] }, sIdx: number) {
+    return (
+      <div key={section.title} className={sIdx > 0 ? "mt-3" : ""}>
+        {section.title !== "INICIO" && (
+          <div className="px-3 mb-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              {section.title}
+            </span>
+          </div>
+        )}
+        <ul className="space-y-0.5">
+          {section.items.map((item) => {
+            let isActive = pathname === item.path;
+
+            if (
+              !isActive &&
+              item.path !== "/asesor/dashboard" &&
+              pathname.startsWith(item.path + "/")
+            ) {
+              const hasMoreSpecificMatch = allMenuPaths.some(
+                (p) =>
+                  p !== item.path &&
+                  p.length > item.path.length &&
+                  p.startsWith(item.path) &&
+                  (pathname === p || pathname.startsWith(p + "/"))
+              );
+              isActive = !hasMoreSpecificMatch;
+            }
+
+            return (
+              <li key={item.path}>
+                <Link
+                  href={item.path}
+                  onClick={() => setMenuOpen(false)}
+                  className={`block px-3 py-1.5 rounded-md text-sm transition ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
+
+  // ─── Render de un grupo (MI DESPACHO / MIS CLIENTES) ───
+  function renderGroup(groupKey: string, groupLabel: string, sections: typeof visibleDespacho) {
+    if (sections.length === 0) return null;
+    const isCollapsed = collapsedGroups[groupKey] ?? false;
+
+    return (
+      <div className="mb-2">
+        {/* Group header — clickable to collapse */}
+        <button
+          onClick={() => toggleGroup(groupKey)}
+          className="flex items-center justify-between w-full px-3 py-2 mb-1 rounded-md hover:bg-muted/50 transition-colors"
+        >
+          <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/80">
+            {groupLabel}
+          </span>
+          {isCollapsed ? (
+            <ChevronRight size={14} className="text-muted-foreground" />
+          ) : (
+            <ChevronDown size={14} className="text-muted-foreground" />
+          )}
+        </button>
+
+        {/* Sections inside group */}
+        {!isCollapsed && (
+          <div className="ml-1 border-l-2 border-primary/10 pl-1">
+            {sections.map((section, sIdx) => renderSection(section, sIdx))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[100svh] w-full overflow-hidden">
@@ -299,55 +425,16 @@ export default function AsesorLayout({
           </p>
         </div>
 
-        {/* Navigation by sections */}
-        <nav className="mt-6 flex-1 overflow-y-auto">
-          {visibleSections.map((section, sIdx) => (
-            <div key={section.title} className={sIdx > 0 ? "mt-4" : ""}>
-              {section.title !== "INICIO" && (
-                <div className="px-3 mb-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                    {section.title}
-                  </span>
-                </div>
-              )}
-              <ul className="space-y-0.5">
-                {section.items.map((item) => {
-                  let isActive = pathname === item.path;
+        {/* Navigation — two groups */}
+        <nav className="mt-5 flex-1 overflow-y-auto pr-1">
+          {renderGroup("despacho", "Mi Despacho", visibleDespacho)}
 
-                  if (
-                    !isActive &&
-                    item.path !== "/asesor/dashboard" &&
-                    pathname.startsWith(item.path + "/")
-                  ) {
-                    const hasMoreSpecificMatch = allMenuPaths.some(
-                      (p) =>
-                        p !== item.path &&
-                        p.length > item.path.length &&
-                        p.startsWith(item.path) &&
-                        (pathname === p || pathname.startsWith(p + "/"))
-                    );
-                    isActive = !hasMoreSpecificMatch;
-                  }
+          {/* Separator between groups */}
+          {visibleDespacho.length > 0 && visibleClientes.length > 0 && (
+            <div className="my-2 border-t border-border/50" />
+          )}
 
-                  return (
-                    <li key={item.path}>
-                      <Link
-                        href={item.path}
-                        onClick={() => setMenuOpen(false)}
-                        className={`block px-3 py-2 rounded-md text-sm transition ${
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-muted"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+          {renderGroup("clientes", "Mis Clientes", visibleClientes)}
         </nav>
 
         {/* User info and logout */}
