@@ -61,6 +61,7 @@ interface Baja {
   fecha_fin: string | null;
   fecha_alta_medica: string | null;
   diagnostico: string | null;
+  codigo_diagnostico: string | null;
   base_reguladora: number | null;
   porcentaje_prestacion: number | null;
   importe_diario: number | null;
@@ -71,6 +72,7 @@ interface Baja {
   estado: string;
   nombre_empleado: string;
   notas: string | null;
+  [key: string]: unknown;
 }
 
 interface CotizacionRow {
