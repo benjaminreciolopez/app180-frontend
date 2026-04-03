@@ -1,25 +1,42 @@
 "use client";
 
-type Tramo = {
-  tramo: number;
-  rendMin: number;
-  rendMax: number;
-  baseMin: number;
-  baseMax: number;
-  tipoCotizacion: number;
+type TramoRaw = {
+  tramo?: number;
+  tramo_num?: number;
+  rendMin?: number | null;
+  rendMax?: number | null;
+  rend_neto_mensual_min?: number | null;
+  rend_neto_mensual_max?: number | null;
+  baseMin?: number | null;
+  baseMax?: number | null;
+  base_min?: number | null;
+  base_max?: number | null;
+  tipoCotizacion?: number | null;
+  tipo_cotizacion?: number | null;
 };
 
 type Props = {
-  tramos: Tramo[];
+  tramos: TramoRaw[];
   tramoActual: number | null;
   tramoRecomendado: number | null;
   rendimientoMensual: number | null;
 };
 
+const n = (val: number | null | undefined): number => Number(val) || 0;
+
 export function RetaTramoVisualizer({ tramos, tramoActual, tramoRecomendado, rendimientoMensual }: Props) {
   if (!tramos || tramos.length === 0) return null;
 
-  const maxBase = Math.max(...tramos.map(t => t.baseMax));
+  // Normalize field names (backend may send snake_case or camelCase)
+  const normalized = tramos.map(t => ({
+    tramo: t.tramo ?? t.tramo_num ?? 0,
+    rendMin: n(t.rendMin ?? t.rend_neto_mensual_min),
+    rendMax: t.rendMax ?? t.rend_neto_mensual_max,
+    baseMin: n(t.baseMin ?? t.base_min),
+    baseMax: n(t.baseMax ?? t.base_max),
+  }));
+
+  const maxBase = Math.max(...normalized.map(t => t.baseMax), 1);
 
   return (
     <div className="space-y-1">
@@ -32,7 +49,7 @@ export function RetaTramoVisualizer({ tramos, tramoActual, tramoRecomendado, ren
         </span>
       </div>
 
-      {tramos.map((t) => {
+      {normalized.map((t) => {
         const widthPct = (t.baseMax / maxBase) * 100;
         const isActual = t.tramo === tramoActual;
         const isRecomendado = t.tramo === tramoRecomendado;
@@ -60,7 +77,7 @@ export function RetaTramoVisualizer({ tramos, tramoActual, tramoRecomendado, ren
               )}
             </div>
             <span className="w-20 text-right font-mono text-muted-foreground">
-              {t.rendMax === Infinity ? `>${t.rendMin.toFixed(0)}€` : `${t.rendMin.toFixed(0)}-${t.rendMax.toFixed(0)}€`}
+              {t.rendMax == null ? `>${t.rendMin.toFixed(0)}€` : `${t.rendMin.toFixed(0)}-${n(t.rendMax).toFixed(0)}€`}
             </span>
           </div>
         );
