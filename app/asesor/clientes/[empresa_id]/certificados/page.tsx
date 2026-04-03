@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import CertificadosManager from "@/components/certificados/CertificadosManager";
+import { CertificadosManager } from "@/components/certificados/CertificadosManager";
 
 export default function ClienteCertificadosPage() {
   const { empresa_id } = useParams<{ empresa_id: string }>();
