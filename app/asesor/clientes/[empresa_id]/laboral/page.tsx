@@ -36,6 +36,8 @@ interface Contrato {
   convenio_colectivo: string | null;
   categoria_profesional: string | null;
   grupo_cotizacion: number | null;
+  epigrafes_at: string | null;
+  coeficiente_parcialidad: number | null;
   estado: string;
   motivo_extincion: string | null;
   fecha_extincion: string | null;
@@ -43,6 +45,8 @@ interface Contrato {
   dni: string | null;
   notas: string | null;
   es_bonificado: boolean;
+  tipo_bonificacion: string | null;
+  importe_bonificacion: number | null;
   periodo_prueba_dias: number | null;
   periodo_prueba_fin: string | null;
 }
