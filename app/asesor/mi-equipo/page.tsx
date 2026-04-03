@@ -46,7 +46,7 @@ export default function MiEquipoPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await authenticatedFetch("/api/admin/empleados");
+      const res = await authenticatedFetch("/employees");
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error || `Error ${res.status}`);
@@ -62,8 +62,10 @@ export default function MiEquipoPage() {
 
   async function handleToggleStatus(emp: Empleado) {
     try {
-      const res = await authenticatedFetch(`/api/admin/empleados/${emp.id}/toggle-status`, {
-        method: "POST",
+      const res = await authenticatedFetch(`/employees/${emp.id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activo: !emp.activo }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);

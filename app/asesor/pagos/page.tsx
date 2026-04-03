@@ -31,7 +31,7 @@ export default function AsesorPagosPage() {
   async function loadPagos() {
     try {
       setLoading(true);
-      const res = await api.get("/admin/pagos");
+      const res = await api.get("/admin/payments");
       setPagos(res.data?.pagos || res.data || []);
     } catch (err: any) {
       showError(err.response?.data?.error || "Error al cargar pagos");
