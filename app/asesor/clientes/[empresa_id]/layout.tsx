@@ -18,6 +18,7 @@ import {
   Radio,
   Wallet,
   Building,
+  KeyRound,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,11 @@ const tabs = [
     label: "SII",
     icon: Radio,
     segment: "sii",
+  },
+  {
+    label: "Certificados",
+    icon: KeyRound,
+    segment: "certificados",
   },
   {
     label: "Documentos",

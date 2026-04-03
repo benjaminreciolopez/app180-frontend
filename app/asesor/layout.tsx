@@ -109,14 +109,17 @@ const menuSections = [
     items: [
       { path: "/asesor/fiscal", label: "Fiscal y Alertas", module: "fiscal" },
       { path: "/asesor/fiscal/cierre", label: "Cierre Ejercicio", module: "fiscal" },
+      { path: "/asesor/fiscal/modelos-anuales", label: "Modelos Anuales", module: "fiscal" },
       { path: "/asesor/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
       { path: "/asesor/fiscal/reglas", label: "Reglas Fiscales", module: "fiscal" },
       { path: "/asesor/reta", label: "RETA Autónomos", module: "fiscal" },
+      { path: "/asesor/sii", label: "SII", module: "fiscal" },
     ],
   },
   {
-    title: "OTROS",
+    title: "ADMINISTRACIÓN",
     items: [
+      { path: "/asesor/certificados", label: "Certificados Digitales", module: null },
       { path: "/asesor/exportar", label: "Exportar", module: null },
     ],
   },
