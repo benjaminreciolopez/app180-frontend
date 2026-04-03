@@ -16,6 +16,10 @@ export default function LandingQRSection() {
     try {
       setStatus("loading")
       const res = await fetch(`${API_URL}/api/public/qr-session`, { method: "POST" })
+      if (!res.ok) {
+        setStatus("pending")
+        return
+      }
       const json = await res.json()
       if (json.success) {
         setQrDataUrl(json.qr_data_url)
@@ -23,8 +27,9 @@ export default function LandingQRSection() {
         setExpiresAt(json.expires_at)
         setStatus("pending")
       }
-    } catch (e) {
-      console.error("Error creating QR session:", e)
+    } catch {
+      // Backend not reachable — show static QR placeholder
+      setStatus("pending")
     }
   }, [])
 
@@ -42,6 +47,7 @@ export default function LandingQRSection() {
     pollRef.current = setInterval(async () => {
       try {
         const res = await fetch(`${API_URL}/api/public/qr-session/${sessionToken}/status`)
+        if (!res.ok) return
         const json = await res.json()
         if (json.status === "activated") {
           setStatus("activated")
@@ -50,7 +56,7 @@ export default function LandingQRSection() {
           setStatus("expired")
           if (pollRef.current) clearInterval(pollRef.current)
         }
-      } catch (e) { /* silent */ }
+      } catch { /* silent */ }
     }, 3000)
 
     return () => {
