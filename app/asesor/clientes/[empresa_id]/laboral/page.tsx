@@ -49,6 +49,7 @@ interface Contrato {
   importe_bonificacion: number | null;
   periodo_prueba_dias: number | null;
   periodo_prueba_fin: string | null;
+  [key: string]: unknown;
 }
 
 interface Baja {
