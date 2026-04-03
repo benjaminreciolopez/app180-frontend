@@ -46,8 +46,11 @@ type LogEntry = {
   id: string;
   accion: string;
   detalle: string | null;
-  modelo_aeat: string | null;
-  usuario_nombre: string | null;
+  modelo_aeat?: string | null;
+  modelo?: string | null;
+  resultado?: string | null;
+  usuario_nombre?: string | null;
+  usuario_id?: string | null;
   created_at: string;
 };
 
@@ -371,11 +374,11 @@ export function CertificadosManager({ empresaId }: { empresaId: string }) {
                             <Clock className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
                             <div>
                               <span className="font-medium">{log.accion}</span>
-                              {log.modelo_aeat && <span className="ml-1 text-muted-foreground">(Modelo {log.modelo_aeat})</span>}
+                              {(log.modelo_aeat || log.modelo) && <span className="ml-1 text-muted-foreground">(Modelo {log.modelo_aeat || log.modelo})</span>}
+                              {log.resultado && <span className={`ml-1 ${log.resultado === 'ok' ? 'text-green-600' : 'text-red-500'}`}>[{log.resultado}]</span>}
                               {log.detalle && <span className="ml-1">- {log.detalle}</span>}
                               <span className="ml-2 text-muted-foreground">
                                 {formatDate(log.created_at)}
-                                {log.usuario_nombre && ` por ${log.usuario_nombre}`}
                               </span>
                             </div>
                           </div>
