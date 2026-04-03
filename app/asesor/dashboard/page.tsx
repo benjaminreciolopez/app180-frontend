@@ -24,6 +24,7 @@ import {
 import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { ALL_ASESOR_DASHBOARD_WIDGETS } from "@/lib/asesor-dashboard-widgets";
+import { RetaDashboardWidget } from "@/components/reta/RetaDashboardWidget";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import {
   Card,
@@ -632,6 +633,9 @@ export default function AsesorDashboardPage() {
               </div>
             </div>
           )}
+
+          {/* Widget RETA Autonomos */}
+          <RetaDashboardWidget />
         </div>
       </div>}
 

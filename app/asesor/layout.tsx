@@ -109,6 +109,7 @@ const menuSections = [
       { path: "/asesor/fiscal", label: "Fiscal y Alertas", module: "fiscal" },
       { path: "/asesor/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
       { path: "/asesor/fiscal/reglas", label: "Reglas Fiscales", module: "fiscal" },
+      { path: "/asesor/reta", label: "RETA Autónomos", module: "fiscal" },
     ],
   },
   {
