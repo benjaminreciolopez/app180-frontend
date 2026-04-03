@@ -8,6 +8,8 @@ import { getUser, refreshMe } from "@/services/auth";
 import { api } from "@/services/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { AICopilot } from "@/components/shared/AICopilot";
+import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
+import { QuickViewProvider } from "@/contexts/QuickViewContext";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
 import AutoBackupSync from "@/components/admin/AutoBackupSync";
@@ -201,6 +203,7 @@ export default function AdminLayout({
       { path: "/admin/contabilidad", module: "contable" },
       { path: "/admin/nominas", module: "contable" },
       { path: "/admin/fiscal", module: "fiscal" }, // Nuevo: Modelos (Módulo cobrable)
+      { path: "/admin/fiscal/cierre", module: "fiscal" },
       { path: "/admin/fiscal/renta", module: "fiscal" },
       { path: "/admin/fiscal/reglas", module: "fiscal" },
 
@@ -251,6 +254,7 @@ export default function AdminLayout({
       "/admin/gastos/recurrentes": "Gastos Recurrentes",
       "/admin/contabilidad": "Contabilidad",
       "/admin/fiscal": "Fiscalidad",
+      "/admin/fiscal/cierre": "Cierre Ejercicio",
       "/admin/fiscal/renta": "Declaración Renta",
       "/admin/fiscal/reglas": "Reglas Fiscales",
       "/admin/nominas": "Nominas",
@@ -399,6 +403,7 @@ export default function AdminLayout({
       title: "FISCAL",
       items: [
         { path: "/admin/fiscal", label: "Fiscal y Alertas", module: "fiscal" },
+        { path: "/admin/fiscal/cierre", label: "Cierre Ejercicio", module: "fiscal" },
         { path: "/admin/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
         { path: "/admin/fiscal/reglas", label: "Reglas Fiscales", module: "fiscal" },
       ],
@@ -618,7 +623,10 @@ export default function AdminLayout({
         </header>
 
         {/* Contenido */}
-        <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
+        <QuickViewProvider>
+          <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
+          <QuickViewPanel />
+        </QuickViewProvider>
       </main>
 
       {/* AI Copilot - Bot flotante */}

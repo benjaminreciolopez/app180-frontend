@@ -18,8 +18,10 @@ import {
   Link2,
   Check,
   X as XIcon,
+  PanelRightOpen,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
+import { QuickViewTrigger } from "@/components/shared/QuickViewTrigger";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import {
   Card,
@@ -350,13 +352,18 @@ export default function AsesorClientesPage() {
                       return (
                         <TableRow key={cliente.vinculo_id}>
                           <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <Building2
-                                size={16}
-                                className="text-muted-foreground shrink-0"
-                              />
-                              {cliente.nombre}
-                            </div>
+                            <QuickViewTrigger
+                              title={cliente.nombre}
+                              url={`/asesor/clientes/${cliente.empresa_id}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Building2
+                                  size={16}
+                                  className="text-muted-foreground shrink-0"
+                                />
+                                {cliente.nombre}
+                              </div>
+                            </QuickViewTrigger>
                           </TableCell>
                           <TableCell>
                             {cliente.estado === "activo" ? (
@@ -457,19 +464,24 @@ export default function AsesorClientesPage() {
                 <Card key={cliente.vinculo_id}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Building2 size={18} className="text-primary" />
+                      <QuickViewTrigger
+                        title={cliente.nombre}
+                        url={`/asesor/clientes/${cliente.empresa_id}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Building2 size={18} className="text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">
+                              {cliente.nombre}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {cliente.cif || cliente.email}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-sm">
-                            {cliente.nombre}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {cliente.cif || cliente.email}
-                          </p>
-                        </div>
-                      </div>
+                      </QuickViewTrigger>
                       <Badge variant="outline" className={estado.className}>
                         {estado.label}
                       </Badge>

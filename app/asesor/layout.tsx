@@ -8,6 +8,8 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
 import { AICopilot } from "@/components/shared/AICopilot";
+import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
+import { QuickViewProvider } from "@/contexts/QuickViewContext";
 
 type Modulos = Record<string, boolean>;
 
@@ -61,7 +63,6 @@ const menuSections = [
     title: "PLANIFICACIÓN",
     items: [
       { path: "/asesor/calendario", label: "Calendario", module: "calendario" },
-      { path: "/asesor/planings", label: "Gestión Planings", module: "calendario" },
       { path: "/asesor/jornadas", label: "Configurar Jornadas", module: "fichajes" },
     ],
   },
@@ -70,7 +71,6 @@ const menuSections = [
     items: [
       { path: "/asesor/fichajes", label: "Fichajes", module: "fichajes" },
       { path: "/asesor/fichajes/sospechosos", label: "Sospechosos", module: "fichajes" },
-      { path: "/asesor/kioscos", label: "Kioscos", module: "fichajes" },
       { path: "/asesor/auditoria", label: "Auditoría", module: "fichajes" },
       { path: "/asesor/auditoria/rechazados", label: "Rechazados", module: "fichajes" },
     ],
@@ -107,6 +107,7 @@ const menuSections = [
     title: "FISCAL",
     items: [
       { path: "/asesor/fiscal", label: "Fiscal y Alertas", module: "fiscal" },
+      { path: "/asesor/fiscal/cierre", label: "Cierre Ejercicio", module: "fiscal" },
       { path: "/asesor/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
       { path: "/asesor/fiscal/reglas", label: "Reglas Fiscales", module: "fiscal" },
       { path: "/asesor/reta", label: "RETA Autónomos", module: "fiscal" },
@@ -188,9 +189,7 @@ export default function AsesorLayout({
       "/asesor/fichajes": "Fichajes",
       "/asesor/auditoria/rechazados": "Rechazados",
       "/asesor/auditoria": "Auditoría",
-      "/asesor/kioscos": "Kioscos",
       "/asesor/calendario": "Calendario",
-      "/asesor/planings": "Gestión Planings",
       "/asesor/jornadas": "Jornadas",
       "/asesor/nominas": "Nóminas",
       "/asesor/gastos": "Compras y Gastos",
@@ -200,6 +199,7 @@ export default function AsesorLayout({
       "/asesor/facturacion": "Facturación",
       "/asesor/pagos": "Cobros y Pagos",
       "/asesor/contabilidad": "Contabilidad",
+      "/asesor/fiscal/cierre": "Cierre Ejercicio",
       "/asesor/fiscal/renta": "Declaración Renta",
       "/asesor/fiscal/reglas": "Reglas Fiscales",
       "/asesor/fiscal": "Fiscal",
@@ -416,7 +416,10 @@ export default function AsesorLayout({
         </header>
 
         {/* Page content */}
-        <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
+        <QuickViewProvider>
+          <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
+          <QuickViewPanel />
+        </QuickViewProvider>
       </main>
 
       {/* AI Copilot - Bot flotante */}

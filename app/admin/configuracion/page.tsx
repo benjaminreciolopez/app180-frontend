@@ -11,6 +11,7 @@ import CalendarConfigPanel from "@/components/admin/CalendarConfigPanel";
 import CalendarSyncHistory from "@/components/admin/CalendarSyncHistory";
 import KnowledgePanel from "@/components/admin/KnowledgePanel";
 import BackupPanel from "@/components/admin/BackupPanel";
+import TitularesManager from "@/components/shared/TitularesManager";
 import TiposBloquePanel from "./TiposBloquePanel";
 import { QrCode, Shield, ArrowRight } from "lucide-react";
 
@@ -44,13 +45,16 @@ export default function AdminConfiguracionPage() {
   const [activeTab, setActiveTab] = useState<"desktop" | "mobile">("desktop");
   const [saving, setSaving] = useState(false);
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
+  const [tipoContribuyente, setTipoContribuyente] = useState<"autonomo" | "sociedad" | "">("");
+  const [savingTipo, setSavingTipo] = useState(false);
 
   async function load() {
     try {
       const r = await api.get("/admin/configuracion");
 
-      const { modulos_mobile, ...rest } = r.data;
+      const { modulos_mobile, tipo_contribuyente: tc, ...rest } = r.data;
 
+      setTipoContribuyente(tc || "");
       setModulos({
         ...DEFAULTS,
         ...rest,
@@ -107,6 +111,21 @@ export default function AdminConfiguracionPage() {
         ...prev!,
         [k]: prev?.[k] === false ? true : false,
       }));
+    }
+  }
+
+  async function saveTipoContribuyente(newTipo: "autonomo" | "sociedad") {
+    setSavingTipo(true);
+    try {
+      await api.put("/admin/empresa/tipo-contribuyente", {
+        tipo_contribuyente: newTipo,
+      });
+      setTipoContribuyente(newTipo);
+      showSuccess("Tipo de contribuyente actualizado");
+    } catch {
+      showError("Error al actualizar tipo de contribuyente");
+    } finally {
+      setSavingTipo(false);
     }
   }
 
@@ -213,6 +232,56 @@ export default function AdminConfiguracionPage() {
           {saving ? "Guardando…" : "Guardar cambios"}
         </Button>
       </div>
+
+      {/* Tipo de Contribuyente */}
+      <div>
+        <h2 className="text-xl font-semibold mb-3">Tipo de contribuyente</h2>
+        <div className="card space-y-3">
+          <p className="text-sm text-gray-600">
+            Define si tu empresa opera como autonomo o sociedad. Esto afecta a los modelos fiscales aplicables y los plazos de VeriFactu.
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => saveTipoContribuyente("autonomo")}
+              disabled={savingTipo}
+              className={`flex-1 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                tipoContribuyente === "autonomo"
+                  ? "border-blue-500 bg-blue-50 text-blue-700"
+                  : "border-gray-200 hover:border-gray-300 text-gray-600"
+              }`}
+            >
+              Autonomo
+            </button>
+            <button
+              onClick={() => saveTipoContribuyente("sociedad")}
+              disabled={savingTipo}
+              className={`flex-1 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                tipoContribuyente === "sociedad"
+                  ? "border-blue-500 bg-blue-50 text-blue-700"
+                  : "border-gray-200 hover:border-gray-300 text-gray-600"
+              }`}
+            >
+              Sociedad
+            </button>
+          </div>
+          {!tipoContribuyente && (
+            <p className="text-xs text-amber-600 font-medium">
+              No has definido el tipo de contribuyente. Selecciona uno para configurar correctamente los modelos fiscales.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Titulares / Socios */}
+      {user?.empresa_id && (
+        <div>
+          <h2 className="text-xl font-semibold mb-3">Titulares / Socios</h2>
+          <TitularesManager
+            empresaId={user.empresa_id}
+            basePath="/admin"
+          />
+        </div>
+      )}
 
       {/* Tipos de Bloque */}
       <div>

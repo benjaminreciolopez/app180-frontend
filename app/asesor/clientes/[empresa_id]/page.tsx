@@ -26,7 +26,18 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ExportDialog } from "@/components/asesor/ExportDialog";
+import TitularesManager from "@/components/shared/TitularesManager";
 
 type Permisos = {
   facturas?: { read?: boolean; write?: boolean };
@@ -52,6 +63,7 @@ type ResumenData = {
   permisos: Permisos;
   anio: number;
   nombre?: string;
+  tipo_contribuyente?: "autonomo" | "sociedad" | null;
 };
 
 const formatCurrency = (amount: number) =>
@@ -123,6 +135,8 @@ export default function AsesorClienteDetallePage() {
   const [data, setData] = useState<ResumenData | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [tipoChangeTarget, setTipoChangeTarget] = useState<"autonomo" | "sociedad" | null>(null);
+  const [changingTipo, setChangingTipo] = useState(false);
 
   async function loadResumen() {
     setLoading(true);
@@ -192,6 +206,33 @@ export default function AsesorClienteDetallePage() {
     }
   }
 
+  async function confirmTipoChange() {
+    if (!tipoChangeTarget) return;
+    setChangingTipo(true);
+    try {
+      const res = await authenticatedFetch(
+        `/asesor/clientes/${empresaId}/tipo-contribuyente`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tipo_contribuyente: tipoChangeTarget }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Error al cambiar tipo de contribuyente");
+      }
+      setData((prev) =>
+        prev ? { ...prev, tipo_contribuyente: tipoChangeTarget } : prev
+      );
+    } catch (err: any) {
+      alert(err.message || "Error al cambiar tipo de contribuyente");
+    } finally {
+      setChangingTipo(false);
+      setTipoChangeTarget(null);
+    }
+  }
+
 
   if (loading) {
     return <LoadingSpinner fullPage />;
@@ -222,11 +263,27 @@ export default function AsesorClienteDetallePage() {
   return (
     <div className="space-y-6">
       {/* Header actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-lg font-bold tracking-tight">
-            Resumen del cliente
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-bold tracking-tight">
+              Resumen del cliente
+            </h1>
+            <select
+              value={data.tipo_contribuyente || ""}
+              onChange={(e) => {
+                const val = e.target.value as "autonomo" | "sociedad";
+                if (val && val !== data.tipo_contribuyente) {
+                  setTipoChangeTarget(val);
+                }
+              }}
+              className="text-xs border rounded-md px-2 py-1 bg-background font-medium"
+            >
+              <option value="">Tipo: sin definir</option>
+              <option value="autonomo">Autonomo</option>
+              <option value="sociedad">Sociedad</option>
+            </select>
+          </div>
           <p className="text-xs text-muted-foreground">
             Datos del ejercicio {data.anio}
           </p>
@@ -249,6 +306,29 @@ export default function AsesorClienteDetallePage() {
           onOpenChange={setExportOpen}
         />
       </div>
+
+      {/* Confirmacion cambio tipo contribuyente */}
+      <AlertDialog
+        open={!!tipoChangeTarget}
+        onOpenChange={(open) => { if (!open) setTipoChangeTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cambiar tipo de contribuyente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a cambiar el tipo de contribuyente de este cliente a{" "}
+              <strong>{tipoChangeTarget === "autonomo" ? "Autonomo" : "Sociedad"}</strong>.
+              Esto puede afectar a los modelos fiscales aplicables y los plazos de VeriFactu.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={changingTipo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmTipoChange} disabled={changingTipo}>
+              {changingTipo ? "Cambiando..." : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* KPI summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -338,6 +418,12 @@ export default function AsesorClienteDetallePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Titulares / Socios */}
+      <TitularesManager
+        empresaId={empresaId}
+        basePath={`/asesor/clientes/${empresaId}`}
+      />
 
       {/* Sections grid (based on permissions) */}
       <div>

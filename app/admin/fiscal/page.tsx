@@ -10,8 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { formatCurrency } from "@/lib/utils";
-import { FileText, AlertTriangle, CheckSquare, Square, Globe, Building, Users, Home, Receipt, ShieldAlert } from "lucide-react";
+import { FileText, AlertTriangle, CheckSquare, Square, Globe, Building, Users, Home, Receipt, ShieldAlert, CalendarDays, ExternalLink } from "lucide-react";
 import FiscalAlertsPanel from "@/components/admin/fiscal/FiscalAlertsPanel";
+import AeatModelLinks from "@/components/fiscal/AeatModelLinks";
+import AeatQuickPanel from "@/components/fiscal/AeatQuickPanel";
+import CalendarioFiscal from "@/components/fiscal/CalendarioFiscal";
 
 const MODELOS_CONFIG = [
     { id: "303", label: "Modelo 303", desc: "IVA Trimestral", color: "blue", icon: Receipt, defaultOn: true },
@@ -31,7 +34,8 @@ const BORDER_COLORS: Record<string, string> = {
 
 export default function FiscalPage() {
     const searchParams = useSearchParams();
-    const initialTab = searchParams.get("tab") === "alertas" ? "alertas" : "modelos";
+    const tabParam = searchParams.get("tab");
+    const initialTab = tabParam === "alertas" ? "alertas" : tabParam === "aeat" ? "aeat" : "modelos";
     const autoOpenSimulator = searchParams.get("openSimulator") === "true";
 
     const [activeTab, setActiveTab] = useState(initialTab);
@@ -149,6 +153,9 @@ export default function FiscalPage() {
                     <TabsTrigger value="alertas" className="gap-1.5">
                         <ShieldAlert className="w-4 h-4" /> Inteligencia Fiscal
                     </TabsTrigger>
+                    <TabsTrigger value="aeat" className="gap-1.5">
+                        <ExternalLink className="w-4 h-4" /> AEAT
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* Tab: Modelos Fiscales (existing content) */}
@@ -194,7 +201,10 @@ export default function FiscalPage() {
                                                 <CardTitle className="text-base">Modelo 303 (IVA)</CardTitle>
                                                 <CardDescription className="text-xs">Autoliquidaci&oacute;n Trimestral</CardDescription>
                                             </div>
-                                            <Badge variant="outline" className="text-xs">Borrador</Badge>
+                                            <div className="flex items-center gap-1">
+                                                <AeatModelLinks modelo="303" trimestre={trimestre} />
+                                                <Badge variant="outline" className="text-xs">Borrador</Badge>
+                                            </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-3 text-sm">
@@ -232,7 +242,10 @@ export default function FiscalPage() {
                                                 <CardTitle className="text-base">Modelo 130 (IRPF)</CardTitle>
                                                 <CardDescription className="text-xs">Pago Fraccionado IRPF</CardDescription>
                                             </div>
-                                            <Badge variant="outline" className="text-xs">Simulaci&oacute;n</Badge>
+                                            <div className="flex items-center gap-1">
+                                                <AeatModelLinks modelo="130" trimestre={trimestre} />
+                                                <Badge variant="outline" className="text-xs">Simulaci&oacute;n</Badge>
+                                            </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-3 text-sm">
@@ -277,7 +290,10 @@ export default function FiscalPage() {
                                                 <CardTitle className="text-base">Modelo 111 (Retenciones)</CardTitle>
                                                 <CardDescription className="text-xs">Retenciones trabajadores y profesionales</CardDescription>
                                             </div>
-                                            <Badge variant="outline" className="text-xs">Simulaci&oacute;n</Badge>
+                                            <div className="flex items-center gap-1">
+                                                <AeatModelLinks modelo="111" trimestre={trimestre} />
+                                                <Badge variant="outline" className="text-xs">Simulaci&oacute;n</Badge>
+                                            </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-3 text-sm">
@@ -317,7 +333,10 @@ export default function FiscalPage() {
                                                 <CardTitle className="text-base">Modelo 115 (Alquileres)</CardTitle>
                                                 <CardDescription className="text-xs">Retenciones arrendamientos inmobiliarios</CardDescription>
                                             </div>
-                                            <Badge variant="outline" className="text-xs">Simulaci&oacute;n</Badge>
+                                            <div className="flex items-center gap-1">
+                                                <AeatModelLinks modelo="115" trimestre={trimestre} />
+                                                <Badge variant="outline" className="text-xs">Simulaci&oacute;n</Badge>
+                                            </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-3 text-sm">
@@ -360,7 +379,10 @@ export default function FiscalPage() {
                                                 <CardTitle className="text-base">Modelo 349 (Intracom.)</CardTitle>
                                                 <CardDescription className="text-xs">Operaciones intracomunitarias</CardDescription>
                                             </div>
-                                            <Badge variant="outline" className="text-xs">Simulaci&oacute;n</Badge>
+                                            <div className="flex items-center gap-1">
+                                                <AeatModelLinks modelo="349" trimestre={trimestre} />
+                                                <Badge variant="outline" className="text-xs">Simulaci&oacute;n</Badge>
+                                            </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-3 text-sm">
@@ -398,11 +420,26 @@ export default function FiscalPage() {
                             )}
                         </div>
                     )}
+
+                    {/* AEAT Quick Panel */}
+                    <AeatQuickPanel year={year} />
                 </TabsContent>
 
-                {/* Tab: Inteligencia Fiscal (new) */}
+                {/* Tab: Inteligencia Fiscal */}
                 <TabsContent value="alertas" className="mt-4">
                     <FiscalAlertsPanel year={year} trimestre={trimestre} autoOpenSimulator={autoOpenSimulator} />
+                </TabsContent>
+
+                {/* Tab: AEAT */}
+                <TabsContent value="aeat" className="space-y-6 mt-4">
+                    <AeatQuickPanel year={year} collapsed={false} />
+                    <div>
+                        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                            <CalendarDays className="h-5 w-5 text-blue-600" />
+                            Calendario Fiscal {year}
+                        </h2>
+                        <CalendarioFiscal year={year} />
+                    </div>
                 </TabsContent>
             </Tabs>
         </div>
