@@ -68,7 +68,8 @@ function estadoBadge(estado: string) {
   }
 }
 
-function diasLabel(dias: number): string {
+function diasLabel(dias: number | null | undefined): string {
+  if (dias == null) return "Sin datos";
   if (dias < 0) return `Caducado hace ${Math.abs(dias)}d`;
   if (dias === 0) return "Caduca hoy";
   return `${dias}d restantes`;
@@ -85,7 +86,8 @@ function rowBorderColor(estado: string): string {
   }
 }
 
-function diasColor(dias: number): string {
+function diasColor(dias: number | null | undefined): string {
+  if (dias == null) return "text-muted-foreground";
   if (dias < 0) return "text-red-600 font-bold";
   if (dias <= 30) return "text-red-500 font-semibold";
   if (dias <= 60) return "text-amber-500 font-semibold";
