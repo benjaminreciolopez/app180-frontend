@@ -211,11 +211,13 @@ export default function AsesorDashboardPage() {
         const isMobilePwa = isMobileDevice() && isStandalone() && typeof window !== "undefined" && window.innerWidth < 1024;
         const saved: { id: string; visible: boolean; order: number }[] =
           isMobilePwa ? (wJson.widgets_mobile || wJson.widgets || []) : (wJson.widgets || []);
-        // Merge: keep saved config + add any new widgets not yet in config as visible
+        // Merge: keep saved config + add any new widgets not yet in config
+        // If user has configured at least one widget, new widgets default to hidden
         const savedIds = new Set(saved.map((w) => w.id));
+        const hasUserConfig = saved.length > 0;
         const newWidgets = ALL_ASESOR_DASHBOARD_WIDGETS
           .filter((wd) => !savedIds.has(wd.id))
-          .map((wd, i) => ({ id: wd.id, visible: true, order: saved.length + i }));
+          .map((wd, i) => ({ id: wd.id, visible: !hasUserConfig, order: saved.length + i }));
         setWidgetConfig([...saved, ...newWidgets]);
       } else {
         // Default: all visible

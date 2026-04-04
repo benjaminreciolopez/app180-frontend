@@ -34,11 +34,12 @@ export default function DashboardPage() {
   const widgets = (() => {
     if (!data) return [];
     if (fetchedWidgets.length === 0) return ALL_WIDGETS.map((wd, index) => ({ id: wd.id, visible: true, order: index }));
-    // Merge: keep saved config + add any new widgets not yet in config as visible
+    // Merge: keep saved config + add any new widgets not yet in config
+    // If user has configured widgets, new ones default to hidden
     const savedIds = new Set(fetchedWidgets.map(w => w.id));
     const newWidgets = ALL_WIDGETS
       .filter(wd => !savedIds.has(wd.id))
-      .map((wd, i) => ({ id: wd.id, visible: true, order: fetchedWidgets.length + i }));
+      .map((wd, i) => ({ id: wd.id, visible: false, order: fetchedWidgets.length + i }));
     return [...fetchedWidgets, ...newWidgets];
   })();
   const widgetsLoaded = !!data;

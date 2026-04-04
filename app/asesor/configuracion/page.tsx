@@ -116,12 +116,12 @@ export default function AsesorConfiguracionPage() {
       setWidgetConfigMobile(updated);
     }
 
-    // Auto-save
+    // Auto-save — always send both tabs to avoid partial saves
     setSavingWidgets(true);
     try {
       const body = activeWidgetTab === "desktop"
-        ? { widgets: updated }
-        : { widgets_mobile: updated };
+        ? { widgets: updated, widgets_mobile: widgetConfigMobile }
+        : { widgets: widgetConfig, widgets_mobile: updated };
       await authenticatedFetch("/asesor/configuracion/widgets", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
