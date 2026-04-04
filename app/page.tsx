@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  ArrowRight, FileText, Bot, Clock, Receipt,
+  ArrowRight, FileText, Bot, Clock, ReceiptEuro,
   Users, Calculator, Calendar, Building2, Shield,
   CheckCircle, Sparkles
 } from "lucide-react";
@@ -28,7 +28,7 @@ const modules = [
     color: "emerald"
   },
   {
-    icon: Receipt,
+    icon: ReceiptEuro,
     title: "Gestion de Gastos",
     description: "OCR de tickets, importacion bancaria (CSV/PDF) y categorizacion automatica de gastos.",
     color: "amber"

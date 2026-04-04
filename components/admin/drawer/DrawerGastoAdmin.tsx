@@ -7,7 +7,7 @@ import * as z from "zod";
 import {
     Loader2,
     Save,
-    Receipt,
+    ReceiptEuro,
     CreditCard,
     Calendar as CalendarIcon,
     Tag,
@@ -652,7 +652,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                         {/* Base Imponible */}
                         <div className="space-y-2 col-span-2 sm:col-span-1">
                             <Label htmlFor="base_imponible" className="flex items-center gap-2 text-slate-700 font-semibold">
-                                <Receipt size={14} className="text-slate-400" />
+                                <ReceiptEuro size={14} className="text-slate-400" />
                                 Base Imponible
                             </Label>
                             <Input

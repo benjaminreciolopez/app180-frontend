@@ -7,7 +7,7 @@ import {
   Building2,
   LayoutDashboard,
   FileText,
-  Receipt,
+  ReceiptEuro,
   Users,
   Calculator,
   ShieldCheck,
@@ -43,7 +43,7 @@ const tabs = [
   },
   {
     label: "Gastos",
-    icon: Receipt,
+    icon: ReceiptEuro,
     segment: "gastos",
   },
   {

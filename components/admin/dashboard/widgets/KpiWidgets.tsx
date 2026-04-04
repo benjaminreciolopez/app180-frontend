@@ -1,5 +1,5 @@
 
-import { Users, Clock, AlertTriangle, Calendar, UserCheck, Euro, ClipboardList, RefreshCw, Upload, History, Receipt, Wallet, BarChart3, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Users, Clock, AlertTriangle, Calendar, UserCheck, Euro, ClipboardList, RefreshCw, Upload, History, ReceiptEuro, Wallet, BarChart3, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import Link from "next/link";
 import { DashboardData, PeriodoFinanciero } from "@/types/dashboard";
 import { KpiCard } from "./KpiCard";
@@ -166,7 +166,7 @@ export function KpiFacturacionMes({ data }: { data: PeriodoFinanciero }) {
                     <p className="text-2xl md:text-3xl font-bold">{formatCurrency(data.este_mes)}</p>
                 </div>
                 <Link href="/admin/facturacion/listado" className="p-2 md:p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Receipt className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                    <ReceiptEuro className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                 </Link>
             </div>
         </div>

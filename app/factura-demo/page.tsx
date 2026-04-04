@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
 import {
   Shield, CheckCircle, FileText, ArrowRight, Bot, Clock,
-  Receipt, Users, Calculator, Calendar, Building2, QrCode,
+  ReceiptEuro, Users, Calculator, Calendar, Building2, QrCode,
   Lock, Sparkles, Eye, Zap
 } from "lucide-react"
 
@@ -210,7 +210,7 @@ function FacturaDemoContent() {
             { icon: FileText, label: "Facturacion", desc: "VeriFactu + QR" },
             { icon: Bot, label: "IA (82 tools)", desc: "Asistente inteligente" },
             { icon: Clock, label: "Control Horario", desc: "Fichajes + GPS" },
-            { icon: Receipt, label: "Gastos", desc: "OCR automatico" },
+            { icon: ReceiptEuro, label: "Gastos", desc: "OCR automatico" },
             { icon: Users, label: "Nominas", desc: "IRPF + SS" },
             { icon: Calculator, label: "Fiscal", desc: "303/130/111/115" },
             { icon: Calendar, label: "Calendario", desc: "Google Calendar" },

@@ -10,14 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { formatCurrency } from "@/lib/utils";
-import { FileText, AlertTriangle, CheckSquare, Square, Globe, Building, Users, Home, Receipt, ShieldAlert, CalendarDays, ExternalLink } from "lucide-react";
+import { FileText, AlertTriangle, CheckSquare, Square, Globe, Building, Users, Home, ReceiptEuro, ShieldAlert, CalendarDays, ExternalLink } from "lucide-react";
 import FiscalAlertsPanel from "@/components/admin/fiscal/FiscalAlertsPanel";
 import AeatModelLinks from "@/components/fiscal/AeatModelLinks";
 import AeatQuickPanel from "@/components/fiscal/AeatQuickPanel";
 import CalendarioFiscal from "@/components/fiscal/CalendarioFiscal";
 
 const MODELOS_CONFIG = [
-    { id: "303", label: "Modelo 303", desc: "IVA Trimestral", color: "blue", icon: Receipt, defaultOn: true },
+    { id: "303", label: "Modelo 303", desc: "IVA Trimestral", color: "blue", icon: ReceiptEuro, defaultOn: true },
     { id: "130", label: "Modelo 130", desc: "IRPF Autónomos", color: "orange", icon: Building, defaultOn: true },
     { id: "111", label: "Modelo 111", desc: "Retenciones IRPF", color: "purple", icon: Users, defaultOn: true },
     { id: "115", label: "Modelo 115", desc: "Retenciones Alquileres", color: "rose", icon: Home, defaultOn: false },
@@ -229,7 +229,7 @@ export default function FiscalPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="modelos" className="gap-1.5">
-                        <Receipt className="w-4 h-4" /> Modelos Fiscales
+                        <ReceiptEuro className="w-4 h-4" /> Modelos Fiscales
                     </TabsTrigger>
                     <TabsTrigger value="alertas" className="gap-1.5">
                         <ShieldAlert className="w-4 h-4" /> Inteligencia Fiscal

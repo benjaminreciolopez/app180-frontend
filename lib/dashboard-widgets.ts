@@ -1,11 +1,11 @@
 import {
     Users, Clock, AlertTriangle, Calendar, UserCheck, Euro, ClipboardList,
-    RefreshCw, Briefcase, LayoutGrid, TrendingUp, Receipt, Wallet, BarChart3
+    RefreshCw, Briefcase, LayoutGrid, TrendingUp, ReceiptEuro, Wallet, BarChart3
 } from "lucide-react";
 
 export const ALL_DASHBOARD_WIDGETS = [
     { id: "kpi_beneficio", label: "KPI: Beneficio Real", module: "facturacion", icon: TrendingUp, description: "Muestra el beneficio real calculado de facturas y gastos." },
-    { id: "kpi_facturacion_mes", label: "Facturación mensual", module: "facturacion", icon: Receipt, description: "Facturación de este mes vs mes anterior con tendencia." },
+    { id: "kpi_facturacion_mes", label: "Facturación mensual", module: "facturacion", icon: ReceiptEuro, description: "Facturación de este mes vs mes anterior con tendencia." },
     { id: "kpi_gastos_mes", label: "Gastos mensuales", module: "facturacion", icon: Wallet, description: "Gastos de este mes vs mes anterior con tendencia." },
     { id: "kpi_beneficio_mes", label: "Beneficio mensual", module: "facturacion", icon: BarChart3, description: "Beneficio neto del mes actual (facturación - gastos)." },
     { id: "kpi_facturacion_ytd", label: "Facturación YTD", module: "facturacion", icon: TrendingUp, description: "Facturación y beneficio acumulados del año en curso." },

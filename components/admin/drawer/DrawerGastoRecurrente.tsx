@@ -7,7 +7,7 @@ import * as z from "zod";
 import {
     Loader2,
     Save,
-    Receipt,
+    ReceiptEuro,
     CreditCard,
     Tag,
     AlignLeft,
@@ -264,7 +264,7 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <Label className="flex items-center gap-1.5 mb-1">
-                            <Receipt size={14} /> Base imponible *
+                            <ReceiptEuro size={14} /> Base imponible *
                         </Label>
                         <Input type="number" step="0.01" {...register("base_imponible")} />
                         {errors.base_imponible && <p className="text-xs text-red-500 mt-1">{errors.base_imponible.message}</p>}

@@ -13,7 +13,7 @@ import { formatCurrency } from "@/lib/utils";
 import {
     Calculator, ArrowRight, ArrowDown, ArrowUp, Minus,
     TrendingUp, TrendingDown, AlertTriangle, ShieldCheck,
-    Receipt, ShoppingCart, Loader2, Lightbulb,
+    ReceiptEuro, ShoppingCart, Loader2, Lightbulb,
 } from "lucide-react";
 
 interface SimulationResult {
@@ -159,7 +159,7 @@ export default function FiscalSimulatorDialog({ open, onClose, year, trimestre, 
                                     onClick={() => setType("factura")}
                                     className="flex-1"
                                 >
-                                    <Receipt className="w-4 h-4 mr-1" /> Factura / Venta
+                                    <ReceiptEuro className="w-4 h-4 mr-1" /> Factura / Venta
                                 </Button>
                             </div>
 

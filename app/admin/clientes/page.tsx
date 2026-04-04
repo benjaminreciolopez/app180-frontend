@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, X, Building2, MapPin, Receipt, Info, Map as MapIcon, Euro, ArrowUp, ArrowDown, ArrowUpDown, Users } from "lucide-react";
+import { Plus, Pencil, X, Building2, MapPin, ReceiptEuro, Info, Map as MapIcon, Euro, ArrowUp, ArrowDown, ArrowUpDown, Users } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showSuccess, showError } from "@/lib/toast";
@@ -408,7 +408,7 @@ export default function AdminClientesPage() {
                        <Building2 size={14} /> General
                     </TabsTrigger>
                     <TabsTrigger value="fiscal" className="rounded-lg gap-2">
-                       <Receipt size={14} /> Fiscal
+                       <ReceiptEuro size={14} /> Fiscal
                     </TabsTrigger>
                     <TabsTrigger value="tarifas" className="rounded-lg gap-2">
                        <Euro size={14} /> Tarifas

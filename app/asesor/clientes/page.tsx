@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Building2,
   FileText,
-  Receipt,
+  ReceiptEuro,
   UserCheck,
   Calculator,
   Eye,
@@ -101,7 +101,7 @@ const estadoBadge: Record<
 const permisoIcons: Record<string, { icon: React.ElementType; label: string }> =
   {
     facturacion: { icon: FileText, label: "Facturacion" },
-    gastos: { icon: Receipt, label: "Gastos" },
+    gastos: { icon: ReceiptEuro, label: "Gastos" },
     empleados: { icon: UserCheck, label: "Empleados" },
     fiscal: { icon: Calculator, label: "Fiscal" },
     contabilidad: { icon: ShieldCheck, label: "Contabilidad" },

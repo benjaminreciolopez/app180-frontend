@@ -13,7 +13,7 @@ import {
     FileText,
     Calendar as CalendarIcon,
     Download,
-    Receipt,
+    ReceiptEuro,
     Tag,
     CreditCard,
     Building2,
@@ -182,7 +182,7 @@ export default function GastosPage() {
 
     const getCategoriaIcon = (cat: string) => {
         switch (cat) {
-            case "material": return <Receipt size={14} />;
+            case "material": return <ReceiptEuro size={14} />;
             case "combustible": return <Filter size={14} />;
             case "herramientas": return <Tag size={14} />;
             default: return <Building2 size={14} />;

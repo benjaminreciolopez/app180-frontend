@@ -8,7 +8,7 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Receipt, X } from "lucide-react";
+import { ReceiptEuro, X } from "lucide-react";
 
 interface Gasto {
   id: string;
@@ -104,7 +104,7 @@ export default function AsesorClienteGastosPage() {
       {filtered.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <Receipt size={48} className="mx-auto text-muted-foreground/30 mb-4" />
+            <ReceiptEuro size={48} className="mx-auto text-muted-foreground/30 mb-4" />
             <p className="text-muted-foreground">
               {hasFilter ? "No hay gastos en este rango de fechas" : "El cliente no tiene gastos registrados"}
             </p>

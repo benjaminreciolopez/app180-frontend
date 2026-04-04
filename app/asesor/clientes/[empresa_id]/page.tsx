@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   FileText,
-  Receipt,
+  ReceiptEuro,
   Users as UsersIcon,
   Calculator,
   ExternalLink,
@@ -95,7 +95,7 @@ const buildSectionLinks = (empresaId: string): SectionLink[] => [
     key: "gastos",
     label: "Gastos",
     description: "Compras, gastos y proveedores",
-    icon: Receipt,
+    icon: ReceiptEuro,
     href: `/asesor/clientes/${empresaId}/gastos`,
     permisoKey: "gastos",
   },
@@ -357,7 +357,7 @@ export default function AsesorClienteDetallePage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-lg bg-orange-500/10">
-                <Receipt size={22} className="text-orange-500" />
+                <ReceiptEuro size={22} className="text-orange-500" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Gastos</p>

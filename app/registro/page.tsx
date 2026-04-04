@@ -20,7 +20,7 @@ import {
   Users,
   Clock,
   Calendar,
-  Receipt,
+  ReceiptEuro,
   Wallet,
   ClipboardList,
   CalendarClock,
@@ -95,7 +95,7 @@ const MODULOS_DISPONIBLES: ModuloConfig[] = [
     key: "facturacion",
     label: "Facturacion",
     description: "Facturas y VeriFactu",
-    icon: <Receipt className="w-4 h-4" />,
+    icon: <ReceiptEuro className="w-4 h-4" />,
     defaultOn: false,
   },
   {

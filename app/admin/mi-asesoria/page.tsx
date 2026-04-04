@@ -35,7 +35,7 @@ import {
   FileSpreadsheet,
   FileText,
   Archive,
-  Receipt,
+  ReceiptEuro,
   Wallet,
   Users,
   UserCheck,
@@ -100,7 +100,7 @@ const PERMISOS_SECTIONS: {
   icon: React.ElementType;
   description: string;
 }[] = [
-  { key: "facturas", label: "Facturas", icon: Receipt, description: "Facturas emitidas y recibidas" },
+  { key: "facturas", label: "Facturas", icon: ReceiptEuro, description: "Facturas emitidas y recibidas" },
   { key: "gastos", label: "Gastos", icon: Wallet, description: "Gastos y tickets" },
   { key: "clientes", label: "Clientes", icon: Users, description: "Base de datos de clientes" },
   { key: "empleados", label: "Empleados", icon: UserCheck, description: "Datos de empleados" },

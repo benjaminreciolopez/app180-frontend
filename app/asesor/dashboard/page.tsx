@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   Plus,
   Calendar,
-  Receipt,
+  ReceiptEuro,
   Wallet,
   Clock,
   ArrowRight,
@@ -591,7 +591,7 @@ export default function AsesorDashboardPage() {
           {/* Clients with pending invoices */}
           {data.clientes_facturas_pendientes.total_clientes > 0 && (
             <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-orange-100 border-orange-300 text-orange-800 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300">
-              <Receipt size={18} />
+              <ReceiptEuro size={18} />
               <div>
                 <p className="text-sm font-semibold">Facturas pendientes</p>
                 <p className="text-xs">
@@ -739,7 +739,7 @@ export default function AsesorDashboardPage() {
                           : "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400"
                       }`}
                     >
-                      {act.tipo === "factura" ? <Receipt size={16} /> : <Wallet size={16} />}
+                      {act.tipo === "factura" ? <ReceiptEuro size={16} /> : <Wallet size={16} />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{act.descripcion}</p>

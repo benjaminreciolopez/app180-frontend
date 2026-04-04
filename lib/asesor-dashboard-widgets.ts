@@ -1,5 +1,5 @@
 import {
-  Euro, Receipt, Wallet, TrendingUp,
+  Euro, ReceiptEuro, Wallet, TrendingUp,
   Users, AlertTriangle, Activity, BarChart3
 } from "lucide-react";
 
