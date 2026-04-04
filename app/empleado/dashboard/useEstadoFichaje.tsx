@@ -67,7 +67,6 @@ export function useEstadoFichaje() {
             }
           : null,
       );
-      console.log("BOTON ESTADO:", b);
     } catch (e) {
       console.error("Error cargando estado fichaje", e);
       setEstado(null);

@@ -39,11 +39,9 @@ export const UniversalExportButton = ({
 
     const handleExport = async (format: string) => {
         if (!format) {
-            console.warn("⚠️ No se seleccionó formato");
             return;
         }
         setLoading(true);
-        console.log(`🚀 Iniciando exportación: ${module} (${format})`, queryParams);
 
         try {
             const params: Record<string, string> = { format };
@@ -53,13 +51,10 @@ export const UniversalExportButton = ({
                 }
             });
 
-            console.log('📤 Parámetros de exportación:', params);
             const response = await api.get(`/api/admin/export/${module}`, {
                 params,
                 responseType: 'blob'
             });
-
-            console.log("✅ Respuesta recibida", response.status, response.headers);
 
             // Verificar si el blob es un JSON de error antes de intentar descargarlo
             if (response.headers['content-type']?.includes('application/json')) {

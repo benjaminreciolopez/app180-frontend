@@ -86,7 +86,6 @@ export default function AdminLayout({
       const fixAttempted = typeof window !== 'undefined' ? sessionStorage.getItem('desktop_mode_fix_attempted_v5') : null;
 
       if (isLargeScreen && hasMissingModules && !fixAttempted) {
-        console.warn("[AdminLayout] Detectada sesión incompleta en escritorio. Curando...");
         sessionStorage.setItem('desktop_mode_fix_attempted_v5', 'true');
         sessionStorage.removeItem('user');
 
@@ -107,7 +106,6 @@ export default function AdminLayout({
         // Curar en background (refreshMe actualiza storage y dispara session-updated)
         try {
           await refreshMe();
-          console.log("[AdminLayout] Datos frescos obtenidos via refreshMe.");
         } catch (err) {
           console.error("Error en curación:", err);
         }

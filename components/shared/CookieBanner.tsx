@@ -73,11 +73,10 @@ export function CookieBanner() {
   const initializeScripts = (prefs: CookiePreferences) => {
     // Aquí inicializar Google Analytics, etc. según preferencias
     if (prefs.analytics) {
-      console.log("Analytics habilitado");
       // window.gtag(...);
     }
     if (prefs.marketing) {
-      console.log("Marketing habilitado");
+      // TODO: initialize marketing scripts
     }
   };
 

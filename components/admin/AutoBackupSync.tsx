@@ -98,7 +98,6 @@ export default function AutoBackupSync() {
                 return;
             }
 
-            console.log("[AutoBackupSync] Iniciando sincronización de backup automático...");
             syncDone.current = true;
 
             // 4. Descargar el backup actual
@@ -121,7 +120,6 @@ export default function AutoBackupSync() {
             await writable.write(blob);
             await writable.close();
 
-            console.log(`[AutoBackupSync] ✅ Backup sincronizado en PC: ${filename}`);
             toast.success("Respaldo local sincronizado en este PC.");
 
         } catch (err) {

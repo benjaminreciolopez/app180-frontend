@@ -125,7 +125,7 @@ export default function AdminTrabajosPage() {
         },
         cancel: {
             label: "Cancelar",
-            onClick: () => console.log("Cancelado"),
+            onClick: () => {},
         }
      });
   }

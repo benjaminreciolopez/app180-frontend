@@ -39,7 +39,7 @@ export async function getCurrentPosition(): Promise<{
       maximumAge: 0,
     });
   } catch (err) {
-    console.warn("GPS Alta precisión falló, intentando baja precisión (WiFi)...", err);
+    console.warn("GPS alta precision failed, falling back to low accuracy");
     // Intento 2: Baja precisión (WiFi/Triangulación - mejor que IP)
     // Mayor timeout para dar tiempo a escanear redes
     return await getPos({

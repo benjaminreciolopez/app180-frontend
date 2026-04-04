@@ -29,7 +29,6 @@ export default function DiagnosticoPage() {
     };
     
     setInfo(additionalInfo);
-    console.log('📊 Diagnóstico completo:', additionalInfo);
   }, []);
 
   if (!info) {

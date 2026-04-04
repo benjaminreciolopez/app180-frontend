@@ -158,15 +158,15 @@ export default function AdminSelfConfigModal({
       const widgetEndpoint = isAsesor ? "/asesor/configuracion/widgets" : "/admin/configuracion/widgets";
 
       const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes, verifactuRes] = await Promise.all([
-        api.get("/employees").catch(err => { console.warn("403/Error employees:", err); return { data: [] }; }),
-        api.get("/admin/plantillas").catch(err => { console.warn("403/Error plantillas:", err); return { data: [] }; }),
-        api.get("/admin/facturacion/configuracion/emisor").catch(err => { console.warn("403/Error emisor:", err); return { status: 403, data: { data: {} } }; }),
-        api.get("/admin/facturacion/configuracion/sistema").catch(err => { console.warn("403/Error sistema fact:", err); return { status: 403, data: { data: {} } }; }),
-        api.get("/admin/configuracion").catch(err => { console.warn("403/Error global config:", err); return { data: {} }; }),
-        api.get("/api/admin/calendar-config").catch(err => { console.warn("403/Error calendar config:", err); return { data: {} }; }),
-        api.get("/admin/email-config").catch(err => { console.warn("403/Error email config:", err); return { data: {} }; }),
-        api.get(widgetEndpoint).catch(err => { console.warn("403/Error widgets:", err); return { data: { widgets: [], widgets_mobile: [] } }; }),
-        api.get("/admin/facturacion/configuracion/verifactu/status").catch(err => { console.warn("403/Error verifactu status:", err); return { data: { data: null } }; })
+        api.get("/employees").catch(() => ({ data: [] })),
+        api.get("/admin/plantillas").catch(() => ({ data: [] })),
+        api.get("/admin/facturacion/configuracion/emisor").catch(() => ({ status: 403, data: { data: {} } })),
+        api.get("/admin/facturacion/configuracion/sistema").catch(() => ({ status: 403, data: { data: {} } })),
+        api.get("/admin/configuracion").catch(() => ({ data: {} })),
+        api.get("/api/admin/calendar-config").catch(() => ({ data: {} })),
+        api.get("/admin/email-config").catch(() => ({ data: {} })),
+        api.get(widgetEndpoint).catch(() => ({ data: { widgets: [], widgets_mobile: [] } })),
+        api.get("/admin/facturacion/configuracion/verifactu/status").catch(() => ({ data: { data: null } }))
       ]);
 
       const employees = empRes.data || [];
@@ -394,7 +394,6 @@ export default function AdminSelfConfigModal({
   };
 
   const handleFileUploadTrigger = (type: 'logo' | 'certificado') => {
-    console.log("[handleFileUploadTrigger] type:", type, "ref exists:", type === 'logo' ? !!logoInputRef.current : !!certInputRef.current);
     if (type === 'logo') logoInputRef.current?.click();
     else certInputRef.current?.click();
   };
@@ -449,7 +448,6 @@ export default function AdminSelfConfigModal({
   };
 
   const handleUploadCertWithPass = async () => {
-    console.log("[handleUploadCertWithPass] called, password length:", certPassword?.length, "pendingCert:", !!pendingCert);
     if (!certPassword) {
       toast.error("Debes introducir la contraseña del certificado");
       return;

@@ -25,10 +25,7 @@ export async function login(
   decoded: AppJwtPayload;
   mustChangePassword: boolean;
 }> {
-  console.log("[login] enviando credenciales", {
-    email,
-    hasDeviceHash: !!device_hash,
-  });
+  // Login request
 
   // ✅ valor por defecto SIEMPRE válido
   let hash: string =
@@ -63,7 +60,7 @@ export async function login(
     }
   }
 
-  console.log("[login] usando device_hash", hash);
+  // Device hash ready
 
   // =========================
   // LOGIN REQUEST
@@ -84,14 +81,14 @@ export async function login(
       err?.response?.status === 409 &&
       err?.response?.data?.code === "BOOTSTRAP_REQUIRED"
     ) {
-      console.warn("[login] bootstrap requerido");
+      // Bootstrap requerido
     }
 
     // ⛔ Siempre propagar
     throw err;
   }
 
-  console.log("[login] respuesta backend", res.data);
+  // Response received
 
   const { token, user } = res.data;
 
@@ -127,7 +124,7 @@ export async function login(
   // =========================
   const decoded = jwtDecode<AppJwtPayload>(token);
 
-  console.log("[login] token decodificado", decoded);
+  // Token decoded
 
   return {
     token,
