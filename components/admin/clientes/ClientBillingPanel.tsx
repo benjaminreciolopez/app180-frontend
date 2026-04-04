@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownLeft, DollarSign, Wallet } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Euro, Wallet } from "lucide-react";
 
 /* 
   Quick formatter if lib/utils doesn't have it or checking is too expensive. 
@@ -94,7 +94,7 @@ export default function ClientBillingPanel({ clienteId }: { clienteId: string })
                 <CardTitle className="text-sm font-medium">
                     {isPositive ? "Saldo Pendiente (Deuda)" : "Saldo a favor"}
                 </CardTitle>
-                <DollarSign className={`h-4 w-4 ${isPositive ? 'text-red-500' : 'text-green-500'}`} />
+                <Euro className={`h-4 w-4 ${isPositive ? 'text-red-500' : 'text-green-500'}`} />
             </CardHeader>
             <CardContent>
                 <div className={`text-2xl font-bold ${isPositive ? 'text-red-600' : 'text-green-700'}`}>

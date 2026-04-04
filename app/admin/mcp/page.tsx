@@ -92,7 +92,7 @@ function formatTokens(n: number | string | null | undefined): string {
 }
 
 function formatCost(n: number | string | null | undefined): string {
-  return "$" + (Number(n) || 0).toFixed(4);
+  return (Number(n) || 0).toFixed(4) + " €";
 }
 
 function formatDate(d: string): string {

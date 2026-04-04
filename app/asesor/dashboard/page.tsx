@@ -18,7 +18,7 @@ import {
   Clock,
   ArrowRight,
   Activity,
-  CircleDollarSign,
+  Euro,
   RefreshCw,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
@@ -407,7 +407,7 @@ export default function AsesorDashboardPage() {
       {/* ── Section 1: KPIs de la Asesoria (propios) ── */}
       {isWidgetVisible("seccion_mi_asesoria") && <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <CircleDollarSign size={20} className="text-primary" />
+          <Euro size={20} className="text-primary" />
           Mi Asesoria
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
