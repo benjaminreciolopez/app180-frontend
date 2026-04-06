@@ -99,6 +99,26 @@ export default function FiscalPage() {
         setTrimestre(currentQ);
     }, []);
 
+    // Load cuotas a compensar from localStorage when year/trimestre change
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const key = `fiscal-cuotas-compensar-303-${year}-${trimestre}`;
+            setCuotasCompensar303(localStorage.getItem(key) || "");
+        }
+    }, [year, trimestre]);
+
+    // Save cuotas a compensar to localStorage when value changes
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const key = `fiscal-cuotas-compensar-303-${year}-${trimestre}`;
+            if (cuotasCompensar303) {
+                localStorage.setItem(key, cuotasCompensar303);
+            } else {
+                localStorage.removeItem(key);
+            }
+        }
+    }, [cuotasCompensar303, year, trimestre]);
+
     const loadData = async () => {
         setLoading(true);
         try {
@@ -391,6 +411,11 @@ export default function FiscalPage() {
                                         </div>
                                         <div className="text-xs text-muted-foreground pl-2 space-y-0.5">
                                             <div>Compras: {formatCurrency(data.modelo130.gastos_detalle.compras)} | N&oacute;minas: {formatCurrency(data.modelo130.gastos_detalle.nominas)}</div>
+                                            {data.modelo130.gastos_detalle.ajuste_vehiculo_irpf > 0 && (
+                                                <div className="text-blue-600">
+                                                    Ajuste veh&iacute;culo IRPF (Art.22 RIRPF): -{formatCurrency(data.modelo130.gastos_detalle.ajuste_vehiculo_irpf)}
+                                                </div>
+                                            )}
                                             {data.modelo130.gastos_detalle.gastos_dificil_justificacion > 0 && (
                                                 <div className="text-orange-600">
                                                     5% Gastos dif&iacute;cil justificaci&oacute;n: {formatCurrency(data.modelo130.gastos_detalle.gastos_dificil_justificacion)}
