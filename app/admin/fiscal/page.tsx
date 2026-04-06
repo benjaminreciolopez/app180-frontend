@@ -290,7 +290,9 @@ export default function FiscalPage() {
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <AeatModelLinks modelo="303" trimestre={trimestre} />
-                                                <Badge variant="outline" className="text-xs">Borrador</Badge>
+                                                <Badge variant="outline" className={`text-xs ${data.fuente_datos === 'contabilidad' ? 'bg-green-50 text-green-700' : ''}`}>
+                                                    {data.fuente_datos === 'contabilidad' ? 'Contabilidad' : 'Borrador'}
+                                                </Badge>
                                             </div>
                                         </div>
                                     </CardHeader>
