@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { formatCurrency } from "@/lib/utils";
@@ -53,6 +54,7 @@ export default function FiscalPage() {
     const [data, setData] = useState<any>(null);
     const [loadingAnual, setLoadingAnual] = useState(false);
     const [dataAnual, setDataAnual] = useState<Record<string, any>>({});
+    const [cuotasCompensar303, setCuotasCompensar303] = useState("");
 
     // Checklist de modelos visibles
     const [visibleModelos, setVisibleModelos] = useState<Set<string>>(() => {
@@ -100,7 +102,11 @@ export default function FiscalPage() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const res = await authenticatedFetch(`/api/admin/fiscal/models?year=${year}&trimestre=${trimestre}`);
+            let url = `/api/admin/fiscal/models?year=${year}&trimestre=${trimestre}`;
+            if (cuotasCompensar303 && parseFloat(cuotasCompensar303) > 0) {
+                url += `&cuotas_compensar_303=${cuotasCompensar303}`;
+            }
+            const res = await authenticatedFetch(url);
             if (res.ok) {
                 const json = await res.json();
                 if (json.success) setData(json.data);
@@ -297,10 +303,53 @@ export default function FiscalPage() {
                                             <span className="text-muted-foreground">IVA Deducible:</span>
                                             <span className="font-medium text-red-600">-{formatCurrency(data.modelo303.deducible.cuota)}</span>
                                         </div>
+                                        {data.modelo303.resultado_regimen_general !== undefined && (
+                                            <div className="flex justify-between text-xs text-muted-foreground">
+                                                <span>Resultado r&eacute;g. general [46]:</span>
+                                                <span>{formatCurrency(data.modelo303.resultado_regimen_general)}</span>
+                                            </div>
+                                        )}
+                                        {data.modelo303.cuotas_compensar_pendientes > 0 && (
+                                            <div className="space-y-1 text-xs bg-blue-50 p-2 rounded-md">
+                                                <div className="flex justify-between text-blue-700">
+                                                    <span>Cuotas a compensar pend. [110]:</span>
+                                                    <span>{formatCurrency(data.modelo303.cuotas_compensar_pendientes)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-blue-800 font-medium">
+                                                    <span>Aplicadas este periodo [78]:</span>
+                                                    <span>-{formatCurrency(data.modelo303.cuotas_compensar_aplicadas)}</span>
+                                                </div>
+                                                {data.modelo303.cuotas_compensar_pendientes_posterior > 0 && (
+                                                    <div className="flex justify-between text-blue-600">
+                                                        <span>Pend. periodos posteriores [87]:</span>
+                                                        <span>{formatCurrency(data.modelo303.cuotas_compensar_pendientes_posterior)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                         <div className="border-t pt-2 flex justify-between font-bold text-base">
                                             <span>Resultado:</span>
                                             <span>{formatCurrency(data.modelo303.resultado)}</span>
                                         </div>
+                                        {!data.modelo303.cuotas_compensar_pendientes && (
+                                            <div className="text-xs space-y-1">
+                                                <label className="text-muted-foreground">Cuotas a compensar per. anteriores [110]:</label>
+                                                <div className="flex gap-2 items-center">
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        placeholder="0,00"
+                                                        value={cuotasCompensar303}
+                                                        onChange={(e) => setCuotasCompensar303(e.target.value)}
+                                                        className="h-7 text-xs w-28"
+                                                    />
+                                                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={loadData}>
+                                                        Aplicar
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="bg-yellow-50 p-2 rounded-md text-xs text-yellow-800 flex gap-2 items-start">
                                             <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                                             <p>Revisa que todas las facturas y gastos del {trimestre}T est&eacute;n contabilizados.</p>
@@ -338,11 +387,19 @@ export default function FiscalPage() {
                                             <span className="text-muted-foreground">Gastos Acum.:</span>
                                             <span className="font-medium">-{formatCurrency(data.modelo130.gastos)}</span>
                                         </div>
-                                        <div className="text-xs text-muted-foreground pl-2">
-                                            Compras: {formatCurrency(data.modelo130.gastos_detalle.compras)} | N&oacute;minas: {formatCurrency(data.modelo130.gastos_detalle.nominas)}
+                                        <div className="text-xs text-muted-foreground pl-2 space-y-0.5">
+                                            <div>Compras: {formatCurrency(data.modelo130.gastos_detalle.compras)} | N&oacute;minas: {formatCurrency(data.modelo130.gastos_detalle.nominas)}</div>
+                                            {data.modelo130.gastos_detalle.gastos_dificil_justificacion > 0 && (
+                                                <div className="text-orange-600">
+                                                    5% Gastos dif&iacute;cil justificaci&oacute;n: {formatCurrency(data.modelo130.gastos_detalle.gastos_dificil_justificacion)}
+                                                    {data.modelo130.rendimiento_previo > 0 && (
+                                                        <span className="text-muted-foreground"> (5% s/ {formatCurrency(data.modelo130.rendimiento_previo)})</span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="border-t pt-2 flex justify-between font-medium">
-                                            <span>Rendimiento:</span>
+                                            <span>Rendimiento Neto:</span>
                                             <span>{formatCurrency(data.modelo130.rendimiento)}</span>
                                         </div>
                                         <div className="flex justify-between text-xs text-muted-foreground">

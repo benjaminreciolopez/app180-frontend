@@ -47,10 +47,10 @@ const ESTADO_BADGE: Record<string, { variant: "default" | "secondary" | "destruc
 };
 
 const AEAT_LINKS: Record<string, string> = {
-    "390": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI34.shtml",
-    "190": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI01.shtml",
-    "180": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI04.shtml",
-    "347": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI36.shtml",
+    "390": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G412.shtml",
+    "190": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI10.shtml",
+    "180": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI00.shtml",
+    "347": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI27.shtml",
 };
 
 const MODELO_ICONS: Record<string, string> = {
