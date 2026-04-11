@@ -51,9 +51,13 @@ api.interceptors.request.use((config) => {
     }
 
     // Asesor context switching: inject X-Empresa-Id when viewing a client
+    // Skip if explicitly set to "SELF" (used by asesor self-config modal)
     const asesorEmpresaId = sessionStorage.getItem("asesor_empresa_id");
     if (asesorEmpresaId && !config.headers["X-Empresa-Id"]) {
       config.headers["X-Empresa-Id"] = asesorEmpresaId;
+    }
+    if (config.headers["X-Empresa-Id"] === "SELF") {
+      delete config.headers["X-Empresa-Id"];
     }
   }
 

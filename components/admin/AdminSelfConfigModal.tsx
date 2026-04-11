@@ -152,21 +152,24 @@ export default function AdminSelfConfigModal({
     }
   }, [sistemaConfig.modulos?.facturacion]);
 
+  // Cuando el asesor abre SU configuración, las llamadas no deben llevar X-Empresa-Id del cliente
+  const selfHeaders = isAsesor ? { "X-Empresa-Id": "SELF" } : {};
+
   async function loadData() {
     setLoading(true);
     try {
       const widgetEndpoint = isAsesor ? "/asesor/configuracion/widgets" : "/admin/configuracion/widgets";
 
       const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes, verifactuRes] = await Promise.all([
-        api.get("/employees").catch(() => ({ data: [] })),
-        api.get("/admin/plantillas").catch(() => ({ data: [] })),
-        api.get("/admin/facturacion/configuracion/emisor").catch(() => ({ status: 403, data: { data: {} } })),
-        api.get("/admin/facturacion/configuracion/sistema").catch(() => ({ status: 403, data: { data: {} } })),
-        api.get("/admin/configuracion").catch(() => ({ data: {} })),
-        api.get("/api/admin/calendar-config").catch(() => ({ data: {} })),
-        api.get("/admin/email-config").catch(() => ({ data: {} })),
-        api.get(widgetEndpoint).catch(() => ({ data: { widgets: [], widgets_mobile: [] } })),
-        api.get("/admin/facturacion/configuracion/verifactu/status").catch(() => ({ data: { data: null } }))
+        api.get("/employees", { headers: selfHeaders }).catch(() => ({ data: [] })),
+        api.get("/admin/plantillas", { headers: selfHeaders }).catch(() => ({ data: [] })),
+        api.get("/admin/facturacion/configuracion/emisor", { headers: selfHeaders }).catch(() => ({ status: 403, data: { data: {} } })),
+        api.get("/admin/facturacion/configuracion/sistema", { headers: selfHeaders }).catch(() => ({ status: 403, data: { data: {} } })),
+        api.get("/admin/configuracion", { headers: selfHeaders }).catch(() => ({ data: {} })),
+        api.get("/api/admin/calendar-config", { headers: selfHeaders }).catch(() => ({ data: {} })),
+        api.get("/admin/email-config", { headers: selfHeaders }).catch(() => ({ data: {} })),
+        api.get(widgetEndpoint, { headers: selfHeaders }).catch(() => ({ data: { widgets: [], widgets_mobile: [] } })),
+        api.get("/admin/facturacion/configuracion/verifactu/status", { headers: selfHeaders }).catch(() => ({ data: { data: null } }))
       ]);
 
       const employees = empRes.data || [];
@@ -259,19 +262,19 @@ export default function AdminSelfConfigModal({
             empleado_id: adminData.id,
             plantilla_id: selectedPlantilla,
             fecha_inicio: new Date().toISOString().split('T')[0]
-          }).catch(err => console.warn("No se pudo guardar plantilla:", err))
+          }, { headers: selfHeaders }).catch(err => console.warn("No se pudo guardar plantilla:", err))
         );
       }
 
       // 2. Guardar Empresa (datos del emisor — siempre, para que los textos legales no se pierdan)
       promises.push(
-        api.put("/admin/facturacion/configuracion/emisor", empresaData)
+        api.put("/admin/facturacion/configuracion/emisor", empresaData, { headers: selfHeaders })
           .catch(err => console.warn("403/Error guardando emisor (módulo off?):", err))
       );
 
       // 3. Guardar Facturación (siempre — los textos legales viven aquí aunque el módulo esté off)
       promises.push(
-        api.put("/admin/facturacion/configuracion/sistema", facturacionData)
+        api.put("/admin/facturacion/configuracion/sistema", facturacionData, { headers: selfHeaders })
           .catch(err => console.warn("403/Error guardando sistema fact (módulo off?):", err))
       );
 
@@ -281,14 +284,14 @@ export default function AdminSelfConfigModal({
         modulos_mobile: sistemaConfig.mobileEnabled ? sistemaConfig.modulos_mobile : null,
         backup_local_path: sistemaConfig.backup_local_path || null,
         pin_config: pinConfigLocal.pin_lock_enabled ? pinConfigLocal : { ...pinConfigLocal, pin_code: null }
-      }));
+      }, { headers: selfHeaders }));
 
       // 5. Guardar Widgets Dashboard
       promises.push(
         api.put(widgetEndpoint, {
           widgets: dashboardWidgets,
           widgets_mobile: dashboardWidgetsMobile
-        }).catch(err => console.warn("403/Error guardando widgets:", err))
+        }, { headers: selfHeaders }).catch(err => console.warn("403/Error guardando widgets:", err))
       );
 
       await Promise.all(promises);
@@ -333,7 +336,7 @@ export default function AdminSelfConfigModal({
   const handleConnectCalendar = async () => {
     setConnectingCalendar(true);
     try {
-      const res = await api.post("/api/admin/calendar-config/oauth2/start", { provider: "google" });
+      const res = await api.post("/api/admin/calendar-config/oauth2/start", { provider: "google" }, { headers: selfHeaders });
       const popup = window.open(res.data.authUrl, "Google Calendar OAuth", "width=600,height=700");
       const interval = setInterval(() => {
         if (popup?.closed) {
@@ -352,7 +355,7 @@ export default function AdminSelfConfigModal({
   const handleSyncCalendar = async () => {
     setSyncingCalendar(true);
     try {
-      await api.post("/api/admin/calendar-sync/bidirectional");
+      await api.post("/api/admin/calendar-sync/bidirectional", {}, { headers: selfHeaders });
       toast.success("Calendario sincronizado");
     } catch (err) {
       toast.error("Error al sincronizar");
@@ -365,7 +368,7 @@ export default function AdminSelfConfigModal({
   const handleConnectGmail = async () => {
     setConnectingEmail(true);
     try {
-      const res = await api.post('/admin/email-config/oauth2/start', { provider: 'gmail' });
+      const res = await api.post('/admin/email-config/oauth2/start', { provider: 'gmail' }, { headers: selfHeaders });
       const popup = window.open(res.data.authUrl, 'Google Email OAuth', 'width=500,height=600');
       const interval = setInterval(() => {
         if (popup?.closed) {
@@ -384,7 +387,7 @@ export default function AdminSelfConfigModal({
   const handleSendTestEmail = async () => {
     setSendingTestEmail(true);
     try {
-      await api.post('/admin/email-config/test');
+      await api.post('/admin/email-config/test', {}, { headers: selfHeaders });
       toast.success("Email de prueba enviado");
     } catch (err) {
       toast.error("Error al enviar prueba");
@@ -431,7 +434,7 @@ export default function AdminSelfConfigModal({
         }
 
         try {
-          await api.post("/admin/facturacion/configuracion/emisor/logo", { file: base64String, fileName: file.name });
+          await api.post("/admin/facturacion/configuracion/emisor/logo", { file: base64String, fileName: file.name }, { headers: selfHeaders });
           toast.success("Logo subido correctamente");
           setEmpresaData((prev: any) => ({ ...prev, logo_path: base64String }));
         } catch (err: any) {
@@ -459,7 +462,7 @@ export default function AdminSelfConfigModal({
         file: pendingCert.base64,
         fileName: pendingCert.name,
         password: certPassword
-      });
+      }, { headers: selfHeaders });
       toast.success("Certificado subido correctamente");
       setPassModalOpen(false);
       setCertPassword("");
@@ -479,7 +482,7 @@ export default function AdminSelfConfigModal({
   const handleRemoveCertificate = async () => {
     try {
       setSaving(true);
-      await api.delete("/admin/facturacion/configuracion/emisor/certificado");
+      await api.delete("/admin/facturacion/configuracion/emisor/certificado", { headers: selfHeaders });
       setEmpresaData((prev: any) => ({
         ...prev,
         certificado_path: "",
@@ -497,7 +500,7 @@ export default function AdminSelfConfigModal({
   const handleGenerateInvite = async () => {
     setLoadingInvite(true);
     try {
-      const res = await api.post(`/admin/employees/${adminData.id}/invite`);
+      const res = await api.post(`/admin/employees/${adminData.id}/invite`, {}, { headers: selfHeaders });
       setInviteData({
         installUrl: res.data.installUrl,
         expires_at: res.data.expires_at,
@@ -770,6 +773,10 @@ export default function AdminSelfConfigModal({
                               <Label>Nombre Comercial</Label>
                               <Input value={empresaData.nombre_comercial} onChange={(e) => setEmpresaData({ ...empresaData, nombre_comercial: e.target.value })} />
                             </div>
+                            <div className="space-y-2">
+                              <Label><Mail className="inline w-3 h-3 mr-1" /> Email (aparece en facturas)</Label>
+                              <Input type="email" value={empresaData.email} onChange={(e) => setEmpresaData({ ...empresaData, email: e.target.value })} placeholder="facturacion@empresa.com" />
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <Label><Phone className="inline w-3 h-3 mr-1" /> Teléfono</Label>
@@ -789,9 +796,13 @@ export default function AdminSelfConfigModal({
                                 <Label>CP</Label>
                                 <Input value={empresaData.cp} onChange={(e) => setEmpresaData({ ...empresaData, cp: e.target.value })} />
                               </div>
-                              <div className="space-y-2 col-span-2">
+                              <div className="space-y-2">
                                 <Label>Población</Label>
                                 <Input value={empresaData.poblacion} onChange={(e) => setEmpresaData({ ...empresaData, poblacion: e.target.value })} />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Provincia</Label>
+                                <Input value={empresaData.provincia} onChange={(e) => setEmpresaData({ ...empresaData, provincia: e.target.value })} />
                               </div>
                             </div>
                             <div className="space-y-2">
@@ -1274,7 +1285,7 @@ export default function AdminSelfConfigModal({
 
                                             setGeneratingAiField('migracion');
                                             toast.promise(
-                                              api.post("/admin/facturacion/configuracion/emisor/ocr-migracion", { file: base64 }),
+                                              api.post("/admin/facturacion/configuracion/emisor/ocr-migracion", { file: base64 }, { headers: selfHeaders }),
                                               {
                                                 loading: 'Analizando factura con OCR inteligente...',
                                                 success: (res: any) => {
@@ -1410,7 +1421,7 @@ export default function AdminSelfConfigModal({
                                         className="h-6 text-[9px] gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                         onClick={async () => {
                                           try {
-                                            const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type: 'pie' });
+                                            const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type: 'pie' }, { headers: selfHeaders });
                                             setFacturacionData({ ...facturacionData, texto_pie: res.data.text });
                                             toast.success("Texto legal generado");
                                           } catch (e) { toast.error("Error al generar texto"); }
@@ -1434,7 +1445,7 @@ export default function AdminSelfConfigModal({
                                         className="h-6 text-[9px] gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                         onClick={async () => {
                                           try {
-                                            const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type: 'exento' });
+                                            const res = await api.post("/admin/facturacion/configuracion/generar-texto", { type: 'exento' }, { headers: selfHeaders });
                                             setFacturacionData({ ...facturacionData, texto_exento: res.data.text });
                                             toast.success("Texto exención generado");
                                           } catch (e) { toast.error("Error al generar texto"); }
