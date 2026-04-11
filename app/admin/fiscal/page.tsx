@@ -11,11 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { formatCurrency } from "@/lib/utils";
-import { FileText, AlertTriangle, CheckSquare, Square, Globe, Building, Users, Home, ReceiptEuro, ShieldAlert, CalendarDays, ExternalLink } from "lucide-react";
+import { FileText, AlertTriangle, CheckSquare, Square, Globe, Building, Users, Home, ReceiptEuro, ShieldAlert, CalendarDays, ExternalLink, Search, ShieldCheck } from "lucide-react";
 import FiscalAlertsPanel from "@/components/admin/fiscal/FiscalAlertsPanel";
 import AeatModelLinks from "@/components/fiscal/AeatModelLinks";
 import AeatQuickPanel from "@/components/fiscal/AeatQuickPanel";
 import CalendarioFiscal from "@/components/fiscal/CalendarioFiscal";
+import AeatConsultaPanel from "@/components/fiscal/AeatConsultaPanel";
 
 const MODELOS_CONFIG = [
     { id: "303", label: "Modelo 303", desc: "IVA Trimestral", color: "blue", icon: ReceiptEuro, defaultOn: true },
@@ -44,7 +45,7 @@ const BORDER_COLORS: Record<string, string> = {
 export default function FiscalPage() {
     const searchParams = useSearchParams();
     const tabParam = searchParams.get("tab");
-    const initialTab = tabParam === "alertas" ? "alertas" : tabParam === "aeat" ? "aeat" : "modelos";
+    const initialTab = tabParam === "alertas" ? "alertas" : tabParam === "aeat" ? "aeat" : tabParam === "consulta" ? "consulta" : "modelos";
     const autoOpenSimulator = searchParams.get("openSimulator") === "true";
 
     const [activeTab, setActiveTab] = useState(initialTab);
@@ -175,6 +176,12 @@ export default function FiscalPage() {
         if (activeTab === "modelos") loadAnualData();
     }, [year, activeTab, visibleAnuales.size]);
 
+    // Extensiones AEAT: autoliquidaciones (.ses), informativas (.NNN)
+    const getExtensionAeat = (modelo: string) => {
+        const autoliquidaciones = ['303', '130', '111', '115', '390', '100'];
+        return autoliquidaciones.includes(modelo) ? 'ses' : modelo;
+    };
+
     const handleDownload = async (modelo: string) => {
         try {
             const res = await authenticatedFetch(`/api/admin/fiscal/download-boe?year=${year}&trimestre=${trimestre}&modelo=${modelo}`);
@@ -184,14 +191,17 @@ export default function FiscalPage() {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `Modelo_${modelo}_${year}_T${trimestre}.txt`);
+            // El backend ya devuelve Content-Disposition con nombre correcto,
+            // pero ponemos fallback por si acaso
+            const ext = getExtensionAeat(modelo);
+            link.setAttribute('download', `Modelo_${modelo}_${year}_T${trimestre}.${ext}`);
             document.body.appendChild(link);
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
         } catch (e) {
             console.error(e);
-            alert("Error al descargar el fichero BOE");
+            alert("Error al descargar el fichero AEAT");
         }
     };
 
@@ -204,7 +214,8 @@ export default function FiscalPage() {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `Modelo_${modelo}_${year}_Anual.txt`);
+            const ext = modelo === '200' ? 'xml' : getExtensionAeat(modelo);
+            link.setAttribute('download', `Modelo_${modelo}_${year}_Anual.${ext}`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -259,6 +270,9 @@ export default function FiscalPage() {
                     </TabsTrigger>
                     <TabsTrigger value="alertas" className="gap-1.5">
                         <ShieldAlert className="w-4 h-4" /> Inteligencia Fiscal
+                    </TabsTrigger>
+                    <TabsTrigger value="consulta" className="gap-1.5">
+                        <Search className="w-4 h-4" /> Consulta AEAT
                     </TabsTrigger>
                     <TabsTrigger value="aeat" className="gap-1.5">
                         <ExternalLink className="w-4 h-4" /> AEAT
@@ -379,7 +393,7 @@ export default function FiscalPage() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownload('303')}>
-                                            <FileText className="mr-2 h-4 w-4" /> Descargar BOE
+                                            <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -440,7 +454,7 @@ export default function FiscalPage() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownload('130')}>
-                                            <FileText className="mr-2 h-4 w-4" /> Descargar BOE
+                                            <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -483,7 +497,7 @@ export default function FiscalPage() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownload('111')}>
-                                            <FileText className="mr-2 h-4 w-4" /> Descargar BOE
+                                            <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -529,7 +543,7 @@ export default function FiscalPage() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownload('115')}>
-                                            <FileText className="mr-2 h-4 w-4" /> Descargar BOE
+                                            <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -578,7 +592,7 @@ export default function FiscalPage() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownload('349')}>
-                                            <FileText className="mr-2 h-4 w-4" /> Descargar datos
+                                            <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -668,7 +682,7 @@ export default function FiscalPage() {
                                     </CardContent>
                                     <CardFooter className="flex gap-2">
                                         <Button variant="outline" className="flex-1" size="sm" onClick={() => handleDownloadAnual('390')}>
-                                            <FileText className="mr-2 h-4 w-4" /> Generar BOE
+                                            <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
                                         <Button variant="outline" size="sm" onClick={() => window.location.href = `/admin/fiscal/modelo390?year=${year}`}>
                                             Ver detalle
@@ -715,7 +729,7 @@ export default function FiscalPage() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownloadAnual('190')}>
-                                            <FileText className="mr-2 h-4 w-4" /> Generar BOE
+                                            <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -765,7 +779,7 @@ export default function FiscalPage() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownloadAnual('180')}>
-                                            <FileText className="mr-2 h-4 w-4" /> Generar BOE
+                                            <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -805,7 +819,7 @@ export default function FiscalPage() {
                                     </CardContent>
                                     <CardFooter className="flex gap-2">
                                         <Button variant="outline" className="flex-1" size="sm" onClick={() => handleDownloadAnual('347')}>
-                                            <FileText className="mr-2 h-4 w-4" /> Generar BOE
+                                            <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
                                         <Button variant="outline" size="sm" onClick={() => window.location.href = `/admin/fiscal/modelo347?year=${year}`}>
                                             Ver detalle
@@ -823,6 +837,11 @@ export default function FiscalPage() {
                 {/* Tab: Inteligencia Fiscal */}
                 <TabsContent value="alertas" className="mt-4">
                     <FiscalAlertsPanel year={year} trimestre={trimestre} autoOpenSimulator={autoOpenSimulator} />
+                </TabsContent>
+
+                {/* Tab: Consulta AEAT */}
+                <TabsContent value="consulta" className="space-y-6 mt-4">
+                    <AeatConsultaPanel year={year} trimestre={trimestre} />
                 </TabsContent>
 
                 {/* Tab: AEAT */}

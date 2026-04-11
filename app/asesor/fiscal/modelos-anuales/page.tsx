@@ -8,11 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { formatCurrency } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Calculator, FileText, CheckCircle2, Clock, AlertTriangle,
-    ExternalLink, RefreshCw, ChevronDown, ChevronUp, Building2
+    ExternalLink, RefreshCw, ChevronDown, ChevronUp, Building2,
+    Download, Search
 } from "lucide-react";
 import ModeloAnualDetail from "@/components/fiscal/ModeloAnualDetail";
+import AeatConsultaPanel from "@/components/fiscal/AeatConsultaPanel";
 
 interface Cliente {
     empresa_id: string;
@@ -187,7 +190,44 @@ export default function AsesorModelosAnualesPage() {
         return new Date(fechaLimite) < new Date();
     }
 
+    function getExtensionAeat(modelo: string): string {
+        const AUTOLIQUIDACIONES_ANUALES = ['390', '100'];
+        if (modelo === '200') return 'xml';
+        if (AUTOLIQUIDACIONES_ANUALES.includes(modelo)) return 'ses';
+        return modelo; // informativas: .190, .180, .347
+    }
+
+    async function handleDownloadAnual(modelo: string) {
+        if (!selectedEmpresa) return;
+        try {
+            const res = await authenticatedFetch(
+                `/asesor/clientes/${selectedEmpresa}/modelos-anuales/download-boe-anual?year=${ejercicio}&modelo=${modelo}`
+            );
+            if (!res.ok) {
+                const json = await res.json();
+                alert(json.error || "Error al descargar");
+                return;
+            }
+            const blob = await res.blob();
+            const ext = getExtensionAeat(modelo);
+            const filename = `modelo-${modelo}-${ejercicio}.${ext}`;
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Error descargando fichero AEAT:", error);
+            alert("Error de conexion al descargar");
+        }
+    }
+
     if (loadingClientes) return <LoadingSpinner fullPage />;
+
+    const consultaApiBasePath = selectedEmpresa
+        ? `/asesor/clientes/${selectedEmpresa}/consulta`
+        : "";
 
     return (
         <div className="space-y-6">
@@ -244,9 +284,23 @@ export default function AsesorModelosAnualesPage() {
                         <p className="text-muted-foreground">Selecciona un cliente para ver sus modelos anuales</p>
                     </CardContent>
                 </Card>
-            ) : loading ? (
-                <LoadingSpinner />
             ) : (
+                <Tabs defaultValue="modelos" className="space-y-4">
+                    <TabsList>
+                        <TabsTrigger value="modelos">
+                            <FileText size={14} className="mr-1" />
+                            Modelos
+                        </TabsTrigger>
+                        <TabsTrigger value="consulta">
+                            <Search size={14} className="mr-1" />
+                            Consulta AEAT
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="modelos">
+                    {loading ? (
+                        <LoadingSpinner />
+                    ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {modelos.map((m) => {
                         const badge = ESTADO_BADGE[m.estado] || ESTADO_BADGE.pendiente;
@@ -366,6 +420,17 @@ export default function AsesorModelosAnualesPage() {
                                             </Button>
                                         )}
 
+                                        {m.datos_calculados && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleDownloadAnual(m.modelo)}
+                                            >
+                                                <Download size={14} className="mr-1" />
+                                                Fichero AEAT
+                                            </Button>
+                                        )}
+
                                         {AEAT_LINKS[m.modelo] && (
                                             <Button
                                                 size="sm"
@@ -431,6 +496,19 @@ export default function AsesorModelosAnualesPage() {
                         );
                     })}
                 </div>
+                    )}
+                    </TabsContent>
+
+                    <TabsContent value="consulta">
+                        {consultaApiBasePath && (
+                            <AeatConsultaPanel
+                                year={ejercicio}
+                                trimestre="1"
+                                apiBasePath={consultaApiBasePath}
+                            />
+                        )}
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
     );
