@@ -58,6 +58,7 @@ import {
     AlertTriangle,
     Bot,
     Trash2,
+    ShieldCheck,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -90,6 +91,7 @@ type Asiento = {
     estado: string;
     notas?: string;
     revisado_ia?: boolean;
+    revisado_usuario?: boolean;
     pendiente_revision?: boolean;
     revision_motivo?: string;
     total_debe: number;
@@ -233,9 +235,10 @@ export default function AsientosPage() {
         corregidos: number;
         sin_cambios: number;
         errores: string[];
-        cambios: { asiento_id: string; concepto: string; cuenta_anterior: { codigo: string; nombre: string }; cuenta_nueva: { codigo: string; nombre: string }; importe: number }[];
+        cambios: { asiento_id: string; linea_id: string; concepto: string; cuenta_anterior: { codigo: string; nombre: string }; cuenta_nueva: { codigo: string; nombre: string }; importe: number }[];
     } | null>(null);
     const [reviewSimulating, setReviewSimulating] = useState(false);
+    const [selectedChanges, setSelectedChanges] = useState<Set<number>>(new Set());
 
     // --- State: column widths (persisted) ---
     const [colWidths, setColWidths] = useState<Record<string, number>>(DEFAULT_COL_WIDTHS);
@@ -530,32 +533,75 @@ export default function AsientosPage() {
     const handleReview = async (simular: boolean) => {
         if (simular) setReviewSimulating(true);
         else setReviewing(true);
-        setReviewResult(null);
+        if (simular) setReviewResult(null);
         try {
-            const ids = selectedBorradorIds.length > 0
-                ? [...selectedIds]
-                : [];
-            const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/revisar`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ids, simular }),
-            });
-            if (res.ok) {
-                const json = await res.json();
-                if (!simular) {
-                    // After applying corrections, clear the banner and refresh
-                    setReviewResult(null);
-                } else {
+            if (simular) {
+                // Fase 1: Simular — pedir cambios sin aplicar
+                const ids = selectedBorradorIds.length > 0
+                    ? [...selectedIds]
+                    : [];
+                const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/revisar`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ids, simular: true }),
+                });
+                if (res.ok) {
+                    const json = await res.json();
                     setReviewResult(json);
+                    // Seleccionar todos los cambios por defecto
+                    setSelectedChanges(new Set(json.cambios.map((_: any, i: number) => i)));
                 }
-                // Always reload — IA marks reviewed asientos even in simulation
-                loadAsientos();
+            } else {
+                // Fase 2: Aplicar solo los cambios seleccionados
+                if (!reviewResult) return;
+                const cambiosAplicar = reviewResult.cambios.filter((_, i) => selectedChanges.has(i));
+                if (cambiosAplicar.length === 0) {
+                    setReviewResult(null);
+                    return;
+                }
+
+                // Marcar los NO seleccionados como "revisado_usuario" (el usuario dice que están bien)
+                const idsNoSeleccionados = reviewResult.cambios
+                    .filter((_, i) => !selectedChanges.has(i))
+                    .map(c => c.asiento_id);
+
+                if (idsNoSeleccionados.length > 0) {
+                    await authenticatedFetch(`/api/admin/contabilidad/asientos/marcar-revisado`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ids: idsNoSeleccionados, revisado: true }),
+                    });
+                }
+
+                const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/aplicar-cambios`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ cambios: cambiosAplicar }),
+                });
+                if (res.ok) {
+                    setReviewResult(null);
+                    setSelectedChanges(new Set());
+                    loadAsientos();
+                }
             }
         } catch (err) {
             console.error("Error reviewing:", err);
         } finally {
             setReviewing(false);
             setReviewSimulating(false);
+        }
+    };
+
+    const handleMarcarRevisadoUsuario = async (ids: string[]) => {
+        try {
+            const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/marcar-revisado`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids, revisado: true }),
+            });
+            if (res.ok) loadAsientos();
+        } catch (err) {
+            console.error("Error marcando revisado:", err);
         }
     };
 
@@ -948,7 +994,7 @@ export default function AsientosPage() {
                         {reviewSimulating ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
                         <span className="hidden sm:inline">Re-revisar</span>
                         {(() => {
-                            const sinRevisar = asientos.filter(a => !a.revisado_ia && (a.tipo === "auto_gasto" || a.tipo === "auto_factura") && a.estado !== "anulado").length;
+                            const sinRevisar = asientos.filter(a => !a.revisado_ia && !a.revisado_usuario && (a.tipo === "auto_gasto" || a.tipo === "auto_factura") && a.estado !== "anulado").length;
                             return sinRevisar > 0 ? (
                                 <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold bg-amber-600 text-white rounded-full">
                                     {sinRevisar}
@@ -1675,6 +1721,12 @@ export default function AsientosPage() {
                                                             IA
                                                         </span>
                                                     )}
+                                                    {asiento.revisado_usuario && (
+                                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-green-50 text-green-600 border border-green-200 text-[10px] font-medium" title="Revisado por usuario">
+                                                            <CheckCircle size={10} />
+                                                            OK
+                                                        </span>
+                                                    )}
                                                     {asiento.pendiente_revision && (
                                                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-medium" title={asiento.revision_motivo || "Revisión pendiente"}>
                                                             <AlertTriangle size={10} />
@@ -1740,6 +1792,20 @@ export default function AsientosPage() {
                                                             <CheckCircle
                                                                 size={14}
                                                             />
+                                                        </Button>
+                                                    )}
+                                                    {!asiento.revisado_usuario && (asiento.tipo === "auto_gasto" || asiento.tipo === "auto_factura") && asiento.estado !== "anulado" && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 hover:bg-green-100 hover:text-green-600 text-slate-400"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleMarcarRevisadoUsuario([asiento.id]);
+                                                            }}
+                                                            title="Marcar como correcto (no re-revisar)"
+                                                        >
+                                                            <ShieldCheck size={14} />
                                                         </Button>
                                                     )}
                                                     <Button
@@ -1932,11 +1998,29 @@ export default function AsientosPage() {
 
                     {reviewResult.cambios.length > 0 && (
                         <div className="space-y-2">
-                            <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Cambios detectados:</p>
+                            <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Cambios detectados — selecciona los que quieres aplicar:</p>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        className="text-[10px] text-amber-600 hover:text-amber-800 underline"
+                                        onClick={() => setSelectedChanges(new Set(reviewResult.cambios.map((_, i) => i)))}
+                                    >
+                                        Seleccionar todos
+                                    </button>
+                                    <span className="text-amber-300">|</span>
+                                    <button
+                                        className="text-[10px] text-amber-600 hover:text-amber-800 underline"
+                                        onClick={() => setSelectedChanges(new Set())}
+                                    >
+                                        Deseleccionar todos
+                                    </button>
+                                </div>
+                            </div>
                             <div className="bg-white rounded-xl border border-amber-100 overflow-hidden">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-amber-100 bg-amber-50/50">
+                                            <th className="w-10 p-2.5"></th>
                                             <th className="text-left p-2.5 text-xs font-semibold text-amber-700">Concepto</th>
                                             <th className="text-left p-2.5 text-xs font-semibold text-amber-700">Cuenta anterior</th>
                                             <th className="text-left p-2.5 text-xs font-semibold text-amber-700">Cuenta correcta</th>
@@ -1945,8 +2029,24 @@ export default function AsientosPage() {
                                     </thead>
                                     <tbody>
                                         {reviewResult.cambios.map((c, i) => (
-                                            <tr key={i} className="border-b border-amber-50 last:border-0">
-                                                <td className="p-2.5 text-slate-900 max-w-[300px] truncate" title={c.concepto}>{c.concepto}</td>
+                                            <tr
+                                                key={i}
+                                                className={`border-b border-amber-50 last:border-0 cursor-pointer transition-colors ${selectedChanges.has(i) ? 'bg-amber-50/30' : 'bg-slate-50/50 opacity-60'}`}
+                                                onClick={() => {
+                                                    const next = new Set(selectedChanges);
+                                                    if (next.has(i)) next.delete(i); else next.add(i);
+                                                    setSelectedChanges(next);
+                                                }}
+                                            >
+                                                <td className="p-2.5 text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedChanges.has(i)}
+                                                        onChange={() => {}}
+                                                        className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                                                    />
+                                                </td>
+                                                <td className="p-2.5 text-slate-900 max-w-[280px] truncate" title={c.concepto}>{c.concepto}</td>
                                                 <td className="p-2.5">
                                                     <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 px-2 py-0.5 rounded-lg text-xs font-mono">
                                                         {c.cuenta_anterior.codigo} <span className="font-sans text-red-500">{c.cuenta_anterior.nombre}</span>
@@ -1963,22 +2063,30 @@ export default function AsientosPage() {
                                     </tbody>
                                 </table>
                             </div>
-                            <div className="flex items-center justify-end gap-2 pt-2">
-                                <Button
-                                    variant="outline"
-                                    className="rounded-xl h-10 px-4 text-sm"
-                                    onClick={() => setReviewResult(null)}
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    className="bg-amber-600 text-white hover:bg-amber-700 rounded-xl h-10 px-5 gap-2 text-sm shadow-sm"
-                                    onClick={() => handleReview(false)}
-                                    disabled={reviewing}
-                                >
-                                    {reviewing ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-                                    Aplicar {reviewResult.corregidos} corrección{reviewResult.corregidos !== 1 ? "es" : ""}
-                                </Button>
+                            <div className="flex items-center justify-between pt-2">
+                                <p className="text-xs text-amber-600">
+                                    {selectedChanges.size} de {reviewResult.cambios.length} cambios seleccionados
+                                    {reviewResult.cambios.length - selectedChanges.size > 0 && (
+                                        <span className="text-slate-500"> · {reviewResult.cambios.length - selectedChanges.size} se marcarán como correctos</span>
+                                    )}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        className="rounded-xl h-10 px-4 text-sm"
+                                        onClick={() => { setReviewResult(null); setSelectedChanges(new Set()); }}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        className="bg-amber-600 text-white hover:bg-amber-700 rounded-xl h-10 px-5 gap-2 text-sm shadow-sm"
+                                        onClick={() => handleReview(false)}
+                                        disabled={reviewing || selectedChanges.size === 0}
+                                    >
+                                        {reviewing ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                                        Aplicar {selectedChanges.size} corrección{selectedChanges.size !== 1 ? "es" : ""}
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     )}
