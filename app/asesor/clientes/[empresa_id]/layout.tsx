@@ -52,6 +52,7 @@ const tabs = [
     label: "Contabilidad",
     icon: ShieldCheck,
     segment: "contabilidad",
+    noPopup: true, // tiene sus propias cards con popup
   },
   {
     label: "Fiscal",
@@ -351,7 +352,7 @@ function AsesorClienteLayoutInner({
                     onClick={() => router.push(href)}
                     onAuxClick={(e) => {
                       // Click con rueda del ratón (botón medio) → abrir en nueva ventana
-                      if (e.button === 1) {
+                      if (e.button === 1 && !tab.noPopup) {
                         e.preventDefault();
                         handleOpenInNewWindow(tab.segment);
                       }
@@ -373,17 +374,19 @@ function AsesorClienteLayoutInner({
                       )}
                     />
                     {tab.label}
-                    {/* Botón para abrir en nueva ventana */}
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenInNewWindow(tab.segment);
-                      }}
-                      className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity ml-0.5 p-0.5 rounded hover:bg-muted"
-                      title={`Abrir ${tab.label} en nueva ventana`}
-                    >
-                      <ExternalLink size={10} />
-                    </span>
+                    {/* Botón para abrir en nueva ventana (oculto si el tab tiene sus propios popups en cards) */}
+                    {!tab.noPopup && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenInNewWindow(tab.segment);
+                        }}
+                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity ml-0.5 p-0.5 rounded hover:bg-muted"
+                        title={`Abrir ${tab.label} en nueva ventana`}
+                      >
+                        <ExternalLink size={10} />
+                      </span>
+                    )}
                   </button>
                 );
               })}
