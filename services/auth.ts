@@ -102,19 +102,13 @@ export async function login(
     // Limpiar estado de sesión anterior (evita datos cruzados entre usuarios)
     sessionStorage.removeItem("asesor_empresa_id");
 
-    if (remember) {
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      // Limpiar session por si acaso
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("user");
-    } else {
-      sessionStorage.setItem("token", token);
-      sessionStorage.setItem("user", JSON.stringify(user));
-      // Limpiar local por si acaso
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    }
+    // Guardar siempre en localStorage para permitir multi-ventana/multi-pestaña
+    // sessionStorage es por pestaña y no se comparte, lo que impide abrir tabs nuevos
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    // También en sessionStorage para compatibilidad con flujos que lo leen primero
+    sessionStorage.setItem("token", token);
+    sessionStorage.setItem("user", JSON.stringify(user));
   }
 
   setAuthToken(token);

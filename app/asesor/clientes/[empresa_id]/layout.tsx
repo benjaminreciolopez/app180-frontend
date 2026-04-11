@@ -193,7 +193,7 @@ export default function AsesorClienteLayout({
   // Abrir tab en ventana nueva (multitarea)
   const handleOpenInNewWindow = (segment: string) => {
     const href = segment === "" ? basePath : `${basePath}/${segment}`;
-    window.open(href, "_blank", "noopener");
+    window.open(href, "_blank");
   };
 
   return (
