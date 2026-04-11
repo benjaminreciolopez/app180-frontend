@@ -13,6 +13,7 @@ interface LockScreenProps {
 }
 
 export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screensaverStyle, enabled, companyLogo }: LockScreenProps) {
+  const hasPinCode = Boolean(pinCode && pinCode.length > 0)
   const [isLocked, setIsLocked] = useState(() => {
     if (typeof window === "undefined") return false
     return localStorage.getItem("app180_lock_active") === "true"
@@ -24,34 +25,34 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const resetTimer = useCallback(() => {
-    if (!enabled || !pinCode) return
+    if (!enabled) return
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
     timeoutRef.current = setTimeout(() => {
       setIsLocked(true)
       setEnteredPin("")
       setError(false)
     }, timeoutMinutes * 60 * 1000)
-  }, [enabled, pinCode, timeoutMinutes])
+  }, [enabled, timeoutMinutes])
 
   // Persist lock state to localStorage for cross-session survival
   useEffect(() => {
-    if (!enabled || !pinCode) return
+    if (!enabled) return
     localStorage.setItem("app180_lock_active", isLocked ? "true" : "false")
-  }, [isLocked, enabled, pinCode])
+  }, [isLocked, enabled])
 
   // Track lock_enabled in localStorage (for pre-API overlay in layout)
   useEffect(() => {
-    if (enabled && pinCode) {
+    if (enabled && hasPinCode) {
       localStorage.setItem("app180_lock_enabled", "true")
     } else {
       localStorage.removeItem("app180_lock_enabled")
       localStorage.removeItem("app180_lock_active")
     }
-  }, [enabled, pinCode])
+  }, [enabled, hasPinCode])
 
   // Visibility-based lock: record when app is hidden, lock when it returns
   useEffect(() => {
-    if (!enabled || !pinCode) return
+    if (!enabled) return
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -80,11 +81,11 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
       document.removeEventListener("visibilitychange", handleVisibilityChange)
       window.removeEventListener("beforeunload", handleBeforeUnload)
     }
-  }, [enabled, pinCode, timeoutMinutes])
+  }, [enabled, timeoutMinutes])
 
   // On fresh mount: check if we should lock based on elapsed time since last hidden
   useEffect(() => {
-    if (!enabled || !pinCode) return
+    if (!enabled) return
     const hiddenAt = localStorage.getItem("app180_lock_hidden_at")
     if (hiddenAt) {
       const elapsed = Date.now() - new Date(hiddenAt).getTime()
@@ -94,11 +95,11 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
       }
       localStorage.removeItem("app180_lock_hidden_at")
     }
-  }, [enabled, pinCode, timeoutMinutes])
+  }, [enabled, timeoutMinutes])
 
   // Listen for user activity
   useEffect(() => {
-    if (!enabled || !pinCode) return
+    if (!enabled) return
 
     const events = ["mousedown", "keydown", "touchstart", "scroll"]
     const handleActivity = () => {
@@ -112,7 +113,7 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
       events.forEach(e => window.removeEventListener(e, handleActivity))
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-  }, [enabled, pinCode, isLocked, resetTimer])
+  }, [enabled, isLocked, resetTimer])
 
   // Clock update
   useEffect(() => {
@@ -121,9 +122,31 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
     return () => clearInterval(interval)
   }, [isLocked])
 
-  // Physical keyboard support
+  // Dismiss screensaver-only mode on any click or keypress
   useEffect(() => {
-    if (!isLocked) return
+    if (!isLocked || hasPinCode) return
+
+    const dismiss = (e: Event) => {
+      e.preventDefault()
+      setIsLocked(false)
+      localStorage.removeItem("app180_lock_active")
+      localStorage.removeItem("app180_lock_hidden_at")
+      resetTimer()
+    }
+
+    window.addEventListener('keydown', dismiss)
+    window.addEventListener('mousedown', dismiss)
+    window.addEventListener('touchstart', dismiss)
+    return () => {
+      window.removeEventListener('keydown', dismiss)
+      window.removeEventListener('mousedown', dismiss)
+      window.removeEventListener('touchstart', dismiss)
+    }
+  }, [isLocked, hasPinCode, resetTimer])
+
+  // Physical keyboard support for PIN entry
+  useEffect(() => {
+    if (!isLocked || !hasPinCode) return
 
     const handleKeyPress = (e: KeyboardEvent) => {
       // Numbers 0-9
@@ -140,9 +163,10 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [isLocked, enteredPin, pinCode]) // Include dependencies for handleDigit and handleDelete
+  }, [isLocked, enteredPin, pinCode, hasPinCode])
 
   const handleDigit = (digit: string) => {
+    if (!hasPinCode) return
     if (enteredPin.length >= 6) return
     const newPin = enteredPin + digit
     setEnteredPin(newPin)
@@ -175,6 +199,38 @@ export function LockScreen({ pinCode, timeoutMinutes, screensaverEnabled, screen
   const timeStr = currentTime.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
   const dateStr = currentTime.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })
 
+  // Screensaver-only mode (no PIN)
+  if (!hasPinCode) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex flex-col items-center justify-center select-none cursor-pointer">
+        {/* Screensaver content */}
+        <div className="mb-12 text-center">
+          {(screensaverStyle === "clock" || screensaverStyle === "logo") && (
+            <>
+              <p className="text-7xl md:text-8xl font-thin text-white/90 tracking-wider">{timeStr}</p>
+              <p className="text-lg text-white/50 mt-2 capitalize">{dateStr}</p>
+            </>
+          )}
+          {screensaverStyle === "logo" && (
+            <div className="flex flex-col items-center justify-center mt-8 gap-4">
+              {companyLogo ? (
+                <img src={companyLogo} alt="Logo" className="max-h-16 w-auto object-contain" />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-blue-400/60" />
+                  <span className="text-blue-400/60 font-semibold tracking-wider text-sm">CONTENDO GESTIONES</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <p className="text-sm text-white/30 animate-pulse">Haz clic o pulsa una tecla para continuar</p>
+      </div>
+    )
+  }
+
+  // Full PIN lock mode
   return (
     <div className="fixed inset-0 z-[9999] bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex flex-col items-center justify-center select-none">
       {/* Screensaver content */}

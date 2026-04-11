@@ -40,7 +40,7 @@ export default function AdminLayout({
     pin_lock_enabled: boolean; pin_code: string | null;
     pin_timeout_minutes: number; screensaver_enabled: boolean;
     screensaver_style: "clock" | "logo" | "minimal";
-  }>({ pin_lock_enabled: false, pin_code: null, pin_timeout_minutes: 5, screensaver_enabled: false, screensaver_style: "clock" });
+  }>({ pin_lock_enabled: false, pin_code: null, pin_timeout_minutes: 5, screensaver_enabled: true, screensaver_style: "clock" });
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [pendingLock, setPendingLock] = useState(() => {
     if (typeof window === "undefined") return false
@@ -454,13 +454,13 @@ export default function AdminLayout({
       {pendingLock && !pinConfig.pin_lock_enabled && (
         <div className="fixed inset-0 z-[9999] bg-slate-900" />
       )}
-      {pinConfig.pin_lock_enabled && pinConfig.pin_code && (
+      {(pinConfig.pin_lock_enabled || pinConfig.screensaver_enabled) && (
         <LockScreen
-          pinCode={pinConfig.pin_code}
+          pinCode={pinConfig.pin_code || ""}
           timeoutMinutes={pinConfig.pin_timeout_minutes}
           screensaverEnabled={pinConfig.screensaver_enabled}
           screensaverStyle={pinConfig.screensaver_style}
-          enabled={pinConfig.pin_lock_enabled}
+          enabled={pinConfig.pin_lock_enabled || pinConfig.screensaver_enabled}
           companyLogo={companyLogo}
         />
       )}
@@ -592,22 +592,25 @@ export default function AdminLayout({
 
             <button
               onClick={() => setSelfConfigOpen(true)}
-              className="relative group p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 hover:from-primary/40 transition-all duration-300"
+              className="relative group flex flex-col items-center gap-0.5"
             >
-              <div className="relative w-9 h-9 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-background bg-muted">
-                {session.avatar_url ? (
-                  <img
-                    src={session.avatar_url}
-                    alt={session.nombre}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-sm md:text-lg font-bold">
-                    {session.nombre.charAt(0)}
-                  </div>
-                )}
+              <div className="p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 group-hover:from-primary/40 transition-all duration-300">
+                <div className="relative w-9 h-9 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-background bg-muted">
+                  {session.avatar_url ? (
+                    <img
+                      src={session.avatar_url}
+                      alt={session.nombre}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground text-sm md:text-lg font-bold">
+                      {session.nombre.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div className="absolute inset-0 rounded-full shadow-[0_0_15px_rgba(var(--primary),0.2)] group-hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all" />
               </div>
-              <div className="absolute inset-0 rounded-full shadow-[0_0_15px_rgba(var(--primary),0.2)] group-hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all" />
+              <span className="text-[9px] md:text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-none">Configuración</span>
             </button>
 
             <button
