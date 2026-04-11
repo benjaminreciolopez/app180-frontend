@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { authenticatedFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,9 @@ import {
   RefreshCw,
   Eye,
   ArrowRight,
+  Upload,
+  ExternalLink,
+  FileDown,
 } from "lucide-react";
 
 interface Discrepancia {
@@ -60,9 +63,20 @@ const TODOS_MODELOS = [
   { id: "190", label: "Modelo 190", tipo: "anual" },
   { id: "180", label: "Modelo 180", tipo: "anual" },
   { id: "347", label: "Modelo 347", tipo: "anual" },
-  { id: "100", label: "Renta IRPF", tipo: "anual" },
-  { id: "200", label: "Imp. Sociedades", tipo: "anual" },
 ];
+
+// Enlaces a la Sede Electrónica de AEAT para descargar/consultar cada modelo
+const AEAT_ENLACES: Record<string, string> = {
+  "303": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI34.shtml",
+  "130": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI01.shtml",
+  "111": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI05.shtml",
+  "115": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI07.shtml",
+  "349": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI36.shtml",
+  "390": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI35.shtml",
+  "190": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI04.shtml",
+  "180": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI06.shtml",
+  "347": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI14.shtml",
+};
 
 const SEVERIDAD_COLORS: Record<string, string> = {
   alta: "bg-red-100 text-red-800 border-red-200",
@@ -76,21 +90,30 @@ const SEVERIDAD_ICONS: Record<string, any> = {
   baja: ShieldCheck,
 };
 
+function getExtensionModelo(modelo: string): string {
+  const AUTOLIQ = ["303", "130", "111", "115"];
+  if (AUTOLIQ.includes(modelo)) return ".ses";
+  return `.${modelo}`;
+}
+
 export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api/admin/fiscal/consulta" }: { year: string; trimestre: string; apiBasePath?: string }) {
   const [modeloSeleccionado, setModeloSeleccionado] = useState("303");
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState(`${trimestre}T`);
   const [loading, setLoading] = useState(false);
+  const [loadingImport, setLoadingImport] = useState(false);
   const [resultado, setResultado] = useState<ConsultaResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
   const [historial, setHistorial] = useState<HistorialItem[]>([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
   const [vistaDetalle, setVistaDetalle] = useState<string | null>(null);
   const [detalleData, setDetalleData] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const modeloConfig = TODOS_MODELOS.find(m => m.id === modeloSeleccionado);
   const esTrimestral = modeloConfig?.tipo === "trimestral";
 
-  const handleConsultar = async () => {
+  const handleVerificar = async () => {
     setLoading(true);
     setError(null);
     setResultado(null);
@@ -108,7 +131,7 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Error consultando AEAT");
+        throw new Error(data.error || "Error verificando modelo");
       }
 
       const data = await res.json();
@@ -117,6 +140,43 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImportarFichero = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoadingImport(true);
+    setImportMsg(null);
+    setError(null);
+
+    try {
+      const contenido = await file.text();
+
+      const res = await authenticatedFetch(`${apiBasePath}/importar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          modelo: modeloSeleccionado,
+          ejercicio: parseInt(year),
+          periodo: esTrimestral ? periodoSeleccionado : "0A",
+          contenido_fichero: contenido,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Error importando fichero");
+      }
+
+      const data = await res.json();
+      setImportMsg(`Modelo ${modeloSeleccionado} importado correctamente. Ya puedes verificar discrepancias.`);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoadingImport(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -160,7 +220,6 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
       });
 
       if (res.ok) {
-        // Recargar detalle
         if (vistaDetalle) handleVerDetalle(vistaDetalle);
       }
     } catch (e) {
@@ -170,15 +229,16 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
 
   return (
     <div className="space-y-6">
-      {/* Panel de consulta */}
+      {/* Panel principal */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5 text-blue-600" />
-            Consultar Declaraciones en AEAT
+            Verificar Modelos Presentados
           </CardTitle>
           <CardDescription>
-            Consulta las declaraciones presentadas en AEAT usando el certificado electr&oacute;nico y compara con los datos de la app
+            Compara los datos presentados con los datos actuales para detectar discrepancias.
+            Importa ficheros de modelos presentados desde AEAT o verifica los presentados desde la app.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -222,16 +282,61 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
             )}
 
             {/* Botones */}
-            <Button onClick={handleConsultar} disabled={loading} className="gap-2">
+            <Button onClick={handleVerificar} disabled={loading} className="gap-2">
               {loading ? <LoadingSpinner /> : <Search className="h-4 w-4" />}
-              Consultar AEAT
+              Verificar
             </Button>
+
+            <div className="relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={getExtensionModelo(modeloSeleccionado) + ",.txt,.ses"}
+                onChange={handleImportarFichero}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loadingImport}
+                className="gap-2"
+              >
+                {loadingImport ? <LoadingSpinner /> : <Upload className="h-4 w-4" />}
+                Importar Fichero ({getExtensionModelo(modeloSeleccionado)})
+              </Button>
+            </div>
 
             <Button variant="outline" onClick={handleCargarHistorial} disabled={loadingHistorial} className="gap-2">
               {loadingHistorial ? <LoadingSpinner /> : <RefreshCw className="h-4 w-4" />}
-              Ver Historial
+              Historial
             </Button>
           </div>
+
+          {/* Enlace a Sede Electrónica */}
+          {AEAT_ENLACES[modeloSeleccionado] && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm">
+              <ExternalLink className="h-4 w-4 text-blue-600 shrink-0" />
+              <span className="text-blue-700">
+                Descarga el fichero presentado desde la{" "}
+                <a
+                  href={AEAT_ENLACES[modeloSeleccionado]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium underline hover:text-blue-900"
+                >
+                  Sede Electrónica de AEAT - Modelo {modeloSeleccionado}
+                </a>
+                {" "}e impórtalo aquí para verificar discrepancias.
+              </span>
+            </div>
+          )}
+
+          {importMsg && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-start gap-2">
+              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+              {importMsg}
+            </div>
+          )}
 
           {error && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-start gap-2">
@@ -242,7 +347,7 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
         </CardContent>
       </Card>
 
-      {/* Resultado de la consulta */}
+      {/* Resultado de la verificación */}
       {resultado && (
         <Card>
           <CardHeader>
@@ -254,11 +359,11 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
               ) : (
                 <ShieldCheck className="h-5 w-5 text-green-600" />
               )}
-              Resultado Consulta: {modeloConfig?.label} {esTrimestral ? periodoSeleccionado : ""} {year}
+              Resultado: {modeloConfig?.label} {esTrimestral ? periodoSeleccionado : ""} {year}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Resumen de discrepancias */}
+            {/* Resumen */}
             <div className="grid grid-cols-4 gap-3 mb-6">
               <div className="text-center p-3 bg-slate-50 rounded-lg">
                 <div className="text-2xl font-bold">{resultado.resumen.total}</div>
@@ -283,7 +388,7 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
                 <CheckCircle2 className="h-6 w-6 text-green-600" />
                 <div>
                   <p className="font-medium text-green-800">Sin discrepancias</p>
-                  <p className="text-sm text-green-600">Los datos de la app coinciden con los presentados en AEAT</p>
+                  <p className="text-sm text-green-600">Los datos actuales coinciden con los presentados</p>
                 </div>
               </div>
             ) : (
@@ -296,11 +401,11 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
         </Card>
       )}
 
-      {/* Historial de consultas */}
+      {/* Historial */}
       {historial.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Historial de Consultas - {year}</CardTitle>
+            <CardTitle className="text-base">Historial de Verificaciones - {year}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -341,13 +446,13 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
         </Card>
       )}
 
-      {/* Detalle de consulta seleccionada */}
+      {/* Detalle */}
       {vistaDetalle && detalleData && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <ArrowRight className="h-4 w-4" />
-              Detalle Consulta: {detalleData.consulta?.modelo} {detalleData.consulta?.periodo} {detalleData.consulta?.ejercicio}
+              Detalle: {detalleData.consulta?.modelo} {detalleData.consulta?.periodo} {detalleData.consulta?.ejercicio}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -377,8 +482,8 @@ function DiscrepanciaTable({
             <th className="text-left py-2 px-3 font-medium text-slate-500">Severidad</th>
             <th className="text-left py-2 px-3 font-medium text-slate-500">Casilla</th>
             <th className="text-left py-2 px-3 font-medium text-slate-500">Campo</th>
-            <th className="text-right py-2 px-3 font-medium text-slate-500">Valor App</th>
-            <th className="text-right py-2 px-3 font-medium text-slate-500">Valor AEAT</th>
+            <th className="text-right py-2 px-3 font-medium text-slate-500">Valor Actual</th>
+            <th className="text-right py-2 px-3 font-medium text-slate-500">Valor Presentado</th>
             <th className="text-right py-2 px-3 font-medium text-slate-500">Diferencia</th>
             <th className="text-center py-2 px-3 font-medium text-slate-500">Estado</th>
             <th className="text-center py-2 px-3 font-medium text-slate-500">Acciones</th>
@@ -418,7 +523,7 @@ function DiscrepanciaTable({
                         size="sm"
                         className="text-xs h-7 px-2 text-green-700 hover:bg-green-50"
                         onClick={() => onResolver(d.id, "actualizar_app")}
-                        title="Actualizar app con valor AEAT"
+                        title="Actualizar app con valor presentado"
                       >
                         Corregir
                       </Button>
