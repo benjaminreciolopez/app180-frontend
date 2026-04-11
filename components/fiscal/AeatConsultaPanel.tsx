@@ -96,7 +96,7 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
     setResultado(null);
 
     try {
-      const res = await authenticatedFetch("${apiBasePath}/consultar", {
+      const res = await authenticatedFetch(`${apiBasePath}/consultar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,7 +153,7 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
   const handleResolverDiscrepancia = async (discrepanciaId: string, accion: string) => {
     try {
       const consultaId = detalleData?.consulta?.id || resultado?.consulta?.id;
-      const res = await authenticatedFetch(`/api/admin/fiscal/consulta/${consultaId}/resolver`, {
+      const res = await authenticatedFetch(`${apiBasePath}/${consultaId}/resolver`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ discrepancia_id: discrepanciaId, accion }),
