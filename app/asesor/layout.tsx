@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { LogOut, Menu, ChevronDown, ChevronRight } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { NotificationBell } from "@/components/shared/NotificationBell";
@@ -139,7 +139,15 @@ const misClientesSections = [
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = ["/asesor/registro"];
 
-export default function AsesorLayout({
+export default function AsesorLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<LoadingSpinner fullPage />}>
+      <AsesorLayoutInner>{children}</AsesorLayoutInner>
+    </Suspense>
+  );
+}
+
+function AsesorLayoutInner({
   children,
 }: {
   children: React.ReactNode;

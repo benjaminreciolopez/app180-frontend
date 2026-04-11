@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -105,7 +105,15 @@ const tabs = [
   },
 ];
 
-export default function AsesorClienteLayout({
+export default function AsesorClienteLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense>
+      <AsesorClienteLayoutInner>{children}</AsesorClienteLayoutInner>
+    </Suspense>
+  );
+}
+
+function AsesorClienteLayoutInner({
   children,
 }: {
   children: React.ReactNode;
