@@ -6,7 +6,7 @@ import { api } from "@/services/api";
 import { showError } from "@/lib/toast";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookOpen, Calculator, FileSpreadsheet, TrendingUp, BarChart3 } from "lucide-react";
+import { BookOpen, Calculator, FileSpreadsheet, TrendingUp, BarChart3, ExternalLink } from "lucide-react";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(amount);
@@ -74,6 +74,26 @@ export default function AsesorClienteContabilidadPage() {
       setLoading(false);
     }
   }
+
+  // Detectar PWA
+  const isPWA = typeof window !== "undefined" && (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+    (window.navigator as any).standalone === true
+  );
+
+  const openInPopup = (href: string) => {
+    const url = `${href}?popup=true`;
+    if (isPWA) {
+      const w = Math.min(1200, screen.availWidth - 100);
+      const h = Math.min(800, screen.availHeight - 100);
+      const left = Math.round((screen.availWidth - w) / 2);
+      const top = Math.round((screen.availHeight - h) / 2);
+      window.open(url, "_blank", `popup,width=${w},height=${h},left=${left},top=${top}`);
+    } else {
+      window.open(url, "_blank");
+    }
+  };
 
   if (loading) return <LoadingSpinner fullPage />;
 
@@ -158,17 +178,27 @@ export default function AsesorClienteContabilidadPage() {
         {sections.map((s) => (
           <Card
             key={s.title}
-            className="cursor-pointer hover:border-primary/50 transition-colors"
+            className="group cursor-pointer hover:border-primary/50 transition-colors relative"
             onClick={() => router.push(s.href)}
+            onAuxClick={(e) => {
+              if (e.button === 1) { e.preventDefault(); openInPopup(s.href); }
+            }}
           >
             <CardContent className="pt-6 flex items-start gap-4">
               <div className="p-2 rounded-lg bg-primary/10">
                 <s.icon size={24} className="text-primary" />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm">{s.title}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>
               </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); openInPopup(s.href); }}
+                className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1.5 rounded-md hover:bg-muted shrink-0"
+                title={`Abrir ${s.title} en ventana independiente`}
+              >
+                <ExternalLink size={14} />
+              </button>
             </CardContent>
           </Card>
         ))}
