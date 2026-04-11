@@ -41,6 +41,7 @@ export default function AdminLayout({
     pin_timeout_minutes: number; screensaver_enabled: boolean;
     screensaver_style: "clock" | "logo" | "minimal";
   }>({ pin_lock_enabled: false, pin_code: null, pin_timeout_minutes: 5, screensaver_enabled: true, screensaver_style: "clock" });
+  const [pinConfigLoaded, setPinConfigLoaded] = useState(false);
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [pendingLock, setPendingLock] = useState(() => {
     if (typeof window === "undefined") return false
@@ -145,17 +146,16 @@ export default function AdminLayout({
 
     // Fetch PIN configuration
     api.get("/admin/configuracion").then(res => {
-      if (res.data?.pin_lock_enabled) {
-        setPinConfig({
-          pin_lock_enabled: !!res.data.pin_lock_enabled,
-          pin_code: res.data.pin_code || null,
-          pin_timeout_minutes: res.data.pin_timeout_minutes || 5,
-          screensaver_enabled: !!res.data.screensaver_enabled,
-          screensaver_style: res.data.screensaver_style || "clock",
-        });
-      }
+      setPinConfig({
+        pin_lock_enabled: !!res.data?.pin_lock_enabled,
+        pin_code: res.data?.pin_code || null,
+        pin_timeout_minutes: res.data?.pin_timeout_minutes || 5,
+        screensaver_enabled: res.data?.screensaver_enabled !== undefined ? !!res.data.screensaver_enabled : true,
+        screensaver_style: res.data?.screensaver_style || "clock",
+      });
+      setPinConfigLoaded(true);
       setPendingLock(false);
-    }).catch(() => { setPendingLock(false); });
+    }).catch(() => { setPinConfigLoaded(true); setPendingLock(false); });
 
     // Fetch company logo for screensaver
     api.get("/admin/facturacion/configuracion/emisor").then(res => {
@@ -451,10 +451,10 @@ export default function AdminLayout({
     <div className="flex h-[100svh] w-full overflow-hidden">
       <AutoBackupSync />
       {/* Pre-API lock overlay: blocks UI until PIN config loads */}
-      {pendingLock && !pinConfig.pin_lock_enabled && (
+      {pendingLock && !pinConfigLoaded && (
         <div className="fixed inset-0 z-[9999] bg-slate-900" />
       )}
-      {(pinConfig.pin_lock_enabled || pinConfig.screensaver_enabled) && (
+      {pinConfigLoaded && (pinConfig.pin_lock_enabled || pinConfig.screensaver_enabled) && (
         <LockScreen
           pinCode={pinConfig.pin_code || ""}
           timeoutMinutes={pinConfig.pin_timeout_minutes}
