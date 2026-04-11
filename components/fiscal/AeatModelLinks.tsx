@@ -19,48 +19,48 @@ type ModelLinks = {
 const AEAT_LINKS: Record<string, ModelLinks> = {
   "303": {
     presentar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G414.shtml",
-    consultar: "https://sede.agenciatributaria.gob.es/Sede/tramitacion/G414.shtml",
+    consultar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G414.shtml",
     calendario: "https://sede.agenciatributaria.gob.es/Sede/ayuda/calendario-contribuyente.html",
     info: "IVA - Autoliquidacion trimestral",
   },
   "390": {
     presentar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G412.shtml",
-    consultar: "https://sede.agenciatributaria.gob.es/Sede/tramitacion/G412.shtml",
+    consultar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G412.shtml",
     info: "IVA - Resumen anual",
   },
   "130": {
     presentar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G601.shtml",
-    consultar: "https://sede.agenciatributaria.gob.es/Sede/tramitacion/G601.shtml",
+    consultar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G601.shtml",
     info: "IRPF - Pago fraccionado estimacion directa",
   },
   "111": {
     presentar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GH01.shtml",
-    consultar: "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GH01.shtml",
+    consultar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GH01.shtml",
     info: "Retenciones e ingresos a cuenta - Rendimientos del trabajo",
   },
   "115": {
     presentar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GH02.shtml",
-    consultar: "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GH02.shtml",
+    consultar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GH02.shtml",
     info: "Retenciones - Arrendamiento inmuebles urbanos",
   },
   "190": {
     presentar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI10.shtml",
-    consultar: "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GI10.shtml",
+    consultar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI10.shtml",
     info: "Resumen anual retenciones e ingresos a cuenta",
   },
   "180": {
     presentar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI00.shtml",
-    consultar: "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GI00.shtml",
+    consultar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI00.shtml",
     info: "Resumen anual retenciones arrendamiento",
   },
   "347": {
     presentar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI27.shtml",
-    consultar: "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GI27.shtml",
+    consultar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI27.shtml",
     info: "Declaracion anual operaciones con terceros",
   },
   "349": {
     presentar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI28.shtml",
-    consultar: "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GI28.shtml",
+    consultar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI28.shtml",
     info: "Operaciones intracomunitarias",
   },
 };

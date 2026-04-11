@@ -68,15 +68,15 @@ const TODOS_MODELOS = [
 // Enlaces a la Sede Electrónica de AEAT para consultar presentaciones de cada modelo
 // (mismos que en AeatModelLinks.tsx → "Consultar presentaciones")
 const AEAT_ENLACES: Record<string, string> = {
-  "303": "https://sede.agenciatributaria.gob.es/Sede/tramitacion/G414.shtml",
-  "130": "https://sede.agenciatributaria.gob.es/Sede/tramitacion/G601.shtml",
-  "111": "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GH01.shtml",
-  "115": "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GH02.shtml",
-  "349": "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GI28.shtml",
-  "390": "https://sede.agenciatributaria.gob.es/Sede/tramitacion/G412.shtml",
-  "190": "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GI10.shtml",
-  "180": "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GI00.shtml",
-  "347": "https://sede.agenciatributaria.gob.es/Sede/tramitacion/GI27.shtml",
+  "303": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G414.shtml",
+  "130": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G601.shtml",
+  "111": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GH01.shtml",
+  "115": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GH02.shtml",
+  "349": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI28.shtml",
+  "390": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G412.shtml",
+  "190": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI10.shtml",
+  "180": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI00.shtml",
+  "347": "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GI27.shtml",
 };
 
 const SEVERIDAD_COLORS: Record<string, string> = {
