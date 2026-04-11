@@ -190,10 +190,27 @@ export default function AsesorClienteLayout({
   // Hay historial para volver atrás dentro del cliente?
   const canGoBack = navHistory.current.length > 1;
 
+  // Detectar si estamos en PWA (app instalada en escritorio)
+  const isPWA = typeof window !== "undefined" && (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+    (window.navigator as any).standalone === true
+  );
+
   // Abrir tab en ventana nueva (multitarea)
+  // En PWA: ventana emergente independiente con tamaño adecuado
+  // En navegador: nueva pestaña normal
   const handleOpenInNewWindow = (segment: string) => {
     const href = segment === "" ? basePath : `${basePath}/${segment}`;
-    window.open(href, "_blank");
+    if (isPWA) {
+      const w = Math.min(1200, screen.availWidth - 100);
+      const h = Math.min(800, screen.availHeight - 100);
+      const left = Math.round((screen.availWidth - w) / 2);
+      const top = Math.round((screen.availHeight - h) / 2);
+      window.open(href, "_blank", `popup,width=${w},height=${h},left=${left},top=${top}`);
+    } else {
+      window.open(href, "_blank");
+    }
   };
 
   return (
