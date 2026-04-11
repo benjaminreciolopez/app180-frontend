@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogOut, Menu, ChevronDown, ChevronRight } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
@@ -145,6 +145,8 @@ export default function AsesorLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isPopup = searchParams.get("popup") === "true";
 
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
@@ -381,6 +383,15 @@ export default function AsesorLayout({
             {sections.map((section, sIdx) => renderSection(section, sIdx))}
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Modo popup: renderizar solo el contenido sin sidebar, header ni copilot
+  if (isPopup) {
+    return (
+      <div className="h-[100svh] w-full overflow-hidden bg-background flex flex-col">
+        {children}
       </div>
     );
   }

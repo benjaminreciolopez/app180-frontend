@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
@@ -113,7 +113,9 @@ export default function AsesorClienteLayout({
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const empresaId = params.empresa_id as string;
+  const isPopup = searchParams.get("popup") === "true";
 
   const [cliente, setCliente] = useState<ClienteInfo | null>(null);
 
@@ -201,7 +203,8 @@ export default function AsesorClienteLayout({
   // En PWA: ventana emergente independiente con tamaño adecuado
   // En navegador: nueva pestaña normal
   const handleOpenInNewWindow = (segment: string) => {
-    const href = segment === "" ? basePath : `${basePath}/${segment}`;
+    const base = segment === "" ? basePath : `${basePath}/${segment}`;
+    const href = `${base}?popup=true`;
     if (isPWA) {
       const w = Math.min(1200, screen.availWidth - 100);
       const h = Math.min(800, screen.availHeight - 100);
@@ -213,6 +216,52 @@ export default function AsesorClienteLayout({
     }
   };
 
+  // Obtener label del tab activo (para popup)
+  const activeTab = tabs.find(t => t.segment === activeSegment);
+  const activeLabel = activeTab?.label || "Resumen";
+
+  // En modo popup: título de ventana con nombre de cliente + tab
+  useEffect(() => {
+    if (isPopup && cliente?.nombre) {
+      document.title = `${activeLabel} — ${cliente.nombre}`;
+    }
+  }, [isPopup, cliente?.nombre, activeLabel]);
+
+  // --- Modo POPUP: cabecera mínima, solo el contenido del tab ---
+  if (isPopup) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="sticky top-0 z-10 bg-white dark:bg-card border-b">
+          <div className="px-4 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                {activeTab ? <activeTab.icon size={14} className="text-primary" /> : <Building2 size={14} className="text-primary" />}
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold truncate">
+                  {activeLabel}
+                </h2>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {cliente?.nombre || "Cargando..."}{cliente?.cif ? ` · ${cliente.cif}` : ""}
+                </p>
+              </div>
+            </div>
+            <Badge
+              variant="outline"
+              className="text-[9px] border-blue-200 text-blue-600 bg-blue-50 shrink-0"
+            >
+              Ventana independiente
+            </Badge>
+          </div>
+        </div>
+        <div className="flex-1 p-4 md:p-6 overflow-y-auto">
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Modo NORMAL: cabecera completa con tabs ---
   return (
     <div className="flex flex-col h-full">
       {/* Client context banner */}
