@@ -84,6 +84,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const [lastSavedDocumentUrl, setLastSavedDocumentUrl] = useState<string | null>(null);
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const [cuentaContableProveedor, setCuentaContableProveedor] = useState<string | null>(null);
+    const [documentoHash, setDocumentoHash] = useState<string | null>(null);
     const lastProveedorChecked = useRef<string>("");
 
     const {
@@ -298,6 +299,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             setSelectedFileObj(null);
             setLastSavedDocumentUrl(null);
             setCuentaContableProveedor(null);
+            setDocumentoHash(null);
             lastProveedorChecked.current = "";
             setInvoicesToReview([]);
             setCurrentInvoiceIndex(0);
@@ -330,6 +332,11 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             const res = await api.post("/api/admin/purchases/ocr", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
+
+            // Guardar hash del documento para detección futura
+            if (res.data?.documento_hash) {
+                setDocumentoHash(res.data.documento_hash);
+            }
 
             const invoices = res.data?.data?.invoices;
             if (invoices && invoices.length > 0) {
@@ -436,6 +443,10 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
             if (cuentaContableProveedor && !editingGasto) {
                 formData.append("cuenta_contable", cuentaContableProveedor);
+            }
+
+            if (documentoHash && !editingGasto) {
+                formData.append("documento_hash", documentoHash);
             }
 
             let res;
@@ -964,15 +975,44 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                     </DialogHeader>
 
                     {ocrPreviewData?.es_duplicado && (
-                        <div className="mx-6 mb-2 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 text-amber-800 animate-in fade-in zoom-in duration-300">
-                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                                <AlertTriangle size={16} className="text-amber-600" />
+                        <div className="mx-6 mb-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 animate-in fade-in zoom-in duration-300">
+                            <div className="flex items-start gap-3 mb-3">
+                                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                                    <AlertTriangle size={16} className="text-amber-600" />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Posible Gasto Duplicado</p>
+                                    <p className="text-[11px] leading-tight opacity-90">
+                                        Ya existe un gasto similar registrado. Compara los datos y decide:
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Gasto Duplicado Detectado</p>
-                                <p className="text-[11px] leading-tight opacity-90">
-                                    Este documento ya parece estar registrado. Pulsa <span className="font-bold">"Omitir"</span> para saltarlo.
-                                </p>
+                            <div className="bg-white/70 rounded-lg p-2.5 border border-amber-100">
+                                <p className="text-[9px] font-bold text-amber-600 uppercase mb-1.5">Gasto ya registrado:</p>
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
+                                    <div><span className="text-amber-500">Proveedor:</span> <span className="font-medium text-slate-700">{ocrPreviewData.proveedor || '-'}</span></div>
+                                    <div><span className="text-amber-500">Nº Factura:</span> <span className="font-medium text-slate-700">{ocrPreviewData.numero_factura || '-'}</span></div>
+                                    <div><span className="text-amber-500">Total:</span> <span className="font-medium text-slate-700">{ocrPreviewData.total ? `${Number(ocrPreviewData.total).toFixed(2)} €` : '-'}</span></div>
+                                    <div><span className="text-amber-500">Fecha:</span> <span className="font-medium text-slate-700">{ocrPreviewData.fecha_compra || '-'}</span></div>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 h-8 text-[10px] bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200"
+                                    onClick={skipInvoice}
+                                >
+                                    Si, es duplicado - Omitir
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 h-8 text-[10px] bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                                    onClick={() => setOcrPreviewData({ ...ocrPreviewData, es_duplicado: false })}
+                                >
+                                    No es duplicado - Continuar
+                                </Button>
                             </div>
                         </div>
                     )}
@@ -1120,21 +1160,23 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                 Cancelar Todo
                             </Button>
                             <div className="flex gap-2">
-                                {(invoicesToReview.length > 1 || ocrPreviewData?.es_duplicado) && (
+                                {invoicesToReview.length > 1 && !ocrPreviewData?.es_duplicado && (
                                     <Button
                                         variant="outline"
-                                        className={`border-slate-200 ${ocrPreviewData?.es_duplicado ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'text-slate-600'}`}
+                                        className="border-slate-200 text-slate-600"
                                         onClick={skipInvoice}
                                     >
                                         Omitir
                                     </Button>
                                 )}
-                                <Button
-                                    className="bg-black text-white hover:bg-slate-800"
-                                    onClick={confirmOcrData}
-                                >
-                                    Confirmar y Rellenar
-                                </Button>
+                                {!ocrPreviewData?.es_duplicado && (
+                                    <Button
+                                        className="bg-black text-white hover:bg-slate-800"
+                                        onClick={confirmOcrData}
+                                    >
+                                        Confirmar y Rellenar
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </DialogFooter>
