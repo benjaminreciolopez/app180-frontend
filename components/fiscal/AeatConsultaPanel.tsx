@@ -90,10 +90,12 @@ const SEVERIDAD_ICONS: Record<string, any> = {
   baja: ShieldCheck,
 };
 
-function getExtensionModelo(modelo: string): string {
+function getExtensionesModelo(modelo: string): { label: string; accept: string } {
   const AUTOLIQ = ["303", "130", "111", "115"];
-  if (AUTOLIQ.includes(modelo)) return ".ses";
-  return `.${modelo}`;
+  if (AUTOLIQ.includes(modelo)) {
+    return { label: "PDF / .ses / .txt", accept: ".pdf,.ses,.txt" };
+  }
+  return { label: `PDF / .${modelo} / .txt`, accept: `.pdf,.${modelo},.txt` };
 }
 
 export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api/admin/fiscal/consulta" }: { year: string; trimestre: string; apiBasePath?: string }) {
@@ -152,7 +154,19 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
     setError(null);
 
     try {
-      const contenido = await file.text();
+      const esPdf = file.name.toLowerCase().endsWith('.pdf');
+      let contenido: string;
+      let formato: string;
+
+      if (esPdf) {
+        // Para PDF, leer como base64 y extraer texto en el servidor
+        // Por ahora enviamos el texto que podamos extraer del lado cliente
+        contenido = await file.text();
+        formato = 'pdf';
+      } else {
+        contenido = await file.text();
+        formato = 'boe';
+      }
 
       const res = await authenticatedFetch(`${apiBasePath}/importar`, {
         method: "POST",
@@ -162,6 +176,7 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
           ejercicio: parseInt(year),
           periodo: esTrimestral ? periodoSeleccionado : "0A",
           contenido_fichero: contenido,
+          formato,
         }),
       });
 
@@ -291,7 +306,7 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
               <input
                 ref={fileInputRef}
                 type="file"
-                accept={getExtensionModelo(modeloSeleccionado) + ",.txt,.ses"}
+                accept={getExtensionesModelo(modeloSeleccionado).accept}
                 onChange={handleImportarFichero}
                 className="hidden"
               />
@@ -302,7 +317,7 @@ export default function AeatConsultaPanel({ year, trimestre, apiBasePath = "/api
                 className="gap-2"
               >
                 {loadingImport ? <LoadingSpinner /> : <Upload className="h-4 w-4" />}
-                Importar Fichero ({getExtensionModelo(modeloSeleccionado)})
+                Importar ({getExtensionesModelo(modeloSeleccionado).label})
               </Button>
             </div>
 
