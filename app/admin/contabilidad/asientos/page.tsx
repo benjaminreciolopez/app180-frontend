@@ -550,6 +550,8 @@ export default function AsientosPage() {
                     setReviewResult(json);
                     // Seleccionar todos los cambios por defecto
                     setSelectedChanges(new Set(json.cambios.map((_: any, i: number) => i)));
+                    // Refrescar lista (los asientos sin cambios ya se marcaron revisado_ia en backend)
+                    loadAsientos();
                 }
             } else {
                 // Fase 2: Aplicar solo los cambios seleccionados
