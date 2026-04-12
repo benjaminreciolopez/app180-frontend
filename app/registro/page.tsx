@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Building2,
   Briefcase,
@@ -163,9 +164,23 @@ function getPasswordStrength(password: string) {
 }
 
 export default function RegistroPage() {
-  const [step, setStep] = useState(1);
-  const [modo, setModo] = useState<Modo>(null);
+  return (
+    <Suspense fallback={null}>
+      <RegistroPageInner />
+    </Suspense>
+  );
+}
+
+function RegistroPageInner() {
+  const searchParams = useSearchParams();
+  const modoParam = searchParams.get("modo") as Modo;
+  const modoInicial = modoParam === "empresa" || modoParam === "asesoria" ? modoParam : null;
+
+  const [step, setStep] = useState(modoInicial ? 2 : 1);
+  const [modo, setModo] = useState<Modo>(modoInicial);
   const [modulos, setModulos] = useState<Record<string, boolean>>(() => {
+    const defaults = modoInicial === "asesoria" ? ASESORIA_DEFAULTS : modoInicial === "empresa" ? EMPRESA_DEFAULTS : {};
+    if (modoInicial) return { ...defaults };
     const initial: Record<string, boolean> = {};
     MODULOS_DISPONIBLES.forEach((m) => {
       initial[m.key] = m.defaultOn;

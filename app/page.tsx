@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   ArrowRight, FileText, Bot, Clock, ReceiptEuro,
   Users, Calculator, Calendar, Building2, Shield,
-  CheckCircle, Sparkles
+  CheckCircle, Sparkles, Briefcase, Scale
 } from "lucide-react";
 import LandingQRSection from "@/components/landing/LandingQRSection";
 
@@ -87,6 +87,7 @@ export default function LandingPage() {
             </div>
             <nav className="hidden md:flex space-x-8">
               <a href="#modulos" className="text-gray-600 hover:text-blue-600 transition-colors">Modulos</a>
+              <a href="#planes" className="text-gray-600 hover:text-blue-600 transition-colors">Planes</a>
               <a href="#ia" className="text-gray-600 hover:text-blue-600 transition-colors">IA</a>
               <Link href="/cumplimiento-legal" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Cumplimiento Legal</Link>
               <Link href="/privacidad" className="text-gray-600 hover:text-blue-600 transition-colors">Privacidad</Link>
@@ -177,6 +178,112 @@ export default function LandingPage() {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      {/* PLANES - Empresa vs Asesoria */}
+      <section id="planes" className="py-20 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+              Elige como quieres gestionar
+            </h2>
+            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
+              Tanto si gestionas solo tu empresa como si llevas la de tus clientes,
+              CONTENDO se adapta a ti.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Card Empresa */}
+            <div className="relative bg-white rounded-2xl border-2 border-gray-200 hover:border-blue-300 p-8 shadow-sm hover:shadow-lg transition-all group">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <Briefcase className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Empresa</h3>
+                  <p className="text-sm text-gray-500">Gestiona tu propio negocio</p>
+                </div>
+              </div>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Para autonomos, PYMEs y sociedades que quieren llevar el control completo
+                de su empresa: facturacion, contabilidad, fiscal, empleados y mas.
+              </p>
+              <ul className="space-y-3 mb-8">
+                {[
+                  "Facturacion con VeriFactu y QR",
+                  "Contabilidad completa (asientos, balance, PyG)",
+                  "Modelos fiscales automaticos (303, 130, 111...)",
+                  "Inteligencia fiscal y alertas preventivas",
+                  "Nominas, fichajes y control horario",
+                  "Gastos con OCR y reconciliacion bancaria",
+                  "Asistente IA con 82 herramientas",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    <span className="text-gray-700">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/registro?modo=empresa"
+                className="w-full inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all"
+              >
+                Registrar mi empresa
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </div>
+
+            {/* Card Asesoria */}
+            <div className="relative bg-white rounded-2xl border-2 border-indigo-300 hover:border-indigo-400 p-8 shadow-sm hover:shadow-lg transition-all group">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-4 py-1 rounded-full shadow-md">
+                  Multi-cliente
+                </span>
+              </div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                  <Scale className="h-6 w-6 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Asesoria</h3>
+                  <p className="text-sm text-gray-500">Gestiona las empresas de tus clientes</p>
+                </div>
+              </div>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Para asesorias, gestorias y despachos profesionales que gestionan la
+                contabilidad, fiscalidad y laboral de multiples empresas.
+              </p>
+              <ul className="space-y-3 mb-8">
+                {[
+                  "Todo lo incluido en Empresa",
+                  "Vincular y gestionar clientes ilimitados",
+                  "Dashboard multi-cliente con vision global",
+                  "Fiscal y contabilidad por cliente vinculado",
+                  "Campana de renta e impuesto de sociedades",
+                  "Cierre de ejercicio guiado por cliente",
+                  "Cada cliente en ventana independiente",
+                ].map((item, i) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle className={`h-4 w-4 ${i === 0 ? "text-blue-500" : "text-indigo-500"} mt-0.5 shrink-0`} />
+                    <span className={`${i === 0 ? "text-blue-700 font-medium" : "text-gray-700"}`}>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/registro?modo=asesoria"
+                className="w-full inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-xl text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md hover:shadow-lg transition-all"
+              >
+                Registrar mi asesoria
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-gray-400 mt-8">
+            Ambos planes incluyen todos los modulos. La diferencia es que Asesoria permite gestionar empresas de terceros.
+          </p>
         </div>
       </section>
 
