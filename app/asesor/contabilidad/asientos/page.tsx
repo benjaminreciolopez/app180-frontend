@@ -233,9 +233,18 @@ export default function AsientosPage() {
         corregidos: number;
         sin_cambios: number;
         errores: string[];
-        cambios: { asiento_id: string; concepto: string; cuenta_anterior: { codigo: string; nombre: string }; cuenta_nueva: { codigo: string; nombre: string }; importe: number }[];
+        cambios: { asiento_id: string; linea_id: string; concepto: string; cuenta_anterior: { codigo: string; nombre: string }; cuenta_nueva: { codigo: string; nombre: string }; importe: number }[];
     } | null>(null);
     const [reviewSimulating, setReviewSimulating] = useState(false);
+    const [selectedChanges, setSelectedChanges] = useState<Set<number>>(new Set());
+
+    // --- State: historial de cambios ---
+    const [showHistorial, setShowHistorial] = useState(false);
+    const [historialCambios, setHistorialCambios] = useState<any[]>([]);
+    const [historialTotal, setHistorialTotal] = useState(0);
+    const [historialLoading, setHistorialLoading] = useState(false);
+    const [historialFiltroFecha, setHistorialFiltroFecha] = useState("");
+    const [historialFiltroAsiento, setHistorialFiltroAsiento] = useState("");
 
     // --- State: column widths (persisted) ---
     const [colWidths, setColWidths] = useState<Record<string, number>>(DEFAULT_COL_WIDTHS);
@@ -530,31 +539,94 @@ export default function AsientosPage() {
     const handleReview = async (simular: boolean) => {
         if (simular) setReviewSimulating(true);
         else setReviewing(true);
-        setReviewResult(null);
+        if (simular) setReviewResult(null);
         try {
-            const ids = selectedBorradorIds.length > 0
-                ? [...selectedIds]
-                : [];
-            const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/revisar`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ids, simular }),
-            });
-            if (res.ok) {
-                const json = await res.json();
-                if (!simular) {
-                    setReviewResult(null);
-                } else {
+            if (simular) {
+                // Fase 1: Simular — pedir cambios sin aplicar
+                const ids = selectedBorradorIds.length > 0
+                    ? [...selectedIds]
+                    : [];
+                const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/revisar`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ids, simular: true }),
+                });
+                if (res.ok) {
+                    const json = await res.json();
                     setReviewResult(json);
+                    setSelectedChanges(new Set(json.cambios.map((_: any, i: number) => i)));
+                    loadAsientos();
                 }
-                // Always reload — IA marks reviewed asientos even in simulation
-                loadAsientos();
+            } else {
+                // Fase 2: Aplicar solo los cambios seleccionados
+                if (!reviewResult) return;
+                const cambiosAplicar = reviewResult.cambios.filter((_, i) => selectedChanges.has(i));
+                if (cambiosAplicar.length === 0) {
+                    setReviewResult(null);
+                    return;
+                }
+
+                // Marcar los NO seleccionados como "revisado_usuario"
+                const idsNoSeleccionados = reviewResult.cambios
+                    .filter((_, i) => !selectedChanges.has(i))
+                    .map(c => c.asiento_id);
+
+                if (idsNoSeleccionados.length > 0) {
+                    await authenticatedFetch(`/api/admin/contabilidad/asientos/marcar-revisado`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ids: idsNoSeleccionados, revisado: true }),
+                    });
+                }
+
+                const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/aplicar-cambios`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ cambios: cambiosAplicar }),
+                });
+                if (res.ok) {
+                    setReviewResult(null);
+                    setSelectedChanges(new Set());
+                    loadAsientos();
+                }
             }
         } catch (err) {
             console.error("Error reviewing:", err);
         } finally {
             setReviewing(false);
             setReviewSimulating(false);
+        }
+    };
+
+    const handleMarcarRevisadoUsuario = async (ids: string[]) => {
+        try {
+            const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/marcar-revisado`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids, revisado: true }),
+            });
+            if (res.ok) loadAsientos();
+        } catch (err) {
+            console.error("Error marcando revisado:", err);
+        }
+    };
+
+    const loadHistorial = async () => {
+        setHistorialLoading(true);
+        try {
+            const params = new URLSearchParams({ limit: "50", offset: "0" });
+            if (historialFiltroFecha) params.set("desde", historialFiltroFecha);
+            if (historialFiltroAsiento) params.set("asiento_id", historialFiltroAsiento);
+            const res = await authenticatedFetch(`/api/admin/contabilidad/asientos/historial-cambios?${params}`);
+            if (res.ok) {
+                const json = await res.json();
+                setHistorialCambios(json.cambios || []);
+                setHistorialTotal(json.total || 0);
+            }
+        } catch (err) {
+            console.error("Error cargando historial:", err);
+        } finally {
+            setHistorialLoading(false);
         }
     };
 
@@ -954,6 +1026,16 @@ export default function AsientosPage() {
                                 </span>
                             ) : null;
                         })()}
+                    </Button>
+
+                    {/* Historial de cambios */}
+                    <Button
+                        variant="outline"
+                        className="rounded-xl h-11 px-5 gap-2 active:scale-95 transition-all"
+                        onClick={() => { setShowHistorial(!showHistorial); if (!showHistorial) loadHistorial(); }}
+                    >
+                        <FileText size={18} />
+                        <span className="hidden sm:inline">Historial</span>
                     </Button>
 
                     {/* Generate button */}
@@ -1930,11 +2012,29 @@ export default function AsientosPage() {
 
                     {reviewResult.cambios.length > 0 && (
                         <div className="space-y-2">
-                            <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Cambios detectados:</p>
+                            <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Cambios detectados — selecciona los que quieres aplicar:</p>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        className="text-[10px] text-amber-600 hover:text-amber-800 underline"
+                                        onClick={() => setSelectedChanges(new Set(reviewResult.cambios.map((_, i) => i)))}
+                                    >
+                                        Seleccionar todos
+                                    </button>
+                                    <span className="text-amber-300">|</span>
+                                    <button
+                                        className="text-[10px] text-amber-600 hover:text-amber-800 underline"
+                                        onClick={() => setSelectedChanges(new Set())}
+                                    >
+                                        Deseleccionar todos
+                                    </button>
+                                </div>
+                            </div>
                             <div className="bg-white rounded-xl border border-amber-100 overflow-hidden">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-amber-100 bg-amber-50/50">
+                                            <th className="w-10 p-2.5"></th>
                                             <th className="text-left p-2.5 text-xs font-semibold text-amber-700">Concepto</th>
                                             <th className="text-left p-2.5 text-xs font-semibold text-amber-700">Cuenta anterior</th>
                                             <th className="text-left p-2.5 text-xs font-semibold text-amber-700">Cuenta correcta</th>
@@ -1943,8 +2043,24 @@ export default function AsientosPage() {
                                     </thead>
                                     <tbody>
                                         {reviewResult.cambios.map((c, i) => (
-                                            <tr key={i} className="border-b border-amber-50 last:border-0">
-                                                <td className="p-2.5 text-slate-900 max-w-[300px] truncate" title={c.concepto}>{c.concepto}</td>
+                                            <tr
+                                                key={i}
+                                                className={`border-b border-amber-50 last:border-0 cursor-pointer transition-colors ${selectedChanges.has(i) ? 'bg-amber-50/30' : 'bg-slate-50/50 opacity-60'}`}
+                                                onClick={() => {
+                                                    const next = new Set(selectedChanges);
+                                                    if (next.has(i)) next.delete(i); else next.add(i);
+                                                    setSelectedChanges(next);
+                                                }}
+                                            >
+                                                <td className="p-2.5 text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedChanges.has(i)}
+                                                        onChange={() => {}}
+                                                        className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                                                    />
+                                                </td>
+                                                <td className="p-2.5 text-slate-900 max-w-[280px] truncate" title={c.concepto}>{c.concepto}</td>
                                                 <td className="p-2.5">
                                                     <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 px-2 py-0.5 rounded-lg text-xs font-mono">
                                                         {c.cuenta_anterior.codigo} <span className="font-sans text-red-500">{c.cuenta_anterior.nombre}</span>
@@ -1961,22 +2077,30 @@ export default function AsientosPage() {
                                     </tbody>
                                 </table>
                             </div>
-                            <div className="flex items-center justify-end gap-2 pt-2">
-                                <Button
-                                    variant="outline"
-                                    className="rounded-xl h-10 px-4 text-sm"
-                                    onClick={() => setReviewResult(null)}
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    className="bg-amber-600 text-white hover:bg-amber-700 rounded-xl h-10 px-5 gap-2 text-sm shadow-sm"
-                                    onClick={() => handleReview(false)}
-                                    disabled={reviewing}
-                                >
-                                    {reviewing ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-                                    Aplicar {reviewResult.corregidos} corrección{reviewResult.corregidos !== 1 ? "es" : ""}
-                                </Button>
+                            <div className="flex items-center justify-between pt-2">
+                                <p className="text-xs text-amber-600">
+                                    {selectedChanges.size} de {reviewResult.cambios.length} cambios seleccionados
+                                    {reviewResult.cambios.length - selectedChanges.size > 0 && (
+                                        <span className="text-slate-500"> · {reviewResult.cambios.length - selectedChanges.size} se marcarán como correctos</span>
+                                    )}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        className="rounded-xl h-10 px-4 text-sm"
+                                        onClick={() => { setReviewResult(null); setSelectedChanges(new Set()); }}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        className="bg-amber-600 text-white hover:bg-amber-700 rounded-xl h-10 px-5 gap-2 text-sm shadow-sm"
+                                        onClick={() => handleReview(false)}
+                                        disabled={reviewing || selectedChanges.size === 0}
+                                    >
+                                        {reviewing ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                                        Aplicar {selectedChanges.size} corrección{selectedChanges.size !== 1 ? "es" : ""}
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -2031,6 +2155,99 @@ export default function AsientosPage() {
             )}
 
             {/* ============================================================ */}
+            {/* ============================================================ */}
+            {/* Historial de cambios */}
+            {/* ============================================================ */}
+            {showHistorial && (
+                <Card className="border-slate-200">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <FileText size={18} className="text-slate-600" />
+                                Historial de Cambios
+                                {historialTotal > 0 && <Badge variant="secondary" className="text-xs">{historialTotal}</Badge>}
+                            </CardTitle>
+                            <button onClick={() => setShowHistorial(false)} className="text-slate-400 hover:text-slate-600">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-3 mt-2">
+                            <Input
+                                type="date"
+                                value={historialFiltroFecha}
+                                onChange={(e) => setHistorialFiltroFecha(e.target.value)}
+                                className="w-44 h-9 text-sm"
+                                placeholder="Desde fecha"
+                            />
+                            <Input
+                                value={historialFiltroAsiento}
+                                onChange={(e) => setHistorialFiltroAsiento(e.target.value)}
+                                className="w-60 h-9 text-sm"
+                                placeholder="ID asiento (filtrar)"
+                            />
+                            <Button variant="outline" size="sm" onClick={loadHistorial} disabled={historialLoading} className="gap-1.5">
+                                {historialLoading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                                Buscar
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {historialCambios.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-6">
+                                {historialLoading ? "Cargando..." : "No hay cambios registrados"}
+                            </p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b">
+                                            <th className="text-left p-2 text-xs font-semibold text-slate-500">Fecha</th>
+                                            <th className="text-left p-2 text-xs font-semibold text-slate-500">Asiento</th>
+                                            <th className="text-left p-2 text-xs font-semibold text-slate-500">Concepto</th>
+                                            <th className="text-left p-2 text-xs font-semibold text-slate-500">Cuenta anterior</th>
+                                            <th className="text-left p-2 text-xs font-semibold text-slate-500">Cuenta nueva</th>
+                                            <th className="text-right p-2 text-xs font-semibold text-slate-500">Importe</th>
+                                            <th className="text-left p-2 text-xs font-semibold text-slate-500">Por</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {historialCambios.map((c: any) => (
+                                            <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                                                <td className="p-2 text-xs text-slate-500 whitespace-nowrap">
+                                                    {new Date(c.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                                </td>
+                                                <td className="p-2 font-mono text-xs">
+                                                    {c.asiento_numero ? `#${c.asiento_numero}` : c.asiento_id?.substring(0, 8)}
+                                                </td>
+                                                <td className="p-2 text-xs max-w-[200px] truncate" title={c.asiento_concepto}>{c.asiento_concepto}</td>
+                                                <td className="p-2">
+                                                    <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 px-1.5 py-0.5 rounded text-xs font-mono">
+                                                        {c.cuenta_anterior_codigo} <span className="font-sans text-red-500 text-[10px]">{c.cuenta_anterior_nombre}</span>
+                                                    </span>
+                                                </td>
+                                                <td className="p-2">
+                                                    <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-1.5 py-0.5 rounded text-xs font-mono">
+                                                        {c.cuenta_nueva_codigo} <span className="font-sans text-green-500 text-[10px]">{c.cuenta_nueva_nombre}</span>
+                                                    </span>
+                                                </td>
+                                                <td className="p-2 text-right text-xs font-medium">
+                                                    {c.importe != null ? formatCurrency(c.importe) : "-"}
+                                                </td>
+                                                <td className="p-2 text-xs text-slate-500">
+                                                    <Badge variant="outline" className="text-[10px]">
+                                                        {c.origen === "ia_revision" ? "IA" : "Manual"}
+                                                    </Badge>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Edit dialog */}
             {/* ============================================================ */}
             <Dialog open={!!editingId} onOpenChange={(open) => { if (!open) cancelEdit(); }}>

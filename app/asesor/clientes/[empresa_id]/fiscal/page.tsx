@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { api } from "@/services/api";
 import { showError } from "@/lib/toast";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calculator } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calculator, ReceiptEuro, ShieldAlert, Search, ExternalLink } from "lucide-react";
+import FiscalAlertsPanel from "@/components/admin/fiscal/FiscalAlertsPanel";
+import AeatConsultaPanel from "@/components/fiscal/AeatConsultaPanel";
+import AeatQuickPanel from "@/components/fiscal/AeatQuickPanel";
+import CalendarioFiscal from "@/components/fiscal/CalendarioFiscal";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(amount);
@@ -17,7 +22,7 @@ const trimestres = ["1T", "2T", "3T", "4T"];
 
 const modeloTitulos: Record<string, string> = {
   modelo303: "Modelo 303 - IVA",
-  modelo130: "Modelo 130 - IRPF Estimaci\u00f3n Directa",
+  modelo130: "Modelo 130 - IRPF Estimación Directa",
   modelo111: "Modelo 111 - Retenciones IRPF",
   modelo115: "Modelo 115 - Retenciones Alquileres",
   modelo349: "Modelo 349 - Operaciones Intracomunitarias",
@@ -52,10 +57,8 @@ function extractModelos(data: any): ModeloData[] {
     const m = data?.[key];
     if (!m) continue;
 
-    // Extraer resultado principal
     const resultado = m.resultado ?? m.a_ingresar ?? m.pago_fraccionado ?? 0;
 
-    // Extraer detalles según el modelo
     let detalles: Record<string, any> = {};
     if (key === "modelo303") {
       detalles = extractModelo303Detalles(m);
@@ -81,7 +84,11 @@ function extractModelos(data: any): ModeloData[] {
 export default function AsesorClienteFiscalPage() {
   const params = useParams();
   const empresaId = params.empresa_id as string;
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const initialTab = tabParam === "alertas" ? "alertas" : tabParam === "aeat" ? "aeat" : tabParam === "consulta" ? "consulta" : "modelos";
 
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
   const [modelos, setModelos] = useState<ModeloData[]>([]);
   const [anio, setAnio] = useState(new Date().getFullYear());
@@ -105,12 +112,10 @@ export default function AsesorClienteFiscalPage() {
     }
   }
 
-  if (loading) return <LoadingSpinner fullPage />;
-
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-bold tracking-tight">Modelos Fiscales del cliente</h1>
+        <h1 className="text-lg font-bold tracking-tight">Fiscal y Alertas</h1>
         <p className="text-xs text-muted-foreground">
           Ejercicio {anio} - {trimestres[trimestre - 1]}
         </p>
@@ -139,53 +144,98 @@ export default function AsesorClienteFiscalPage() {
             </Button>
           ))}
         </div>
-        <select
-          value={selectedModelo}
-          onChange={(e) => setSelectedModelo(e.target.value)}
-          className="border rounded-md px-3 py-1.5 text-sm bg-background"
-        >
-          <option value="todos">Todos los modelos</option>
-          {modelos.map((m) => (
-            <option key={m.key} value={m.key}>{m.titulo}</option>
-          ))}
-        </select>
       </div>
 
-      {modelos.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Calculator size={48} className="mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground">No hay datos fiscales para este periodo</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className={`grid gap-4 ${selectedModelo === "todos" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 max-w-2xl"}`}>
-          {modelos.filter((m) => selectedModelo === "todos" || m.key === selectedModelo).map((m) => (
-            <Card key={m.key}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{m.titulo}</CardTitle>
-                  <Badge variant={m.resultado >= 0 ? "default" : "destructive"} className="text-sm">
-                    {formatCurrency(m.resultado)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {Object.entries(m.detalles).map(([label, val]) => (
-                    <div key={label} className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">{label.replace(/_/g, " ").replace(/^\w/, c => c.toUpperCase())}</span>
-                      <span className="font-medium">
-                        {typeof val === "number" ? formatCurrency(val) : String(val)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="modelos" className="gap-1.5">
+            <ReceiptEuro className="w-4 h-4" /> Modelos
+          </TabsTrigger>
+          <TabsTrigger value="alertas" className="gap-1.5">
+            <ShieldAlert className="w-4 h-4" /> Inteligencia Fiscal
+          </TabsTrigger>
+          <TabsTrigger value="consulta" className="gap-1.5">
+            <Search className="w-4 h-4" /> Consulta AEAT
+          </TabsTrigger>
+          <TabsTrigger value="aeat" className="gap-1.5">
+            <ExternalLink className="w-4 h-4" /> AEAT
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab: Modelos Fiscales */}
+        <TabsContent value="modelos" className="space-y-4 mt-4">
+          {/* Filtro de modelo */}
+          <select
+            value={selectedModelo}
+            onChange={(e) => setSelectedModelo(e.target.value)}
+            className="border rounded-md px-3 py-1.5 text-sm bg-background"
+          >
+            <option value="todos">Todos los modelos</option>
+            {modelos.map((m) => (
+              <option key={m.key} value={m.key}>{m.titulo}</option>
+            ))}
+          </select>
+
+          {loading ? (
+            <LoadingSpinner fullPage />
+          ) : modelos.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Calculator size={48} className="mx-auto text-muted-foreground/30 mb-4" />
+                <p className="text-muted-foreground">No hay datos fiscales para este periodo</p>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      )}
+          ) : (
+            <div className={`grid gap-4 ${selectedModelo === "todos" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 max-w-2xl"}`}>
+              {modelos.filter((m) => selectedModelo === "todos" || m.key === selectedModelo).map((m) => (
+                <Card key={m.key}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">{m.titulo}</CardTitle>
+                      <Badge variant={m.resultado >= 0 ? "default" : "destructive"} className="text-sm">
+                        {formatCurrency(m.resultado)}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {Object.entries(m.detalles).map(([label, val]) => (
+                        <div key={label} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{label.replace(/_/g, " ").replace(/^\w/, c => c.toUpperCase())}</span>
+                          <span className="font-medium">
+                            {typeof val === "number" ? formatCurrency(val) : String(val)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Tab: Inteligencia Fiscal */}
+        <TabsContent value="alertas" className="mt-4">
+          <FiscalAlertsPanel year={anio.toString()} trimestre={trimestre.toString()} />
+        </TabsContent>
+
+        {/* Tab: Consulta AEAT */}
+        <TabsContent value="consulta" className="mt-4">
+          <AeatConsultaPanel
+            year={anio.toString()}
+            trimestre={trimestre.toString()}
+            apiBasePath={`/asesor/clientes/${empresaId}/consulta`}
+          />
+        </TabsContent>
+
+        {/* Tab: AEAT */}
+        <TabsContent value="aeat" className="space-y-6 mt-4">
+          <AeatQuickPanel year={anio.toString()} collapsed={false} />
+          <CalendarioFiscal year={anio.toString()} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
