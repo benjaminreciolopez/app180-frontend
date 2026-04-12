@@ -20,7 +20,7 @@ const AEAT_LINKS: Record<string, ModelLinks> = {
   "303": {
     presentar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G414.shtml",
     consultar: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G414.shtml",
-    calendario: "https://sede.agenciatributaria.gob.es/Sede/ayuda/calendario-contribuyente.html",
+    calendario: "https://sede.agenciatributaria.gob.es/Sede/calendario-contribuyente.html",
     info: "IVA - Autoliquidacion trimestral",
   },
   "390": {
@@ -68,10 +68,10 @@ const AEAT_LINKS: Record<string, ModelLinks> = {
 const GENERAL_LINKS = {
   sede: "https://sede.agenciatributaria.gob.es",
   certificado: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GC27.shtml",
-  calendario: "https://sede.agenciatributaria.gob.es/Sede/ayuda/calendario-contribuyente.html",
-  renta: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/GC07.shtml",
-  censoAlta: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G612.shtml",
-  censoBaja: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G613.shtml",
+  calendario: "https://sede.agenciatributaria.gob.es/Sede/calendario-contribuyente.html",
+  renta: "https://sede.agenciatributaria.gob.es/Sede/Renta.html",
+  censoAlta: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G322.shtml",
+  censoBaja: "https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G322.shtml",
 };
 
 const PLAZOS: Record<string, string> = {
