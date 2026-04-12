@@ -544,11 +544,7 @@ export default function RegistroPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {MODULOS_DISPONIBLES.filter((m) => {
-                    // Contabilidad y fiscal solo disponibles para asesoria
-                    if (modo === "empresa" && (m.key === "contable" || m.key === "fiscal")) return false;
-                    return true;
-                  }).map((m) => (
+                  {MODULOS_DISPONIBLES.map((m) => (
                     <div
                       key={m.key}
                       className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
