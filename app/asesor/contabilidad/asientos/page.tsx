@@ -797,7 +797,7 @@ export default function AsientosPage() {
     // Export
     // -----------------------------------------------------------------------
 
-    const handleExport = async (formato: "excel" | "csv") => {
+    const handleExport = async (formato: "excel" | "csv" | "a3") => {
         setExporting(true);
         try {
             const params = new URLSearchParams();
@@ -817,9 +817,10 @@ export default function AsientosPage() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = formato === "csv"
-                ? `diario_contable_${year}.csv`
-                : `libro_diario_${year}.xlsx`;
+            a.download =
+                formato === "csv" ? `diario_contable_${year}.csv` :
+                formato === "a3"  ? `movimientos_a3_${year}.dat` :
+                                    `libro_diario_${year}.xlsx`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -959,6 +960,17 @@ export default function AsientosPage() {
                         >
                             <Download size={14} />
                             CSV
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl h-9 px-3 gap-1.5 text-xs font-medium"
+                            onClick={() => handleExport("a3")}
+                            disabled={exporting}
+                            title="Exportar en formato A3 (Movimientos 95 bytes)"
+                        >
+                            <Download size={14} />
+                            A3
                         </Button>
                         <div className="w-px h-5 bg-slate-200" />
                         <Button
