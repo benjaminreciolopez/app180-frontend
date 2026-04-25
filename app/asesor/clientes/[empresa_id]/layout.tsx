@@ -21,6 +21,7 @@ import {
   KeyRound,
   ExternalLink,
   ChevronLeft,
+  UsersRound,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,11 @@ const tabs = [
     label: "Sociedades",
     icon: Building,
     segment: "sociedades",
+  },
+  {
+    label: "Titulares",
+    icon: UsersRound,
+    segment: "titulares",
   },
   {
     label: "Empleados",

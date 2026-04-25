@@ -347,6 +347,7 @@ export default function AdminLayout({
     {
       title: "RECURSOS HUMANOS",
       items: [
+        { path: "/admin/titulares", label: "Titulares y socios", module: null },
         { path: "/admin/empleados", label: "Empleados", module: "empleados" },
       ],
     },
