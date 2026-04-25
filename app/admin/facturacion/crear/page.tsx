@@ -134,6 +134,8 @@ export default function CrearFacturaPage() {
     const [retencionPorcentaje, setRetencionPorcentaje] = useState(0)
     const [tipoFactura, setTipoFactura] = useState<"NORMAL" | "PROFORMA">("NORMAL")
     const [saving, setSaving] = useState(false)
+    const [regimenIva, setRegimenIva] = useState<string>("general")
+    const [compensacionReagpPct, setCompensacionReagpPct] = useState<number | null>(null)
 
     // UI State
     const [clienteOpen, setClienteOpen] = useState(false)
@@ -255,8 +257,11 @@ export default function CrearFacturaPage() {
         try {
             const configRes = await api.get('/admin/facturacion/configuracion/emisor')
             if (configRes.data.success) {
-                setIvaGlobal(configRes.data.data.iva_global || 0)
-                setEmisorIban(configRes.data.data.iban || "")
+                const cfg = configRes.data.data
+                setIvaGlobal(cfg.iva_global || 0)
+                setEmisorIban(cfg.iban || "")
+                setRegimenIva(cfg.regimen_iva || 'general')
+                setCompensacionReagpPct(cfg.compensacion_reagp_pct != null ? Number(cfg.compensacion_reagp_pct) : null)
             }
             const res = await api.get(`/admin/facturacion/conceptos?cliente_id=${cId || ''}`)
             setConceptos(res.data.data || [])
@@ -449,23 +454,26 @@ export default function CrearFacturaPage() {
     }
 
     // Cálculos totales
+    const esReagp = regimenIva === 'agricultura'
     const subtotal = lineas.reduce((acc, l) => acc + (l.cantidad * l.precio_unitario), 0)
 
-    // Agrupar por tipo de IVA
+    // Agrupar por tipo de IVA (en REAGP no se repercute IVA → 0)
     const ivaBreakdown = lineas.reduce((acc, l) => {
         const base = l.cantidad * l.precio_unitario;
-        const cuota = base * (l.iva / 100);
-        if (!acc[l.iva]) {
-            acc[l.iva] = { base: 0, cuota: 0 };
+        const pct = esReagp ? 0 : l.iva;
+        const cuota = base * (pct / 100);
+        if (!acc[pct]) {
+            acc[pct] = { base: 0, cuota: 0 };
         }
-        acc[l.iva].base += base;
-        acc[l.iva].cuota += cuota;
+        acc[pct].base += base;
+        acc[pct].cuota += cuota;
         return acc;
     }, {} as Record<number, { base: number, cuota: number }>);
 
     const ivaTotal = Object.values(ivaBreakdown).reduce((acc, b) => acc + b.cuota, 0);
+    const compensacionReagpImporte = esReagp && compensacionReagpPct ? Math.round(subtotal * compensacionReagpPct) / 100 : 0;
     const retencionImporte = (subtotal * retencionPorcentaje) / 100;
-    const total = subtotal + ivaTotal - retencionImporte;
+    const total = subtotal + ivaTotal + compensacionReagpImporte - retencionImporte;
 
     const handleSubmit = async () => {
         if (!clienteId) {
@@ -1018,6 +1026,11 @@ export default function CrearFacturaPage() {
                             </div>
 
                             <div className="w-full md:w-[450px] shrink-0 space-y-4">
+                                {esReagp && (
+                                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                                        <strong>Régimen REAGP activo.</strong> No se repercute IVA. Se añade compensación a tanto alzado{compensacionReagpPct ? ` (${compensacionReagpPct}%)` : ''}.
+                                    </div>
+                                )}
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between text-slate-600 px-2">
                                         <span>Base Imponible</span>
@@ -1035,6 +1048,13 @@ export default function CrearFacturaPage() {
                                         <span>CUOTA IVA TOTAL</span>
                                         <span>{formatCurrency(ivaTotal)}</span>
                                     </div>
+
+                                    {esReagp && compensacionReagpPct ? (
+                                        <div className="flex justify-between font-medium text-emerald-700 py-1 px-2 bg-emerald-50 rounded">
+                                            <span>Compensación REAGP {compensacionReagpPct}%</span>
+                                            <span>+{formatCurrency(compensacionReagpImporte)}</span>
+                                        </div>
+                                    ) : null}
 
                                     {retencionPorcentaje > 0 && (
                                         <div className="flex justify-between font-medium text-red-600 py-1 px-2 bg-red-50 rounded">
