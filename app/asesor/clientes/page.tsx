@@ -50,14 +50,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+type PermisoEntry = { read?: boolean; write?: boolean; upload?: boolean };
 type Permisos = {
-  facturacion?: { lectura?: boolean; escritura?: boolean };
-  gastos?: { lectura?: boolean; escritura?: boolean };
-  empleados?: { lectura?: boolean; escritura?: boolean };
-  fiscal?: { lectura?: boolean; escritura?: boolean };
-  contabilidad?: { lectura?: boolean; escritura?: boolean };
-  [key: string]: { lectura?: boolean; escritura?: boolean } | undefined;
+  facturas?: PermisoEntry;
+  gastos?: PermisoEntry;
+  nominas?: PermisoEntry;
+  fiscal?: PermisoEntry;
+  contabilidad?: PermisoEntry;
+  documentos?: PermisoEntry;
+  [key: string]: PermisoEntry | undefined;
 };
+
+const PERMISOS_AREAS: Array<{ key: keyof Permisos; label: string }> = [
+  { key: "fiscal", label: "Fiscal" },
+  { key: "facturas", label: "Facturación" },
+  { key: "gastos", label: "Gastos / Compras" },
+  { key: "nominas", label: "Nóminas" },
+  { key: "contabilidad", label: "Contabilidad" },
+  { key: "documentos", label: "Documentos" },
+];
 
 type ClienteVinculado = {
   vinculo_id: string;
@@ -100,11 +111,12 @@ const estadoBadge: Record<
 
 const permisoIcons: Record<string, { icon: React.ElementType; label: string }> =
   {
-    facturacion: { icon: FileText, label: "Facturacion" },
-    gastos: { icon: ReceiptEuro, label: "Gastos" },
-    empleados: { icon: UserCheck, label: "Empleados" },
     fiscal: { icon: Calculator, label: "Fiscal" },
+    facturas: { icon: FileText, label: "Facturación" },
+    gastos: { icon: ReceiptEuro, label: "Gastos" },
+    nominas: { icon: UserCheck, label: "Nóminas" },
     contabilidad: { icon: ShieldCheck, label: "Contabilidad" },
+    documentos: { icon: FileText, label: "Documentos" },
   };
 
 export default function AsesorClientesPage() {
@@ -121,6 +133,60 @@ export default function AsesorClientesPage() {
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState(false);
+
+  // Permisos editor dialog
+  const [permisosOpen, setPermisosOpen] = useState(false);
+  const [permisosTarget, setPermisosTarget] = useState<ClienteVinculado | null>(null);
+  const [permisosDraft, setPermisosDraft] = useState<Permisos>({});
+  const [permisosSaving, setPermisosSaving] = useState(false);
+
+  function openPermisosEditor(cliente: ClienteVinculado) {
+    setPermisosTarget(cliente);
+    setPermisosDraft(cliente.permisos || {});
+    setPermisosOpen(true);
+  }
+
+  function togglePermiso(area: keyof Permisos, kind: "read" | "write") {
+    setPermisosDraft((prev) => {
+      const current = prev[area] || {};
+      const next = { ...current, [kind]: !current[kind] };
+      // write implies read
+      if (kind === "write" && next.write) next.read = true;
+      // unchecking read also unchecks write
+      if (kind === "read" && !next.read) next.write = false;
+      return { ...prev, [area]: next };
+    });
+  }
+
+  async function handleSavePermisos() {
+    if (!permisosTarget) return;
+    setPermisosSaving(true);
+    try {
+      const res = await authenticatedFetch(
+        `/asesor/clientes/${permisosTarget.empresa_id}/permisos`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ permisos: permisosDraft }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Error");
+      setClientes((prev) =>
+        prev.map((c) =>
+          c.empresa_id === permisosTarget.empresa_id
+            ? { ...c, permisos: permisosDraft }
+            : c
+        )
+      );
+      setPermisosOpen(false);
+      setPermisosTarget(null);
+    } catch (err: any) {
+      alert(err.message || "Error guardando permisos");
+    } finally {
+      setPermisosSaving(false);
+    }
+  }
 
   async function loadClientes() {
     setLoading(true);
@@ -241,8 +307,8 @@ export default function AsesorClientesPage() {
           const perm = permisos[key];
           if (!perm) return null;
           const { icon: Icon, label } = permisoIcons[key];
-          const hasRead = perm.lectura;
-          const hasWrite = perm.escritura;
+          const hasRead = perm.read;
+          const hasWrite = perm.write;
           if (!hasRead && !hasWrite) return null;
 
           return (
@@ -405,19 +471,30 @@ export default function AsesorClientesPage() {
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
                               {cliente.estado === "activo" && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-1"
-                                  onClick={() =>
-                                    router.push(
-                                      `/asesor/clientes/${cliente.empresa_id}`
-                                    )
-                                  }
-                                >
-                                  Acceder
-                                  <ExternalLink size={14} />
-                                </Button>
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1"
+                                    onClick={() => openPermisosEditor(cliente)}
+                                    title="Servicios contratados"
+                                  >
+                                    <ShieldCheck size={14} />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1"
+                                    onClick={() =>
+                                      router.push(
+                                        `/asesor/clientes/${cliente.empresa_id}`
+                                      )
+                                    }
+                                  >
+                                    Acceder
+                                    <ExternalLink size={14} />
+                                  </Button>
+                                </>
                               )}
                               {cliente.estado === "pendiente" && cliente.invitado_por === "empresa" && (
                                 <>
@@ -516,19 +593,30 @@ export default function AsesorClientesPage() {
                     )}
 
                     {cliente.estado === "activo" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-1"
-                        onClick={() =>
-                          router.push(
-                            `/asesor/clientes/${cliente.empresa_id}`
-                          )
-                        }
-                      >
-                        Acceder
-                        <ExternalLink size={14} />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => openPermisosEditor(cliente)}
+                          title="Servicios contratados"
+                        >
+                          <ShieldCheck size={14} />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 gap-1"
+                          onClick={() =>
+                            router.push(
+                              `/asesor/clientes/${cliente.empresa_id}`
+                            )
+                          }
+                        >
+                          Acceder
+                          <ExternalLink size={14} />
+                        </Button>
+                      </div>
                     )}
                     {cliente.estado === "pendiente" && cliente.invitado_por === "empresa" && (
                       <div className="flex gap-2">
@@ -563,6 +651,75 @@ export default function AsesorClientesPage() {
           </div>
         </>
       )}
+
+      {/* Permisos editor dialog */}
+      <Dialog
+        open={permisosOpen}
+        onOpenChange={(open) => {
+          setPermisosOpen(open);
+          if (!open) {
+            setPermisosTarget(null);
+            setPermisosDraft({});
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Servicios contratados</DialogTitle>
+            <DialogDescription>
+              {permisosTarget?.nombre
+                ? `Marca qué áreas gestiona la asesoría para ${permisosTarget.nombre}. "Escritura" implica responsabilidad de la asesoría: la empresa verá ese módulo bloqueado en su panel.`
+                : "Marca las áreas delegadas."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold pb-1 border-b">
+              <span>Área</span>
+              <span className="px-3">Lectura</span>
+              <span className="px-3">Escritura</span>
+            </div>
+            {PERMISOS_AREAS.map((area) => {
+              const entry = permisosDraft[area.key] || {};
+              return (
+                <div
+                  key={area.key}
+                  className="grid grid-cols-[1fr_auto_auto] items-center gap-2 py-1.5"
+                >
+                  <span className="text-sm">{area.label}</span>
+                  <label className="px-3 flex items-center justify-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4"
+                      checked={!!entry.read}
+                      onChange={() => togglePermiso(area.key, "read")}
+                    />
+                  </label>
+                  <label className="px-3 flex items-center justify-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4"
+                      checked={!!entry.write}
+                      onChange={() => togglePermiso(area.key, "write")}
+                    />
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPermisosOpen(false)}
+              disabled={permisosSaving}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleSavePermisos} disabled={permisosSaving}>
+              {permisosSaving ? "Guardando…" : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Invite dialog */}
       <Dialog

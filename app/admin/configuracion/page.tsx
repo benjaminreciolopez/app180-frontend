@@ -25,6 +25,22 @@ type Modulos = {
   contable?: boolean;
 };
 
+type PermisoEntry = { read?: boolean; write?: boolean; upload?: boolean };
+type AsesoriaVinculo = {
+  id: string;
+  asesoria_id: string;
+  estado: "activo" | "pendiente" | string;
+  asesoria_nombre?: string;
+  permisos?: Record<string, PermisoEntry>;
+} | null;
+
+const DELEGACION_MAP: Partial<Record<keyof Modulos, Array<keyof Record<string, PermisoEntry>>>> = {
+  fiscal: ["fiscal"],
+  facturacion: ["facturas", "gastos"],
+  empleados: ["nominas"],
+  contable: ["contabilidad"],
+};
+
 const DEFAULTS: Modulos = {
   fichajes: true,
   worklogs: true,
@@ -47,6 +63,14 @@ export default function AdminConfiguracionPage() {
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
   const [tipoContribuyente, setTipoContribuyente] = useState<"autonomo" | "sociedad" | "">("");
   const [savingTipo, setSavingTipo] = useState(false);
+  const [asesoriaVinculo, setAsesoriaVinculo] = useState<AsesoriaVinculo>(null);
+
+  function isDelegado(key: keyof Modulos): boolean {
+    if (!asesoriaVinculo || asesoriaVinculo.estado !== "activo" || !asesoriaVinculo.permisos) return false;
+    const areas = DELEGACION_MAP[key];
+    if (!areas) return false;
+    return areas.some((area) => asesoriaVinculo.permisos?.[area]?.write === true);
+  }
 
   async function load() {
     try {
@@ -73,8 +97,18 @@ export default function AdminConfiguracionPage() {
     }
   }
 
+  async function loadVinculo() {
+    try {
+      const r = await api.get("/admin/asesoria/vinculo");
+      setAsesoriaVinculo(r.data?.data || null);
+    } catch {
+      setAsesoriaVinculo(null);
+    }
+  }
+
   useEffect(() => {
     load();
+    loadVinculo();
   }, []);
 
   async function save() {
@@ -184,6 +218,16 @@ export default function AdminConfiguracionPage() {
           </div>
         )}
 
+        {asesoriaVinculo?.estado === "activo" && (
+          <div className="card mb-4 bg-amber-50 border-amber-200">
+            <p className="text-sm text-amber-900">
+              <strong>Mi Asesoría</strong>
+              {asesoriaVinculo.asesoria_nombre ? ` (${asesoriaVinculo.asesoria_nombre})` : ""} gestiona algunas áreas por ti.
+              Los módulos delegados aparecen bloqueados — para liberarlos, retira el permiso de escritura desde tu asesoría o desde "Mi Asesoría".
+            </p>
+          </div>
+        )}
+
         <div className={`card space-y-3 ${activeTab === "mobile" && !mobileEnabled ? "opacity-50 pointer-events-none" : ""}`}>
           <Toggle
             label="Fichajes"
@@ -201,12 +245,14 @@ export default function AdminConfiguracionPage() {
             label="Empleados (incluye Ausencias)"
             value={currentModulos?.empleados}
             onChange={() => toggle("empleados")}
+            delegado={isDelegado("empleados")}
           />
 
           <Toggle
             label="Facturación"
             value={currentModulos?.facturacion}
             onChange={() => toggle("facturacion")}
+            delegado={isDelegado("facturacion")}
           />
 
           <Toggle
@@ -219,12 +265,14 @@ export default function AdminConfiguracionPage() {
             label="Contabilidad"
             value={currentModulos?.contable}
             onChange={() => toggle("contable")}
+            delegado={isDelegado("contable")}
           />
 
           <Toggle
             label="Fiscal"
             value={currentModulos?.fiscal}
             onChange={() => toggle("fiscal")}
+            delegado={isDelegado("fiscal")}
           />
         </div>
 
@@ -352,20 +400,33 @@ function Toggle({
   label,
   value,
   onChange,
+  delegado = false,
 }: {
   label: string;
   value?: boolean;
   onChange: () => void;
+  delegado?: boolean;
 }) {
   return (
-    <label className="flex items-center justify-between">
-      <span>{label}</span>
+    <label className={`flex items-center justify-between ${delegado ? "opacity-70" : ""}`}>
+      <span className="flex items-center gap-2">
+        {label}
+        {delegado && (
+          <span
+            className="text-[10px] uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded"
+            title="Tu asesoría gestiona esta área"
+          >
+            Asesoría
+          </span>
+        )}
+      </span>
 
       <input
         type="checkbox"
         checked={value !== false}
         onChange={onChange}
-        className="w-5 h-5"
+        disabled={delegado}
+        className="w-5 h-5 disabled:cursor-not-allowed"
       />
     </label>
   );
