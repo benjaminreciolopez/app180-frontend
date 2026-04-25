@@ -308,6 +308,20 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
     const [selectedFileObj, setSelectedFileObj] = useState<File | null>(null);
     const [isDragOver, setIsDragOver] = useState(false);
+    const dragCounterRef = useRef(0);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const blockDefault = (e: DragEvent) => {
+            if (e.dataTransfer?.types?.includes("Files")) e.preventDefault();
+        };
+        window.addEventListener("dragover", blockDefault);
+        window.addEventListener("drop", blockDefault);
+        return () => {
+            window.removeEventListener("dragover", blockDefault);
+            window.removeEventListener("drop", blockDefault);
+        };
+    }, [isOpen]);
 
     const processFile = async (file: File) => {
         // Aceptar JPG, PNG, PDF
@@ -360,21 +374,37 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!isDragOver) setIsDragOver(true);
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+    };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounterRef.current += 1;
+        if (e.dataTransfer?.types?.includes("Files")) setIsDragOver(true);
     };
 
     const handleDragLeave = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsDragOver(false);
+        dragCounterRef.current -= 1;
+        if (dragCounterRef.current <= 0) {
+            dragCounterRef.current = 0;
+            setIsDragOver(false);
+        }
     };
 
     const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        dragCounterRef.current = 0;
         setIsDragOver(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file) await processFile(file);
+        const file = e.dataTransfer?.files?.[0];
+        if (!file) {
+            showError("No se detectó ningún archivo en el drop");
+            return;
+        }
+        await processFile(file);
     };
 
     const confirmOcrData = () => {
@@ -575,7 +605,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                     <div
                         onClick={() => fileInputRef.current?.click()}
                         onDragOver={handleDragOver}
-                        onDragEnter={handleDragOver}
+                        onDragEnter={handleDragEnter}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                         className={`
