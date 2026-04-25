@@ -307,81 +307,6 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     }, [isOpen, editingGasto, reset]);
 
     const [selectedFileObj, setSelectedFileObj] = useState<File | null>(null);
-    const [isDragOver, setIsDragOver] = useState(false);
-    const dragCounterRef = useRef(0);
-    const dropzoneRef = useRef<HTMLDivElement | null>(null);
-    const processFileRef = useRef<(file: File) => Promise<void>>(async () => { });
-
-    useEffect(() => {
-        if (!isOpen) return;
-        const blockDefault = (e: DragEvent) => {
-            if (e.dataTransfer?.types?.includes("Files")) e.preventDefault();
-        };
-        window.addEventListener("dragover", blockDefault);
-        window.addEventListener("drop", blockDefault);
-        return () => {
-            window.removeEventListener("dragover", blockDefault);
-            window.removeEventListener("drop", blockDefault);
-        };
-    }, [isOpen]);
-
-    const attachDropListeners = (el: HTMLDivElement | null) => {
-        dropzoneRef.current = el;
-        if (!el) return;
-
-        const onDragEnter = (e: DragEvent) => {
-            console.log("[DnD] dragenter", { types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : null });
-            e.preventDefault();
-            e.stopPropagation();
-            dragCounterRef.current += 1;
-            setIsDragOver(true);
-        };
-        const onDragOver = (e: DragEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
-        };
-        const onDragLeave = (e: DragEvent) => {
-            console.log("[DnD] dragleave");
-            e.preventDefault();
-            e.stopPropagation();
-            dragCounterRef.current -= 1;
-            if (dragCounterRef.current <= 0) {
-                dragCounterRef.current = 0;
-                setIsDragOver(false);
-            }
-        };
-        const onDrop = async (e: DragEvent) => {
-            console.log("[DnD] drop", {
-                files: e.dataTransfer?.files?.length,
-                items: e.dataTransfer?.items?.length,
-                types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : null,
-            });
-            e.preventDefault();
-            e.stopPropagation();
-            dragCounterRef.current = 0;
-            setIsDragOver(false);
-            const file = e.dataTransfer?.files?.[0];
-            if (!file) {
-                showError("No se detectó ningún archivo en el drop");
-                return;
-            }
-            await processFileRef.current(file);
-        };
-
-        el.addEventListener("dragenter", onDragEnter);
-        el.addEventListener("dragover", onDragOver);
-        el.addEventListener("dragleave", onDragLeave);
-        el.addEventListener("drop", onDrop);
-        console.log("[DnD] listeners attached to dropzone");
-
-        (el as any).__dndCleanup = () => {
-            el.removeEventListener("dragenter", onDragEnter);
-            el.removeEventListener("dragover", onDragOver);
-            el.removeEventListener("dragleave", onDragLeave);
-            el.removeEventListener("drop", onDrop);
-        };
-    };
 
     const processFile = async (file: File) => {
         // Aceptar JPG, PNG, PDF
@@ -430,10 +355,6 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         if (!file) return;
         await processFile(file);
     };
-
-    useEffect(() => {
-        processFileRef.current = processFile;
-    });
 
     const confirmOcrData = () => {
         if (!ocrPreviewData) return;
@@ -631,13 +552,10 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 <div className="space-y-3">
                     <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Factura / Ticket</Label>
                     <div
-                        ref={attachDropListeners}
-                        onClick={() => fileInputRef.current?.click()}
                         className={`
-               border-2 border-dashed rounded-2xl p-6 transition-all cursor-pointer flex flex-col items-center justify-center gap-2
-               ${isOcrProcessing ? 'bg-blue-50/50 border-blue-200' : 'bg-slate-50/50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50'}
+               border-2 border-dashed rounded-2xl p-6 transition-all flex flex-col items-center justify-center gap-3
+               ${isOcrProcessing ? 'bg-blue-50/50 border-blue-200' : 'bg-slate-50/50 border-slate-200'}
                ${uploadedFile ? 'bg-green-50/50 border-green-200' : ''}
-               ${isDragOver ? 'bg-blue-100/60 border-blue-400 ring-2 ring-blue-300' : ''}
              `}
                     >
                         <input
@@ -656,8 +574,17 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                         ) : uploadedFile ? (
                             <>
                                 {uploadedFile.type.includes('pdf') ? <FileText size={32} className="text-green-600" /> : <ImageIcon size={32} className="text-green-600" />}
-                                <p className="text-sm font-bold text-green-700">{uploadedFile.name}</p>
+                                <p className="text-sm font-bold text-green-700 text-center break-all">{uploadedFile.name}</p>
                                 <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">Archivo Listo</Badge>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="mt-1"
+                                >
+                                    Cambiar archivo
+                                </Button>
                             </>
                         ) : (
                             <>
@@ -666,8 +593,16 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm font-semibold text-slate-700">Subir PDF o Imagen</p>
-                                    <p className="text-xs text-slate-500">Haz clic para buscar o arrastra aquí</p>
+                                    <p className="text-xs text-slate-500">Formatos admitidos: JPG, PNG, PDF</p>
                                 </div>
+                                <Button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                                >
+                                    <Upload size={16} className="mr-2" />
+                                    Seleccionar archivo
+                                </Button>
                             </>
                         )}
                     </div>
