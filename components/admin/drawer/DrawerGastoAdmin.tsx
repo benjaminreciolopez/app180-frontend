@@ -309,6 +309,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     const [selectedFileObj, setSelectedFileObj] = useState<File | null>(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const dragCounterRef = useRef(0);
+    const dropzoneRef = useRef<HTMLDivElement | null>(null);
+    const processFileRef = useRef<(file: File) => Promise<void>>(async () => { });
 
     useEffect(() => {
         if (!isOpen) return;
@@ -320,6 +322,56 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         return () => {
             window.removeEventListener("dragover", blockDefault);
             window.removeEventListener("drop", blockDefault);
+        };
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const el = dropzoneRef.current;
+        if (!el) return;
+
+        const onDragEnter = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounterRef.current += 1;
+            if (e.dataTransfer?.types?.includes("Files")) setIsDragOver(true);
+        };
+        const onDragOver = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+        };
+        const onDragLeave = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounterRef.current -= 1;
+            if (dragCounterRef.current <= 0) {
+                dragCounterRef.current = 0;
+                setIsDragOver(false);
+            }
+        };
+        const onDrop = async (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounterRef.current = 0;
+            setIsDragOver(false);
+            const file = e.dataTransfer?.files?.[0];
+            if (!file) {
+                showError("No se detectó ningún archivo en el drop");
+                return;
+            }
+            await processFileRef.current(file);
+        };
+
+        el.addEventListener("dragenter", onDragEnter);
+        el.addEventListener("dragover", onDragOver);
+        el.addEventListener("dragleave", onDragLeave);
+        el.addEventListener("drop", onDrop);
+        return () => {
+            el.removeEventListener("dragenter", onDragEnter);
+            el.removeEventListener("dragover", onDragOver);
+            el.removeEventListener("dragleave", onDragLeave);
+            el.removeEventListener("drop", onDrop);
         };
     }, [isOpen]);
 
@@ -371,41 +423,9 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         await processFile(file);
     };
 
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
-    };
-
-    const handleDragEnter = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dragCounterRef.current += 1;
-        if (e.dataTransfer?.types?.includes("Files")) setIsDragOver(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dragCounterRef.current -= 1;
-        if (dragCounterRef.current <= 0) {
-            dragCounterRef.current = 0;
-            setIsDragOver(false);
-        }
-    };
-
-    const handleDrop = async (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dragCounterRef.current = 0;
-        setIsDragOver(false);
-        const file = e.dataTransfer?.files?.[0];
-        if (!file) {
-            showError("No se detectó ningún archivo en el drop");
-            return;
-        }
-        await processFile(file);
-    };
+    useEffect(() => {
+        processFileRef.current = processFile;
+    });
 
     const confirmOcrData = () => {
         if (!ocrPreviewData) return;
@@ -603,11 +623,8 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 <div className="space-y-3">
                     <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Factura / Ticket</Label>
                     <div
+                        ref={dropzoneRef}
                         onClick={() => fileInputRef.current?.click()}
-                        onDragOver={handleDragOver}
-                        onDragEnter={handleDragEnter}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
                         className={`
                border-2 border-dashed rounded-2xl p-6 transition-all cursor-pointer flex flex-col items-center justify-center gap-2
                ${isOcrProcessing ? 'bg-blue-50/50 border-blue-200' : 'bg-slate-50/50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50'}
