@@ -204,6 +204,9 @@ export default function AdminLayout({
       { path: "/admin/fiscal/cierre", module: "fiscal" },
       { path: "/admin/fiscal/renta", module: "fiscal" },
       { path: "/admin/fiscal/reglas", module: "fiscal" },
+      { path: "/admin/fiscal/configuracion", module: "fiscal" },
+      { path: "/admin/fiscal/inmovilizado", module: "fiscal" },
+      { path: "/admin/fiscal/modelo100", module: "fiscal" },
 
       // ✅ Importación OCR / historial dependen de calendario
       {
@@ -255,6 +258,9 @@ export default function AdminLayout({
       "/admin/fiscal/cierre": "Cierre Ejercicio",
       "/admin/fiscal/renta": "Declaración Renta",
       "/admin/fiscal/reglas": "Reglas Fiscales",
+      "/admin/fiscal/configuracion": "Config. fiscal",
+      "/admin/fiscal/inmovilizado": "Inmovilizado",
+      "/admin/fiscal/modelo100": "Modelo 100 (RentaWEB)",
       "/admin/nominas": "Nominas",
       "/admin/contabilidad/asientos": "Asientos Contables",
       "/admin/contabilidad/mayor": "Libro Mayor",
@@ -401,8 +407,11 @@ export default function AdminLayout({
       title: "FISCAL",
       items: [
         { path: "/admin/fiscal", label: "Fiscal y Alertas", module: "fiscal" },
+        { path: "/admin/fiscal/configuracion", label: "Configuración fiscal", module: "fiscal" },
+        { path: "/admin/fiscal/inmovilizado", label: "Inmovilizado", module: "fiscal" },
         { path: "/admin/fiscal/cierre", label: "Cierre Ejercicio", module: "fiscal" },
         { path: "/admin/fiscal/renta", label: "Declaración Renta", module: "fiscal" },
+        { path: "/admin/fiscal/modelo100", label: "Modelo 100 (RentaWEB)", module: "fiscal" },
         { path: "/admin/fiscal/reglas", label: "Reglas Fiscales", module: "fiscal" },
       ],
     },

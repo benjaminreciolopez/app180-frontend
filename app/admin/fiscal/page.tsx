@@ -13,6 +13,7 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { formatCurrency } from "@/lib/utils";
 import { FileText, AlertTriangle, CheckSquare, Square, Globe, Building, Users, Home, ReceiptEuro, ShieldAlert, CalendarDays, ExternalLink, Search, ShieldCheck } from "lucide-react";
 import FiscalAlertsPanel from "@/components/admin/fiscal/FiscalAlertsPanel";
+import PresentarAeatDialog from "@/components/admin/fiscal/PresentarAeatDialog";
 import AeatModelLinks from "@/components/fiscal/AeatModelLinks";
 import AeatQuickPanel from "@/components/fiscal/AeatQuickPanel";
 import CalendarioFiscal from "@/components/fiscal/CalendarioFiscal";
@@ -320,7 +321,11 @@ export default function FiscalPage() {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <CardTitle className="text-base">Modelo 303 (IVA)</CardTitle>
-                                                <CardDescription className="text-xs">Autoliquidaci&oacute;n Trimestral</CardDescription>
+                                                <CardDescription className="text-xs">
+                                                    {data.modelo303.regimen_iva === 'agricultura' && 'REAGP — Sin actividad'}
+                                                    {data.modelo303.regimen_iva === 'simplificado' && 'Simplificado (módulos)'}
+                                                    {(!data.modelo303.regimen_iva || data.modelo303.regimen_iva === 'general' || data.modelo303.regimen_iva === 'criterio_caja') && 'Autoliquidaci\u00f3n Trimestral'}
+                                                </CardDescription>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <AeatModelLinks modelo="303" trimestre={trimestre} />
@@ -330,6 +335,53 @@ export default function FiscalPage() {
                                             </div>
                                         </div>
                                     </CardHeader>
+                                    {data.modelo303.sin_actividad ? (
+                                        <CardContent className="space-y-3 text-sm">
+                                            <div className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-800">
+                                                {data.modelo303.nota || 'REAGP no presenta modelo 303 ordinario.'}
+                                            </div>
+                                            {data.modelo303.compensacion_reagp_pct != null && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Compensación REAGP:</span>
+                                                    <span className="font-medium">{data.modelo303.compensacion_reagp_pct}%</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Ingresos actividad:</span>
+                                                <span className="font-medium">{formatCurrency(data.modelo303.ingresos_actividad || 0)}</span>
+                                            </div>
+                                        </CardContent>
+                                    ) : data.modelo303.regimen_iva === 'simplificado' ? (
+                                        <CardContent className="space-y-3 text-sm">
+                                            <div className="text-xs text-muted-foreground">{data.modelo303.tipo_pago === 'a_cuenta' ? 'Pago a cuenta (¼ cuota anual)' : 'Regularización 4T'}</div>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Cuota devengada anual:</span>
+                                                <span className="font-medium">{formatCurrency(data.modelo303.cuota_devengada_anual || 0)}</span>
+                                            </div>
+                                            {data.modelo303.tipo_pago === 'a_cuenta' && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Cuota trimestral:</span>
+                                                    <span className="font-medium">{formatCurrency(data.modelo303.cuota_trimestral || 0)}</span>
+                                                </div>
+                                            )}
+                                            {data.modelo303.tipo_pago === 'regularizacion_4t' && (
+                                                <>
+                                                    <div className="flex justify-between text-xs">
+                                                        <span className="text-muted-foreground">Deducible difícil just. ({data.modelo303.deducible_dificil_justificacion_pct}%):</span>
+                                                        <span>-{formatCurrency(data.modelo303.deducible_dificil_justificacion || 0)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs">
+                                                        <span className="text-muted-foreground">Pagos a cuenta previos:</span>
+                                                        <span>-{formatCurrency(data.modelo303.pagos_a_cuenta_previos || 0)}</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                            <div className="border-t pt-2 flex justify-between font-bold text-base">
+                                                <span>Resultado:</span>
+                                                <span>{formatCurrency(data.modelo303.resultado || 0)}</span>
+                                            </div>
+                                        </CardContent>
+                                    ) : (
                                     <CardContent className="space-y-3 text-sm">
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">IVA Devengado:</span>
@@ -391,10 +443,14 @@ export default function FiscalPage() {
                                             <p>Revisa que todas las facturas y gastos del {trimestre}T est&eacute;n contabilizados.</p>
                                         </div>
                                     </CardContent>
-                                    <CardFooter>
-                                        <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownload('303')}>
+                                    )}
+                                    <CardFooter className="flex gap-2">
+                                        <Button variant="outline" className="flex-1" size="sm" onClick={() => handleDownload('303')}>
                                             <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
+                                        {!data.modelo303.sin_actividad && (
+                                            <PresentarAeatDialog modelo="303" year={year} trimestre={trimestre} onPresented={loadData} />
+                                        )}
                                     </CardFooter>
                                 </Card>
                             )}
@@ -452,10 +508,11 @@ export default function FiscalPage() {
                                             <span>{formatCurrency(data.modelo130.a_ingresar)}</span>
                                         </div>
                                     </CardContent>
-                                    <CardFooter>
-                                        <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownload('130')}>
+                                    <CardFooter className="flex gap-2">
+                                        <Button variant="outline" className="flex-1" size="sm" onClick={() => handleDownload('130')}>
                                             <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
+                                        <PresentarAeatDialog modelo="130" year={year} trimestre={trimestre} onPresented={loadData} />
                                     </CardFooter>
                                 </Card>
                             )}
@@ -495,10 +552,11 @@ export default function FiscalPage() {
                                             <span>{formatCurrency(data.modelo111.total_retenciones)}</span>
                                         </div>
                                     </CardContent>
-                                    <CardFooter>
-                                        <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownload('111')}>
+                                    <CardFooter className="flex gap-2">
+                                        <Button variant="outline" className="flex-1" size="sm" onClick={() => handleDownload('111')}>
                                             <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
+                                        <PresentarAeatDialog modelo="111" year={year} trimestre={trimestre} onPresented={loadData} />
                                     </CardFooter>
                                 </Card>
                             )}
@@ -541,10 +599,11 @@ export default function FiscalPage() {
                                             </div>
                                         )}
                                     </CardContent>
-                                    <CardFooter>
-                                        <Button variant="outline" className="w-full" size="sm" onClick={() => handleDownload('115')}>
+                                    <CardFooter className="flex gap-2">
+                                        <Button variant="outline" className="flex-1" size="sm" onClick={() => handleDownload('115')}>
                                             <FileText className="mr-2 h-4 w-4" /> Fichero AEAT
                                         </Button>
+                                        <PresentarAeatDialog modelo="115" year={year} trimestre={trimestre} onPresented={loadData} />
                                     </CardFooter>
                                 </Card>
                             )}
