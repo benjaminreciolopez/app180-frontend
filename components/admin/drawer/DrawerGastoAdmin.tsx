@@ -614,7 +614,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
 
                 {/* Upload Section */}
                 <div className="space-y-3">
-                    <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Factura / Ticket</Label>
+                    <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Factura / Ticket [v.NUEVO-2026-04-25]</Label>
                     <div
                         ref={attachDropListeners}
                         className={`
