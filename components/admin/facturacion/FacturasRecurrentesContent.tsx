@@ -251,7 +251,7 @@ export function FacturasRecurrentesContent() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {activasCount > 0 && (
             <Button
               onClick={() => { setLoteFecha(new Date().toISOString().split("T")[0]); setLoteDialogOpen(true) }}

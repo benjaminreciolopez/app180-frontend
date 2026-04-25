@@ -79,8 +79,8 @@ export default function AdminLayout({
 
       const isLargeScreen =
         typeof window !== "undefined" && window.innerWidth >= 1024;
-      const isPwaMobile = isMobileDevice() && isStandalone();
-      const useMobileModules = isPwaMobile && !isLargeScreen;
+      const sessionIsPwaMobile = isMobileDevice() && isStandalone();
+      const useMobileModules = sessionIsPwaMobile && !isLargeScreen;
       const activeModulos =
         useMobileModules && user.modulos_mobile
           ? user.modulos_mobile

@@ -256,7 +256,7 @@ export function ProformasListContent() {
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <Select value={yearFilter} onValueChange={setYearFilter}>
             <SelectTrigger className="w-[100px] bg-white cursor-pointer">
               <SelectValue placeholder="Año" />

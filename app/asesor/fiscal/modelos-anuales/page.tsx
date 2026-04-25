@@ -286,16 +286,18 @@ export default function AsesorModelosAnualesPage() {
                 </Card>
             ) : (
                 <Tabs defaultValue="modelos" className="space-y-4">
-                    <TabsList>
-                        <TabsTrigger value="modelos">
-                            <FileText size={14} className="mr-1" />
-                            Modelos
-                        </TabsTrigger>
-                        <TabsTrigger value="consulta">
-                            <Search size={14} className="mr-1" />
-                            Consulta AEAT
-                        </TabsTrigger>
-                    </TabsList>
+                    <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                        <TabsList className="inline-flex w-max min-w-full">
+                            <TabsTrigger value="modelos" className="whitespace-nowrap">
+                                <FileText size={14} className="mr-1" />
+                                Modelos
+                            </TabsTrigger>
+                            <TabsTrigger value="consulta" className="whitespace-nowrap">
+                                <Search size={14} className="mr-1" />
+                                Consulta AEAT
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
 
                     <TabsContent value="modelos">
                     {loading ? (

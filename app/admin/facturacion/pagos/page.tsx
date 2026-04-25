@@ -333,11 +333,11 @@ export default function GlobalPagosPage() {
             </Select>
         </div>
         
-        <div className="flex items-center gap-3 w-full md:w-auto">
-            <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={loadPagos} 
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <Button
+                variant="outline"
+                size="icon"
+                onClick={loadPagos}
                 disabled={isGlobalBusy}
                 className="bg-white border-slate-200"
             >

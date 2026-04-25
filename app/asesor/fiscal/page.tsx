@@ -77,7 +77,7 @@ export default function AsesorFiscalPage() {
       </div>
 
       {/* Selectores */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Ejercicio:</span>
           <select
@@ -111,20 +111,22 @@ export default function AsesorFiscalPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="modelos" className="gap-1.5">
-            <ReceiptEuro className="w-4 h-4" /> Modelos Fiscales
-          </TabsTrigger>
-          <TabsTrigger value="alertas" className="gap-1.5">
-            <ShieldAlert className="w-4 h-4" /> Inteligencia Fiscal
-          </TabsTrigger>
-          <TabsTrigger value="consulta" className="gap-1.5">
-            <Search className="w-4 h-4" /> Consulta AEAT
-          </TabsTrigger>
-          <TabsTrigger value="aeat" className="gap-1.5">
-            <ExternalLink className="w-4 h-4" /> AEAT
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+          <TabsList className="inline-flex w-max min-w-full">
+            <TabsTrigger value="modelos" className="gap-1.5 whitespace-nowrap">
+              <ReceiptEuro className="w-4 h-4" /> Modelos Fiscales
+            </TabsTrigger>
+            <TabsTrigger value="alertas" className="gap-1.5 whitespace-nowrap">
+              <ShieldAlert className="w-4 h-4" /> Inteligencia Fiscal
+            </TabsTrigger>
+            <TabsTrigger value="consulta" className="gap-1.5 whitespace-nowrap">
+              <Search className="w-4 h-4" /> Consulta AEAT
+            </TabsTrigger>
+            <TabsTrigger value="aeat" className="gap-1.5 whitespace-nowrap">
+              <ExternalLink className="w-4 h-4" /> AEAT
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Tab: Modelos Fiscales */}
         <TabsContent value="modelos" className="space-y-6 mt-4">

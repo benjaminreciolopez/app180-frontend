@@ -360,18 +360,20 @@ export default function CobrosPagosPage() {
     <div className="space-y-6 p-4 md:p-0">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6">
-          <TabsList className="bg-slate-100 p-1">
-            <TabsTrigger value="transacciones" className="data-[state=active]:bg-white shadow-none border-none">
-              <History className="w-4 h-4 mr-2" />
-              Transacciones
-            </TabsTrigger>
-            <TabsTrigger value="deudas" className="data-[state=active]:bg-white shadow-none border-none">
-              <TrendingDown className="w-4 h-4 mr-2" />
-              Deudas Pendientes
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="bg-slate-100 p-1 inline-flex w-max min-w-full">
+              <TabsTrigger value="transacciones" className="data-[state=active]:bg-white shadow-none border-none whitespace-nowrap">
+                <History className="w-4 h-4 mr-2" />
+                Transacciones
+              </TabsTrigger>
+              <TabsTrigger value="deudas" className="data-[state=active]:bg-white shadow-none border-none whitespace-nowrap">
+                <TrendingDown className="w-4 h-4 mr-2" />
+                Deudas Pendientes
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
               <Button
                   variant="outline"
                   size="icon"

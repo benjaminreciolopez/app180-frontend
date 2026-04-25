@@ -458,14 +458,16 @@ export default function ReglasPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="reglas" className="gap-1.5">
-            <Database className="w-4 h-4" /> Reglas por Ejercicio
-          </TabsTrigger>
-          <TabsTrigger value="patterns" className="gap-1.5">
-            <Regex className="w-4 h-4" /> Regex Patterns
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+          <TabsList className="inline-flex w-max min-w-full">
+            <TabsTrigger value="reglas" className="gap-1.5 whitespace-nowrap">
+              <Database className="w-4 h-4" /> Reglas por Ejercicio
+            </TabsTrigger>
+            <TabsTrigger value="patterns" className="gap-1.5 whitespace-nowrap">
+              <Regex className="w-4 h-4" /> Regex Patterns
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ============================================================ */}
         {/* TAB: REGLAS POR EJERCICIO                                    */}

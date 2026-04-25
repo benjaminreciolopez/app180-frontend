@@ -90,11 +90,13 @@ export default function InformesPage() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="iva">IVA Trimestral</TabsTrigger>
-                    <TabsTrigger value="anual">Facturación Anual</TabsTrigger>
-                    <TabsTrigger value="clientes">Top Clientes</TabsTrigger>
-                </TabsList>
+                <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                    <TabsList className="inline-flex w-max min-w-full">
+                        <TabsTrigger value="iva" className="whitespace-nowrap">IVA Trimestral</TabsTrigger>
+                        <TabsTrigger value="anual" className="whitespace-nowrap">Facturación Anual</TabsTrigger>
+                        <TabsTrigger value="clientes" className="whitespace-nowrap">Top Clientes</TabsTrigger>
+                    </TabsList>
+                </div>
 
                 {/* --- TAB 1: IVA TRIMESTRAL --- */}
                 <TabsContent value="iva" className="space-y-4">

@@ -179,12 +179,14 @@ export default function ClienteRetaDetailPage() {
         </Card>
       ) : (
         <Tabs defaultValue="resumen" className="w-full">
-          <TabsList>
-            <TabsTrigger value="resumen">Resumen</TabsTrigger>
-            <TabsTrigger value="tramos">Tramos</TabsTrigger>
-            <TabsTrigger value="eventos">Eventos</TabsTrigger>
-            <TabsTrigger value="simulador">Simulador</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="inline-flex w-max min-w-full">
+              <TabsTrigger value="resumen" className="whitespace-nowrap">Resumen</TabsTrigger>
+              <TabsTrigger value="tramos" className="whitespace-nowrap">Tramos</TabsTrigger>
+              <TabsTrigger value="eventos" className="whitespace-nowrap">Eventos</TabsTrigger>
+              <TabsTrigger value="simulador" className="whitespace-nowrap">Simulador</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* TAB: Resumen */}
           <TabsContent value="resumen" className="space-y-4">

@@ -237,9 +237,9 @@ export default function FiscalPage() {
                         Modelos fiscales e inteligencia preventiva frente a Hacienda.
                     </p>
                 </div>
-                <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                     <Select value={trimestre} onValueChange={setTrimestre}>
-                        <SelectTrigger className="w-full md:w-[140px]">
+                        <SelectTrigger className="flex-1 md:flex-none md:w-[140px]">
                             <SelectValue placeholder="Trimestre" />
                         </SelectTrigger>
                         <SelectContent>
@@ -251,7 +251,7 @@ export default function FiscalPage() {
                     </Select>
 
                     <Select value={year} onValueChange={setYear}>
-                        <SelectTrigger className="w-full md:w-[100px]">
+                        <SelectTrigger className="flex-1 md:flex-none md:w-[100px]">
                             <SelectValue placeholder="A&ntilde;o" />
                         </SelectTrigger>
                         <SelectContent>
@@ -265,20 +265,22 @@ export default function FiscalPage() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList>
-                    <TabsTrigger value="modelos" className="gap-1.5">
-                        <ReceiptEuro className="w-4 h-4" /> Modelos Fiscales
-                    </TabsTrigger>
-                    <TabsTrigger value="alertas" className="gap-1.5">
-                        <ShieldAlert className="w-4 h-4" /> Inteligencia Fiscal
-                    </TabsTrigger>
-                    <TabsTrigger value="consulta" className="gap-1.5">
-                        <Search className="w-4 h-4" /> Consulta AEAT
-                    </TabsTrigger>
-                    <TabsTrigger value="aeat" className="gap-1.5">
-                        <ExternalLink className="w-4 h-4" /> AEAT
-                    </TabsTrigger>
-                </TabsList>
+                <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                    <TabsList className="inline-flex w-max min-w-full">
+                        <TabsTrigger value="modelos" className="gap-1.5 whitespace-nowrap">
+                            <ReceiptEuro className="w-4 h-4" /> Modelos Fiscales
+                        </TabsTrigger>
+                        <TabsTrigger value="alertas" className="gap-1.5 whitespace-nowrap">
+                            <ShieldAlert className="w-4 h-4" /> Inteligencia Fiscal
+                        </TabsTrigger>
+                        <TabsTrigger value="consulta" className="gap-1.5 whitespace-nowrap">
+                            <Search className="w-4 h-4" /> Consulta AEAT
+                        </TabsTrigger>
+                        <TabsTrigger value="aeat" className="gap-1.5 whitespace-nowrap">
+                            <ExternalLink className="w-4 h-4" /> AEAT
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
 
                 {/* Tab: Modelos Fiscales (existing content) */}
                 <TabsContent value="modelos" className="space-y-6 mt-4">

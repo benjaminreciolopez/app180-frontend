@@ -466,16 +466,18 @@ export default function ImportarCalendarioLaboralPage() {
               <CardContent className="p-0">
                 <Tabs defaultValue="preview" className="w-full">
                   <div className="px-6 py-2 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
-                    <TabsList className="bg-slate-200/50 p-1 rounded-lg">
-                      <TabsTrigger value="preview" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                        <Eye className="w-4 h-4 mr-2" />
-                        Vista Previa
-                      </TabsTrigger>
-                      <TabsTrigger value="editor" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Texto Original (OCR)
-                      </TabsTrigger>
-                    </TabsList>
+                    <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                      <TabsList className="bg-slate-200/50 p-1 rounded-lg inline-flex w-max min-w-full">
+                        <TabsTrigger value="preview" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm whitespace-nowrap">
+                          <Eye className="w-4 h-4 mr-2" />
+                          Vista Previa
+                        </TabsTrigger>
+                        <TabsTrigger value="editor" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm whitespace-nowrap">
+                          <FileText className="w-4 h-4 mr-2" />
+                          Texto Original (OCR)
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
                     
                     <div className="hidden md:flex items-center gap-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                       <span className="flex items-center gap-1"><Badge variant="outline" className="h-2 w-2 p-0 rounded-full bg-blue-500 border-none" /> Festivos: {stats.festivos}</span>
