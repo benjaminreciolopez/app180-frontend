@@ -573,22 +573,21 @@ function AsesorLayoutInner({
           </div>
         </header>
 
+        {/* TopNav PWA móvil — debajo del header, encima del contenido */}
+        {isPwaMobile && <BottomNav items={bottomNavItems} />}
+
         {/* Page content */}
         <QuickViewProvider>
-          <div
-            className="flex-1 overflow-y-auto md:p-6"
-            style={isPwaMobile ? { paddingBottom: "calc(64px + env(safe-area-inset-bottom))" } : undefined}
-          >
+          <div className="flex-1 overflow-y-auto md:p-6">
             {children}
           </div>
           <QuickViewPanel />
         </QuickViewProvider>
       </main>
 
-      {/* BottomNav PWA móvil */}
+      {/* MoreSheet PWA móvil */}
       {isPwaMobile && (
         <>
-          <BottomNav items={bottomNavItems} />
           <MoreSheet
             open={moreOpen}
             onClose={() => setMoreOpen(false)}

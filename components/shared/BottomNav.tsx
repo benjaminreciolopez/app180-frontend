@@ -18,8 +18,8 @@ interface BottomNavProps {
 }
 
 /**
- * Barra de navegación inferior estilo iOS/Android nativa.
- * Pensada para PWA móvil — fixed bottom con safe-area-inset.
+ * Barra de navegación principal PWA móvil.
+ * Inline en el flujo (debajo del header), no fixed — el contenido scrollea bajo ella.
  *
  * Cada item recibe el icono y label. El estado activo se calcula
  * por coincidencia exacta o por la función `match` si se proporciona.
@@ -38,8 +38,7 @@ export function BottomNav({ items }: BottomNavProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-xl"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="z-30 border-b border-border bg-card/95 backdrop-blur-xl shrink-0"
       aria-label="Navegación principal"
     >
       <ul className="grid grid-flow-col auto-cols-fr">
