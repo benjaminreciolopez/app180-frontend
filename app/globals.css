@@ -359,12 +359,12 @@ body {
 }
 
 /* Scrollers internos (main con overflow-y-auto en layouts admin/asesor)
-   no propagan el bounce al document → desactiva pull-to-refresh */
+   → none = sin chaining ni pull-to-refresh dentro del propio scroller */
 main,
 [data-scroll-container],
 .overflow-y-auto,
 .overflow-auto {
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: none;
 }
 
 /* 3) Safe areas iOS (notch) + fullscreen */

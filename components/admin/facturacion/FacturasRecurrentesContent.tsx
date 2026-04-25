@@ -270,7 +270,7 @@ export function FacturasRecurrentesContent() {
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="grid grid-cols-12 gap-4 p-4 border-b bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
           <div className="col-span-1">Estado</div>
           <div className="col-span-3">Nombre</div>
           <div className="col-span-2">Cliente</div>
@@ -310,99 +310,142 @@ export function FacturasRecurrentesContent() {
               const lineas = typeof p.lineas === "string" ? JSON.parse(p.lineas) : p.lineas
               const totalEstimado = calcularTotal(p)
 
+              const estadoBadge = p.activo ? (
+                <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0">Activa</Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-slate-100 text-slate-500">Pausada</Badge>
+              )
+
+              const actionsMenu = (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" disabled={!!processingId}>
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 shadow-xl">
+                    <DropdownMenuItem
+                      onClick={() => { setEditing(p); setDrawerOpen(true) }}
+                      className="cursor-pointer"
+                    >
+                      <Pencil className="w-4 h-4 mr-2" /> Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setGenerarTarget(p)
+                        setGenerarFecha(new Date().toISOString().split("T")[0])
+                        setGenerarDialogOpen(true)
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Play className="w-4 h-4 mr-2" /> Generar borrador
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleToggleActivo(p)} className="cursor-pointer">
+                      {p.activo ? (
+                        <><Pause className="w-4 h-4 mr-2" /> Pausar</>
+                      ) : (
+                        <><CheckCircle2 className="w-4 h-4 mr-2" /> Activar</>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setDeleteTarget(p)}
+                      className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" /> Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )
+
               return (
-                <div
-                  key={p.id}
-                  className={`grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group ${!p.activo ? "opacity-60" : ""}`}
-                >
-                  {/* Estado */}
-                  <div className="col-span-1">
-                    {p.activo ? (
-                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0">Activa</Badge>
-                    ) : (
-                      <Badge variant="secondary" className="bg-slate-100 text-slate-500">Pausada</Badge>
-                    )}
-                  </div>
-
-                  {/* Nombre */}
-                  <div className="col-span-3">
-                    <div className="font-medium text-slate-900 text-sm truncate">{p.nombre}</div>
-                    <div className="text-xs text-slate-500">{p.metodo_pago}</div>
-                  </div>
-
-                  {/* Cliente */}
-                  <div className="col-span-2">
-                    <div className="text-sm text-slate-800 truncate">{p.cliente_nombre || "—"}</div>
-                  </div>
-
-                  {/* Conceptos */}
-                  <div className="col-span-1 text-center">
-                    <Badge variant="secondary" className="text-xs">
-                      {Array.isArray(lineas) ? lineas.length : 0}
-                    </Badge>
-                  </div>
-
-                  {/* Día */}
-                  <div className="col-span-1 text-center text-sm text-slate-700">
-                    Día {p.dia_generacion}
-                  </div>
-
-                  {/* Total estimado */}
-                  <div className="col-span-1 text-right font-bold text-slate-900 text-sm">
-                    {formatCurrency(totalEstimado)}
-                  </div>
-
-                  {/* Última generación */}
-                  <div className="col-span-1 text-center hidden md:block">
-                    {p.ultima_generacion ? (
-                      <span className="text-xs text-slate-500">
-                        {format(new Date(p.ultima_generacion), "d MMM yy", { locale: es })}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-slate-400">—</span>
-                    )}
-                  </div>
-
-                  {/* Acciones */}
-                  <div className="col-span-2 flex justify-end">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" disabled={!!processingId}>
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 shadow-xl">
-                        <DropdownMenuItem
-                          onClick={() => { setEditing(p); setDrawerOpen(true) }}
-                          className="cursor-pointer"
-                        >
-                          <Pencil className="w-4 h-4 mr-2" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setGenerarTarget(p)
-                            setGenerarFecha(new Date().toISOString().split("T")[0])
-                            setGenerarDialogOpen(true)
-                          }}
-                          className="cursor-pointer"
-                        >
-                          <Play className="w-4 h-4 mr-2" /> Generar borrador
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggleActivo(p)} className="cursor-pointer">
-                          {p.activo ? (
-                            <><Pause className="w-4 h-4 mr-2" /> Pausar</>
-                          ) : (
-                            <><CheckCircle2 className="w-4 h-4 mr-2" /> Activar</>
+                <div key={p.id} className={!p.activo ? "opacity-60" : ""}>
+                  {/* ─── Vista MÓVIL: tarjeta ─── */}
+                  <div className="md:hidden p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-slate-900 text-sm truncate">{p.nombre}</span>
+                          {estadoBadge}
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">{p.metodo_pago}</div>
+                        <div className="text-sm text-slate-800 truncate mt-1">
+                          {p.cliente_nombre || "—"}
+                        </div>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-slate-600">
+                          <span>
+                            <Badge variant="secondary" className="text-xs mr-1">
+                              {Array.isArray(lineas) ? lineas.length : 0}
+                            </Badge>
+                            conceptos
+                          </span>
+                          <span>Día {p.dia_generacion}</span>
+                          {p.ultima_generacion && (
+                            <span className="text-slate-500">
+                              Últ: {format(new Date(p.ultima_generacion), "d MMM yy", { locale: es })}
+                            </span>
                           )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setDeleteTarget(p)}
-                          className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" /> Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="font-bold text-slate-900 text-base">{formatCurrency(totalEstimado)}</div>
+                        <div className="text-[10px] text-slate-500">Total est.</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-2 mt-3 pt-3 border-t border-slate-100">
+                      {actionsMenu}
+                    </div>
+                  </div>
+
+                  {/* ─── Vista DESKTOP: grid 12 cols ─── */}
+                  <div className="hidden md:grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group">
+                    {/* Estado */}
+                    <div className="col-span-1">
+                      {estadoBadge}
+                    </div>
+
+                    {/* Nombre */}
+                    <div className="col-span-3">
+                      <div className="font-medium text-slate-900 text-sm truncate">{p.nombre}</div>
+                      <div className="text-xs text-slate-500">{p.metodo_pago}</div>
+                    </div>
+
+                    {/* Cliente */}
+                    <div className="col-span-2">
+                      <div className="text-sm text-slate-800 truncate">{p.cliente_nombre || "—"}</div>
+                    </div>
+
+                    {/* Conceptos */}
+                    <div className="col-span-1 text-center">
+                      <Badge variant="secondary" className="text-xs">
+                        {Array.isArray(lineas) ? lineas.length : 0}
+                      </Badge>
+                    </div>
+
+                    {/* Día */}
+                    <div className="col-span-1 text-center text-sm text-slate-700">
+                      Día {p.dia_generacion}
+                    </div>
+
+                    {/* Total estimado */}
+                    <div className="col-span-1 text-right font-bold text-slate-900 text-sm">
+                      {formatCurrency(totalEstimado)}
+                    </div>
+
+                    {/* Última generación */}
+                    <div className="col-span-1 text-center hidden md:block">
+                      {p.ultima_generacion ? (
+                        <span className="text-xs text-slate-500">
+                          {format(new Date(p.ultima_generacion), "d MMM yy", { locale: es })}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </div>
+
+                    {/* Acciones */}
+                    <div className="col-span-2 flex justify-end">
+                      {actionsMenu}
+                    </div>
                   </div>
                 </div>
               )

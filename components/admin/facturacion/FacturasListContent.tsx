@@ -399,8 +399,8 @@ export function FacturasListContent() {
 
       {/* --- TABLA DE FACTURAS --- */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* Header Tabla */}
-        <div className="grid grid-cols-12 gap-4 p-4 border-b bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        {/* Header Tabla — solo desktop */}
+        <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
             {borradores.length > 0 && (
               <div className="col-span-1 flex items-center justify-center md:col-span-1">
                 <button onClick={toggleSelectAll} className="text-slate-400 hover:text-slate-700 transition-colors">
@@ -658,13 +658,142 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
     const total = Number(factura.total || 0)
     const estadoPago = factura.estado_pago || (pagado >= total - 0.01 ? 'pagado' : pagado > 0 ? 'parcial' : 'pendiente')
 
+    const estadoBadges = (
+        <>
+            {isBorrador && <Badge variant="secondary" className="bg-slate-100 text-slate-600">Borrador</Badge>}
+            {isValidada && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0">Validada</Badge>}
+            {isAnulada && <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0">Anulada</Badge>}
+            {isTest && <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 shadow-none border-0 text-xs">Ficticia</Badge>}
+            {isProforma && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 shadow-none border-0 text-xs">Proforma</Badge>}
+        </>
+    )
+
+    const pagoBadge = (
+        <>
+            {isTest && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0 text-xs">Test</Badge>}
+            {isValidada && !isTest && estadoPago === 'pagado' && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 shadow-none border-0 text-xs">Pagada</Badge>}
+            {isValidada && !isTest && estadoPago === 'parcial' && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 shadow-none border-0 text-xs">Parcial</Badge>}
+            {isValidada && !isTest && estadoPago === 'pendiente' && <Badge className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0 text-xs">Pendiente</Badge>}
+        </>
+    )
+
+    const actionButtons = (
+        <>
+            {isBorrador && (
+                <>
+                    <Button size="sm" variant="ghost" onClick={onEdit} disabled={isGlobalBusy} title="Editar borrador" className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-slate-500" />
+                        <span className="text-xs">Editar</span>
+                    </Button>
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white h-8" onClick={onValidar} disabled={isGlobalBusy}>
+                        {isProcessing ? <RefreshCcw className="w-3 h-3 animate-spin" /> : "Validar"}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={onDelete} disabled={isGlobalBusy}>
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
+                </>
+            )}
+            {isValidada && (
+                <>
+                    {factura.storage_record_id ? (
+                        <div className="flex gap-1">
+                            <Button size="sm" variant="outline" className="h-8 hover:bg-blue-50 text-blue-600 border-blue-200 shadow-sm transition-all active:scale-95" onClick={onPreview} title="Vista Previa Rápida" disabled={isGlobalBusy}>
+                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4 mr-1" />}
+                                VER
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-500" onClick={onOpen} title="Descargar PDF" disabled={isGlobalBusy}>
+                                <Download className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    ) : (
+                        <Button size="sm" variant="outline" className="h-8 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border-blue-200 shadow-sm transition-all active:scale-95" onClick={onGenerar} disabled={isGlobalBusy}>
+                            {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+                            {isDownloading ? "CREANDO..." : "CREAR PDF"}
+                        </Button>
+                    )}
+                    {isProforma && (
+                        <Button size="sm" variant="outline" className="h-8 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white border-amber-200 shadow-sm transition-all active:scale-95" onClick={onConvertir} disabled={isGlobalBusy} title="Convertir a factura normal con numeración oficial">
+                            {isProcessing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCcw className="w-4 h-4 mr-1" />}
+                            {isProcessing ? "CONVIRTIENDO..." : "A NORMAL"}
+                        </Button>
+                    )}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" disabled={isGlobalBusy}>
+                                <MoreVertical className="w-4 h-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 shadow-xl">
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => {}} disabled className="cursor-not-allowed opacity-50">
+                                <Mail className="w-4 h-4 mr-2" /> Enviar por Email
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`${basePath}/listado?tab=recurrentes&desde_factura=${factura.id}`)}>
+                                <RefreshCw className="w-4 h-4 mr-2" /> Hacer recurrente
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer" onClick={onAnular}>
+                                <FileX className="w-4 h-4 mr-2" /> Anular Factura
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </>
+            )}
+            {isAnulada && (
+                <Button size="sm" variant="ghost" disabled>
+                    <AlertCircle className="w-4 h-4 mr-2" /> Anulada
+                </Button>
+            )}
+        </>
+    )
+
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={`grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group ${isSelected ? 'bg-green-50 hover:bg-green-50' : ''}`}
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            {/* ─── Vista MÓVIL: tarjeta ─── */}
+            <div className={`md:hidden p-4 hover:bg-slate-50 transition-colors ${isSelected ? 'bg-green-50' : ''}`}>
+                <div className="flex items-start gap-3">
+                    {showCheckbox && (
+                        <div className="pt-1">
+                            {isBorrador ? (
+                                <button onClick={onToggleSelect} className="text-slate-400">
+                                    {isSelected ? <CheckSquare className="w-4 h-4 text-green-600" /> : <Square className="w-4 h-4" />}
+                                </button>
+                            ) : <span className="w-4 inline-block" />}
+                        </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-semibold text-slate-900 text-sm">{factura.numero || "—"}</span>
+                                    {estadoBadges}
+                                </div>
+                                <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                    <CalendarIcon className="w-3 h-3" />
+                                    {format(new Date(factura.fecha), "d MMM yyyy", { locale: es })}
+                                </div>
+                                <div className="text-sm text-slate-800 truncate mt-1">
+                                    {factura.cliente_nombre || <span className="text-slate-400 italic">Cliente sin asignar</span>}
+                                </div>
+                                {factura.cliente?.nif && (
+                                    <div className="text-xs text-slate-500 truncate">{factura.cliente.nif}</div>
+                                )}
+                            </div>
+                            <div className="text-right shrink-0">
+                                <div className="font-bold text-slate-900 text-base">{formatCurrency(factura.total)}</div>
+                                <div className="text-[10px] text-slate-500">IVA {formatCurrency(factura.iva_total)}</div>
+                                <div className="mt-1">{pagoBadge}</div>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap justify-end gap-2 mt-3 pt-3 border-t border-slate-100">
+                            {actionButtons}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ─── Vista DESKTOP: grid 12 cols ─── */}
+            <div className={`hidden md:grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group ${isSelected ? 'bg-green-50 hover:bg-green-50' : ''}`}>
             {/* Checkbox */}
             {showCheckbox && (
               <div className="col-span-1 flex items-center justify-center">
@@ -763,113 +892,9 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
             </div>
 
             {/* Acciones */}
-            <div className="col-span-12 md:col-span-3 flex justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-
-                {/* BORRADOR: Editar / Validar / Borrar */}
-                {isBorrador && (
-                    <>
-                         <Button size="sm" variant="ghost" onClick={onEdit} disabled={isGlobalBusy} title="Editar borrador" className="flex items-center gap-2">
-                            <Eye className="w-4 h-4 text-slate-500" />
-                            <span className="text-xs">Editar</span>
-                        </Button>
-                        <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white h-8"
-                            onClick={onValidar}
-                            disabled={isGlobalBusy}
-                        >
-                            {isProcessing ? <RefreshCcw className="w-3 h-3 animate-spin" /> : "Validar"}
-                        </Button>
-                        <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={onDelete} disabled={isGlobalBusy}>
-                            <Trash2 className="w-4 h-4" />
-                        </Button>
-                    </>
-                )}
-
-                {/* VALIDADA: PDF / Email / Anular */}
-                {isValidada && (
-                    <>
-                        {factura.storage_record_id ? (
-                            <div className="flex gap-1">
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 hover:bg-blue-50 text-blue-600 border-blue-200 shadow-sm transition-all active:scale-95"
-                                    onClick={onPreview}
-                                    title="Vista Previa Rápida"
-                                    disabled={isGlobalBusy}
-                                >
-                                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4 mr-1" />}
-                                    VER
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 w-8 p-0 text-slate-500"
-                                    onClick={onOpen}
-                                    title="Descargar PDF"
-                                    disabled={isGlobalBusy}
-                                >
-                                    <Download className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        ) : (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border-blue-200 shadow-sm transition-all active:scale-95"
-                                onClick={onGenerar}
-                                disabled={isGlobalBusy}
-                            >
-                                {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
-                                {isDownloading ? "CREANDO..." : "CREAR PDF"}
-                            </Button>
-                        )}
-                        {isProforma && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white border-amber-200 shadow-sm transition-all active:scale-95"
-                                onClick={onConvertir}
-                                disabled={isGlobalBusy}
-                                title="Convertir a factura normal con numeración oficial"
-                            >
-                                {isProcessing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCcw className="w-4 h-4 mr-1" />}
-                                {isProcessing ? "CONVIRTIENDO..." : "A NORMAL"}
-                            </Button>
-                        )}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" disabled={isGlobalBusy}>
-                                    <MoreVertical className="w-4 h-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48 shadow-xl">
-                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => {}} disabled className="cursor-not-allowed opacity-50">
-                                    <Mail className="w-4 h-4 mr-2" /> Enviar por Email
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    className="cursor-pointer"
-                                    onClick={() => router.push(`${basePath}/listado?tab=recurrentes&desde_factura=${factura.id}`)}
-                                >
-                                    <RefreshCw className="w-4 h-4 mr-2" /> Hacer recurrente
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer" onClick={onAnular}>
-                                    <FileX className="w-4 h-4 mr-2" /> Anular Factura
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </>
-                )}
-
-                {/* ANULADA: Solo ver */}
-                {isAnulada && (
-                    <Button size="sm" variant="ghost" disabled>
-                        <AlertCircle className="w-4 h-4 mr-2" /> Anulada
-                    </Button>
-                )}
+            <div className="col-span-3 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                {actionButtons}
+            </div>
             </div>
         </motion.div>
     )

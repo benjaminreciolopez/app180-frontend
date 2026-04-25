@@ -295,7 +295,7 @@ export function ProformasListContent() {
 
       {/* Tabla */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="grid grid-cols-12 gap-4 p-4 border-b bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
           <div className="col-span-2 md:col-span-1">Estado</div>
           <div className="col-span-3 md:col-span-2">Número / Fecha</div>
           <div className="col-span-4 md:col-span-3">Cliente</div>
@@ -484,123 +484,169 @@ function ProformaRow({ proforma, onEdit, onAnular, onReactivar, onConvertir, onD
   const isAnulada = proforma.estado === "ANULADA"
   const isConvertida = proforma.estado === "CONVERTIDA"
 
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group"
-    >
-      {/* Estado */}
-      <div className="col-span-2 md:col-span-1">
-        {isActiva && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0">Activa</Badge>}
-        {isAnulada && <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0">Anulada</Badge>}
-        {isConvertida && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 shadow-none border-0">Convertida</Badge>}
-      </div>
+  const estadoBadges = (
+    <>
+      {isActiva && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0">Activa</Badge>}
+      {isAnulada && <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0">Anulada</Badge>}
+      {isConvertida && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 shadow-none border-0">Convertida</Badge>}
+    </>
+  )
 
-      {/* Número y Fecha */}
-      <div className="col-span-3 md:col-span-2 flex flex-col">
-        <span className="font-semibold text-slate-900 text-sm font-mono">
-          {proforma.numero || "—"}
-        </span>
-        <span className="text-xs text-slate-500 flex items-center gap-1">
-          <CalendarIcon className="w-3 h-3" />
-          {format(new Date(proforma.fecha), "d MMM yyyy", { locale: es })}
-        </span>
-      </div>
+  const actionButtons = (
+    <>
+      {/* ACTIVA: Editar, PDF, Anular, Convertir */}
+      {isActiva && (
+        <>
+          <Button size="sm" variant="ghost" onClick={onEdit} disabled={isGlobalBusy} title="Editar proforma">
+            <Eye className="w-4 h-4 text-slate-500 mr-1" />
+            <span className="text-xs">Editar</span>
+          </Button>
 
-      {/* Cliente */}
-      <div className="col-span-4 md:col-span-3">
-        <div className="font-medium text-slate-800 text-sm truncate">
-          {proforma.cliente_nombre || <span className="text-slate-400 italic">Cliente sin asignar</span>}
-        </div>
-      </div>
-
-      {/* Origen (si es reactivada) */}
-      <div className="col-span-3 md:col-span-1 hidden md:flex justify-center">
-        {proforma.proforma_origen_numero ? (
-          <span className="text-xs text-slate-500 font-mono" title={`Reactivada desde ${proforma.proforma_origen_numero}`}>
-            {proforma.proforma_origen_numero}
-          </span>
-        ) : (
-          <span className="text-xs text-slate-400">—</span>
-        )}
-      </div>
-
-      {/* Importe */}
-      <div className="col-span-3 md:col-span-2 text-right">
-        <div className="font-bold text-slate-900">
-          {formatCurrency(proforma.total)}
-        </div>
-        <div className="text-xs text-slate-500">
-          (incl. {formatCurrency(proforma.iva_total)} IVA)
-        </div>
-      </div>
-
-      {/* Acciones */}
-      <div className="col-span-12 md:col-span-3 flex justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-
-        {/* ACTIVA: Editar, PDF, Anular, Convertir */}
-        {isActiva && (
-          <>
-            <Button size="sm" variant="ghost" onClick={onEdit} disabled={isGlobalBusy} title="Editar proforma">
-              <Eye className="w-4 h-4 text-slate-500 mr-1" />
-              <span className="text-xs">Editar</span>
-            </Button>
-
-            {proforma.ruta_pdf ? (
-              <div className="flex gap-1">
-                <Button
-                  size="sm" variant="outline"
-                  className="h-8 hover:bg-amber-50 text-amber-600 border-amber-200"
-                  onClick={onPreview} disabled={isGlobalBusy} title="Vista previa"
-                >
-                  {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4 mr-1" />}
-                  VER
-                </Button>
-                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onOpenPDF} disabled={isGlobalBusy} title="Descargar">
-                  <Download className="w-4 h-4 text-slate-500" />
-                </Button>
-              </div>
-            ) : (
+          {proforma.ruta_pdf ? (
+            <div className="flex gap-1">
               <Button
                 size="sm" variant="outline"
-                className="h-8 bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white border-amber-200"
-                onClick={onGenerarPDF} disabled={isGlobalBusy}
+                className="h-8 hover:bg-amber-50 text-amber-600 border-amber-200"
+                onClick={onPreview} disabled={isGlobalBusy} title="Vista previa"
               >
-                {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
-                {isDownloading ? "CREANDO..." : "PDF"}
+                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4 mr-1" />}
+                VER
               </Button>
-            )}
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onOpenPDF} disabled={isGlobalBusy} title="Descargar">
+                <Download className="w-4 h-4 text-slate-500" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm" variant="outline"
+              className="h-8 bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white border-amber-200"
+              onClick={onGenerarPDF} disabled={isGlobalBusy}
+            >
+              {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+              {isDownloading ? "CREANDO..." : "PDF"}
+            </Button>
+          )}
 
-            <MoreActionsMenu
-              onConvertir={onConvertir}
-              onAnular={onAnular}
-              onDelete={onDelete}
-              isGlobalBusy={isGlobalBusy}
-            />
-          </>
-        )}
+          <MoreActionsMenu
+            onConvertir={onConvertir}
+            onAnular={onAnular}
+            onDelete={onDelete}
+            isGlobalBusy={isGlobalBusy}
+          />
+        </>
+      )}
 
-        {/* ANULADA: Reactivar */}
-        {isAnulada && (
-          <Button
-            size="sm" variant="outline"
-            className="h-8 bg-orange-50 text-orange-700 hover:bg-orange-600 hover:text-white border-orange-200"
-            onClick={onReactivar} disabled={isGlobalBusy}
-          >
-            {isProcessing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-1" />}
-            Reactivar
-          </Button>
-        )}
+      {/* ANULADA: Reactivar */}
+      {isAnulada && (
+        <Button
+          size="sm" variant="outline"
+          className="h-8 bg-orange-50 text-orange-700 hover:bg-orange-600 hover:text-white border-orange-200"
+          onClick={onReactivar} disabled={isGlobalBusy}
+        >
+          {isProcessing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-1" />}
+          Reactivar
+        </Button>
+      )}
 
-        {/* CONVERTIDA: Solo info */}
-        {isConvertida && (
-          <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-blue-200">
-            <ArrowRightLeft className="w-3 h-3 mr-1" />
-            Factura creada
-          </Badge>
-        )}
+      {/* CONVERTIDA: Solo info */}
+      {isConvertida && (
+        <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-blue-200">
+          <ArrowRightLeft className="w-3 h-3 mr-1" />
+          Factura creada
+        </Badge>
+      )}
+    </>
+  )
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      {/* ─── Vista MÓVIL: tarjeta ─── */}
+      <div className="md:hidden p-4 hover:bg-slate-50 transition-colors">
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-semibold text-slate-900 text-sm font-mono">{proforma.numero || "—"}</span>
+                  {estadoBadges}
+                </div>
+                <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                  <CalendarIcon className="w-3 h-3" />
+                  {format(new Date(proforma.fecha), "d MMM yyyy", { locale: es })}
+                </div>
+                <div className="text-sm text-slate-800 truncate mt-1">
+                  {proforma.cliente_nombre || <span className="text-slate-400 italic">Cliente sin asignar</span>}
+                </div>
+                {proforma.proforma_origen_numero && (
+                  <div className="text-xs text-slate-500 font-mono mt-0.5" title={`Reactivada desde ${proforma.proforma_origen_numero}`}>
+                    Origen: {proforma.proforma_origen_numero}
+                  </div>
+                )}
+              </div>
+              <div className="text-right shrink-0">
+                <div className="font-bold text-slate-900 text-base">{formatCurrency(proforma.total)}</div>
+                <div className="text-[10px] text-slate-500">IVA {formatCurrency(proforma.iva_total)}</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 mt-3 pt-3 border-t border-slate-100">
+              {actionButtons}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Vista DESKTOP: grid 12 cols ─── */}
+      <div className="hidden md:grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group">
+        {/* Estado */}
+        <div className="col-span-2 md:col-span-1">
+          {isActiva && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0">Activa</Badge>}
+          {isAnulada && <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0">Anulada</Badge>}
+          {isConvertida && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 shadow-none border-0">Convertida</Badge>}
+        </div>
+
+        {/* Número y Fecha */}
+        <div className="col-span-3 md:col-span-2 flex flex-col">
+          <span className="font-semibold text-slate-900 text-sm font-mono">
+            {proforma.numero || "—"}
+          </span>
+          <span className="text-xs text-slate-500 flex items-center gap-1">
+            <CalendarIcon className="w-3 h-3" />
+            {format(new Date(proforma.fecha), "d MMM yyyy", { locale: es })}
+          </span>
+        </div>
+
+        {/* Cliente */}
+        <div className="col-span-4 md:col-span-3">
+          <div className="font-medium text-slate-800 text-sm truncate">
+            {proforma.cliente_nombre || <span className="text-slate-400 italic">Cliente sin asignar</span>}
+          </div>
+        </div>
+
+        {/* Origen (si es reactivada) */}
+        <div className="col-span-3 md:col-span-1 hidden md:flex justify-center">
+          {proforma.proforma_origen_numero ? (
+            <span className="text-xs text-slate-500 font-mono" title={`Reactivada desde ${proforma.proforma_origen_numero}`}>
+              {proforma.proforma_origen_numero}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">—</span>
+          )}
+        </div>
+
+        {/* Importe */}
+        <div className="col-span-3 md:col-span-2 text-right">
+          <div className="font-bold text-slate-900">
+            {formatCurrency(proforma.total)}
+          </div>
+          <div className="text-xs text-slate-500">
+            (incl. {formatCurrency(proforma.iva_total)} IVA)
+          </div>
+        </div>
+
+        {/* Acciones */}
+        <div className="col-span-12 md:col-span-3 flex justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          {actionButtons}
+        </div>
       </div>
     </motion.div>
   )

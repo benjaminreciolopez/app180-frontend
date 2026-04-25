@@ -140,7 +140,7 @@ export function TestFacturasListContent() {
 
       {/* Tabla */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="grid grid-cols-12 gap-4 p-4 border-b bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
           <div className="col-span-2 md:col-span-1">Estado</div>
           <div className="col-span-3 md:col-span-2">Numero / Fecha</div>
           <div className="col-span-4 md:col-span-4">Cliente</div>
@@ -169,51 +169,15 @@ export function TestFacturasListContent() {
         ) : (
           <div className="divide-y divide-slate-100">
             <AnimatePresence>
-              {filteredFacturas.map((factura) => (
-                <motion.div
-                  key={factura.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group"
-                >
-                  {/* Estado */}
-                  <div className="col-span-2 md:col-span-1 flex flex-col gap-1">
-                    <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 shadow-none border-0 text-xs">
-                      Ficticia
-                    </Badge>
-                  </div>
+              {filteredFacturas.map((factura) => {
+                const estadoBadge = (
+                  <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 shadow-none border-0 text-xs">
+                    Ficticia
+                  </Badge>
+                )
 
-                  {/* Numero y Fecha */}
-                  <div className="col-span-3 md:col-span-2 flex flex-col">
-                    <span className="font-semibold text-slate-900 text-sm">
-                      {factura.numero || "--"}
-                    </span>
-                    <span className="text-xs text-slate-500 flex items-center gap-1">
-                      <CalendarIcon className="w-3 h-3" />
-                      {format(new Date(factura.fecha), "d MMM yyyy", { locale: es })}
-                    </span>
-                  </div>
-
-                  {/* Cliente */}
-                  <div className="col-span-4 md:col-span-4">
-                    <div className="font-medium text-slate-800 text-sm truncate">
-                      {factura.cliente_nombre || <span className="text-slate-400 italic">Cliente sin asignar</span>}
-                    </div>
-                  </div>
-
-                  {/* Importe */}
-                  <div className="col-span-3 md:col-span-2 text-right">
-                    <div className="font-bold text-slate-900">
-                      {formatCurrency(factura.total)}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      (incl. {formatCurrency(factura.iva_total)} IVA)
-                    </div>
-                  </div>
-
-                  {/* Acciones */}
-                  <div className="col-span-12 md:col-span-3 flex justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                const actionButtons = (
+                  <>
                     <Button
                       size="sm"
                       variant="outline"
@@ -235,9 +199,89 @@ export function TestFacturasListContent() {
                     >
                       <Download className="w-4 h-4" />
                     </Button>
-                  </div>
-                </motion.div>
-              ))}
+                  </>
+                )
+
+                return (
+                  <motion.div
+                    key={factura.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {/* ─── Vista MÓVIL: tarjeta ─── */}
+                    <div className="md:hidden p-4 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-semibold text-slate-900 text-sm">{factura.numero || "--"}</span>
+                                {estadoBadge}
+                              </div>
+                              <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                <CalendarIcon className="w-3 h-3" />
+                                {format(new Date(factura.fecha), "d MMM yyyy", { locale: es })}
+                              </div>
+                              <div className="text-sm text-slate-800 truncate mt-1">
+                                {factura.cliente_nombre || <span className="text-slate-400 italic">Cliente sin asignar</span>}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="font-bold text-slate-900 text-base">{formatCurrency(factura.total)}</div>
+                              <div className="text-[10px] text-slate-500">IVA {formatCurrency(factura.iva_total)}</div>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap justify-end gap-2 mt-3 pt-3 border-t border-slate-100">
+                            {actionButtons}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ─── Vista DESKTOP: grid 12 cols ─── */}
+                    <div className="hidden md:grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-50 transition-colors group">
+                      {/* Estado */}
+                      <div className="col-span-2 md:col-span-1 flex flex-col gap-1">
+                        {estadoBadge}
+                      </div>
+
+                      {/* Numero y Fecha */}
+                      <div className="col-span-3 md:col-span-2 flex flex-col">
+                        <span className="font-semibold text-slate-900 text-sm">
+                          {factura.numero || "--"}
+                        </span>
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                          <CalendarIcon className="w-3 h-3" />
+                          {format(new Date(factura.fecha), "d MMM yyyy", { locale: es })}
+                        </span>
+                      </div>
+
+                      {/* Cliente */}
+                      <div className="col-span-4 md:col-span-4">
+                        <div className="font-medium text-slate-800 text-sm truncate">
+                          {factura.cliente_nombre || <span className="text-slate-400 italic">Cliente sin asignar</span>}
+                        </div>
+                      </div>
+
+                      {/* Importe */}
+                      <div className="col-span-3 md:col-span-2 text-right">
+                        <div className="font-bold text-slate-900">
+                          {formatCurrency(factura.total)}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          (incl. {formatCurrency(factura.iva_total)} IVA)
+                        </div>
+                      </div>
+
+                      {/* Acciones */}
+                      <div className="col-span-12 md:col-span-3 flex justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                        {actionButtons}
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
             </AnimatePresence>
           </div>
         )}

@@ -402,7 +402,7 @@ Preguntame lo que necesites.`,
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50"
+            className="fixed top-20 right-4 md:top-auto md:bottom-6 md:right-6 z-50"
           >
             <Button
               onClick={() => setIsOpen(true)}
