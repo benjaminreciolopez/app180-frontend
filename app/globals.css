@@ -347,10 +347,24 @@ body {
   padding: 0 !important;
 }
 
-/* 2) Evita el "rebote" y fondos raros en iOS */
+/* 2) Evita el "rebote" y fondos raros en iOS + bloquea pull-to-refresh nativo */
+html,
 body {
-  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
+}
+
+body {
   -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollers internos (main con overflow-y-auto en layouts admin/asesor)
+   no propagan el bounce al document → desactiva pull-to-refresh */
+main,
+[data-scroll-container],
+.overflow-y-auto,
+.overflow-auto {
+  overscroll-behavior-y: contain;
 }
 
 /* 3) Safe areas iOS (notch) + fullscreen */
