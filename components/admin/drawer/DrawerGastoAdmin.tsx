@@ -307,6 +307,66 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     }, [isOpen, editingGasto, reset]);
 
     const [selectedFileObj, setSelectedFileObj] = useState<File | null>(null);
+    const [isDragOver, setIsDragOver] = useState(false);
+    const dragCounterRef = useRef(0);
+    const processFileRef = useRef<(file: File) => Promise<void>>(async () => { });
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const blockDefault = (e: DragEvent) => {
+            if (e.dataTransfer?.types?.includes("Files")) e.preventDefault();
+        };
+        window.addEventListener("dragover", blockDefault);
+        window.addEventListener("drop", blockDefault);
+        return () => {
+            window.removeEventListener("dragover", blockDefault);
+            window.removeEventListener("drop", blockDefault);
+        };
+    }, [isOpen]);
+
+    const attachDropListeners = (el: HTMLDivElement | null) => {
+        if (!el) return;
+        if ((el as any).__dndAttached) return;
+        (el as any).__dndAttached = true;
+
+        const onDragEnter = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounterRef.current += 1;
+            setIsDragOver(true);
+        };
+        const onDragOver = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+        };
+        const onDragLeave = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounterRef.current -= 1;
+            if (dragCounterRef.current <= 0) {
+                dragCounterRef.current = 0;
+                setIsDragOver(false);
+            }
+        };
+        const onDrop = async (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounterRef.current = 0;
+            setIsDragOver(false);
+            const file = e.dataTransfer?.files?.[0];
+            if (!file) {
+                showError("No se detectó ningún archivo en el drop");
+                return;
+            }
+            await processFileRef.current(file);
+        };
+
+        el.addEventListener("dragenter", onDragEnter);
+        el.addEventListener("dragover", onDragOver);
+        el.addEventListener("dragleave", onDragLeave);
+        el.addEventListener("drop", onDrop);
+    };
 
     const processFile = async (file: File) => {
         // Aceptar JPG, PNG, PDF
@@ -355,6 +415,10 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         if (!file) return;
         await processFile(file);
     };
+
+    useEffect(() => {
+        processFileRef.current = processFile;
+    });
 
     const confirmOcrData = () => {
         if (!ocrPreviewData) return;
@@ -552,10 +616,12 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 <div className="space-y-3">
                     <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Factura / Ticket</Label>
                     <div
+                        ref={attachDropListeners}
                         className={`
                border-2 border-dashed rounded-2xl p-6 transition-all flex flex-col items-center justify-center gap-3
                ${isOcrProcessing ? 'bg-blue-50/50 border-blue-200' : 'bg-slate-50/50 border-slate-200'}
                ${uploadedFile ? 'bg-green-50/50 border-green-200' : ''}
+               ${isDragOver ? 'bg-blue-100/60 border-blue-400 ring-2 ring-blue-300' : ''}
              `}
                     >
                         <input
@@ -593,7 +659,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm font-semibold text-slate-700">Subir PDF o Imagen</p>
-                                    <p className="text-xs text-slate-500">Formatos admitidos: JPG, PNG, PDF</p>
+                                    <p className="text-xs text-slate-500">Arrastra el archivo aquí o usa el botón</p>
                                 </div>
                                 <Button
                                     type="button"
