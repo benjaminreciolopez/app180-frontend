@@ -325,16 +325,16 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         };
     }, [isOpen]);
 
-    useEffect(() => {
-        if (!isOpen) return;
-        const el = dropzoneRef.current;
+    const attachDropListeners = (el: HTMLDivElement | null) => {
+        dropzoneRef.current = el;
         if (!el) return;
 
         const onDragEnter = (e: DragEvent) => {
+            console.log("[DnD] dragenter", { types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : null });
             e.preventDefault();
             e.stopPropagation();
             dragCounterRef.current += 1;
-            if (e.dataTransfer?.types?.includes("Files")) setIsDragOver(true);
+            setIsDragOver(true);
         };
         const onDragOver = (e: DragEvent) => {
             e.preventDefault();
@@ -342,6 +342,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
         };
         const onDragLeave = (e: DragEvent) => {
+            console.log("[DnD] dragleave");
             e.preventDefault();
             e.stopPropagation();
             dragCounterRef.current -= 1;
@@ -351,6 +352,11 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
             }
         };
         const onDrop = async (e: DragEvent) => {
+            console.log("[DnD] drop", {
+                files: e.dataTransfer?.files?.length,
+                items: e.dataTransfer?.items?.length,
+                types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : null,
+            });
             e.preventDefault();
             e.stopPropagation();
             dragCounterRef.current = 0;
@@ -367,13 +373,15 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         el.addEventListener("dragover", onDragOver);
         el.addEventListener("dragleave", onDragLeave);
         el.addEventListener("drop", onDrop);
-        return () => {
+        console.log("[DnD] listeners attached to dropzone");
+
+        (el as any).__dndCleanup = () => {
             el.removeEventListener("dragenter", onDragEnter);
             el.removeEventListener("dragover", onDragOver);
             el.removeEventListener("dragleave", onDragLeave);
             el.removeEventListener("drop", onDrop);
         };
-    }, [isOpen]);
+    };
 
     const processFile = async (file: File) => {
         // Aceptar JPG, PNG, PDF
@@ -623,7 +631,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 <div className="space-y-3">
                     <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Factura / Ticket</Label>
                     <div
-                        ref={dropzoneRef}
+                        ref={attachDropListeners}
                         onClick={() => fileInputRef.current?.click()}
                         className={`
                border-2 border-dashed rounded-2xl p-6 transition-all cursor-pointer flex flex-col items-center justify-center gap-2
