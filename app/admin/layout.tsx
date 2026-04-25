@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User, LogOut, Settings, Menu } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, UserCheck, RefreshCw, Clock, Plus, User, LogOut, Settings, Menu, Home, Users, FileText, Calculator, MoreHorizontal } from "lucide-react";
 import { getUser, refreshMe } from "@/services/auth";
 import { api } from "@/services/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
@@ -11,6 +11,9 @@ import { AICopilot } from "@/components/shared/AICopilot";
 import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
 import { QuickViewProvider } from "@/contexts/QuickViewContext";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
+import { usePwaMobile } from "@/hooks/usePwaMobile";
+import { BottomNav, BottomNavItem } from "@/components/shared/BottomNav";
+import { MoreSheet, MoreSheetSection } from "@/components/shared/MoreSheet";
 import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
 import AutoBackupSync from "@/components/admin/AutoBackupSync";
 import { LockScreen } from "@/components/shared/LockScreen";
@@ -32,9 +35,12 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
   const [selfConfigOpen, setSelfConfigOpen] = useState(false);
+  const pwaMobile = usePwaMobile();
+  const isPwaMobile = pwaMobile?.isPwaMobile ?? false;
   const [userId, setUserId] = useState<string | null>(null);
   const [pinConfig, setPinConfig] = useState<{
     pin_lock_enabled: boolean; pin_code: string | null;
@@ -429,8 +435,6 @@ export default function AdminLayout({
     },
   ];
 
-  const isPwaMobile = isMobileDevice() && isStandalone();
-
   const currentUser = getUser();
   const isFabricante = currentUser?.es_fabricante === true;
 
@@ -453,6 +457,36 @@ export default function AdminLayout({
       return { ...section, items: visibleItems };
     })
     .filter((section) => section.items.length > 0);
+
+  // ============================
+  // BottomNav PWA móvil — pestañas principales + "Más"
+  // ============================
+  const bottomNavPrimary = [
+    { href: "/admin/dashboard", label: "Inicio", icon: Home, module: null as string | null },
+    { href: "/admin/clientes", label: "Clientes", icon: Users, module: "clientes" },
+    { href: "/admin/facturacion", label: "Facturas", icon: FileText, module: "facturacion" },
+    { href: "/admin/fiscal", label: "Fiscal", icon: Calculator, module: "fiscal" },
+  ].filter((item) => hasModule(session.modulos, item.module));
+
+  const primaryPaths = new Set(bottomNavPrimary.map((i) => i.href));
+  const moreSections: MoreSheetSection[] = visibleSections
+    .map((section) => ({
+      title: section.title,
+      items: section.items
+        .filter((item) => !primaryPaths.has(item.path))
+        .map((item) => ({ path: item.path, label: item.label })),
+    }))
+    .filter((section) => section.items.length > 0);
+
+  const bottomNavItems: BottomNavItem[] = [
+    ...bottomNavPrimary,
+    {
+      label: "Más",
+      icon: MoreHorizontal,
+      onClick: () => setMoreOpen(true),
+      match: () => moreOpen,
+    },
+  ];
 
   // ============================
   // Render
@@ -578,13 +612,17 @@ export default function AdminLayout({
 
         {/* Header unificado con hamburguesa */}
         <header className="sticky top-0 z-20 flex items-center justify-between h-14 md:h-16 px-4 md:px-8 border-b border-border/50 bg-background/80 backdrop-blur-md shrink-0">
-          <button
-            aria-label="Abrir menú"
-            onClick={() => setMenuOpen(true)}
-            className="p-2 border rounded hover:bg-muted transition-colors"
-          >
-            <Menu size={20} />
-          </button>
+          {isPwaMobile ? (
+            <div className="w-10" aria-hidden="true" />
+          ) : (
+            <button
+              aria-label="Abrir menú"
+              onClick={() => setMenuOpen(true)}
+              className="p-2 border rounded hover:bg-muted transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+          )}
 
           <div className="flex-1 flex justify-center">
             <h1 className="text-xs md:text-sm font-bold tracking-[0.2em] md:tracking-[0.3em] text-foreground/80 uppercase">
@@ -635,10 +673,28 @@ export default function AdminLayout({
 
         {/* Contenido */}
         <QuickViewProvider>
-          <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
+          <div
+            className="flex-1 overflow-y-auto md:p-6"
+            style={isPwaMobile ? { paddingBottom: "calc(64px + env(safe-area-inset-bottom))" } : undefined}
+          >
+            {children}
+          </div>
           <QuickViewPanel />
         </QuickViewProvider>
       </main>
+
+      {/* BottomNav PWA móvil */}
+      {isPwaMobile && (
+        <>
+          <BottomNav items={bottomNavItems} />
+          <MoreSheet
+            open={moreOpen}
+            onClose={() => setMoreOpen(false)}
+            sections={moreSections}
+            title="Menú"
+          />
+        </>
+      )}
 
       {/* AI Copilot - Bot flotante */}
       <AICopilot />

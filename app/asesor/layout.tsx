@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { LogOut, Menu, ChevronDown, ChevronRight } from "lucide-react";
+import { LogOut, Menu, ChevronDown, ChevronRight, Home, Briefcase, Users, Calculator, MoreHorizontal } from "lucide-react";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
 import { AICopilot } from "@/components/shared/AICopilot";
 import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
 import { QuickViewProvider } from "@/contexts/QuickViewContext";
+import { usePwaMobile } from "@/hooks/usePwaMobile";
+import { BottomNav, BottomNavItem } from "@/components/shared/BottomNav";
+import { MoreSheet, MoreSheetSection } from "@/components/shared/MoreSheet";
 
 type Modulos = Record<string, boolean>;
 
@@ -20,6 +23,7 @@ type AsesorUser = {
   role: string;
   empresa_id?: string;
   modulos?: Modulos;
+  modulos_mobile?: Modulos | null;
 };
 
 function getUser(): AsesorUser | null {
@@ -159,10 +163,13 @@ function AsesorLayoutInner({
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [user, setUser] = useState<AsesorUser | null>(null);
   const [checking, setChecking] = useState(true);
   const [selfConfigOpen, setSelfConfigOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const pwaMobile = usePwaMobile();
+  const isPwaMobile = pwaMobile?.isPwaMobile ?? false;
 
   function toggleGroup(group: string) {
     setCollapsedGroups((prev) => ({ ...prev, [group]: !prev[group] }));
@@ -290,13 +297,17 @@ function AsesorLayoutInner({
     return null;
   }
 
+  // En PWA móvil, usar el subset modulos_mobile si está definido
+  const activeModulos: Modulos =
+    isPwaMobile && user.modulos_mobile ? user.modulos_mobile : user.modulos || {};
+
   // ─── Filtrar secciones visibles según módulos ───
   type MenuSection = { title: string; items: { path: string; label: string; module: string | null }[] };
   function filterSections(sections: MenuSection[]) {
     return sections
       .map((section) => {
         const visibleItems = section.items.filter((item) =>
-          hasModule(user!.modulos, item.module)
+          hasModule(activeModulos, item.module)
         );
         return { ...section, items: visibleItems };
       })
@@ -404,6 +415,40 @@ function AsesorLayoutInner({
     );
   }
 
+  // ─── BottomNav PWA móvil ───
+  const bottomNavPrimary = [
+    { href: "/asesor/dashboard", label: "Inicio", icon: Home, module: null as string | null },
+    { href: "/asesor/clientes", label: "Clientes", icon: Briefcase, module: null as string | null },
+    { href: "/asesor/mi-equipo", label: "Equipo", icon: Users, module: "empleados" },
+    { href: "/asesor/fiscal", label: "Fiscal", icon: Calculator, module: "fiscal" },
+  ].filter((item) => hasModule(activeModulos, item.module));
+
+  const primaryPaths = new Set(bottomNavPrimary.map((i) => i.href));
+  const moreSections: MoreSheetSection[] = [
+    ...visibleDespacho.map((s) => ({
+      title: s.title,
+      items: s.items
+        .filter((i) => !primaryPaths.has(i.path))
+        .map((i) => ({ path: i.path, label: i.label })),
+    })),
+    ...visibleClientes.map((s) => ({
+      title: s.title,
+      items: s.items
+        .filter((i) => !primaryPaths.has(i.path))
+        .map((i) => ({ path: i.path, label: i.label })),
+    })),
+  ].filter((s) => s.items.length > 0);
+
+  const bottomNavItems: BottomNavItem[] = [
+    ...bottomNavPrimary,
+    {
+      label: "Más",
+      icon: MoreHorizontal,
+      onClick: () => setMoreOpen(true),
+      match: () => moreOpen,
+    },
+  ];
+
   return (
     <div className="flex h-[100svh] w-full overflow-hidden">
       {/* Overlay para cerrar sidebar */}
@@ -476,13 +521,17 @@ function AsesorLayoutInner({
       <main className="flex-1 bg-background h-[100svh] flex flex-col relative min-w-0 w-full md:w-auto overflow-x-hidden">
         {/* Header unificado con hamburguesa */}
         <header className="sticky top-0 z-20 flex items-center justify-between h-14 md:h-16 px-4 md:px-8 border-b border-border/50 bg-background/80 backdrop-blur-md shrink-0">
-          <button
-            aria-label="Abrir menu"
-            onClick={() => setMenuOpen(true)}
-            className="p-2 border rounded hover:bg-muted transition-colors"
-          >
-            <Menu size={20} />
-          </button>
+          {isPwaMobile ? (
+            <div className="w-10" aria-hidden="true" />
+          ) : (
+            <button
+              aria-label="Abrir menu"
+              onClick={() => setMenuOpen(true)}
+              className="p-2 border rounded hover:bg-muted transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+          )}
 
           <div className="flex-1 flex justify-center">
             <h1 className="text-xs md:text-sm font-bold tracking-[0.2em] md:tracking-[0.3em] text-foreground/80 uppercase">
@@ -526,10 +575,28 @@ function AsesorLayoutInner({
 
         {/* Page content */}
         <QuickViewProvider>
-          <div className="flex-1 overflow-y-auto md:p-6">{children}</div>
+          <div
+            className="flex-1 overflow-y-auto md:p-6"
+            style={isPwaMobile ? { paddingBottom: "calc(64px + env(safe-area-inset-bottom))" } : undefined}
+          >
+            {children}
+          </div>
           <QuickViewPanel />
         </QuickViewProvider>
       </main>
+
+      {/* BottomNav PWA móvil */}
+      {isPwaMobile && (
+        <>
+          <BottomNav items={bottomNavItems} />
+          <MoreSheet
+            open={moreOpen}
+            onClose={() => setMoreOpen(false)}
+            sections={moreSections}
+            title="Menú"
+          />
+        </>
+      )}
 
       {/* AI Copilot - Bot flotante */}
       <AICopilot />

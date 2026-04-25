@@ -22,9 +22,12 @@ import {
   LayoutDashboard,
   Eye,
   EyeOff,
+  Smartphone,
 } from "lucide-react";
 import { ALL_ASESOR_DASHBOARD_WIDGETS } from "@/lib/asesor-dashboard-widgets";
 import { Switch } from "@/components/ui/switch";
+
+type Modulos = Record<string, boolean>;
 
 type Asesoria = {
   id: string;
@@ -37,6 +40,8 @@ type Asesoria = {
   max_clientes: number;
   clientes_activos: number;
   created_at: string;
+  modulos?: Modulos | null;
+  modulos_mobile?: Modulos | null;
   miembros: {
     id: string;
     nombre: string;
@@ -46,6 +51,17 @@ type Asesoria = {
     created_at: string;
   }[];
 };
+
+const MOBILE_MODULES: { key: string; label: string; description: string }[] = [
+  { key: "empleados", label: "Empleados", description: "Gestión del equipo" },
+  { key: "calendario", label: "Calendario", description: "Planificación y eventos" },
+  { key: "fichajes", label: "Fichajes", description: "Control horario" },
+  { key: "worklogs", label: "Partes / Trabajos", description: "Partes diarios y rentabilidad" },
+  { key: "facturacion", label: "Facturación", description: "Facturas y gastos" },
+  { key: "pagos", label: "Cobros y Pagos", description: "Gestión de cobros" },
+  { key: "contable", label: "Contabilidad", description: "Asientos, balances, nóminas" },
+  { key: "fiscal", label: "Fiscal", description: "Modelos y alertas" },
+];
 
 export default function AsesorConfiguracionPage() {
   const [asesoria, setAsesoria] = useState<Asesoria | null>(null);
@@ -67,6 +83,11 @@ export default function AsesorConfiguracionPage() {
   const [widgetConfigMobile, setWidgetConfigMobile] = useState<WidgetItem[]>([]);
   const [activeWidgetTab, setActiveWidgetTab] = useState<"desktop" | "mobile">("desktop");
   const [savingWidgets, setSavingWidgets] = useState(false);
+
+  // Mobile modules config
+  const [modulosMobile, setModulosMobile] = useState<Modulos | null>(null);
+  const [mobileModulesEnabled, setMobileModulesEnabled] = useState(false);
+  const [savingModulos, setSavingModulos] = useState(false);
 
   const currentWidgetConfig = activeWidgetTab === "desktop" ? widgetConfig : widgetConfigMobile;
   const setCurrentWidgetConfig = activeWidgetTab === "desktop" ? setWidgetConfig : setWidgetConfigMobile;
@@ -152,11 +173,64 @@ export default function AsesorConfiguracionPage() {
         setEmailContacto(d.email_contacto || "");
         setTelefono(d.telefono || "");
         setDireccion(d.direccion || "");
+
+        if (d.modulos_mobile) {
+          setMobileModulesEnabled(true);
+          setModulosMobile({ ...(d.modulos || {}), ...d.modulos_mobile });
+        } else {
+          setMobileModulesEnabled(false);
+          setModulosMobile(d.modulos || {});
+        }
       }
     } catch {
       setError("Error cargando configuración");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function saveModulosMobile(payload: Modulos | null) {
+    setSavingModulos(true);
+    try {
+      const res = await authenticatedFetch("/asesor/configuracion/modulos-mobile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modulos_mobile: payload }),
+      });
+      if (!res.ok) throw new Error();
+      // Refresh /me so layout picks up new modulos_mobile
+      try {
+        const meRes = await authenticatedFetch("/auth/me");
+        if (meRes.ok) {
+          const me = await meRes.json();
+          if (typeof window !== "undefined") {
+            const target = sessionStorage.getItem("user") ? sessionStorage : localStorage;
+            target.setItem("user", JSON.stringify(me));
+            window.dispatchEvent(new Event("session-updated"));
+          }
+        }
+      } catch { /* noop */ }
+    } catch {
+      setError("Error guardando módulos móvil");
+    } finally {
+      setSavingModulos(false);
+    }
+  }
+
+  function toggleMobileModule(key: string) {
+    setModulosMobile((prev) => {
+      const next = { ...(prev || {}), [key]: !prev?.[key] };
+      if (mobileModulesEnabled) saveModulosMobile(next);
+      return next;
+    });
+  }
+
+  function toggleMobileEnabled(checked: boolean) {
+    setMobileModulesEnabled(checked);
+    if (checked) {
+      saveModulosMobile(modulosMobile || asesoria?.modulos || {});
+    } else {
+      saveModulosMobile(null);
     }
   }
 
@@ -412,6 +486,65 @@ export default function AsesorConfiguracionPage() {
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Mobile modules config */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Smartphone size={16} />
+            Módulos visibles en PWA móvil
+            {savingModulos && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start justify-between gap-4 p-3 rounded-lg border bg-muted/30 mb-4">
+            <div>
+              <p className="text-sm font-medium">Personalizar módulos en móvil</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Si está desactivado, en móvil PWA verás los mismos módulos que en escritorio.
+              </p>
+            </div>
+            <Switch
+              checked={mobileModulesEnabled}
+              onCheckedChange={toggleMobileEnabled}
+            />
+          </div>
+
+          {mobileModulesEnabled && (
+            <div className="space-y-2">
+              {MOBILE_MODULES.map((m) => {
+                const enabledDesktop = !!asesoria?.modulos?.[m.key];
+                const visibleMobile = !!modulosMobile?.[m.key];
+                return (
+                  <div
+                    key={m.key}
+                    className={`flex items-center justify-between p-3 rounded-lg border bg-muted/30 ${
+                      !enabledDesktop ? "opacity-50" : ""
+                    }`}
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        {m.label}
+                        {!enabledDesktop && (
+                          <Badge variant="outline" className="ml-2 text-[9px]">
+                            No contratado
+                          </Badge>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{m.description}</p>
+                    </div>
+                    <Switch
+                      checked={visibleMobile}
+                      disabled={!enabledDesktop}
+                      onCheckedChange={() => toggleMobileModule(m.key)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
