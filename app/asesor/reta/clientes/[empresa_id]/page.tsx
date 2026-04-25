@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, RefreshCw, Calendar, TrendingUp, AlertTriangle,
   Settings, Sliders, Plus, Trash2, Download,
@@ -45,6 +45,10 @@ const TIPOS_EVENTO = [
 
 export default function ClienteRetaDetailPage() {
   const { empresa_id } = useParams<{ empresa_id: string }>();
+  const searchParams = useSearchParams();
+  const titular_id = searchParams.get("titular_id");
+  const titularQS = titular_id ? `&titular_id=${titular_id}` : "";
+  const titularQSFirst = titular_id ? `?titular_id=${titular_id}` : "";
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [recalculando, setRecalculando] = useState(false);
@@ -62,7 +66,7 @@ export default function ClienteRetaDetailPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await authenticatedFetch(`/asesor/reta/clientes/${empresa_id}/estimacion`);
+      const res = await authenticatedFetch(`/asesor/reta/clientes/${empresa_id}/estimacion${titularQSFirst}`);
       if (!res.ok) throw new Error("Error");
       const json = await res.json();
       setData(json);
@@ -71,7 +75,7 @@ export default function ClienteRetaDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [empresa_id]);
+  }, [empresa_id, titularQSFirst]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -81,7 +85,7 @@ export default function ClienteRetaDetailPage() {
       const res = await authenticatedFetch(`/asesor/reta/clientes/${empresa_id}/estimacion`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ metodo: "auto" }),
+        body: JSON.stringify({ metodo: "auto", titular_id: titular_id || null }),
       });
       if (res.ok) {
         await fetchData();
@@ -96,7 +100,7 @@ export default function ClienteRetaDetailPage() {
       await authenticatedFetch(`/asesor/reta/clientes/${empresa_id}/eventos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nuevoEvento),
+        body: JSON.stringify({ ...nuevoEvento, titular_id: titular_id || null }),
       });
       setShowEventoDialog(false);
       setNuevoEvento({ tipo: "vacaciones", fecha_inicio: "", fecha_fin: "", impacto_ingresos: 0, impacto_gastos: 0, descripcion: "" });
@@ -120,7 +124,7 @@ export default function ClienteRetaDetailPage() {
   const handleSimular = async () => {
     try {
       const res = await authenticatedFetch(
-        `/asesor/reta/clientes/${empresa_id}/simulacion?variacion_ingresos=${simIngPct}&variacion_gastos=${simGasPct}`
+        `/asesor/reta/clientes/${empresa_id}/simulacion?variacion_ingresos=${simIngPct}&variacion_gastos=${simGasPct}${titularQS}`
       );
       if (res.ok) {
         const json = await res.json();
@@ -586,6 +590,7 @@ export default function ClienteRetaDetailPage() {
                   body: JSON.stringify({
                     base_nueva: parseFloat(estimacion.base_recomendada),
                     motivo: "Cambio recomendado por estimacion RETA",
+                    titular_id: titular_id || null,
                   }),
                 });
                 setShowCambioDialog(false);

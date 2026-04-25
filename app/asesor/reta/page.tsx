@@ -16,6 +16,8 @@ import { RetaRegularizacionGauge } from "@/components/reta/RetaRegularizacionGau
 
 type ClienteReta = {
   empresaId: string;
+  titularId: string | null;
+  esTitular?: boolean;
   nombre: string;
   nifCif: string | null;
   tipoContribuyente: "autonomo" | "sociedad" | null;
@@ -260,9 +262,13 @@ export default function RetaDashboardPage() {
                 <tbody>
                   {clientes.map((c) => (
                     <tr
-                      key={c.empresaId}
+                      key={`${c.empresaId}:${c.titularId || 'empresa'}`}
                       className="border-b hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => router.push(`/asesor/reta/clientes/${c.empresaId}`)}
+                      onClick={() => router.push(
+                        c.titularId
+                          ? `/asesor/reta/clientes/${c.empresaId}?titular_id=${c.titularId}`
+                          : `/asesor/reta/clientes/${c.empresaId}`
+                      )}
                     >
                       <td className="py-3 px-3">
                         <div>
