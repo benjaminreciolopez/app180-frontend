@@ -307,11 +307,9 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
     }, [isOpen, editingGasto, reset]);
 
     const [selectedFileObj, setSelectedFileObj] = useState<File | null>(null);
+    const [isDragOver, setIsDragOver] = useState(false);
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
+    const processFile = async (file: File) => {
         // Aceptar JPG, PNG, PDF
         const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
         if (!allowedTypes.includes(file.type)) {
@@ -351,6 +349,32 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
         } finally {
             setIsOcrProcessing(false);
         }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        await processFile(file);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDragOver) setIsDragOver(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) await processFile(file);
     };
 
     const confirmOcrData = () => {
@@ -550,10 +574,15 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                     <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Factura / Ticket</Label>
                     <div
                         onClick={() => fileInputRef.current?.click()}
+                        onDragOver={handleDragOver}
+                        onDragEnter={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
                         className={`
                border-2 border-dashed rounded-2xl p-6 transition-all cursor-pointer flex flex-col items-center justify-center gap-2
                ${isOcrProcessing ? 'bg-blue-50/50 border-blue-200' : 'bg-slate-50/50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/50'}
                ${uploadedFile ? 'bg-green-50/50 border-green-200' : ''}
+               ${isDragOver ? 'bg-blue-100/60 border-blue-400 ring-2 ring-blue-300' : ''}
              `}
                     >
                         <input
