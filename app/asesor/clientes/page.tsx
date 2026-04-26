@@ -81,6 +81,7 @@ type ClienteVinculado = {
   permisos: Permisos;
   connected_at: string | null;
   email: string;
+  gestionada?: boolean;
 };
 
 const estadoBadge: Record<
@@ -133,6 +134,7 @@ export default function AsesorClientesPage() {
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState(false);
+
 
   // Permisos editor dialog
   const [permisosOpen, setPermisosOpen] = useState(false);
@@ -355,7 +357,7 @@ export default function AsesorClientesPage() {
             Empresas que usan la app y estan vinculadas a tu asesoria
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => router.push("/asesor/mis-clientes")} className="gap-2">
             <Users size={16} />
             Mis Clientes
@@ -422,12 +424,17 @@ export default function AsesorClientesPage() {
                               title={cliente.nombre}
                               url={`/asesor/clientes/${cliente.empresa_id}`}
                             >
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Building2
                                   size={16}
                                   className="text-muted-foreground shrink-0"
                                 />
                                 {cliente.nombre}
+                                {cliente.gestionada && (
+                                  <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                                    Sin app
+                                  </Badge>
+                                )}
                               </div>
                             </QuickViewTrigger>
                           </TableCell>
@@ -550,8 +557,13 @@ export default function AsesorClientesPage() {
                             <Building2 size={18} className="text-primary" />
                           </div>
                           <div>
-                            <p className="font-semibold text-sm">
+                            <p className="font-semibold text-sm flex items-center gap-1.5 flex-wrap">
                               {cliente.nombre}
+                              {cliente.gestionada && (
+                                <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200">
+                                  Sin app
+                                </Badge>
+                              )}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {cliente.cif || cliente.email}
@@ -802,6 +814,7 @@ export default function AsesorClientesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
