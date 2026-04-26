@@ -9,6 +9,7 @@ import { api } from "@/services/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { AICopilot } from "@/components/shared/AICopilot";
 import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
+import { CommandPalette, useCommandPaletteShortcut } from "@/components/shared/CommandPalette";
 import { QuickViewProvider } from "@/contexts/QuickViewContext";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import { usePwaMobile } from "@/hooks/usePwaMobile";
@@ -41,6 +42,10 @@ export default function AdminLayout({
   const [selfConfigOpen, setSelfConfigOpen] = useState(false);
   const pwaMobile = usePwaMobile();
   const isPwaMobile = pwaMobile?.isPwaMobile ?? false;
+
+  // Command palette (Cmd+K / Ctrl+K)
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useCommandPaletteShortcut(setPaletteOpen);
   const [userId, setUserId] = useState<string | null>(null);
   const [pinConfig, setPinConfig] = useState<{
     pin_lock_enabled: boolean; pin_code: string | null;
@@ -695,6 +700,9 @@ export default function AdminLayout({
 
       {/* AI Copilot - Bot flotante */}
       <AICopilot />
+
+      {/* Command palette (Cmd+K / Ctrl+K) */}
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} mode="admin" />
 
       {/* Modal Autoconfiguración Admin */}
       {userId && (

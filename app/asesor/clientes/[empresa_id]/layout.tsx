@@ -26,11 +26,14 @@ import {
   Clock,
   CalendarOff,
   IdCard,
+  Boxes,
+  Plug,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useRegisterClientTab } from "@/contexts/ClientTabsContext";
 
 type ClienteInfo = {
   nombre: string;
@@ -52,6 +55,11 @@ const tabs = [
     label: "Facturas",
     icon: FileText,
     segment: "facturas",
+  },
+  {
+    label: "Cobros y pagos",
+    icon: Banknote,
+    segment: "cobros-pagos",
   },
   {
     label: "Gastos",
@@ -78,6 +86,11 @@ const tabs = [
     label: "Sociedades",
     icon: Building,
     segment: "sociedades",
+  },
+  {
+    label: "Inmovilizado",
+    icon: Boxes,
+    segment: "inmovilizado",
   },
   {
     label: "Titulares",
@@ -118,6 +131,11 @@ const tabs = [
     label: "Certificados",
     icon: KeyRound,
     segment: "certificados",
+  },
+  {
+    label: "Integraciones",
+    icon: Plug,
+    segment: "integraciones",
   },
   {
     label: "Documentos",
@@ -262,6 +280,13 @@ function AsesorClienteLayoutInner({
   useEffect(() => {
     fetchCliente();
   }, [fetchCliente]);
+
+  // Multi-tab: registrar/actualizar la pestaña en cuanto se conozca el nombre del cliente.
+  // No se ejecuta en modo popup/quickview para no contaminar el estado de tabs.
+  useRegisterClientTab(
+    !isEmbedded && cliente?.nombre ? empresaId : null,
+    !isEmbedded ? cliente?.nombre || null : null
+  );
 
   // Determine active tab
   function getActiveSegment(): string {

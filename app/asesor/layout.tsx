@@ -10,6 +10,9 @@ import AdminSelfConfigModal from "@/components/admin/AdminSelfConfigModal";
 import { AICopilot } from "@/components/shared/AICopilot";
 import { QuickViewPanel } from "@/components/shared/QuickViewPanel";
 import { QuickViewProvider } from "@/contexts/QuickViewContext";
+import { CommandPalette, useCommandPaletteShortcut } from "@/components/shared/CommandPalette";
+import { ClientTabsProvider } from "@/contexts/ClientTabsContext";
+import { ClientTabsBar } from "@/components/shared/ClientTabsBar";
 import { usePwaMobile } from "@/hooks/usePwaMobile";
 import { BottomNav, BottomNavItem } from "@/components/shared/BottomNav";
 import { MoreSheet, MoreSheetSection } from "@/components/shared/MoreSheet";
@@ -172,6 +175,10 @@ function AsesorLayoutInner({
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const pwaMobile = usePwaMobile();
   const isPwaMobile = pwaMobile?.isPwaMobile ?? false;
+
+  // Command palette (Cmd+K / Ctrl+K)
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useCommandPaletteShortcut(setPaletteOpen);
 
   function toggleGroup(group: string) {
     setCollapsedGroups((prev) => ({ ...prev, [group]: !prev[group] }));
@@ -579,12 +586,16 @@ function AsesorLayoutInner({
         {isPwaMobile && <BottomNav items={bottomNavItems} />}
 
         {/* Page content */}
-        <QuickViewProvider>
-          <div className="flex-1 overflow-y-auto md:p-6">
-            {children}
-          </div>
-          <QuickViewPanel />
-        </QuickViewProvider>
+        <ClientTabsProvider>
+          {/* Multi-tab: barra de pestañas de clientes abiertos (sólo desktop) */}
+          <ClientTabsBar />
+          <QuickViewProvider>
+            <div className="flex-1 overflow-y-auto md:p-6">
+              {children}
+            </div>
+            <QuickViewPanel />
+          </QuickViewProvider>
+        </ClientTabsProvider>
       </main>
 
       {/* MoreSheet PWA móvil */}
@@ -601,6 +612,9 @@ function AsesorLayoutInner({
 
       {/* AI Copilot - Bot flotante */}
       <AICopilot />
+
+      {/* Command palette (Cmd+K / Ctrl+K) */}
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} mode="asesor" />
 
       {/* Modal Autoconfiguración */}
       {user?.id && (
