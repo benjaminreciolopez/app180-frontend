@@ -414,9 +414,9 @@ export default function AsesorClientesPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Clientes Vinculados</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Empresas que usan la app y estan vinculadas a tu asesoria
+            Empresas que gestiona tu asesoría — con app instalada o sin ella.
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">

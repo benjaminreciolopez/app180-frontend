@@ -6,7 +6,7 @@ import { showSuccess, showError } from "@/lib/toast"
 import {
   FileText, Upload, Trash2, Loader2, Download, Search, Plus, X, Send,
   CheckSquare, Square, Mail, ClipboardList, BarChart3, ChevronDown, ChevronUp,
-  Pencil, Building2
+  Pencil, Building2, Ban
 } from "lucide-react"
 import Link from "next/link"
 
@@ -21,7 +21,9 @@ type Nomina = {
   irpf_retencion: number
   liquido: number
   pdf_path: string | null
+  estado: string | null
   estado_entrega: string | null
+  motivo_anulacion: string | null
   created_at: string
   nombre?: string
   apellidos?: string
@@ -256,6 +258,26 @@ export default function AdminNominasPage() {
       }
     } catch {
       showError("Error eliminando nomina")
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  async function handleAnular(id: string) {
+    const motivo = prompt("Motivo de la anulación (mínimo 3 caracteres):")
+    if (!motivo || motivo.trim().length < 3) {
+      if (motivo !== null) showError("Motivo demasiado corto")
+      return
+    }
+    setDeleting(id)
+    try {
+      const res = await api.post(`/api/admin/nominas/${id}/anular`, { motivo: motivo.trim() })
+      if (res.data?.success) {
+        showSuccess("Nómina anulada")
+        loadNominas()
+      }
+    } catch (err: any) {
+      showError(err?.response?.data?.error || "Error anulando nómina")
     } finally {
       setDeleting(null)
     }
@@ -558,8 +580,13 @@ export default function AdminNominasPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {/* Enviar */}
-                  {(!n.estado_entrega || n.estado_entrega === "borrador") && (
+                  {n.estado === "anulada" && (
+                    <span title={n.motivo_anulacion || "Anulada"} className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
+                      Anulada
+                    </span>
+                  )}
+                  {/* Enviar (solo si no está anulada y no está enviada) */}
+                  {n.estado !== "anulada" && (!n.estado_entrega || n.estado_entrega === "borrador") && (
                     <button
                       onClick={() => handleEnviar(n.id)}
                       disabled={sendingId === n.id}
@@ -580,8 +607,8 @@ export default function AdminNominasPage() {
                       <Download className="w-4 h-4" />
                     </a>
                   )}
-                  {/* Editar (sólo si NO está aprobada/enviada) */}
-                  {(!n.estado_entrega || n.estado_entrega === "borrador") && (
+                  {/* Editar (sólo si NO está aprobada/enviada/anulada) */}
+                  {n.estado !== "anulada" && (!n.estado_entrega || n.estado_entrega === "borrador") && (
                     <button
                       onClick={() => handleEdit(n)}
                       className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -590,15 +617,28 @@ export default function AdminNominasPage() {
                       <Pencil className="w-4 h-4" />
                     </button>
                   )}
-                  {/* Eliminar */}
-                  <button
-                    onClick={() => handleDelete(n.id)}
-                    disabled={deleting === n.id}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                    title="Eliminar"
-                  >
-                    {deleting === n.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
+                  {/* Anular (cualquier estado excepto ya anulada) */}
+                  {n.estado !== "anulada" && (
+                    <button
+                      onClick={() => handleAnular(n.id)}
+                      disabled={deleting === n.id}
+                      className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="Anular con motivo"
+                    >
+                      <Ban className="w-4 h-4" />
+                    </button>
+                  )}
+                  {/* Eliminar (solo borrador) */}
+                  {(!n.estado || n.estado === "borrador") && (
+                    <button
+                      onClick={() => handleDelete(n.id)}
+                      disabled={deleting === n.id}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="Eliminar borrador"
+                    >
+                      {deleting === n.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -831,7 +871,7 @@ export default function AdminNominasPage() {
                   </table>
                 </div>
 
-                <div className="flex justify-end gap-2 px-5 pb-5 pt-2 border-t">
+                <div className="flex justify-end gap-2 px-5 pb-5 pt-2 border-t flex-wrap">
                   <button onClick={() => { setShowEmpresario(false); setEmpresarioData(null) }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">
                     Cerrar
                   </button>
@@ -839,6 +879,16 @@ export default function AdminNominasPage() {
                     <Download className="w-4 h-4" />
                     Descargar CSV
                   </button>
+                  <a
+                    href={`/api/admin/nominas/sepa?year=${empresarioData?.year}&month=${empresarioData?.month}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                    title="Genera el XML SEPA para subir al banco y pagar las nóminas"
+                  >
+                    <Download className="w-4 h-4" />
+                    Descargar SEPA (banco)
+                  </a>
                 </div>
               </>
             )}

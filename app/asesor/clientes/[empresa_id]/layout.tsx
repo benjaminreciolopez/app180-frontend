@@ -24,6 +24,7 @@ import {
   UsersRound,
   Clock,
   CalendarOff,
+  IdCard,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,11 @@ const tabs = [
     label: "Resumen",
     icon: LayoutDashboard,
     segment: "", // matches /asesor/clientes/[id] exactly
+  },
+  {
+    label: "Datos",
+    icon: IdCard,
+    segment: "datos",
   },
   {
     label: "Facturas",
