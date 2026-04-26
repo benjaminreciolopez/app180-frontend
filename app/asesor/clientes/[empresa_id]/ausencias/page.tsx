@@ -13,6 +13,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { CalendarOff, CheckCircle, XCircle, Plus, Loader2 } from "lucide-react";
+import { useLiveTable } from "@/hooks/useLiveTable";
+import { LiveIndicator } from "@/components/shared/LiveIndicator";
 
 interface Ausencia {
   id: string;
@@ -43,11 +45,29 @@ export default function AsesorClienteAusenciasPage() {
   const params = useParams();
   const empresaId = params.empresa_id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [ausencias, setAusencias] = useState<Ausencia[]>([]);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [filtroEstado, setFiltroEstado] = useState<string>("todos");
   const [actuando, setActuando] = useState<string | null>(null);
+
+  // Live polling cada 60s — el asesor debería ver solicitudes nuevas al instante
+  const {
+    data: ausenciasData,
+    loading,
+    livePolling,
+    setLivePolling,
+    lastUpdated,
+    refresh: refreshAusencias,
+  } = useLiveTable<{ ausencias: Ausencia[] }>({
+    queryKey: ["asesor", "ausencias", empresaId, filtroEstado],
+    queryFn: async () => {
+      const params: any = {};
+      if (filtroEstado !== "todos") params.estado = filtroEstado;
+      const res = await api.get(`/asesor/clientes/${empresaId}/ausencias`, { params });
+      return { ausencias: res.data?.ausencias || [] };
+    },
+    intervalMs: 60_000,
+  });
+  const ausencias = ausenciasData?.ausencias || [];
 
   const [crearOpen, setCrearOpen] = useState(false);
   const [crearForm, setCrearForm] = useState({
@@ -61,23 +81,12 @@ export default function AsesorClienteAusenciasPage() {
   const [crearSaving, setCrearSaving] = useState(false);
 
   useEffect(() => {
-    loadAusencias();
     loadEmpleados();
-  }, [empresaId, filtroEstado]);
+  }, [empresaId]);
 
-  async function loadAusencias() {
-    setLoading(true);
-    try {
-      const params: any = {};
-      if (filtroEstado !== "todos") params.estado = filtroEstado;
-      const res = await api.get(`/asesor/clientes/${empresaId}/ausencias`, { params });
-      setAusencias(res.data?.ausencias || []);
-    } catch (err: any) {
-      showError(err.response?.data?.error || "Error cargando ausencias");
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Wrapper para mantener compatibilidad con código existente que llama a
+  // `loadAusencias()` tras una mutación. Ahora invalida el cache de useLiveTable.
+  const loadAusencias = () => refreshAusencias();
 
   async function loadEmpleados() {
     try {
@@ -151,10 +160,18 @@ export default function AsesorClienteAusenciasPage() {
             {pendientes > 0 && <span className="ml-1 text-amber-700 font-medium">{pendientes} pendientes</span>}
           </p>
         </div>
-        <Button onClick={() => setCrearOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Nueva ausencia
-        </Button>
+        <div className="flex gap-2 items-center flex-wrap">
+          <LiveIndicator
+            livePolling={livePolling}
+            onToggle={() => setLivePolling(!livePolling)}
+            lastUpdated={lastUpdated}
+            intervalSeconds={60}
+          />
+          <Button onClick={() => setCrearOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nueva ausencia
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-2 flex-wrap">

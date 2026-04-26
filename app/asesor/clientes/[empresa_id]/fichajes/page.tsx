@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, AlertTriangle, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { useLiveTable } from "@/hooks/useLiveTable";
+import { LiveIndicator } from "@/components/shared/LiveIndicator";
 
 interface Fichaje {
   id: string;
@@ -34,33 +36,39 @@ export default function AsesorClienteFichajesPage() {
   const empresaId = params.empresa_id as string;
 
   const [tab, setTab] = useState<"todos" | "sospechosos">("sospechosos");
-  const [loading, setLoading] = useState(true);
-  const [fichajes, setFichajes] = useState<Fichaje[]>([]);
-  const [sospechosos, setSospechosos] = useState<Fichaje[]>([]);
   const [actuando, setActuando] = useState<string | null>(null);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [motivoMasivo, setMotivoMasivo] = useState("");
   const [accionMasiva, setAccionMasiva] = useState(false);
 
-  useEffect(() => {
-    loadFichajes();
-  }, [empresaId]);
+  // Sospechosos en vivo cada 60s — son alertas que requieren atención del asesor
+  const sospLive = useLiveTable<{ fichajes: Fichaje[] }>({
+    queryKey: ["asesor", "fichajes-sospechosos", empresaId],
+    queryFn: async () => {
+      const res = await api.get(`/asesor/clientes/${empresaId}/fichajes/sospechosos`);
+      return { fichajes: res.data?.fichajes || [] };
+    },
+    intervalMs: 60_000,
+  });
+  const sospechosos = sospLive.data?.fichajes || [];
 
-  async function loadFichajes() {
-    setLoading(true);
-    try {
-      const [todosRes, sospRes] = await Promise.all([
-        api.get(`/asesor/clientes/${empresaId}/fichajes`),
-        api.get(`/asesor/clientes/${empresaId}/fichajes/sospechosos`),
-      ]);
-      setFichajes(todosRes.data?.fichajes || []);
-      setSospechosos(sospRes.data?.fichajes || []);
-    } catch (err: any) {
-      showError(err.response?.data?.error || "Error cargando fichajes");
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Lista completa: cache 5 min, sin polling (no urgente)
+  const todosLive = useLiveTable<{ fichajes: Fichaje[] }>({
+    queryKey: ["asesor", "fichajes-todos", empresaId],
+    queryFn: async () => {
+      const res = await api.get(`/asesor/clientes/${empresaId}/fichajes`);
+      return { fichajes: res.data?.fichajes || [] };
+    },
+    intervalMs: 5 * 60_000,
+    livePollingDefault: false,
+  });
+  const fichajes = todosLive.data?.fichajes || [];
+
+  const loading = sospLive.loading || todosLive.loading;
+  const loadFichajes = () => {
+    sospLive.refresh();
+    todosLive.refresh();
+  };
 
   async function validar(id: string, accion: "confirmar" | "rechazar") {
     const motivo = accion === "rechazar" ? prompt("Motivo del rechazo (opcional):") : null;
@@ -116,14 +124,22 @@ export default function AsesorClienteFichajesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Clock className="w-6 h-6" />
-          Fichajes
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Validación de fichajes y revisión de sospechosos.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Clock className="w-6 h-6" />
+            Fichajes
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Validación de fichajes y revisión de sospechosos.
+          </p>
+        </div>
+        <LiveIndicator
+          livePolling={sospLive.livePolling}
+          onToggle={() => sospLive.setLivePolling(!sospLive.livePolling)}
+          lastUpdated={sospLive.lastUpdated}
+          intervalSeconds={60}
+        />
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "todos" | "sospechosos")}>

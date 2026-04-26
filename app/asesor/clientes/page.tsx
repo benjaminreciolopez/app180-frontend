@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { useLiveTable } from "@/hooks/useLiveTable";
+import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import {
   Card,
   CardContent,
@@ -123,15 +125,29 @@ const permisoIcons: Record<string, { icon: React.ElementType; label: string }> =
 export default function AsesorClientesPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [clientes, setClientes] = useState<ClienteVinculado[]>([]);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
-  // Cache simple en módulo: si vuelves a /asesor/clientes en menos de 5 min,
-  // se sirven los datos en memoria sin llamar al backend.
-  const lastLoadRef = useRef<number>(0);
-  const CACHE_MS = 5 * 60 * 1000;
+  // Live polling cada 90s con toggle Live/Pausado (LiveIndicator)
+  const {
+    data: clientesData,
+    loading,
+    error: liveError,
+    livePolling,
+    setLivePolling,
+    lastUpdated,
+    refresh: refreshClientes,
+  } = useLiveTable<{ data: ClienteVinculado[] }>({
+    queryKey: ["asesor", "clientes-list"],
+    queryFn: async () => {
+      const res = await authenticatedFetch("/asesor/clientes");
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Error al cargar los clientes");
+      return json;
+    },
+    intervalMs: 90_000,
+  });
+  const clientes = clientesData?.data || [];
+  const error = liveError ? liveError.message : null;
 
   // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -242,13 +258,7 @@ export default function AsesorClientesPage() {
       );
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Error");
-      setClientes((prev) =>
-        prev.map((c) =>
-          c.empresa_id === permisosTarget.empresa_id
-            ? { ...c, permisos: permisosDraft }
-            : c
-        )
-      );
+      refreshClientes(); // recarga los datos tras guardar permisos
       setPermisosOpen(false);
       setPermisosTarget(null);
     } catch (err: any) {
@@ -258,37 +268,15 @@ export default function AsesorClientesPage() {
     }
   }
 
-  /**
-   * Cargar lista de clientes. Por defecto reutiliza el cache si la última
-   * carga fue hace menos de 5 min. Pasa { force: true } para forzar refresh
-   * tras una mutación (alta, invitación, aceptación, etc.).
-   */
-  async function loadClientes(opts?: { force?: boolean }) {
-    const now = Date.now();
-    if (!opts?.force && clientes.length > 0 && (now - lastLoadRef.current) < CACHE_MS) {
-      return; // cache válido, no recargamos
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await authenticatedFetch("/asesor/clientes");
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || "Error al cargar los clientes");
-      }
-      setClientes(json.data || []);
-      lastLoadRef.current = Date.now();
-    } catch (err: any) {
-      setError(err.message || "Error de conexion");
-    } finally {
-      setLoading(false);
-    }
+  // Wrapper para mantener compatibilidad con código existente que llamaba a
+  // `loadClientes()` o `loadClientes({ force: true })`. Ahora siempre invalida
+  // el cache de useLiveTable, que es lo correcto tras una mutación.
+  function loadClientes(_opts?: { force?: boolean }) {
+    refreshClientes();
   }
-
-  useEffect(() => {
-    loadClientes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // setClientes/setError/setLoading no se usan más — la query gestiona el estado.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _setClientes = (_: any) => refreshClientes();
 
   async function handleInvite() {
     if (!inviteEmail.trim()) return;
@@ -357,11 +345,7 @@ export default function AsesorClientesPage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Error");
-      setClientes((prev) =>
-        prev.map((c) =>
-          c.empresa_id === empresaId ? { ...c, tipo_contribuyente: tipo } : c
-        )
-      );
+      refreshClientes();
     } catch (err: any) {
       alert(err.message);
     }
@@ -436,7 +420,13 @@ export default function AsesorClientesPage() {
             Empresas que gestiona tu asesoría — con app instalada o sin ella.
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <LiveIndicator
+            livePolling={livePolling}
+            onToggle={() => setLivePolling(!livePolling)}
+            lastUpdated={lastUpdated}
+            intervalSeconds={90}
+          />
           <Button
             variant="ghost"
             size="icon"
