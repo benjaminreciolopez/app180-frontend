@@ -119,8 +119,7 @@ const misClientesSections = [
   {
     title: "CLIENTES",
     items: [
-      { path: "/asesor/clientes", label: "Clientes Vinculados", module: null },
-      { path: "/asesor/mis-clientes", label: "Directorio Clientes", module: null },
+      { path: "/asesor/clientes", label: "Clientes", module: null },
     ],
   },
   {
@@ -223,7 +222,7 @@ function AsesorLayoutInner({
     const titles: Record<string, string> = {
       "/asesor/dashboard": "Dashboard",
       "/asesor/clientes": "Clientes",
-      "/asesor/mis-clientes": "Directorio Clientes",
+      "/asesor/mis-clientes": "Clientes",
       "/asesor/mi-equipo": "Equipo del Despacho",
       "/asesor/empleados": "Empleados Clientes",
       "/asesor/fichajes/sospechosos": "Sospechosos",

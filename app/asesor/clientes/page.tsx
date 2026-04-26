@@ -21,7 +21,6 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
-import { QuickViewTrigger } from "@/components/shared/QuickViewTrigger";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import {
   Card,
@@ -134,6 +133,69 @@ export default function AsesorClientesPage() {
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState(false);
+
+  // Alta directa de cliente (genera contacto + empresa gestionada / vínculo automático)
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    nombre: "",
+    nif: "",
+    tipo_fiscal: "autonomo",
+    email: "",
+    telefono: "",
+  });
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  async function handleCreateCliente() {
+    setCreateError(null);
+    if (!createForm.nombre.trim()) {
+      setCreateError("El nombre es obligatorio");
+      return;
+    }
+    if (!createForm.nif.trim()) {
+      setCreateError("El NIF/CIF es obligatorio para crear el cliente fiscal");
+      return;
+    }
+    setCreating(true);
+    try {
+      // Necesitamos un código (siguiente automático)
+      const codeRes = await authenticatedFetch("/asesor/mis-clientes/next-code");
+      const codeJson = await codeRes.json();
+      const codigo = codeJson.codigo || "";
+
+      const res = await authenticatedFetch("/asesor/mis-clientes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: createForm.nombre.trim(),
+          codigo,
+          nif: createForm.nif.trim().toUpperCase(),
+          nif_cif: createForm.nif.trim().toUpperCase(),
+          tipo_fiscal: createForm.tipo_fiscal,
+          email: createForm.email.trim() || null,
+          telefono: createForm.telefono.trim() || null,
+          razon_social: createForm.nombre.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Error creando cliente");
+
+      setCreateOpen(false);
+      setCreateForm({ nombre: "", nif: "", tipo_fiscal: "autonomo", email: "", telefono: "" });
+
+      const empresaId = json.vinculo?.empresa_id;
+      if (empresaId) {
+        // Si ya hay vínculo (gestionada o con app), navegamos directamente
+        router.push(`/asesor/clientes/${empresaId}`);
+      } else {
+        await loadClientes();
+      }
+    } catch (err: any) {
+      setCreateError(err.message || "Error creando cliente");
+    } finally {
+      setCreating(false);
+    }
+  }
 
 
   // Permisos editor dialog
@@ -358,13 +420,13 @@ export default function AsesorClientesPage() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => router.push("/asesor/mis-clientes")} className="gap-2">
-            <Users size={16} />
-            Mis Clientes
-          </Button>
-          <Button onClick={() => setInviteOpen(true)} className="gap-2">
+          <Button onClick={() => setCreateOpen(true)} className="gap-2">
             <Plus size={16} />
-            Invitar Cliente
+            Nuevo cliente
+          </Button>
+          <Button variant="outline" onClick={() => setInviteOpen(true)} className="gap-2">
+            <Mail size={16} />
+            Invitar (con app)
           </Button>
         </div>
       </div>
@@ -418,27 +480,26 @@ export default function AsesorClientesPage() {
                       const estado =
                         estadoBadge[cliente.estado] || estadoBadge.revocado;
                       return (
-                        <TableRow key={cliente.vinculo_id}>
+                        <TableRow
+                          key={cliente.vinculo_id}
+                          className={cliente.estado === "activo" ? "cursor-pointer hover:bg-muted/40" : ""}
+                          onClick={cliente.estado === "activo" ? () => router.push(`/asesor/clientes/${cliente.empresa_id}`) : undefined}
+                        >
                           <TableCell className="font-medium">
-                            <QuickViewTrigger
-                              title={cliente.nombre}
-                              url={`/asesor/clientes/${cliente.empresa_id}`}
-                            >
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Building2
-                                  size={16}
-                                  className="text-muted-foreground shrink-0"
-                                />
-                                {cliente.nombre}
-                                {cliente.gestionada && (
-                                  <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
-                                    Sin app
-                                  </Badge>
-                                )}
-                              </div>
-                            </QuickViewTrigger>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Building2
+                                size={16}
+                                className="text-muted-foreground shrink-0"
+                              />
+                              {cliente.nombre}
+                              {cliente.gestionada && (
+                                <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                                  Sin app
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             {cliente.estado === "activo" ? (
                               <select
                                 value={cliente.tipo_contribuyente || ""}
@@ -475,7 +536,7 @@ export default function AsesorClientesPage() {
                           <TableCell className="text-muted-foreground">
                             {formatDate(cliente.connected_at)}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1">
                               {cliente.estado === "activo" && (
                                 <>
@@ -545,32 +606,31 @@ export default function AsesorClientesPage() {
               const estado =
                 estadoBadge[cliente.estado] || estadoBadge.revocado;
               return (
-                <Card key={cliente.vinculo_id}>
+                <Card
+                  key={cliente.vinculo_id}
+                  className={cliente.estado === "activo" ? "cursor-pointer hover:bg-muted/40 transition-colors" : ""}
+                  onClick={cliente.estado === "activo" ? () => router.push(`/asesor/clientes/${cliente.empresa_id}`) : undefined}
+                >
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-3 mb-3">
-                      <QuickViewTrigger
-                        title={cliente.nombre}
-                        url={`/asesor/clientes/${cliente.empresa_id}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <Building2 size={18} className="text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm flex items-center gap-1.5 flex-wrap">
-                              {cliente.nombre}
-                              {cliente.gestionada && (
-                                <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200">
-                                  Sin app
-                                </Badge>
-                              )}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {cliente.cif || cliente.email}
-                            </p>
-                          </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Building2 size={18} className="text-primary" />
                         </div>
-                      </QuickViewTrigger>
+                        <div>
+                          <p className="font-semibold text-sm flex items-center gap-1.5 flex-wrap">
+                            {cliente.nombre}
+                            {cliente.gestionada && (
+                              <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200">
+                                Sin app
+                              </Badge>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {cliente.cif || cliente.email}
+                          </p>
+                        </div>
+                      </div>
                       <Badge variant="outline" className={estado.className}>
                         {estado.label}
                       </Badge>
@@ -605,7 +665,7 @@ export default function AsesorClientesPage() {
                     )}
 
                     {cliente.estado === "activo" && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -631,7 +691,7 @@ export default function AsesorClientesPage() {
                       </div>
                     )}
                     {cliente.estado === "pendiente" && cliente.invitado_por === "empresa" && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button
                           size="sm"
                           className="flex-1 gap-1 bg-green-600 hover:bg-green-700"
@@ -808,6 +868,99 @@ export default function AsesorClientesPage() {
                 <>
                   <Mail size={16} />
                   Enviar Invitacion
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* === Modal: Nuevo cliente (sin app, gestionada por la asesoría) === */}
+      <Dialog open={createOpen} onOpenChange={(open) => {
+        setCreateOpen(open);
+        if (!open) {
+          setCreateError(null);
+          setCreateForm({ nombre: "", nif: "", tipo_fiscal: "autonomo", email: "", telefono: "" });
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nuevo cliente</DialogTitle>
+            <DialogDescription>
+              Da de alta un cliente que <strong>no</strong> usa la app. La asesoría
+              llevará su gestión fiscal, contabilidad, nóminas y facturación con
+              permisos completos. Si más adelante el cliente se registra en
+              CONTENDO con el mismo NIF, el vínculo se transferirá automáticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Nombre / Razón social *</label>
+              <Input
+                value={createForm.nombre}
+                onChange={(e) => setCreateForm((f) => ({ ...f, nombre: e.target.value }))}
+                placeholder="Ej: Juan Pérez García / ACME SL"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">NIF / CIF *</label>
+                <Input
+                  value={createForm.nif}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, nif: e.target.value.toUpperCase() }))}
+                  placeholder="12345678A"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Tipo</label>
+                <select
+                  value={createForm.tipo_fiscal}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, tipo_fiscal: e.target.value }))}
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="autonomo">Autónomo</option>
+                  <option value="sociedad">Sociedad</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Email contacto</label>
+                <Input
+                  type="email"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="opcional"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Teléfono</label>
+                <Input
+                  value={createForm.telefono}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, telefono: e.target.value }))}
+                  placeholder="opcional"
+                />
+              </div>
+            </div>
+            {createError && (
+              <p className="text-sm text-red-600">{createError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateCliente} disabled={creating} className="gap-2">
+              {creating ? (
+                <>
+                  <LoadingSpinner size="sm" showText={false} />
+                  Creando...
+                </>
+              ) : (
+                <>
+                  <Plus size={16} />
+                  Crear y abrir
                 </>
               )}
             </Button>
