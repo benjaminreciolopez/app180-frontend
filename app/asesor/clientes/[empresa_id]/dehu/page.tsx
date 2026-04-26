@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { showError, showSuccess } from "@/lib/toast";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw, CheckCircle, XCircle, Loader2, Inbox } from "lucide-react";
+import { AlertCircle, RefreshCw, CheckCircle, XCircle, Loader2, Inbox, Wifi } from "lucide-react";
 
 interface Notificacion {
   id: string;
@@ -32,32 +33,35 @@ const ESTADO_BADGE: Record<string, { label: string; cls: string }> = {
 export default function AsesorClienteDehuPage() {
   const params = useParams();
   const empresaId = params.empresa_id as string;
+  const queryClient = useQueryClient();
 
-  const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState<Notificacion[]>([]);
   const [filtro, setFiltro] = useState<string>("todas");
   const [syncing, setSyncing] = useState(false);
   const [testingConn, setTestingConn] = useState(false);
   const [actuando, setActuando] = useState<string | null>(null);
+  const [livePolling, setLivePolling] = useState(true);
 
   const baseUrl = `/asesor/clientes/${empresaId}/dehu`;
 
-  useEffect(() => {
-    load();
-  }, [empresaId, filtro]);
-
-  async function load() {
-    setLoading(true);
-    try {
+  // Live polling con React Query — refetch cada 60s para ver notificaciones nuevas
+  // sin necesidad de pulsar refrescar manualmente. Se desactiva si la pestaña no
+  // está visible (refetchIntervalInBackground=false).
+  const queryKey = ["asesor", "dehu-notificaciones", empresaId, filtro];
+  const { data, isLoading: loading, dataUpdatedAt } = useQuery<{ notificaciones: Notificacion[] }>({
+    queryKey,
+    queryFn: async () => {
       const params: any = {};
       if (filtro !== "todas") params.estado = filtro;
       const res = await api.get(`${baseUrl}/notificaciones`, { params });
-      setItems(res.data?.notificaciones || []);
-    } catch (err: any) {
-      showError(err.response?.data?.error || "Error cargando notificaciones");
-    } finally {
-      setLoading(false);
-    }
+      return { notificaciones: res.data?.notificaciones || [] };
+    },
+    refetchInterval: livePolling ? 60_000 : false, // 60s
+    refetchIntervalInBackground: false,
+  });
+  const items = data?.notificaciones || [];
+
+  function reload() {
+    queryClient.invalidateQueries({ queryKey });
   }
 
   async function sync() {
@@ -69,7 +73,7 @@ export default function AsesorClienteDehuPage() {
       } else {
         showError(res.data?.mensaje || "Error sincronizando");
       }
-      await load();
+      reload();
     } catch (err: any) {
       showError(err.response?.data?.error || "Error sincronizando");
     } finally {
@@ -95,7 +99,7 @@ export default function AsesorClienteDehuPage() {
     try {
       await api.put(`${baseUrl}/notificaciones/${id}/estado`, { estado });
       showSuccess(estado === "leida" ? "Marcada como leída" : "Marcada como rechazada");
-      await load();
+      reload();
     } catch (err: any) {
       showError(err.response?.data?.error || "Error actualizando estado");
     } finally {
@@ -122,7 +126,25 @@ export default function AsesorClienteDehuPage() {
             Notificaciones electrónicas de AEAT, TGSS y otros organismos para este cliente.
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <button
+            type="button"
+            onClick={() => setLivePolling((v) => !v)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+              livePolling
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : "bg-muted text-muted-foreground border-transparent"
+            }`}
+            title={livePolling ? "Refresco automático cada 60s. Click para pausar." : "Pausado. Click para reactivar."}
+          >
+            <Wifi size={12} className={livePolling ? "animate-pulse" : ""} />
+            {livePolling ? "Live" : "Pausado"}
+          </button>
+          {dataUpdatedAt > 0 && (
+            <span className="text-[10px] text-muted-foreground" title={new Date(dataUpdatedAt).toLocaleString("es-ES")}>
+              Última lectura: {new Date(dataUpdatedAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
           <Button variant="outline" onClick={probarConexion} disabled={testingConn}>
             {testingConn ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
             Probar conexión
