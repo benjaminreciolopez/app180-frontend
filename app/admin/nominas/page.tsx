@@ -5,7 +5,8 @@ import { api } from "@/services/api"
 import { showSuccess, showError } from "@/lib/toast"
 import {
   FileText, Upload, Trash2, Loader2, Download, Search, Plus, X, Send,
-  CheckSquare, Square, Mail, ClipboardList, BarChart3, ChevronDown, ChevronUp
+  CheckSquare, Square, Mail, ClipboardList, BarChart3, ChevronDown, ChevronUp,
+  Pencil, Building2
 } from "lucide-react"
 import Link from "next/link"
 
@@ -86,6 +87,12 @@ export default function AdminNominasPage() {
   const [showResumen, setShowResumen] = useState(false)
   const [resumenData, setResumenData] = useState<any>(null)
   const [loadingResumen, setLoadingResumen] = useState(false)
+  // Edición
+  const [editingId, setEditingId] = useState<string | null>(null)
+  // Resumen empresario (modal)
+  const [showEmpresario, setShowEmpresario] = useState(false)
+  const [empresarioData, setEmpresarioData] = useState<any>(null)
+  const [loadingEmpresario, setLoadingEmpresario] = useState(false)
 
   useEffect(() => {
     loadNominas()
@@ -122,39 +129,120 @@ export default function AdminNominasPage() {
 
     setSending(true)
     try {
-      const formData = new FormData()
-      formData.append("empleado_id", formEmpleado)
-      formData.append("anio", String(formAnio))
-      formData.append("mes", String(formMes))
-      formData.append("bruto", formBruto)
-      formData.append("seguridad_social_empresa", formSSEmpresa || "0")
-      formData.append("seguridad_social_empleado", formSSEmpleado || "0")
-      formData.append("irpf_retencion", formIRPF || "0")
-      formData.append("liquido", formLiquido || "0")
-      formData.append("base_cotizacion", formBaseCotizacion || "0")
-      formData.append("tipo_contingencias_comunes", formContingencias || "0")
-      formData.append("tipo_desempleo", formDesempleo || "0")
-      formData.append("tipo_formacion", formFormacion || "0")
-      formData.append("horas_extra", formHorasExtra || "0")
-      formData.append("complementos", formComplementos || "0")
-      if (formFile) formData.append("file", formFile)
-
-      const res = await api.post("/api/admin/nominas", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      })
-      if (res.data?.success) {
-        if (res.data.warnings?.length) {
-          showError(res.data.warnings[0])
+      if (editingId) {
+        // Editar (PUT JSON, sin archivo)
+        const payload: any = {
+          empleado_id: formEmpleado,
+          anio: Number(formAnio),
+          mes: Number(formMes),
+          bruto: parseFloat(formBruto) || 0,
+          seguridad_social_empresa: parseFloat(formSSEmpresa) || 0,
+          seguridad_social_empleado: parseFloat(formSSEmpleado) || 0,
+          irpf_retencion: parseFloat(formIRPF) || 0,
+          liquido: parseFloat(formLiquido) || 0,
+          base_cotizacion: parseFloat(formBaseCotizacion) || 0,
+          tipo_contingencias_comunes: parseFloat(formContingencias) || 0,
+          tipo_desempleo: parseFloat(formDesempleo) || 0,
+          tipo_formacion: parseFloat(formFormacion) || 0,
+          horas_extra: parseFloat(formHorasExtra) || 0,
+          complementos: parseFloat(formComplementos) || 0,
         }
-        showSuccess("Nomina creada correctamente")
-        resetForm()
-        loadNominas()
+        const res = await api.put(`/api/admin/nominas/${editingId}`, payload)
+        if (res.data?.success) {
+          showSuccess("Nómina actualizada")
+          resetForm()
+          loadNominas()
+        }
+      } else {
+        // Crear (POST multipart por si hay PDF)
+        const formData = new FormData()
+        formData.append("empleado_id", formEmpleado)
+        formData.append("anio", String(formAnio))
+        formData.append("mes", String(formMes))
+        formData.append("bruto", formBruto)
+        formData.append("seguridad_social_empresa", formSSEmpresa || "0")
+        formData.append("seguridad_social_empleado", formSSEmpleado || "0")
+        formData.append("irpf_retencion", formIRPF || "0")
+        formData.append("liquido", formLiquido || "0")
+        formData.append("base_cotizacion", formBaseCotizacion || "0")
+        formData.append("tipo_contingencias_comunes", formContingencias || "0")
+        formData.append("tipo_desempleo", formDesempleo || "0")
+        formData.append("tipo_formacion", formFormacion || "0")
+        formData.append("horas_extra", formHorasExtra || "0")
+        formData.append("complementos", formComplementos || "0")
+        if (formFile) formData.append("file", formFile)
+
+        const res = await api.post("/api/admin/nominas", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        })
+        if (res.data?.success) {
+          if (res.data.warnings?.length) {
+            showError(res.data.warnings[0])
+          }
+          showSuccess("Nómina creada correctamente")
+          resetForm()
+          loadNominas()
+        }
       }
     } catch (err: any) {
-      showError(err?.response?.data?.error || "Error creando nomina")
+      showError(err?.response?.data?.error || "Error guardando nómina")
     } finally {
       setSending(false)
     }
+  }
+
+  function handleEdit(n: Nomina) {
+    setEditingId(n.id)
+    setFormEmpleado(n.empleado_id || "")
+    setFormAnio(n.anio)
+    setFormMes(n.mes)
+    setFormBruto(String(n.bruto || ""))
+    setFormSSEmpresa(String(n.seguridad_social_empresa || ""))
+    setFormSSEmpleado(String(n.seguridad_social_empleado || ""))
+    setFormIRPF(String(n.irpf_retencion || ""))
+    setFormLiquido(String(n.liquido || ""))
+    setShowForm(true)
+    setShowDesglose(true)
+  }
+
+  async function loadResumenEmpresario() {
+    if (!month) {
+      showError("Selecciona un mes para ver el resumen para el empresario")
+      return
+    }
+    setLoadingEmpresario(true)
+    setShowEmpresario(true)
+    try {
+      const res = await api.get("/api/admin/nominas/resumen-empresario", { params: { year, month } })
+      if (res.data?.success) setEmpresarioData(res.data)
+    } catch {
+      showError("Error cargando resumen empresario")
+    } finally {
+      setLoadingEmpresario(false)
+    }
+  }
+
+  function descargarResumenCSV() {
+    if (!empresarioData) return
+    const headers = ["Empleado", "Bruto", "IRPF", "SS empleado", "SS empresa", "Neto a pagar"]
+    const rows = (empresarioData.empleados || []).map((e: any) => [
+      e.nombre,
+      e.bruto.toFixed(2),
+      e.irpf.toFixed(2),
+      e.ss_empleado.toFixed(2),
+      e.ss_empresa.toFixed(2),
+      e.neto_a_pagar.toFixed(2),
+    ])
+    const t = empresarioData.totales
+    rows.push(["TOTAL", t.total_bruto.toFixed(2), t.total_irpf.toFixed(2), t.total_ss_empleado.toFixed(2), t.total_ss_empresa.toFixed(2), t.total_liquido.toFixed(2)])
+    const csv = [headers, ...rows].map(row => row.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `nominas_${empresarioData.year}_${String(empresarioData.month).padStart(2, "0")}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function handleDelete(id: string) {
@@ -240,6 +328,7 @@ export default function AdminNominasPage() {
 
   function resetForm() {
     setShowForm(false)
+    setEditingId(null)
     setFormEmpleado("")
     setFormBruto("")
     setFormSSEmpresa("")
@@ -289,7 +378,7 @@ export default function AdminNominasPage() {
           <h1 className="text-2xl font-bold tracking-tight">Nominas</h1>
           <p className="text-muted-foreground text-sm">Gestion de nominas de empleados</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
             href="/admin/nominas/entregas"
             className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors"
@@ -297,7 +386,22 @@ export default function AdminNominasPage() {
             <ClipboardList className="w-4 h-4" />
             Entregas
           </Link>
-          {/* Creación de nóminas solo disponible para gestorías */}
+          <button
+            onClick={loadResumenEmpresario}
+            disabled={loadingEmpresario}
+            className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 text-sm font-medium rounded-xl hover:bg-amber-100 transition-colors disabled:opacity-50"
+            title={month ? "Resumen mensual para el empresario" : "Selecciona un mes primero"}
+          >
+            {loadingEmpresario ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
+            Resumen empresario
+          </button>
+          <button
+            onClick={() => { resetForm(); setShowForm(true) }}
+            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Nueva nómina
+          </button>
         </div>
       </div>
 
@@ -476,11 +580,269 @@ export default function AdminNominasPage() {
                       <Download className="w-4 h-4" />
                     </a>
                   )}
-                  {/* Eliminación solo disponible para gestorías */}
+                  {/* Editar (sólo si NO está aprobada/enviada) */}
+                  {(!n.estado_entrega || n.estado_entrega === "borrador") && (
+                    <button
+                      onClick={() => handleEdit(n)}
+                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Editar"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
+                  {/* Eliminar */}
+                  <button
+                    onClick={() => handleDelete(n.id)}
+                    disabled={deleting === n.id}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                    title="Eliminar"
+                  >
+                    {deleting === n.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* === Modal Crear/Editar Nómina === */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-white z-10">
+              <h2 className="text-lg font-semibold">{editingId ? "Editar nómina" : "Nueva nómina"}</h2>
+              <button onClick={resetForm} className="p-1 hover:bg-gray-100 rounded">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+              {/* OCR + PDF (solo en crear) */}
+              {!editingId && (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Subir PDF (extracción IA opcional)</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null
+                        setFormFile(f)
+                        if (f) handleOCR(f)
+                      }}
+                      className="flex-1 border rounded-lg px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Empleado *</label>
+                  <select
+                    value={formEmpleado}
+                    onChange={(e) => setFormEmpleado(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                    required
+                  >
+                    <option value="">— selecciona —</option>
+                    {empleados.map((e) => (
+                      <option key={e.id} value={e.id}>{e.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Año</label>
+                    <input
+                      type="number"
+                      value={formAnio}
+                      onChange={(e) => setFormAnio(Number(e.target.value))}
+                      className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Mes</label>
+                    <select
+                      value={formMes}
+                      onChange={(e) => setFormMes(Number(e.target.value))}
+                      className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                    >
+                      {MESES.map((m, i) => (
+                        <option key={i} value={i + 1}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Bruto *</label>
+                  <input type="number" step="0.01" value={formBruto} onChange={(e) => setFormBruto(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" required />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Líquido (neto)</label>
+                  <input type="number" step="0.01" value={formLiquido} onChange={(e) => setFormLiquido(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">IRPF retención</label>
+                  <input type="number" step="0.01" value={formIRPF} onChange={(e) => setFormIRPF(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">SS empleado</label>
+                  <input type="number" step="0.01" value={formSSEmpleado} onChange={(e) => setFormSSEmpleado(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">SS empresa</label>
+                  <input type="number" step="0.01" value={formSSEmpresa} onChange={(e) => setFormSSEmpresa(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowDesglose(!showDesglose)}
+                className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+              >
+                {showDesglose ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                Desglose detallado (base cotización, contingencias, formación, horas extra…)
+              </button>
+
+              {showDesglose && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Base cotización</label>
+                    <input type="number" step="0.01" value={formBaseCotizacion} onChange={(e) => setFormBaseCotizacion(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Contingencias comunes</label>
+                    <input type="number" step="0.01" value={formContingencias} onChange={(e) => setFormContingencias(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Desempleo</label>
+                    <input type="number" step="0.01" value={formDesempleo} onChange={(e) => setFormDesempleo(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Formación</label>
+                    <input type="number" step="0.01" value={formFormacion} onChange={(e) => setFormFormacion(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Horas extra</label>
+                    <input type="number" step="0.01" value={formHorasExtra} onChange={(e) => setFormHorasExtra(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Complementos</label>
+                    <input type="number" step="0.01" value={formComplementos} onChange={(e) => setFormComplementos(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={resetForm} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={sending} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+                  {sending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {editingId ? "Guardar cambios" : "Crear nómina"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* === Modal Resumen Empresario === */}
+      {showEmpresario && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-white z-10">
+              <div>
+                <h2 className="text-lg font-semibold">Resumen para el empresario</h2>
+                {empresarioData && (
+                  <p className="text-xs text-muted-foreground">
+                    {MESES[(empresarioData.month || 1) - 1]} {empresarioData.year} — {empresarioData.num_nominas} nóminas
+                  </p>
+                )}
+              </div>
+              <button onClick={() => { setShowEmpresario(false); setEmpresarioData(null) }} className="p-1 hover:bg-gray-100 rounded">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {loadingEmpresario && (
+              <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div>
+            )}
+
+            {empresarioData && !loadingEmpresario && (
+              <>
+                <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                    <p className="text-[10px] text-blue-600 uppercase tracking-wide font-semibold">A empleados (transferencias)</p>
+                    <p className="text-lg font-bold text-blue-900 mt-1">{Number(empresarioData.totales.transferencias_a_empleados).toFixed(2)} €</p>
+                  </div>
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                    <p className="text-[10px] text-red-600 uppercase tracking-wide font-semibold">A AEAT (modelo 111)</p>
+                    <p className="text-lg font-bold text-red-900 mt-1">{Number(empresarioData.totales.a_pagar_a_aeat).toFixed(2)} €</p>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <p className="text-[10px] text-amber-700 uppercase tracking-wide font-semibold">A Seg. Social (TC1+TC2)</p>
+                    <p className="text-lg font-bold text-amber-900 mt-1">{Number(empresarioData.totales.a_pagar_a_seg_social).toFixed(2)} €</p>
+                  </div>
+                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
+                    <p className="text-[10px] text-purple-600 uppercase tracking-wide font-semibold">Coste total empresa</p>
+                    <p className="text-lg font-bold text-purple-900 mt-1">{Number(empresarioData.totales.coste_total_empresa).toFixed(2)} €</p>
+                  </div>
+                </div>
+
+                <div className="px-5 pb-3 overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium text-gray-600">Empleado</th>
+                        <th className="text-right px-3 py-2 font-medium text-gray-600">Bruto</th>
+                        <th className="text-right px-3 py-2 font-medium text-gray-600">IRPF</th>
+                        <th className="text-right px-3 py-2 font-medium text-gray-600">SS empl.</th>
+                        <th className="text-right px-3 py-2 font-medium text-gray-600">SS empr.</th>
+                        <th className="text-right px-3 py-2 font-medium text-gray-600">Neto a pagar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(empresarioData.empleados || []).map((e: any) => (
+                        <tr key={e.nomina_id} className="border-b last:border-0">
+                          <td className="px-3 py-2 font-medium">{e.nombre}</td>
+                          <td className="text-right px-3 py-2">{e.bruto.toFixed(2)}</td>
+                          <td className="text-right px-3 py-2 text-red-600">{e.irpf.toFixed(2)}</td>
+                          <td className="text-right px-3 py-2">{e.ss_empleado.toFixed(2)}</td>
+                          <td className="text-right px-3 py-2">{e.ss_empresa.toFixed(2)}</td>
+                          <td className="text-right px-3 py-2 font-semibold text-green-700">{e.neto_a_pagar.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-gray-50 border-t-2 font-semibold">
+                      <tr>
+                        <td className="px-3 py-2">TOTAL</td>
+                        <td className="text-right px-3 py-2">{Number(empresarioData.totales.total_bruto).toFixed(2)}</td>
+                        <td className="text-right px-3 py-2 text-red-600">{Number(empresarioData.totales.total_irpf).toFixed(2)}</td>
+                        <td className="text-right px-3 py-2">{Number(empresarioData.totales.total_ss_empleado).toFixed(2)}</td>
+                        <td className="text-right px-3 py-2">{Number(empresarioData.totales.total_ss_empresa).toFixed(2)}</td>
+                        <td className="text-right px-3 py-2 text-green-700">{Number(empresarioData.totales.total_liquido).toFixed(2)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                <div className="flex justify-end gap-2 px-5 pb-5 pt-2 border-t">
+                  <button onClick={() => { setShowEmpresario(false); setEmpresarioData(null) }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">
+                    Cerrar
+                  </button>
+                  <button onClick={descargarResumenCSV} className="px-4 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 flex items-center gap-2">
+                    <Download className="w-4 h-4" />
+                    Descargar CSV
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
