@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   Plus,
@@ -10,6 +11,7 @@ import {
   Link2,
   X,
   Trash2,
+  ExternalLink,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
@@ -89,6 +91,7 @@ const emptyForm = {
 };
 
 export default function AsesorMisClientesPage() {
+  const router = useRouter();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -314,7 +317,11 @@ export default function AsesorMisClientesPage() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((c) => (
-                      <TableRow key={c.id}>
+                      <TableRow
+                        key={c.id}
+                        className={c.vinculado_empresa_id ? "cursor-pointer hover:bg-muted/40" : ""}
+                        onClick={c.vinculado_empresa_id ? () => router.push(`/asesor/clientes/${c.vinculado_empresa_id}`) : undefined}
+                      >
                         <TableCell className="font-mono text-xs">
                           {c.codigo || "-"}
                         </TableCell>
@@ -353,11 +360,22 @@ export default function AsesorMisClientesPage() {
                             {c.activo ? "Activo" : "Inactivo"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
+                            {c.vinculado_empresa_id && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Abrir ficha de empresa"
+                                onClick={() => router.push(`/asesor/clientes/${c.vinculado_empresa_id}`)}
+                              >
+                                <ExternalLink size={14} />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
+                              title="Editar datos de contacto"
                               onClick={() => openEdit(c)}
                             >
                               <Pencil size={14} />
@@ -367,6 +385,7 @@ export default function AsesorMisClientesPage() {
                                 variant="ghost"
                                 size="sm"
                                 className="text-destructive hover:text-destructive"
+                                title="Desactivar"
                                 onClick={() => handleDeactivate(c.id)}
                               >
                                 <Trash2 size={14} />
@@ -423,7 +442,18 @@ export default function AsesorMisClientesPage() {
                       {c.telefono}
                     </p>
                   )}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    {c.vinculado_empresa_id && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1 gap-1"
+                        onClick={() => router.push(`/asesor/clientes/${c.vinculado_empresa_id}`)}
+                      >
+                        <ExternalLink size={14} />
+                        Abrir empresa
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
