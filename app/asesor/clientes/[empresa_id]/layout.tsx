@@ -28,12 +28,14 @@ import {
   IdCard,
   Boxes,
   Plug,
+  Inbox,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useRegisterClientTab } from "@/contexts/ClientTabsContext";
+import { useQuery } from "@tanstack/react-query";
 
 type ClienteInfo = {
   nombre: string;
@@ -138,6 +140,11 @@ const tabs = [
     segment: "integraciones",
   },
   {
+    label: "DEHú",
+    icon: Inbox,
+    segment: "dehu",
+  },
+  {
     label: "Documentos",
     icon: FolderOpen,
     segment: "documentos",
@@ -221,8 +228,6 @@ function AsesorClienteLayoutInner({
     setTimeout(updateScrollButtons, 200);
   }, [pathname]);
 
-  const [cliente, setCliente] = useState<ClienteInfo | null>(null);
-
   const basePath = `/asesor/clientes/${empresaId}`;
 
   // --- Historial de navegación dentro del cliente ---
@@ -259,27 +264,21 @@ function AsesorClienteLayoutInner({
     sessionStorage.setItem("asesor_empresa_id", empresaId);
   }
 
-  // Fetch client name
-  const fetchCliente = useCallback(async () => {
-    try {
-      const res = await authenticatedFetch(
-        `/asesor/clientes/${empresaId}/resumen`
-      );
+  // Fetch client name (cached con React Query — no refetch al cambiar de pestaña)
+  // Sólo se vuelve a llamar al backend si los datos pasan de "fresh" (5 min default)
+  // o si alguien invalida la query manualmente tras editar /datos.
+  const { data: cliente } = useQuery<ClienteInfo | null>({
+    queryKey: ["asesor", "cliente-resumen", empresaId],
+    queryFn: async () => {
+      const res = await authenticatedFetch(`/asesor/clientes/${empresaId}/resumen`);
       const json = await res.json();
       if (res.ok && json.success && json.data) {
-        setCliente({
-          nombre: json.data.nombre || "Cliente",
-          cif: json.data.cif,
-        });
+        return { nombre: json.data.nombre || "Cliente", cif: json.data.cif } as ClienteInfo;
       }
-    } catch {
-      // Non-critical
-    }
-  }, [empresaId]);
-
-  useEffect(() => {
-    fetchCliente();
-  }, [fetchCliente]);
+      return null;
+    },
+    enabled: !!empresaId,
+  });
 
   // Multi-tab: registrar/actualizar la pestaña en cuanto se conozca el nombre del cliente.
   // No se ejecuta en modo popup/quickview para no contaminar el estado de tabs.

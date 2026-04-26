@@ -6,7 +6,7 @@ import { showSuccess, showError } from "@/lib/toast"
 import {
   FileText, Upload, Trash2, Loader2, Download, Search, Plus, X, Send,
   CheckSquare, Square, Mail, ClipboardList, BarChart3, ChevronDown, ChevronUp,
-  Pencil, Building2, Ban
+  Pencil, Building2, Ban, FileSpreadsheet, PieChart
 } from "lucide-react"
 import Link from "next/link"
 
@@ -407,6 +407,22 @@ export default function AdminNominasPage() {
           >
             <ClipboardList className="w-4 h-4" />
             Entregas
+          </Link>
+          <Link
+            href={`/admin/fiscal/modelo190?year=${year}`}
+            className="flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 text-sm font-medium rounded-xl hover:bg-purple-100 transition-colors"
+            title="Modelo 190 — Resumen anual de retenciones"
+          >
+            <FileText className="w-4 h-4" />
+            Modelo 190
+          </Link>
+          <Link
+            href={`/admin/nominas/coste-empresa?year=${year}`}
+            className="flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-xl hover:bg-emerald-100 transition-colors"
+            title="Coste total empresa por empleado"
+          >
+            <PieChart className="w-4 h-4" />
+            Coste empresa
           </Link>
           <button
             onClick={loadResumenEmpresario}
@@ -888,6 +904,16 @@ export default function AdminNominasPage() {
                   >
                     <Download className="w-4 h-4" />
                     Descargar SEPA (banco)
+                  </a>
+                  <a
+                    href={`/api/admin/nominas/siltra/cra?year=${empresarioData?.year}&month=${empresarioData?.month}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 text-sm bg-violet-600 text-white rounded-lg hover:bg-violet-700 flex items-center gap-2"
+                    title="CSV con datos de cotización por empleado, listos para SILTRA / Sistema RED"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    SILTRA (CSV)
                   </a>
                 </div>
               </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -19,6 +19,7 @@ import {
   Check,
   X as XIcon,
   PanelRightOpen,
+  RefreshCw,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
@@ -127,6 +128,11 @@ export default function AsesorClientesPage() {
   const [clientes, setClientes] = useState<ClienteVinculado[]>([]);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
+  // Cache simple en módulo: si vuelves a /asesor/clientes en menos de 5 min,
+  // se sirven los datos en memoria sin llamar al backend.
+  const lastLoadRef = useRef<number>(0);
+  const CACHE_MS = 5 * 60 * 1000;
+
   // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -188,7 +194,7 @@ export default function AsesorClientesPage() {
         // Si ya hay vínculo (gestionada o con app), navegamos directamente
         router.push(`/asesor/clientes/${empresaId}`);
       } else {
-        await loadClientes();
+        await loadClientes({ force: true });
       }
     } catch (err: any) {
       setCreateError(err.message || "Error creando cliente");
@@ -252,7 +258,16 @@ export default function AsesorClientesPage() {
     }
   }
 
-  async function loadClientes() {
+  /**
+   * Cargar lista de clientes. Por defecto reutiliza el cache si la última
+   * carga fue hace menos de 5 min. Pasa { force: true } para forzar refresh
+   * tras una mutación (alta, invitación, aceptación, etc.).
+   */
+  async function loadClientes(opts?: { force?: boolean }) {
+    const now = Date.now();
+    if (!opts?.force && clientes.length > 0 && (now - lastLoadRef.current) < CACHE_MS) {
+      return; // cache válido, no recargamos
+    }
     setLoading(true);
     setError(null);
     try {
@@ -262,6 +277,7 @@ export default function AsesorClientesPage() {
         throw new Error(json.error || "Error al cargar los clientes");
       }
       setClientes(json.data || []);
+      lastLoadRef.current = Date.now();
     } catch (err: any) {
       setError(err.message || "Error de conexion");
     } finally {
@@ -271,6 +287,7 @@ export default function AsesorClientesPage() {
 
   useEffect(() => {
     loadClientes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleInvite() {
@@ -290,7 +307,7 @@ export default function AsesorClientesPage() {
       }
       setInviteSuccess(true);
       setInviteEmail("");
-      loadClientes();
+      loadClientes({ force: true });
     } catch (err: any) {
       setInviteError(err.message || "Error al invitar");
     } finally {
@@ -306,7 +323,7 @@ export default function AsesorClientesPage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Error");
-      loadClientes();
+      loadClientes({ force: true });
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -323,7 +340,7 @@ export default function AsesorClientesPage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Error");
-      loadClientes();
+      loadClientes({ force: true });
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -402,7 +419,7 @@ export default function AsesorClientesPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <p className="text-destructive font-medium">{error}</p>
-        <Button variant="outline" onClick={loadClientes}>
+        <Button variant="outline" onClick={() => loadClientes({ force: true })}>
           Reintentar
         </Button>
       </div>
@@ -420,6 +437,15 @@ export default function AsesorClientesPage() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => loadClientes({ force: true })}
+            disabled={loading}
+            title="Refrescar lista (forzar lectura del servidor)"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </Button>
           <Button onClick={() => setCreateOpen(true)} className="gap-2">
             <Plus size={16} />
             Nuevo cliente
