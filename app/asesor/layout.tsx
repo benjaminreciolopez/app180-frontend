@@ -158,7 +158,10 @@ function AsesorLayoutInner({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // popup = ventana emergente; quickview = panel deslizante. Ambos esconden el chrome de la app.
   const isPopup = searchParams.get("popup") === "true";
+  const isQuickView = searchParams.get("quickview") === "true";
+  const isEmbedded = isPopup || isQuickView;
 
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
@@ -406,8 +409,8 @@ function AsesorLayoutInner({
     );
   }
 
-  // Modo popup: renderizar solo el contenido sin sidebar, header ni copilot
-  if (isPopup) {
+  // Modo popup / quickview: renderizar solo el contenido sin sidebar, header ni copilot
+  if (isEmbedded) {
     return (
       <div className="h-[100svh] w-full overflow-hidden bg-background flex flex-col">
         {children}

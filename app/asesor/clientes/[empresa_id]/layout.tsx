@@ -22,6 +22,8 @@ import {
   ExternalLink,
   ChevronLeft,
   UsersRound,
+  Clock,
+  CalendarOff,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
@@ -81,6 +83,16 @@ const tabs = [
     segment: "empleados",
   },
   {
+    label: "Fichajes",
+    icon: Clock,
+    segment: "fichajes",
+  },
+  {
+    label: "Ausencias",
+    icon: CalendarOff,
+    segment: "ausencias",
+  },
+  {
     label: "Laboral",
     icon: Briefcase,
     segment: "laboral",
@@ -131,6 +143,8 @@ function AsesorClienteLayoutInner({
   const searchParams = useSearchParams();
   const empresaId = params.empresa_id as string;
   const isPopup = searchParams.get("popup") === "true";
+  const isQuickView = searchParams.get("quickview") === "true";
+  const isEmbedded = isPopup || isQuickView;
 
   const [cliente, setCliente] = useState<ClienteInfo | null>(null);
 
@@ -242,8 +256,8 @@ function AsesorClienteLayoutInner({
     }
   }, [isPopup, cliente?.nombre, activeLabel]);
 
-  // --- Modo POPUP: cabecera mínima, solo el contenido del tab ---
-  if (isPopup) {
+  // --- Modo POPUP / QUICKVIEW: cabecera mínima, solo el contenido del tab ---
+  if (isEmbedded) {
     return (
       <div className="flex flex-col h-full">
         <div className="sticky top-0 z-10 bg-white dark:bg-card border-b">
@@ -265,7 +279,7 @@ function AsesorClienteLayoutInner({
               variant="outline"
               className="text-[9px] border-blue-200 text-blue-600 bg-blue-50 shrink-0"
             >
-              Ventana independiente
+              {isQuickView ? "Vista rápida" : "Ventana independiente"}
             </Badge>
           </div>
         </div>
