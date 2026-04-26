@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/services/api"
+import { getUser } from "@/services/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ReactMarkdown from "react-markdown"
@@ -111,6 +112,11 @@ export function AICopilot() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Detectar si el usuario es asesor → cambia endpoints y experiencia
+  const currentUser = (typeof window !== "undefined" ? getUser() : null) as { role?: string } | null
+  const isAsesor = currentUser?.role === "asesor"
+  const chatEndpoint = isAsesor ? "/asesor/ai/chat" : "/admin/ai/chat"
+
   // Cargar historial de localStorage al montar
   useEffect(() => {
     try {
@@ -148,8 +154,9 @@ export function AICopilot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [mensajes])
 
-  // Cargar consumo de IA al abrir el chat
+  // Cargar consumo de IA al abrir el chat (solo modo empresa por ahora)
   const fetchUsage = async () => {
+    if (isAsesor) return
     try {
       const res = await api.get("/admin/ai/usage")
       setAiUsage(res.data)
@@ -181,15 +188,17 @@ export function AICopilot() {
   // Mensaje de bienvenida cuando se abre por primera vez
   useEffect(() => {
     if (isOpen && mensajes.length === 0) {
+      const welcomeAsesor = "Hola! Soy **CONTENDO Asesor**, tu copiloto IA para gestionar tu cartera de clientes.\n\nPuedo ayudarte con:\n- Listar y buscar clientes vinculados\n- **Comparar la situación fiscal** entre clientes\n- Detectar **clientes en riesgo** (impagos, modelos pendientes)\n- Estado de modelos 303/130/etc por trimestre en TODA tu cartera\n- Resumen financiero de cualquier cliente\n\nEjemplos:\n- *\"¿Qué clientes tienen el 303 sin presentar este trimestre?\"*\n- *\"Compárame Cliente A vs Cliente B en el Q1\"*\n- *\"Top 5 clientes en riesgo\"*\n\nEn qué puedo ayudarte?"
+      const welcomeEmpresa = "Hola! Soy **CONTENDO**, tu asistente de gestion empresarial.\n\nPuedo ayudarte con:\n- Consultar facturas y estadisticas\n- Informacion de empleados y clientes\n- Trabajos pendientes de facturar\n- Analisis de facturacion\n- **Leer QR de facturas** (adjunta un PDF)\n\nEn que puedo ayudarte hoy?"
       setMensajes([
         {
           role: "assistant",
-          content: "Hola! Soy **CONTENDO**, tu asistente de gestion empresarial.\n\nPuedo ayudarte con:\n- Consultar facturas y estadisticas\n- Informacion de empleados y clientes\n- Trabajos pendientes de facturar\n- Analisis de facturacion\n- **Leer QR de facturas** (adjunta un PDF)\n\nEn que puedo ayudarte hoy?",
+          content: isAsesor ? welcomeAsesor : welcomeEmpresa,
           timestamp: new Date().toISOString()
         }
       ])
     }
-  }, [isOpen, mensajes.length])
+  }, [isOpen, mensajes.length, isAsesor])
 
   const enviarMensaje = async (overrideMsg?: string) => {
     const msg = overrideMsg || inputValue.trim()
@@ -234,7 +243,7 @@ export function AICopilot() {
         setPdfPassword("")
         setNeedsPassword(false)
       } else {
-        response = await api.post("/admin/ai/chat", {
+        response = await api.post(chatEndpoint, {
           mensaje: msg,
           historial
         })
@@ -434,10 +443,10 @@ Preguntame lo que necesites.`,
                   <Bot className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">CONTENDO</h3>
+                  <h3 className="font-semibold text-white">{isAsesor ? "CONTENDO Asesor" : "CONTENDO"}</h3>
                   <p className="text-xs text-blue-100 flex items-center gap-1">
                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                    En linea
+                    {isAsesor ? "Multi-cliente" : "En linea"}
                   </p>
                 </div>
               </div>
@@ -679,24 +688,28 @@ Preguntame lo que necesites.`,
             {/* Input */}
             <div className="p-4 border-t border-slate-200 bg-white shrink-0 safe-area-bottom">
               <div className="flex gap-2">
-                {/* File upload button */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.png,.jpg,.jpeg,.webp"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isLoading}
-                  className="shrink-0 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
-                  title="Adjuntar PDF o imagen"
-                >
-                  <Paperclip className="h-4 w-4" />
-                </Button>
+                {/* File upload — solo modo empresa (asesor aún no lo soporta) */}
+                {!isAsesor && (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg,.webp"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isLoading}
+                      className="shrink-0 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+                      title="Adjuntar PDF o imagen"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
 
                 <Input
                   value={inputValue}
