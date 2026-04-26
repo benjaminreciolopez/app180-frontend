@@ -21,6 +21,7 @@ import {
   KeyRound,
   ExternalLink,
   ChevronLeft,
+  ChevronRight,
   UsersRound,
   Clock,
   CalendarOff,
@@ -151,6 +152,56 @@ function AsesorClienteLayoutInner({
   const isPopup = searchParams.get("popup") === "true";
   const isQuickView = searchParams.get("quickview") === "true";
   const isEmbedded = isPopup || isQuickView;
+
+  // Scroll horizontal de la barra de tabs
+  const tabsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  function updateScrollButtons() {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }
+
+  function scrollTabs(direction: "left" | "right") {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    const amount = Math.max(el.clientWidth * 0.7, 200);
+    el.scrollBy({ left: direction === "left" ? -amount : amount, behavior: "smooth" });
+  }
+
+  useEffect(() => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    updateScrollButtons();
+    el.addEventListener("scroll", updateScrollButtons, { passive: true });
+    const ro = new ResizeObserver(updateScrollButtons);
+    ro.observe(el);
+    window.addEventListener("resize", updateScrollButtons);
+    return () => {
+      el.removeEventListener("scroll", updateScrollButtons);
+      ro.disconnect();
+      window.removeEventListener("resize", updateScrollButtons);
+    };
+  }, []);
+
+  // Auto-scroll al tab activo cuando cambia la ruta
+  useEffect(() => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    const activeBtn = el.querySelector('[data-tab-active="true"]') as HTMLElement | null;
+    if (activeBtn) {
+      const elRect = el.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      if (btnRect.left < elRect.left || btnRect.right > elRect.right) {
+        activeBtn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
+    }
+    // re-evaluar visibilidad de flechas tras el cambio de ruta
+    setTimeout(updateScrollButtons, 200);
+  }, [pathname]);
 
   const [cliente, setCliente] = useState<ClienteInfo | null>(null);
 
@@ -360,10 +411,26 @@ function AsesorClienteLayoutInner({
           </Badge>
         </div>
 
-        {/* Sub-navigation tabs */}
+        {/* Sub-navigation tabs con flechas */}
         {!isChatPage && (
-          <div className="px-4 md:px-6 border-t bg-slate-50/50 dark:bg-muted/30">
-            <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar -mb-px">
+          <div className="px-4 md:px-6 border-t bg-slate-50/50 dark:bg-muted/30 relative">
+            {/* Flecha izquierda */}
+            <button
+              type="button"
+              onClick={() => scrollTabs("left")}
+              disabled={!canScrollLeft}
+              aria-label="Desplazar tabs a la izquierda"
+              className={cn(
+                "absolute left-1 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full bg-background border shadow-sm transition-opacity",
+                canScrollLeft ? "opacity-100 hover:bg-muted" : "opacity-0 pointer-events-none"
+              )}
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <div
+              ref={tabsScrollRef}
+              className="flex items-center gap-0.5 overflow-x-auto no-scrollbar -mb-px scroll-smooth px-6"
+            >
               {tabs.map((tab) => {
                 const isActive = activeSegment === tab.segment;
                 const href =
@@ -375,6 +442,7 @@ function AsesorClienteLayoutInner({
                 return (
                   <button
                     key={tab.segment}
+                    data-tab-active={isActive ? "true" : "false"}
                     onClick={() => router.push(href)}
                     onAuxClick={(e) => {
                       // Click con rueda del ratón (botón medio) → abrir en nueva ventana
@@ -417,6 +485,19 @@ function AsesorClienteLayoutInner({
                 );
               })}
             </div>
+            {/* Flecha derecha */}
+            <button
+              type="button"
+              onClick={() => scrollTabs("right")}
+              disabled={!canScrollRight}
+              aria-label="Desplazar tabs a la derecha"
+              className={cn(
+                "absolute right-1 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full bg-background border shadow-sm transition-opacity",
+                canScrollRight ? "opacity-100 hover:bg-muted" : "opacity-0 pointer-events-none"
+              )}
+            >
+              <ChevronRight size={14} />
+            </button>
           </div>
         )}
       </div>
