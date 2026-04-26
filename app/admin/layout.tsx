@@ -260,6 +260,7 @@ export default function AdminLayout({
       "/admin/trabajos": "Trabajos diarios",
       "/admin/planings": "Planings",
       "/admin/configuracion": "Configuración",
+      "/admin/app-config": "Configuración de la app",
       "/admin/perfil": "Mi Perfil",
       "/admin/reportes/rentabilidad": "Rentabilidad",
       "/admin/gastos": "Compras y Gastos",
@@ -434,6 +435,7 @@ export default function AdminLayout({
         { path: "/admin/sugerencias", label: "Sugerencias", module: null },
         { path: "/admin/fabricante", label: "Fabricante", module: null },
         { path: "/admin/mcp", label: "Control IA (MCP)", module: null },
+        { path: "/admin/app-config", label: "Configuración de la app", module: null, fabricanteOnly: true },
         { path: "/admin/configuracion/calendario/importar", label: "Importar calendario", module: "calendario" },
         { path: "/admin/configuracion/calendario/importaciones", label: "Historial importaciones", module: "calendario" },
       ],
@@ -446,9 +448,10 @@ export default function AdminLayout({
   const visibleSections = menuSections
     .map((section) => {
       const visibleItems = section.items
-        .filter((item) => {
+        .filter((item: any) => {
           if (item.path === "/admin/fabricante") return isFabricante && isPwaMobile;
           if (item.path === "/admin/mcp") return isFabricante;
+          if (item.fabricanteOnly) return isFabricante;
           if (isPwaMobile && (item.path.includes('/calendario/importar') || item.path.includes('/calendario/importaciones'))) return false;
           if (item.path === "/admin/jornadas") return hasModule(session.modulos, "fichajes") || hasModule(session.modulos, "calendario");
           return hasModule(session.modulos, item.module);
