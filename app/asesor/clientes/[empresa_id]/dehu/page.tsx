@@ -160,13 +160,24 @@ export default function AsesorClienteDehuPage() {
         <CardContent className="pt-4">
           <div className="flex gap-2 items-start text-sm">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-medium text-amber-900">Para recibir notificaciones:</p>
-              <ol className="text-xs text-amber-800 mt-1 ml-4 list-decimal space-y-0.5">
-                <li>El cliente debe estar suscrito al buzón en <a href="https://dehu.redsara.es" target="_blank" rel="noreferrer" className="underline">dehu.redsara.es</a></li>
-                <li>Configura las credenciales en la pestaña <strong>Integraciones</strong> (puedes reutilizar el certificado AEAT del cliente)</li>
-                <li>Pulsa "Sincronizar" para traer las pendientes</li>
-              </ol>
+            <div className="flex-1 space-y-2">
+              <div>
+                <p className="font-medium text-amber-900">Importante: DEHú vive en red SARA</p>
+                <p className="text-xs text-amber-800 mt-1">
+                  El SOAP oficial de DEHú no es accesible desde internet público. Para usar la sincronización
+                  necesitas: (a) un intermediario comercial con acceso a SARA, (b) VPN/punto de acceso a red SARA,
+                  o (c) integración con scraping web del portal público (en desarrollo).
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-amber-900">Pasos para activar:</p>
+                <ol className="text-xs text-amber-800 mt-1 ml-4 list-decimal space-y-0.5">
+                  <li>Cliente suscrito al buzón en <a href="https://dehu.redsara.es" target="_blank" rel="noreferrer" className="underline">dehu.redsara.es</a></li>
+                  <li>Credenciales en pestaña <strong>Integraciones</strong> (reutilizar cert AEAT del cliente)</li>
+                  <li>El fabricante activa <code className="bg-amber-100 px-1 rounded">dehu_soap_enabled</code> en /admin/app-config</li>
+                  <li>Pulsa "Sincronizar" — recibirás un mensaje claro si no es alcanzable</li>
+                </ol>
+              </div>
             </div>
           </div>
         </CardContent>
