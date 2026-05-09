@@ -159,7 +159,11 @@ export default function ClienteRetaDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowImportarDialog(true)} className="gap-1">
+            <FileUp className="w-4 h-4" />
+            Importar resolución
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowEventoDialog(true)}>
             <Plus className="w-4 h-4 mr-1" /> Evento
           </Button>
@@ -226,15 +230,9 @@ export default function ClienteRetaDetailPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setShowImportarDialog(true)} className="gap-1">
-                    <FileUp className="w-3.5 h-3.5" />
-                    Importar resolución
-                  </Button>
-                  <Button size="sm" onClick={() => setShowCambioDialog(true)}>
-                    Cambiar base
-                  </Button>
-                </div>
+                <Button size="sm" onClick={() => setShowCambioDialog(true)}>
+                  Cambiar base
+                </Button>
               </div>
             )}
 
