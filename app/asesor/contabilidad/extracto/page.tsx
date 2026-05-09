@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { authenticatedFetch } from "@/utils/api";
+import { apiContableFetch } from "@/utils/apiContable";
+import { useEmpresaContable } from "@/hooks/useEmpresaContable";
 import { showSuccess, showError } from "@/lib/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -112,6 +114,7 @@ const ESTADO_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 export default function ExtractoBancarioPage() {
+  const { empresaId } = useEmpresaContable();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [uploading, setUploading] = useState(false);
   const [matching, setMatching] = useState(false);
@@ -138,14 +141,16 @@ export default function ExtractoBancarioPage() {
   const cargarHistorial = useCallback(async (offsetVal: number = 0, estado: string = "todos") => {
     setLoadingHistorial(true);
     try {
-      const params = new URLSearchParams({
+      const queryParams: Record<string, string> = {
         limit: String(HISTORIAL_LIMIT),
         offset: String(offsetVal),
-      });
-      if (estado !== "todos") params.set("estado", estado);
+      };
+      if (estado !== "todos") queryParams.estado = estado;
 
-      const res = await authenticatedFetch(
-        `/api/admin/contabilidad/extracto/transacciones?${params}`
+      const res = await apiContableFetch(
+        "/api/admin/contabilidad/extracto/transacciones",
+        empresaId,
+        queryParams
       );
       if (res.ok) {
         const data = await res.json();
@@ -157,7 +162,7 @@ export default function ExtractoBancarioPage() {
     } finally {
       setLoadingHistorial(false);
     }
-  }, []);
+  }, [empresaId]);
 
   useEffect(() => {
     cargarHistorial(0, "todos");

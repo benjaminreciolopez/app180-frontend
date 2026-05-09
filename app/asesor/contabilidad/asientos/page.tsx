@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { authenticatedFetch } from "@/utils/api";
+import { apiContableFetch, buildContableUrl } from "@/utils/apiContable";
+import { useEmpresaContable } from "@/hooks/useEmpresaContable";
 import CuentaAutocomplete from "@/components/admin/contabilidad/CuentaAutocomplete";
 import {
     Card,
@@ -152,6 +154,7 @@ function emptyLinea(): AsientoLinea {
 // ===========================================================================
 
 export default function AsientosPage() {
+    const { empresaId } = useEmpresaContable();
     // --- State: list ---
     const [asientos, setAsientos] = useState<Asiento[]>([]);
     const [loading, setLoading] = useState(true);
@@ -274,8 +277,9 @@ export default function AsientosPage() {
             if (sortField) params.set("sort_field", sortField);
             if (sortDir) params.set("sort_dir", sortDir);
 
+            const baseUrl = `/api/admin/contabilidad/asientos?${params.toString()}`;
             const res = await authenticatedFetch(
-                `/api/admin/contabilidad/asientos?${params.toString()}`
+                buildContableUrl(baseUrl, empresaId)
             );
             if (res.ok) {
                 const json = await res.json();
@@ -287,7 +291,7 @@ export default function AsientosPage() {
         } finally {
             setLoading(false);
         }
-    }, [year, page, limit, fechaDesde, fechaHasta, tipoFilter, estadoFilter, buscarDebounced, sortField, sortDir]);
+    }, [year, page, limit, fechaDesde, fechaHasta, tipoFilter, estadoFilter, buscarDebounced, sortField, sortDir, empresaId]);
 
     useEffect(() => {
         loadAsientos();

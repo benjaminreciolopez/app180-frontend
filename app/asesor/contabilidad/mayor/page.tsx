@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/table";
 import { Search, BookOpen, ArrowUpDown } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
+import { apiContableFetch } from "@/utils/apiContable";
+import { useEmpresaContable } from "@/hooks/useEmpresaContable";
 import ExportButton from "@/components/admin/contabilidad/ExportButton";
 
 interface Cuenta {
@@ -53,6 +55,7 @@ const formatDate = (dateStr: string) => {
 };
 
 export default function LibroMayorPage() {
+    const { empresaId } = useEmpresaContable();
     const [searchTerm, setSearchTerm] = useState("");
     const [cuentas, setCuentas] = useState<Cuenta[]>([]);
     const [selectedCuenta, setSelectedCuenta] = useState<Cuenta | null>(null);
@@ -77,7 +80,7 @@ export default function LibroMayorPage() {
         async function loadAllCuentas() {
             try {
                 setLoadingCuentas(true);
-                const res = await authenticatedFetch("/api/admin/contabilidad/cuentas");
+                const res = await apiContableFetch("/api/admin/contabilidad/cuentas", empresaId);
                 if (res.ok) {
                     const data = await res.json();
                     setAllCuentas(Array.isArray(data) ? data : data.cuentas || []);
@@ -100,8 +103,10 @@ export default function LibroMayorPage() {
         }
         setSearching(true);
         try {
-            const res = await authenticatedFetch(
-                `/api/admin/contabilidad/cuentas?search=${encodeURIComponent(term)}`
+            const res = await apiContableFetch(
+                "/api/admin/contabilidad/cuentas",
+                empresaId,
+                { search: term }
             );
             if (res.ok) {
                 const data = await res.json();
@@ -129,11 +134,10 @@ export default function LibroMayorPage() {
         if (!selectedCuenta) return;
         setLoading(true);
         try {
-            const params = new URLSearchParams();
-            if (fechaDesde) params.set("fecha_desde", fechaDesde);
-            if (fechaHasta) params.set("fecha_hasta", fechaHasta);
-            const res = await authenticatedFetch(
-                `/api/admin/contabilidad/mayor/${selectedCuenta.codigo}?${params.toString()}`
+            const res = await apiContableFetch(
+                `/api/admin/contabilidad/mayor/${selectedCuenta.codigo}`,
+                empresaId,
+                { fecha_desde: fechaDesde, fecha_hasta: fechaHasta }
             );
             if (res.ok) {
                 const data: MayorResponse = await res.json();

@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authenticatedFetch } from "@/utils/api";
+import { apiContableFetch } from "@/utils/apiContable";
+import { useEmpresaContable } from "@/hooks/useEmpresaContable";
 
 export interface Cuenta {
   id: number;
@@ -20,15 +22,15 @@ const CUENTAS_KEY = ["admin", "contabilidad", "cuentas"] as const;
 
 /** Fetch cuentas with server-side filters */
 export function useCuentas(filters: { grupo?: string; tipo?: string; search?: string }) {
+  const { empresaId } = useEmpresaContable();
   return useQuery<Cuenta[]>({
-    queryKey: [...CUENTAS_KEY, filters],
+    queryKey: [...CUENTAS_KEY, empresaId, filters],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters.grupo && filters.grupo !== "todos") params.set("grupo", filters.grupo);
-      if (filters.tipo && filters.tipo !== "todos") params.set("tipo", filters.tipo);
-      if (filters.search) params.set("search", filters.search);
-      const query = params.toString() ? `?${params.toString()}` : "";
-      const res = await authenticatedFetch(`/api/admin/contabilidad/cuentas${query}`);
+      const queryParams: Record<string, string> = {};
+      if (filters.grupo && filters.grupo !== "todos") queryParams.grupo = filters.grupo;
+      if (filters.tipo && filters.tipo !== "todos") queryParams.tipo = filters.tipo;
+      if (filters.search) queryParams.search = filters.search;
+      const res = await apiContableFetch("/api/admin/contabilidad/cuentas", empresaId, queryParams);
       if (!res.ok) throw new Error("Error cargando cuentas");
       const data = await res.json();
       return Array.isArray(data) ? data : data.cuentas || [];

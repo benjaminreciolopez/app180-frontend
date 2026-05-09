@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { authenticatedFetch } from "@/utils/api";
+import { apiContableFetch } from "@/utils/apiContable";
+import { useEmpresaContable } from "@/hooks/useEmpresaContable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -40,6 +41,7 @@ const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(amount);
 
 export default function PerdidasGananciasPage() {
+    const { empresaId, modo } = useEmpresaContable();
     const [fechaDesde, setFechaDesde] = useState(() => {
         const today = new Date();
         return `${today.getFullYear()}-01-01`;
@@ -56,8 +58,10 @@ export default function PerdidasGananciasPage() {
         setLoading(true);
         setError(null);
         try {
-            const res = await authenticatedFetch(
-                `/api/admin/contabilidad/pyg?fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}`
+            const res = await apiContableFetch(
+                "/api/admin/contabilidad/pyg",
+                empresaId,
+                { fecha_desde: fechaDesde, fecha_hasta: fechaHasta }
             );
             if (res.ok) {
                 const json = await res.json();
@@ -66,8 +70,15 @@ export default function PerdidasGananciasPage() {
                 } else {
                     setError(json.message || "Error al cargar PyG");
                 }
+            } else if (res.status === 400 && modo === "despacho") {
+                setError(
+                    "Tu despacho no tiene empresa contable propia configurada. " +
+                    "Crea/asigna una empresa para tu asesoría desde Configuración para usar PyG del despacho."
+                );
             } else {
-                setError("Error al cargar la cuenta de perdidas y ganancias");
+                let msg = "Error al cargar la cuenta de perdidas y ganancias";
+                try { const j = await res.json(); if (j?.error) msg = j.error; } catch {}
+                setError(msg);
             }
         } catch (err) {
             console.error("Error loading PyG:", err);
@@ -79,7 +90,7 @@ export default function PerdidasGananciasPage() {
 
     useEffect(() => {
         loadData();
-    }, [fechaDesde, fechaHasta]);
+    }, [fechaDesde, fechaHasta, empresaId]);
 
     const renderCuentasTable = (cuentas: CuentaPyG[]) => {
         const grouped: Record<string, CuentaPyG[]> = {};
