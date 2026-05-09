@@ -8,7 +8,8 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, X } from "lucide-react";
+import { FileText, X, RefreshCw, FileSignature } from "lucide-react";
+import Link from "next/link";
 
 interface Factura {
   id: string;
@@ -65,12 +66,30 @@ export default function AsesorClienteFacturasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-bold tracking-tight">Facturas del cliente</h1>
-        <p className="text-xs text-muted-foreground">
-          {filtered.length} facturas - {formatCurrency(totalImporte)} total
-          {hasFilter && facturas.length !== filtered.length && ` (de ${facturas.length})`}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-bold tracking-tight">Facturas del cliente</h1>
+          <p className="text-xs text-muted-foreground">
+            {filtered.length} facturas - {formatCurrency(totalImporte)} total
+            {hasFilter && facturas.length !== filtered.length && ` (de ${facturas.length})`}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/asesor/clientes/${empresaId}/facturas/recurrentes`}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
+          >
+            <RefreshCw size={13} />
+            Recurrentes
+          </Link>
+          <Link
+            href={`/asesor/clientes/${empresaId}/facturas/proformas`}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border bg-primary/5 hover:bg-primary/10 transition-colors"
+          >
+            <FileSignature size={13} />
+            Nueva proforma
+          </Link>
+        </div>
       </div>
 
       {/* Filtros de fecha */}

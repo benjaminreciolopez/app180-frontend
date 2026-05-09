@@ -125,6 +125,27 @@ export default function RetaDashboardPage() {
         </div>
         <div className="flex gap-2">
           <Button
+            variant="ghost"
+            onClick={async () => {
+              try {
+                const res = await authenticatedFetch("/asesor/reta/scan-alertas", { method: "POST" });
+                const j = await res.json();
+                if (res.ok) {
+                  alert(`Escaneo completado · ${j.alertas_pendientes ?? 0} alertas pendientes`);
+                  fetchDashboard();
+                } else {
+                  alert(j?.error || "Error en el escaneo");
+                }
+              } catch (e: any) {
+                alert(e?.message || "Error");
+              }
+            }}
+            title="Recalcular alertas RETA ahora (sin esperar al cron diario)"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Escanear alertas
+          </Button>
+          <Button
             variant="outline"
             onClick={() => router.push("/asesor/reta/pre-onboarding")}
           >

@@ -8,7 +8,8 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ReceiptEuro, X } from "lucide-react";
+import { ReceiptEuro, X, RefreshCw } from "lucide-react";
+import Link from "next/link";
 
 interface Gasto {
   id: string;
@@ -66,12 +67,21 @@ export default function AsesorClienteGastosPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-bold tracking-tight">Gastos del cliente</h1>
-        <p className="text-xs text-muted-foreground">
-          {filtered.length} gastos - {formatCurrency(totalGastos)} total
-          {hasFilter && gastos.length !== filtered.length && ` (de ${gastos.length})`}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-bold tracking-tight">Gastos del cliente</h1>
+          <p className="text-xs text-muted-foreground">
+            {filtered.length} gastos - {formatCurrency(totalGastos)} total
+            {hasFilter && gastos.length !== filtered.length && ` (de ${gastos.length})`}
+          </p>
+        </div>
+        <Link
+          href={`/asesor/clientes/${empresaId}/gastos/recurrentes`}
+          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors w-fit"
+        >
+          <RefreshCw size={13} />
+          Gastos recurrentes
+        </Link>
       </div>
 
       {/* Filtros de fecha */}

@@ -127,6 +127,9 @@ export default function AsesorClientesPage() {
 
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
+  // Toggle: incluir clientes desactivados (revocado/rechazado)
+  const [incluirInactivos, setIncluirInactivos] = useState(false);
+
   // Live polling cada 90s con toggle Live/Pausado (LiveIndicator)
   const {
     data: clientesData,
@@ -137,9 +140,12 @@ export default function AsesorClientesPage() {
     lastUpdated,
     refresh: refreshClientes,
   } = useLiveTable<{ data: ClienteVinculado[] }>({
-    queryKey: ["asesor", "clientes-list"],
+    queryKey: ["asesor", "clientes-list", incluirInactivos],
     queryFn: async () => {
-      const res = await authenticatedFetch("/asesor/clientes");
+      const url = incluirInactivos
+        ? "/asesor/clientes?incluir_inactivos=true"
+        : "/asesor/clientes";
+      const res = await authenticatedFetch(url);
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Error al cargar los clientes");
       return json;
@@ -336,6 +342,29 @@ export default function AsesorClientesPage() {
     }
   }
 
+  async function handleDesactivar(empresaId: string, nombre: string) {
+    if (!confirm(`¿Desactivar a ${nombre}? El cliente dejará de aparecer en notificaciones, alertas y agregados (puedes reactivarlo desde "Mostrar inactivos").`)) return;
+    try {
+      const res = await authenticatedFetch(`/asesor/clientes/${empresaId}/desactivar`, { method: "PUT" });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Error");
+      refreshClientes();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
+  async function handleReactivar(empresaId: string) {
+    try {
+      const res = await authenticatedFetch(`/asesor/clientes/${empresaId}/reactivar`, { method: "PUT" });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Error");
+      refreshClientes();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
   async function handleTipoChange(empresaId: string, tipo: "autonomo" | "sociedad") {
     try {
       const res = await authenticatedFetch(`/asesor/clientes/${empresaId}/tipo-contribuyente`, {
@@ -427,6 +456,15 @@ export default function AsesorClientesPage() {
             lastUpdated={lastUpdated}
             intervalSeconds={90}
           />
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={incluirInactivos}
+              onChange={(e) => setIncluirInactivos(e.target.checked)}
+              className="rounded"
+            />
+            Mostrar inactivos
+          </label>
           <Button
             variant="ghost"
             size="icon"
@@ -578,7 +616,28 @@ export default function AsesorClientesPage() {
                                     Acceder
                                     <ExternalLink size={14} />
                                   </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="gap-1 text-muted-foreground hover:text-red-600"
+                                    onClick={() => handleDesactivar(cliente.empresa_id, cliente.nombre)}
+                                    title="Desactivar cliente"
+                                  >
+                                    <XIcon size={14} />
+                                  </Button>
                                 </>
+                              )}
+                              {(cliente.estado === "revocado" || cliente.estado === "rechazado") && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1"
+                                  onClick={() => handleReactivar(cliente.empresa_id)}
+                                  title="Reactivar cliente"
+                                >
+                                  <RefreshCw size={14} />
+                                  Reactivar
+                                </Button>
                               )}
                               {cliente.estado === "pendiente" && cliente.invitado_por === "empresa" && (
                                 <>
