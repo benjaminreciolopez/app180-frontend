@@ -25,6 +25,7 @@ import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { ALL_ASESOR_DASHBOARD_WIDGETS } from "@/lib/asesor-dashboard-widgets";
 import { RetaDashboardWidget } from "@/components/reta/RetaDashboardWidget";
+import { AgregadosCards } from "@/components/asesor/AgregadosCards";
 import { isMobileDevice, isStandalone } from "@/utils/pwaDetection";
 import {
   Card,
@@ -405,6 +406,9 @@ export default function AsesorDashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* ── Vista consolidada Despacho vs Clientes (Nivel 3) ── */}
+      <AgregadosCards />
 
       {/* ── Section 1: KPIs de la Asesoria (propios) ── */}
       {isWidgetVisible("seccion_mi_asesoria") && <div>
