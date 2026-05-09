@@ -27,6 +27,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Shield } from "lucide-react";
 
 const schema = z.object({
     nombre: z.string().min(1, "El nombre es obligatorio"),
@@ -72,6 +74,14 @@ const METODOS_PAGO = [
 export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, editing, prefillData }: Props) {
     const [loading, setLoading] = useState(false);
     const skipAutoCalc = useRef(false);
+    // Vínculo con perfil RETA (cuota mensual del autónomo). Se mantiene fuera
+    // del schema porque se gestiona en un endpoint dedicado.
+    const [vincularReta, setVincularReta] = useState<boolean>(
+        editing?.vinculado_perfil_reta_id != null
+    );
+    useEffect(() => {
+        setVincularReta(editing?.vinculado_perfil_reta_id != null);
+    }, [editing?.id, editing?.vinculado_perfil_reta_id]);
 
     const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<FormValues>({
         resolver: zodResolver(schema) as any,
@@ -209,13 +219,29 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
     const onSubmit = async (data: FormValues) => {
         setLoading(true);
         try {
+            let savedId: number | undefined = editing?.id;
+            const wasLinked = editing?.vinculado_perfil_reta_id != null;
+
             if (editing) {
                 await api.put(`/api/admin/gastos-recurrentes/${editing.id}`, data);
                 showSuccess("Gasto recurrente actualizado");
             } else {
-                await api.post("/api/admin/gastos-recurrentes", data);
+                const res = await api.post("/api/admin/gastos-recurrentes", data);
+                savedId = res.data?.id ?? res.data?.data?.id;
                 showSuccess("Gasto recurrente creado");
             }
+
+            // Sincronizar el toggle "Es cuota RETA" si cambió o es nuevo y está activo
+            if (savedId && vincularReta !== wasLinked) {
+                try {
+                    await api.put(`/api/admin/gastos-recurrentes/${savedId}/vincular-reta`, {
+                        desvincular: !vincularReta,
+                    });
+                } catch (err: any) {
+                    showError(err?.response?.data?.error || "No se pudo vincular con RETA");
+                }
+            }
+
             onSuccess();
             onClose();
         } catch (error: any) {
@@ -343,6 +369,27 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+                </div>
+
+                {/* Vínculo con cuota RETA */}
+                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2 min-w-0 flex-1">
+                            <Shield size={16} className="text-amber-700 mt-0.5 shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-sm font-medium">Es la cuota RETA del autónomo</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                    Si lo activas, el importe de este gasto se actualizará
+                                    automáticamente cuando se confirme un cambio de base de
+                                    cotización. Los gastos sin marcar nunca se modifican.
+                                </p>
+                            </div>
+                        </div>
+                        <Switch
+                            checked={vincularReta}
+                            onCheckedChange={setVincularReta}
+                        />
                     </div>
                 </div>
 

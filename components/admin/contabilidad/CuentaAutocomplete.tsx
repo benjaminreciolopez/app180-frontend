@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
-import { authenticatedFetch } from "@/utils/api";
+import { apiContableFetch } from "@/utils/apiContable";
+import { useEmpresaContable } from "@/hooks/useEmpresaContable";
 
 interface Cuenta {
     codigo: string;
@@ -15,6 +16,11 @@ interface CuentaAutocompleteProps {
     onSelect: (codigo: string, nombre: string) => void;
     placeholder?: string;
     className?: string;
+    /**
+     * Forzar empresa explícita. Si se omite, el componente la deriva de la URL
+     * (modo asesoría: /asesor/clientes/[id]/... ⇒ id; despacho propio: null).
+     */
+    empresaId?: string | null;
 }
 
 export default function CuentaAutocomplete({
@@ -23,7 +29,10 @@ export default function CuentaAutocomplete({
     onSelect,
     placeholder = "4300",
     className = "",
+    empresaId: empresaIdProp,
 }: CuentaAutocompleteProps) {
+    const ctx = useEmpresaContable();
+    const empresaId = empresaIdProp ?? ctx.empresaId;
     const [query, setQuery] = useState(codigoValue);
     const [results, setResults] = useState<Cuenta[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
@@ -50,8 +59,10 @@ export default function CuentaAutocomplete({
         const timer = setTimeout(async () => {
             setSearching(true);
             try {
-                const res = await authenticatedFetch(
-                    `/api/admin/contabilidad/cuentas?search=${encodeURIComponent(query)}`
+                const res = await apiContableFetch(
+                    "/api/admin/contabilidad/cuentas",
+                    empresaId,
+                    { search: query }
                 );
                 if (res.ok) {
                     const data = await res.json();
@@ -66,7 +77,7 @@ export default function CuentaAutocomplete({
             }
         }, 300);
         return () => clearTimeout(timer);
-    }, [query]);
+    }, [query, empresaId]);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -97,8 +108,10 @@ export default function CuentaAutocomplete({
             if (query && query !== codigoValue) {
                 // User typed a code manually without selecting - try to find the account
                 try {
-                    const res = await authenticatedFetch(
-                        `/api/admin/contabilidad/cuentas?search=${encodeURIComponent(query)}`
+                    const res = await apiContableFetch(
+                        "/api/admin/contabilidad/cuentas",
+                        empresaId,
+                        { search: query }
                     );
                     if (res.ok) {
                         const data = await res.json();
@@ -119,7 +132,7 @@ export default function CuentaAutocomplete({
                 onSelect("", "");
             }
         }, 200);
-    }, [query, codigoValue, nombreValue, onSelect]);
+    }, [query, codigoValue, nombreValue, onSelect, empresaId]);
 
     return (
         <div ref={containerRef} className={`relative ${className}`}>

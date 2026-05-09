@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/services/api";
 import { showError, showSuccess } from "@/lib/toast";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Building2, Save, Loader2 } from "lucide-react";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 interface DatosCliente {
   empresa_id: string;
@@ -53,6 +54,14 @@ export default function AsesorClienteDatosPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [datos, setDatos] = useState<DatosCliente | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const initialDatosRef = useRef<string>("");
+
+  // Aviso al salir si hay cambios sin guardar
+  useUnsavedChanges(
+    dirty,
+    "Tienes cambios en los datos del cliente sin guardar. ¿Salir igualmente?"
+  );
 
   useEffect(() => {
     load();
@@ -62,7 +71,10 @@ export default function AsesorClienteDatosPage() {
     setLoading(true);
     try {
       const res = await api.get(`/asesor/clientes/${empresaId}/datos`);
-      setDatos(res.data?.data || null);
+      const fresh = res.data?.data || null;
+      setDatos(fresh);
+      initialDatosRef.current = JSON.stringify(fresh);
+      setDirty(false);
     } catch (err: any) {
       showError(err.response?.data?.error || "Error cargando datos");
     } finally {
@@ -93,6 +105,9 @@ export default function AsesorClienteDatosPage() {
         nombre_comercial: datos.nombre_comercial,
       });
       showSuccess("Datos actualizados");
+      // Re-sincronizar baseline para que el dirty se resetee
+      initialDatosRef.current = JSON.stringify(datos);
+      setDirty(false);
     } catch (err: any) {
       showError(err.response?.data?.error || "Error guardando datos");
     } finally {
@@ -101,7 +116,12 @@ export default function AsesorClienteDatosPage() {
   }
 
   function update<K extends keyof DatosCliente>(key: K, value: DatosCliente[K]) {
-    setDatos((d) => (d ? { ...d, [key]: value } : d));
+    setDatos((d) => {
+      if (!d) return d;
+      const next = { ...d, [key]: value };
+      setDirty(JSON.stringify(next) !== initialDatosRef.current);
+      return next;
+    });
   }
 
   if (loading) return <LoadingSpinner fullPage />;

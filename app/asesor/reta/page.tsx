@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RetaTramoVisualizer } from "@/components/reta/RetaTramoVisualizer";
 import { RetaRegularizacionGauge } from "@/components/reta/RetaRegularizacionGauge";
+import { CambiosPendientesPanel } from "@/components/reta/CambiosPendientesPanel";
 
 type ClienteReta = {
   empresaId: string;
@@ -182,6 +183,9 @@ export default function RetaDashboardPage() {
           </Card>
         </div>
       )}
+
+      {/* Bandeja: cambios RETA pendientes (Nivel 3 — flujo bidireccional) */}
+      <CambiosPendientesPanel />
 
       {/* Banner: clientes sin configurar */}
       {sinConfigurar.length > 0 && (

@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/select";
 import { RetaTramoVisualizer } from "@/components/reta/RetaTramoVisualizer";
 import { RetaRegularizacionGauge } from "@/components/reta/RetaRegularizacionGauge";
+import { ImportarResolucionRetaDialog } from "@/components/reta/ImportarResolucionRetaDialog";
+import { FileUp } from "lucide-react";
 
 // Helper para formatear numeros con null safety
 const fmt = (val: any, decimals = 2): string => {
@@ -55,6 +57,7 @@ export default function ClienteRetaDetailPage() {
   const [data, setData] = useState<any>(null);
   const [showEventoDialog, setShowEventoDialog] = useState(false);
   const [showCambioDialog, setShowCambioDialog] = useState(false);
+  const [showImportarDialog, setShowImportarDialog] = useState(false);
   const [nuevoEvento, setNuevoEvento] = useState({
     tipo: "vacaciones", fecha_inicio: "", fecha_fin: "",
     impacto_ingresos: 0, impacto_gastos: 0, descripcion: "",
@@ -223,9 +226,15 @@ export default function ClienteRetaDetailPage() {
                     </p>
                   </div>
                 </div>
-                <Button size="sm" onClick={() => setShowCambioDialog(true)}>
-                  Cambiar base
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setShowImportarDialog(true)} className="gap-1">
+                    <FileUp className="w-3.5 h-3.5" />
+                    Importar resolución
+                  </Button>
+                  <Button size="sm" onClick={() => setShowCambioDialog(true)}>
+                    Cambiar base
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -553,6 +562,16 @@ export default function ClienteRetaDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Importar resolución TGSS (asesor sube PDF directo → confirmado_ss) */}
+      <ImportarResolucionRetaDialog
+        open={showImportarDialog}
+        onOpenChange={setShowImportarDialog}
+        empresaId={empresa_id as string}
+        titularId={titular_id || null}
+        ejercicio={parseInt((data?.ejercicio as string) || String(new Date().getFullYear()))}
+        onImported={() => fetchData()}
+      />
 
       {/* Dialog: Cambio de base */}
       <Dialog open={showCambioDialog} onOpenChange={setShowCambioDialog}>

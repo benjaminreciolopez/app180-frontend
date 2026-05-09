@@ -29,10 +29,19 @@ export interface ClientesKpi {
   pendientes_revision_asientos: number;
 }
 
+export interface RetaKpi {
+  alertas_pendientes: number;
+  cambios_comunicados: number;
+  cambios_propuestos: number;
+  autonomos_sin_estimacion: number;
+  total_pendientes: number;
+}
+
 export interface AsesorAgregados {
   ejercicio: number;
   despacho: DespachoKpi | null;
   clientes: ClientesKpi;
+  reta?: RetaKpi;
 }
 
 /**

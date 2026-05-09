@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Briefcase, Users, ArrowRight, FileText, Receipt, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import { Briefcase, Users, ArrowRight, FileText, Receipt, AlertTriangle, TrendingUp, TrendingDown, Shield, Bell, Inbox } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAsesorAgregados } from "@/hooks/useAsesorAgregados";
@@ -41,7 +41,7 @@ export function AgregadosCards() {
         </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* MI DESPACHO */}
         <Card className="border-emerald-200 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/20">
           <CardHeader className="pb-2">
@@ -165,6 +165,62 @@ export function AgregadosCards() {
                   className="text-xs text-blue-700 dark:text-blue-300 hover:underline flex items-center gap-1"
                 >
                   Ver lista de clientes <ArrowRight className="w-3 h-3" />
+                </Link>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* RETA — alertas y cambios pendientes cross-cliente */}
+        <Card className="border-amber-200 dark:border-amber-900 bg-amber-50/30 dark:bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+                  <Shield className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
+                </div>
+                RETA
+              </CardTitle>
+              <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">
+                {data?.reta?.total_pendientes ?? 0} pdte
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading && <div className="text-xs text-muted-foreground py-4">Cargando…</div>}
+            {!isLoading && data?.reta && (
+              <>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <KPI
+                    icon={<Bell className="w-3 h-3" />}
+                    label="Alertas pendientes"
+                    value={`${data.reta.alertas_pendientes}`}
+                    color={data.reta.alertas_pendientes > 0 ? "text-amber-700 dark:text-amber-300" : "text-foreground"}
+                  />
+                  <KPI
+                    icon={<Inbox className="w-3 h-3" />}
+                    label="Cambios a confirmar"
+                    value={`${data.reta.cambios_comunicados}`}
+                    color={data.reta.cambios_comunicados > 0 ? "text-orange-700 dark:text-orange-300" : "text-foreground"}
+                  />
+                  <KPI
+                    icon={<FileText className="w-3 h-3" />}
+                    label="Propuestos sin actuar"
+                    value={`${data.reta.cambios_propuestos}`}
+                    color="text-foreground"
+                  />
+                  <KPI
+                    icon={<AlertTriangle className="w-3 h-3" />}
+                    label="Sin estimación"
+                    value={`${data.reta.autonomos_sin_estimacion}`}
+                    color={data.reta.autonomos_sin_estimacion > 0 ? "text-amber-700 dark:text-amber-300" : "text-foreground"}
+                  />
+                </div>
+                <Link
+                  href="/asesor/reta"
+                  className="text-xs text-amber-700 dark:text-amber-300 hover:underline flex items-center gap-1"
+                >
+                  Ir al panel RETA <ArrowRight className="w-3 h-3" />
                 </Link>
               </>
             )}

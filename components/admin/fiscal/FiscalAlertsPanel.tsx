@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { authenticatedFetch } from "@/utils/api";
+import { apiContableFetch } from "@/utils/apiContable";
+import { useEmpresaContable } from "@/hooks/useEmpresaContable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -124,9 +126,13 @@ interface Props {
     year: string;
     trimestre: string;
     autoOpenSimulator?: boolean;
+    /** Forzar empresa explícita; si se omite, deriva de la URL. */
+    empresaId?: string | null;
 }
 
-export default function FiscalAlertsPanel({ year, trimestre, autoOpenSimulator }: Props) {
+export default function FiscalAlertsPanel({ year, trimestre, autoOpenSimulator, empresaId: empresaIdProp }: Props) {
+    const ctx = useEmpresaContable();
+    const empresaId = empresaIdProp ?? ctx.empresaId;
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<AlertData | null>(null);
     const [configOpen, setConfigOpen] = useState(false);
@@ -135,7 +141,11 @@ export default function FiscalAlertsPanel({ year, trimestre, autoOpenSimulator }
     const loadAlerts = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await authenticatedFetch(`/api/admin/fiscal/alerts?year=${year}&trimestre=${trimestre}`);
+            const res = await apiContableFetch(
+                "/api/admin/fiscal/alerts",
+                empresaId,
+                { year, trimestre }
+            );
             if (res.ok) {
                 const json = await res.json();
                 if (json.success) setData(json.data);
@@ -145,7 +155,7 @@ export default function FiscalAlertsPanel({ year, trimestre, autoOpenSimulator }
         } finally {
             setLoading(false);
         }
-    }, [year, trimestre]);
+    }, [year, trimestre, empresaId]);
 
     useEffect(() => {
         loadAlerts();
