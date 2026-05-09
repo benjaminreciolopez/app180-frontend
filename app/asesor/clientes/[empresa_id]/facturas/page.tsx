@@ -8,7 +8,7 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, X, RefreshCw, FileSignature } from "lucide-react";
+import { FileText, X, RefreshCw, FileSignature, Plus } from "lucide-react";
 import Link from "next/link";
 
 interface Factura {
@@ -84,10 +84,17 @@ export default function AsesorClienteFacturasPage() {
           </Link>
           <Link
             href={`/asesor/clientes/${empresaId}/facturas/proformas`}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border bg-primary/5 hover:bg-primary/10 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
           >
             <FileSignature size={13} />
             Nueva proforma
+          </Link>
+          <Link
+            href={`/asesor/clientes/${empresaId}/facturas/crear`}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus size={13} />
+            Nueva factura
           </Link>
         </div>
       </div>

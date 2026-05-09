@@ -8,8 +8,9 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ReceiptEuro, X, RefreshCw } from "lucide-react";
+import { ReceiptEuro, X, RefreshCw, Plus } from "lucide-react";
 import Link from "next/link";
+import DrawerGastoAdmin from "@/components/admin/drawer/DrawerGastoAdmin";
 
 interface Gasto {
   id: string;
@@ -33,6 +34,8 @@ export default function AsesorClienteGastosPage() {
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingGasto, setEditingGasto] = useState<any>(null);
 
   useEffect(() => {
     loadGastos();
@@ -75,14 +78,31 @@ export default function AsesorClienteGastosPage() {
             {hasFilter && gastos.length !== filtered.length && ` (de ${gastos.length})`}
           </p>
         </div>
-        <Link
-          href={`/asesor/clientes/${empresaId}/gastos/recurrentes`}
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors w-fit"
-        >
-          <RefreshCw size={13} />
-          Gastos recurrentes
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/asesor/clientes/${empresaId}/gastos/recurrentes`}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
+          >
+            <RefreshCw size={13} />
+            Gastos recurrentes
+          </Link>
+          <button
+            type="button"
+            onClick={() => { setEditingGasto(null); setDrawerOpen(true); }}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus size={13} />
+            Nuevo gasto
+          </button>
+        </div>
       </div>
+
+      <DrawerGastoAdmin
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onSuccess={() => { setDrawerOpen(false); loadGastos(); }}
+        editingGasto={editingGasto}
+      />
 
       {/* Filtros de fecha */}
       <div className="flex flex-wrap items-center gap-3">
