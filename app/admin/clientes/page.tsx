@@ -297,8 +297,16 @@ export default function AdminClientesPage() {
                   className="border-b last:border-0 hover:bg-slate-50"
                 >
                   <td
-                    className="p-3 font-medium text-blue-600 cursor-pointer hover:underline"
-                    onClick={() => router.push(`/admin/clientes/${c.id}`)}
+                    className={
+                      isAsesorContext
+                        ? "p-3 font-medium text-slate-800"
+                        : "p-3 font-medium text-blue-600 cursor-pointer hover:underline"
+                    }
+                    onClick={
+                      isAsesorContext
+                        ? undefined
+                        : () => router.push(`/admin/clientes/${c.id}`)
+                    }
                   >
                     {c.nombre}
                   </td>
@@ -407,6 +415,38 @@ export default function AdminClientesPage() {
 
               {/* Form Content with Tabs */}
               <div className="flex-1 overflow-y-auto p-6">
+                {/* En modo asesoría, los campos básicos (Nombre + Código) se
+                    muestran fuera de los tabs porque la barra de tabs está
+                    oculta y solo se ve la pestaña Fiscal. */}
+                {isAsesorContext && (
+                  <div className="mb-6 grid grid-cols-3 gap-3 bg-slate-50/60 p-4 rounded-xl border border-slate-100">
+                    <div className="col-span-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">
+                        Nombre
+                      </label>
+                      <Input
+                        placeholder="Nombre del cliente"
+                        className={`bg-white border-slate-200 ${formErrors.nombre ? "border-red-400 ring-1 ring-red-400" : ""}`}
+                        value={editing.nombre}
+                        onChange={(e) => {
+                          setEditing({ ...editing, nombre: e.target.value });
+                          if (formErrors.nombre) setFormErrors((p) => ({ ...p, nombre: "" }));
+                        }}
+                      />
+                      {formErrors.nombre && <p className="text-xs text-red-500 mt-1">{formErrors.nombre}</p>}
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">
+                        Código
+                      </label>
+                      <Input
+                        value={editing.codigo || ""}
+                        disabled
+                        className="bg-slate-100 border-slate-200 font-mono text-xs cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+                )}
                 <Tabs defaultValue={isAsesorContext ? "fiscal" : "general"} className="w-full">
                   {/* En modo asesoría, ocultamos la barra de tabs entera porque
                       solo se muestra la pestaña Fiscal. */}
