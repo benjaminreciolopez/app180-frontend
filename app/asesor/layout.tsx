@@ -589,6 +589,25 @@ function AsesorLayoutInner({
         <ClientTabsProvider>
           {/* Multi-tab: barra de pestañas de clientes abiertos (sólo desktop) */}
           <ClientTabsBar />
+          {/* Banner "Mi Despacho" — sólo cuando NO estamos en el panel de un cliente
+              (ahí el layout del cliente ya muestra su propio banner azul). */}
+          {!pathname.match(/^\/asesor\/clientes\/[0-9a-f-]{36}/i) && (
+            <div className="sticky top-0 z-[5] bg-emerald-50/90 dark:bg-emerald-950/30 border-b border-emerald-200 dark:border-emerald-900 backdrop-blur-sm">
+              <div className="px-4 md:px-6 py-1.5 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center shrink-0">
+                    <Briefcase size={11} className="text-emerald-700 dark:text-emerald-300" />
+                  </div>
+                  <span className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-100 truncate">
+                    Mi Despacho
+                  </span>
+                  <span className="text-[10px] text-emerald-700/70 dark:text-emerald-300/70 truncate hidden sm:inline">
+                    · gestionando datos de tu propia asesoría
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
           <QuickViewProvider>
             <div className="flex-1 overflow-y-auto md:p-6">
               {children}
