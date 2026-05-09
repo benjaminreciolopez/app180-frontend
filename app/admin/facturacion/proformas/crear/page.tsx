@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import CrearClienteDialog from "@/components/shared/CrearClienteDialog"
 
 interface Linea {
   id: number
@@ -90,6 +91,7 @@ export default function CrearProformaPage() {
   const [retencionPorcentaje, setRetencionPorcentaje] = useState(0)
   const [saving, setSaving] = useState(false)
   const [clienteOpen, setClienteOpen] = useState(false)
+  const [crearClienteOpen, setCrearClienteOpen] = useState(false)
 
   useEffect(() => {
     const fetchClientes = async () => {
@@ -217,7 +219,21 @@ export default function CrearProformaPage() {
               <PopoverContent className="w-[400px] p-0">
                 <Command>
                   <CommandInput placeholder="Buscar cliente..." />
-                  <CommandEmpty>No encontrado.</CommandEmpty>
+                  <CommandEmpty>
+                    <div className="p-2 text-sm text-slate-500">
+                      No encontrado.
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-1 w-full justify-start gap-1.5 text-blue-600 hover:text-blue-700"
+                        onClick={() => { setClienteOpen(false); setCrearClienteOpen(true); }}
+                      >
+                        <Plus size={14} />
+                        Crear nuevo cliente
+                      </Button>
+                    </div>
+                  </CommandEmpty>
                   <CommandGroup className="max-h-[300px] overflow-auto">
                     {clientes.map(cliente => (
                       <CommandItem
@@ -244,6 +260,18 @@ export default function CrearProformaPage() {
                       </CommandItem>
                     ))}
                   </CommandGroup>
+                  <div className="border-t p-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start gap-1.5 text-blue-600 hover:text-blue-700"
+                      onClick={() => { setClienteOpen(false); setCrearClienteOpen(true); }}
+                    >
+                      <Plus size={14} />
+                      Crear nuevo cliente
+                    </Button>
+                  </div>
                 </Command>
               </PopoverContent>
             </Popover>
@@ -417,6 +445,16 @@ export default function CrearProformaPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Alta rápida de cliente desde el dropdown */}
+      <CrearClienteDialog
+        open={crearClienteOpen}
+        onOpenChange={setCrearClienteOpen}
+        onCreated={(c) => {
+          setClientes((prev) => [...prev, c as any]);
+          setClienteId(c.id);
+        }}
+      />
     </div>
   )
 }

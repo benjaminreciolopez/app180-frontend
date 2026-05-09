@@ -60,6 +60,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import ClientFiscalForm from "@/components/admin/clientes/ClientFiscalForm"
+import CrearClienteDialog from "@/components/shared/CrearClienteDialog"
 
 // --- TYPES ---
 interface Linea {
@@ -147,6 +148,8 @@ export default function CrearFacturaPage() {
 
     // Client Edit Modal State
     const [isClientEditOpen, setIsClientEditOpen] = useState(false)
+    // Alta rápida de cliente desde el dropdown
+    const [crearClienteOpen, setCrearClienteOpen] = useState(false)
     const [minFecha, setMinFecha] = useState<string>("")
     const [nextNumero, setNextNumero] = useState<string | null>(null)
 
@@ -632,7 +635,24 @@ export default function CrearFacturaPage() {
                                         <PopoverContent className="w-[400px] p-0">
                                             <Command>
                                                 <CommandInput placeholder="Buscar cliente..." />
-                                                <CommandEmpty>No encontrado.</CommandEmpty>
+                                                <CommandEmpty>
+                                                    <div className="p-2 text-sm text-slate-500">
+                                                        No encontrado.
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="mt-1 w-full justify-start gap-1.5 text-blue-600 hover:text-blue-700"
+                                                            onClick={() => {
+                                                                setClienteOpen(false);
+                                                                setCrearClienteOpen(true);
+                                                            }}
+                                                        >
+                                                            <Plus size={14} />
+                                                            Crear nuevo cliente
+                                                        </Button>
+                                                    </div>
+                                                </CommandEmpty>
                                                 <CommandGroup className="max-h-[300px] overflow-auto">
                                                     {clientes.map((cliente: any) => (
                                                         <CommandItem
@@ -673,6 +693,21 @@ export default function CrearFacturaPage() {
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>
+                                                <div className="border-t p-1">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="w-full justify-start gap-1.5 text-blue-600 hover:text-blue-700"
+                                                        onClick={() => {
+                                                            setClienteOpen(false);
+                                                            setCrearClienteOpen(true);
+                                                        }}
+                                                    >
+                                                        <Plus size={14} />
+                                                        Crear nuevo cliente
+                                                    </Button>
+                                                </div>
                                             </Command>
                                         </PopoverContent>
                                     </Popover>
@@ -1206,6 +1241,17 @@ export default function CrearFacturaPage() {
                     })()}
                 </DialogContent>
             </Dialog>
+
+            {/* Alta rápida de cliente desde el dropdown */}
+            <CrearClienteDialog
+                open={crearClienteOpen}
+                onOpenChange={setCrearClienteOpen}
+                onCreated={(c) => {
+                    // Añadir al listado y preseleccionar
+                    setClientes((prev) => [...prev, c as any]);
+                    setClienteId(c.id);
+                }}
+            />
 
         </div>
     )
