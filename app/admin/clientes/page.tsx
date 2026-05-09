@@ -18,7 +18,7 @@ import { showSuccess, showError } from "@/lib/toast";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { UniversalExportButton } from "@/components/shared/UniversalExportButton";
 import ClientFiscalFields from "@/components/admin/clientes/ClientFiscalFields";
 import ClientTarifasPanel from "@/components/admin/clientes/ClientTarifasPanel";
@@ -75,6 +75,11 @@ export default function AdminClientesPage() {
   const [sortConfig, setSortConfig] = useState<SortConfig>(loadSortConfig);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const router = useRouter();
+  const pathname = usePathname();
+  // En modo asesoría (la página se renderiza bajo /asesor/clientes/[id]/clientes)
+  // solo interesa la pestaña Fiscal del modal de edición. General, Tarifas y
+  // Ubicación son cosas operativas del propio cliente, no del gestor.
+  const isAsesorContext = pathname?.startsWith("/asesor/clientes/") || false;
   const confirm = useConfirm();
 
   const toggleSort = useCallback((column: SortColumn) => {
@@ -402,23 +407,28 @@ export default function AdminClientesPage() {
 
               {/* Form Content with Tabs */}
               <div className="flex-1 overflow-y-auto p-6">
-                <Tabs defaultValue="general" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-6 bg-slate-100 p-1 rounded-xl">
-                    <TabsTrigger value="general" className="rounded-lg gap-2">
-                       <Building2 size={14} /> General
-                    </TabsTrigger>
-                    <TabsTrigger value="fiscal" className="rounded-lg gap-2">
-                       <ReceiptEuro size={14} /> Fiscal
-                    </TabsTrigger>
-                    <TabsTrigger value="tarifas" className="rounded-lg gap-2">
-                       <Euro size={14} /> Tarifas
-                    </TabsTrigger>
-                    <TabsTrigger value="geo" className="rounded-lg gap-2">
-                       <MapPin size={14} /> Ubicación
-                    </TabsTrigger>
-                  </TabsList>
+                <Tabs defaultValue={isAsesorContext ? "fiscal" : "general"} className="w-full">
+                  {/* En modo asesoría, ocultamos la barra de tabs entera porque
+                      solo se muestra la pestaña Fiscal. */}
+                  {!isAsesorContext && (
+                    <TabsList className="grid w-full grid-cols-4 mb-6 bg-slate-100 p-1 rounded-xl">
+                      <TabsTrigger value="general" className="rounded-lg gap-2">
+                         <Building2 size={14} /> General
+                      </TabsTrigger>
+                      <TabsTrigger value="fiscal" className="rounded-lg gap-2">
+                         <ReceiptEuro size={14} /> Fiscal
+                      </TabsTrigger>
+                      <TabsTrigger value="tarifas" className="rounded-lg gap-2">
+                         <Euro size={14} /> Tarifas
+                      </TabsTrigger>
+                      <TabsTrigger value="geo" className="rounded-lg gap-2">
+                         <MapPin size={14} /> Ubicación
+                      </TabsTrigger>
+                    </TabsList>
+                  )}
 
-                  {/* TAB GENERAL */}
+                  {/* TAB GENERAL — solo modo admin */}
+                  {!isAsesorContext && (
                   <TabsContent value="general" className="space-y-6 mt-0 border-0 p-0">
                     <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
                       <div>
@@ -525,17 +535,19 @@ export default function AdminClientesPage() {
                       />
                     </div>
                   </TabsContent>
+                  )}
 
-                  {/* TAB FISCAL */}
+                  {/* TAB FISCAL — siempre visible (único en modo asesor) */}
                   <TabsContent value="fiscal" className="space-y-6 mt-0 border-0 p-0 pt-4">
-                    <ClientFiscalFields 
+                    <ClientFiscalFields
                         data={editing}
                         onChange={(field, value) => setEditing({ ...editing, [field]: value })}
                         readOnly={false}
                     />
                   </TabsContent>
 
-                  {/* TAB TARIFAS */}
+                  {/* TAB TARIFAS — solo modo admin */}
+                  {!isAsesorContext && (
                   <TabsContent value="tarifas" className="space-y-6 mt-0 border-0 p-0 pt-4">
                     {editing.id ? (
                       <ClientTarifasPanel clienteId={editing.id} />
@@ -545,8 +557,10 @@ export default function AdminClientesPage() {
                       </div>
                     )}
                   </TabsContent>
+                  )}
 
-                  {/* TAB GEOLOCALIZACIÓN Y DIRECCIÓN */}
+                  {/* TAB GEOLOCALIZACIÓN Y DIRECCIÓN — solo modo admin */}
+                  {!isAsesorContext && (
                   <TabsContent value="geo" className="space-y-6 mt-0 border-0 p-0">
                     <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4">
                       <h4 className="text-sm font-semibold text-slate-700">Dirección Postal</h4>
@@ -681,6 +695,7 @@ export default function AdminClientesPage() {
                       </div>
                     </div>
                   </TabsContent>
+                  )}
                 </Tabs>
               </div>
 
