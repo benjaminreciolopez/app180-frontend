@@ -8,8 +8,9 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, X, RefreshCw, FileSignature, Plus } from "lucide-react";
+import { FileText, X, RefreshCw, FileSignature, Plus, FileSpreadsheet, Inbox } from "lucide-react";
 import Link from "next/link";
+import ImportCsvDialog, { ResumenFacturas, ResultadoFacturas } from "@/components/shared/ImportCsvDialog";
 
 interface Factura {
   id: string;
@@ -19,6 +20,7 @@ interface Factura {
   subtotal: number;
   total: number;
   estado: string;
+  importada?: boolean;
 }
 
 const formatCurrency = (amount: number) =>
@@ -27,6 +29,7 @@ const formatCurrency = (amount: number) =>
 export default function AsesorClienteFacturasPage() {
   const params = useParams();
   const empresaId = params.empresa_id as string;
+  const [importOpen, setImportOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [facturas, setFacturas] = useState<Factura[]>([]);
@@ -89,6 +92,14 @@ export default function AsesorClienteFacturasPage() {
             <FileSignature size={13} />
             Nueva proforma
           </Link>
+          <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
+          >
+            <FileSpreadsheet size={13} />
+            Importar CSV
+          </button>
           <Link
             href={`/asesor/clientes/${empresaId}/facturas/crear`}
             className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
@@ -135,7 +146,29 @@ export default function AsesorClienteFacturasPage() {
             </p>
           </CardContent>
         </Card>
-      ) : (
+      ) : null}
+
+      <ImportCsvDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        titulo="Importar facturas históricas"
+        descripcion="Sube un CSV con las facturas que el cliente ya tenía emitidas antes de gestionarlas con la app. Auto-creará los clientes finales que no existan y vinculará a asientos contables si los encuentra."
+        plantillaUrl="/api/admin/import/facturas/plantilla"
+        previewUrl="/api/admin/import/facturas/preview"
+        confirmUrl="/api/admin/import/facturas/confirmar"
+        renderResumen={(p) => <ResumenFacturas preview={p} />}
+        renderResultado={(r) => <ResultadoFacturas resultado={r} />}
+        onCompleted={async () => {
+          // Recargar listado tras importar
+          try {
+            const res = await api.get("/admin/facturacion/facturas");
+            const arr = res.data?.data ?? res.data?.facturas ?? res.data;
+            setFacturas(Array.isArray(arr) ? arr : []);
+          } catch { /* silent */ }
+        }}
+      />
+
+      {filtered.length === 0 ? null : (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Facturas emitidas</CardTitle>
@@ -145,7 +178,7 @@ export default function AsesorClienteFacturasPage() {
               {filtered.map((f) => (
                 <div key={f.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-sm">{f.numero}</p>
                       <Badge
                         variant={f.estado === "pagada" ? "default" : f.estado === "pendiente" ? "secondary" : "destructive"}
@@ -153,6 +186,11 @@ export default function AsesorClienteFacturasPage() {
                       >
                         {f.estado}
                       </Badge>
+                      {f.importada && (
+                        <Badge variant="outline" className="text-[10px] border-purple-300 text-purple-700 bg-purple-50">
+                          <Inbox size={10} className="mr-0.5" /> Importada
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {f.cliente_nombre} - {new Date(f.fecha).toLocaleDateString("es-ES")}

@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, X, Building2, MapPin, ReceiptEuro, Info, Map as MapIcon, Euro, ArrowUp, ArrowDown, ArrowUpDown, Users } from "lucide-react";
+import { Plus, Pencil, X, Building2, MapPin, ReceiptEuro, Info, Map as MapIcon, Euro, ArrowUp, ArrowDown, ArrowUpDown, Users, FileSpreadsheet } from "lucide-react";
+import ImportCsvDialog, { ResumenClientes, ResultadoClientes } from "@/components/shared/ImportCsvDialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showSuccess, showError } from "@/lib/toast";
@@ -71,6 +72,7 @@ export default function AdminClientesPage() {
 
   const [geoOpen, setGeoOpen] = useState(false);
   const [editing, setEditing] = useState<Cliente | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig>(loadSortConfig);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -241,16 +243,32 @@ export default function AdminClientesPage() {
         <h1 className="text-2xl font-semibold">Clientes</h1>
 
         <div className="flex gap-2">
-             <UniversalExportButton 
-                module="clientes" 
-                queryParams={{}} 
+             <UniversalExportButton
+                module="clientes"
+                queryParams={{}}
                 label="Exportar"
             />
+            <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+              <FileSpreadsheet size={16} /> Importar CSV
+            </Button>
             <Button onClick={openCreate} className="gap-2">
             <Plus size={18} /> Nuevo cliente
             </Button>
         </div>
       </div>
+
+      <ImportCsvDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        titulo="Importar clientes desde CSV"
+        descripcion="Sube un fichero con la cabecera de la plantilla. Te mostraremos un resumen antes de aplicar los cambios."
+        plantillaUrl="/api/admin/import/clientes/plantilla"
+        previewUrl="/api/admin/import/clientes/preview"
+        confirmUrl="/api/admin/import/clientes/confirmar"
+        renderResumen={(p) => <ResumenClientes preview={p} />}
+        renderResultado={(r) => <ResultadoClientes resultado={r} />}
+        onCompleted={() => { /* useClientes invalidará por sí mismo si hay refetch global, si no podemos forzar reload */ window.dispatchEvent(new Event("clientes-imported")); }}
+      />
 
       {error && <div className="text-red-600">{error}</div>}
 
