@@ -25,6 +25,7 @@ import { authenticatedFetch } from "@/utils/api";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { useLiveTable } from "@/hooks/useLiveTable";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -129,6 +130,10 @@ export default function AsesorClientesPage() {
 
   // Toggle: incluir clientes desactivados (revocado/rechazado)
   const [incluirInactivos, setIncluirInactivos] = useState(false);
+  const queryClient = useQueryClient();
+  // Invalidar TODAS las variantes (con/sin inactivos) tras un cambio de estado.
+  const invalidateClientesAll = () =>
+    queryClient.invalidateQueries({ queryKey: ["asesor", "clientes-list"] });
 
   // Live polling cada 90s con toggle Live/Pausado (LiveIndicator)
   const {
@@ -348,7 +353,7 @@ export default function AsesorClientesPage() {
       const res = await authenticatedFetch(`/asesor/clientes/${empresaId}/desactivar`, { method: "PUT" });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Error");
-      refreshClientes();
+      await invalidateClientesAll();
     } catch (err: any) {
       alert(err.message);
     }
@@ -359,7 +364,7 @@ export default function AsesorClientesPage() {
       const res = await authenticatedFetch(`/asesor/clientes/${empresaId}/reactivar`, { method: "PUT" });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Error");
-      refreshClientes();
+      await invalidateClientesAll();
     } catch (err: any) {
       alert(err.message);
     }
