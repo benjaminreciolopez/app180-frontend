@@ -54,6 +54,11 @@ const tabs = [
     segment: "datos",
   },
   {
+    label: "Clientes",
+    icon: UsersRound,
+    segment: "clientes",
+  },
+  {
     label: "Facturas",
     icon: FileText,
     segment: "facturas",
