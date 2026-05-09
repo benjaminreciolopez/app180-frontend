@@ -25,6 +25,7 @@ import { RetaTramoVisualizer } from "@/components/reta/RetaTramoVisualizer";
 import { RetaRegularizacionGauge } from "@/components/reta/RetaRegularizacionGauge";
 import { ImportarResolucionRetaDialog } from "@/components/reta/ImportarResolucionRetaDialog";
 import { FileUp } from "lucide-react";
+import { showSuccess, showError, showInfo } from "@/lib/toast";
 
 // Helper para formatear numeros con null safety
 const fmt = (val: any, decimals = 2): string => {
@@ -81,6 +82,52 @@ export default function ClienteRetaDetailPage() {
   }, [empresa_id, titularQSFirst]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Acciones disparadas por query param (link de notificación del campanario):
+  //   ?accion=crear-cuota → llama al endpoint que crea/vincula el gasto
+  //   recurrente RETA con la cuota actual del perfil. Limpia el param tras
+  //   ejecutar para que un refresh no vuelva a disparar la acción.
+  const accionParam = searchParams.get("accion");
+  useEffect(() => {
+    if (accionParam !== "crear-cuota") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authenticatedFetch(
+          `/asesor/reta/clientes/${empresa_id}/cuota-recurrente/crear`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ titular_id: titular_id || null }),
+          }
+        );
+        if (cancelled) return;
+        if (res.ok) {
+          const j = await res.json();
+          const accion = j?.resultado?.accion;
+          if (accion === "creado") showSuccess("Gasto recurrente RETA creado para este cliente");
+          else if (accion === "vinculado") showSuccess("Gasto recurrente existente vinculado al perfil RETA");
+          else showInfo("Ya existe un gasto recurrente RETA vinculado");
+          await fetchData();
+        } else {
+          const j = await res.json().catch(() => ({}));
+          showError(j?.error || "No se pudo crear la cuota");
+        }
+      } catch (err: any) {
+        if (!cancelled) showError(err?.message || "Error creando cuota");
+      } finally {
+        // Limpiar el query param para evitar re-disparo al refrescar
+        if (!cancelled) {
+          const sp = new URLSearchParams(Array.from(searchParams.entries()));
+          sp.delete("accion");
+          const qs = sp.toString();
+          router.replace(`/asesor/reta/clientes/${empresa_id}${qs ? `?${qs}` : ""}`);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accionParam, empresa_id, titular_id]);
 
   const handleRecalcular = async () => {
     setRecalculando(true);
