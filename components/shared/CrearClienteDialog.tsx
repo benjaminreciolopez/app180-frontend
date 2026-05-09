@@ -6,7 +6,7 @@
 // /asesor/clientes/[id]/facturas/... el alta se aplica a la empresa cliente
 // vinculada (no al despacho).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import {
   Dialog,
@@ -37,26 +37,52 @@ interface Props {
    *  formulario padre pueda añadirlo a su lista y preseleccionarlo. */
   onCreated: (cliente: ClienteCreado) => void;
   /** Valores por defecto opcionales (ej. NIF detectado de un PDF) */
-  initialValues?: Partial<ClienteCreado> & { direccion?: string; poblacion?: string; cp?: string };
+  initialValues?: Partial<ClienteCreado> & {
+    direccion?: string;
+    poblacion?: string;
+    cp?: string;
+    provincia?: string;
+  };
 }
 
 export default function CrearClienteDialog({ open, onOpenChange, onCreated, initialValues }: Props) {
+  const [codigo, setCodigo] = useState("");
   const [nombre, setNombre] = useState(initialValues?.nombre || "");
   const [nif, setNif] = useState(initialValues?.nif || "");
   const [email, setEmail] = useState(initialValues?.email || "");
   const [telefono, setTelefono] = useState(initialValues?.telefono || "");
   const [direccion, setDireccion] = useState(initialValues?.direccion || "");
   const [poblacion, setPoblacion] = useState(initialValues?.poblacion || "");
+  const [provincia, setProvincia] = useState(initialValues?.provincia || "");
   const [cp, setCp] = useState(initialValues?.cp || "");
   const [submitting, setSubmitting] = useState(false);
 
+  // Al abrir el dialog, sugerimos el próximo código autogenerado por el
+  // backend. El asesor puede sobreescribirlo si quiere.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get("/admin/clientes/next-code");
+        const sugerido = res.data?.codigo || res.data?.next || "";
+        if (!cancelled && sugerido) setCodigo((prev) => prev || sugerido);
+      } catch {
+        // si falla, dejamos al usuario que lo escriba a mano
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
+
   const reset = () => {
+    setCodigo("");
     setNombre(initialValues?.nombre || "");
     setNif(initialValues?.nif || "");
     setEmail(initialValues?.email || "");
     setTelefono(initialValues?.telefono || "");
     setDireccion(initialValues?.direccion || "");
     setPoblacion(initialValues?.poblacion || "");
+    setProvincia(initialValues?.provincia || "");
     setCp(initialValues?.cp || "");
   };
 
@@ -68,13 +94,29 @@ export default function CrearClienteDialog({ open, onOpenChange, onCreated, init
     }
     setSubmitting(true);
     try {
+      // Asegurar código: si el campo está vacío, pedimos uno al backend.
+      let finalCodigo = codigo.trim();
+      if (!finalCodigo) {
+        try {
+          const r = await api.get("/admin/clientes/next-code");
+          finalCodigo = r.data?.codigo || r.data?.next || "";
+        } catch { /* manejado abajo */ }
+      }
+      if (!finalCodigo) {
+        showError("No se pudo obtener un código de cliente. Introduce uno manualmente.");
+        setSubmitting(false);
+        return;
+      }
+
       const payload: any = {
+        codigo: finalCodigo,
         nombre: nombre.trim(),
         nif: nif.trim() || undefined,
         email: email.trim() || undefined,
         telefono: telefono.trim() || undefined,
         direccion: direccion.trim() || undefined,
         poblacion: poblacion.trim() || undefined,
+        provincia: provincia.trim() || undefined,
         cp: cp.trim() || undefined,
         // Datos fiscales mínimos: replicamos NIF / nombre como razón social por
         // defecto para que la factura tenga datos válidos. El asesor puede
@@ -115,16 +157,27 @@ export default function CrearClienteDialog({ open, onOpenChange, onCreated, init
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
-          <div>
-            <Label htmlFor="cli-nombre">Nombre *</Label>
-            <Input
-              id="cli-nombre"
-              autoFocus
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ej. Juan García López"
-              required
-            />
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-1">
+              <Label htmlFor="cli-codigo">Código</Label>
+              <Input
+                id="cli-codigo"
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value)}
+                placeholder="Auto"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="cli-nombre">Nombre *</Label>
+              <Input
+                id="cli-nombre"
+                autoFocus
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Ej. Juan García López"
+                required
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -183,6 +236,15 @@ export default function CrearClienteDialog({ open, onOpenChange, onCreated, init
                 placeholder="28001"
               />
             </div>
+          </div>
+          <div>
+            <Label htmlFor="cli-provincia">Provincia</Label>
+            <Input
+              id="cli-provincia"
+              value={provincia}
+              onChange={(e) => setProvincia(e.target.value)}
+              placeholder="Madrid"
+            />
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>
