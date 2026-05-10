@@ -18,6 +18,8 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   ChevronsUpDown,
+  ChevronUp,
+  ChevronDown,
   FileText,
   Loader2,
   CheckSquare,
@@ -72,6 +74,31 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+type SortField = "estado" | "numero" | "cliente_nombre" | "estado_pago" | "total"
+type SortDir = "asc" | "desc"
+const SORT_STORAGE_KEY = "facturas_despacho_sort_v1"
+const DEFAULT_SORT: { field: SortField; dir: SortDir } = { field: "numero", dir: "desc" }
+
+function readStoredSort(): { field: SortField; dir: SortDir } {
+  if (typeof window === "undefined") return DEFAULT_SORT
+  try {
+    const raw = localStorage.getItem(SORT_STORAGE_KEY)
+    if (!raw) return DEFAULT_SORT
+    const parsed = JSON.parse(raw)
+    if (parsed?.field && parsed?.dir) return parsed
+  } catch { /* ignore */ }
+  return DEFAULT_SORT
+}
+
+function getEstadoPago(f: any): "pagado" | "parcial" | "pendiente" {
+  if (f.estado_pago) return f.estado_pago
+  const pagado = Number(f.pagado || 0)
+  const total = Number(f.total || 0)
+  if (pagado >= total - 0.01) return "pagado"
+  if (pagado > 0) return "parcial"
+  return "pendiente"
+}
+
 export function FacturasListContent() {
   const router = useRouter()
   const basePath = useFacturacionBasePath()
@@ -99,6 +126,20 @@ export function FacturasListContent() {
   const [batchValidating, setBatchValidating] = useState(false)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [batchResults, setBatchResults] = useState<{ validated: any[], failed: any[] } | null>(null)
+
+  // Ordenación persistente por cabecera
+  const [sort, setSort] = useState<{ field: SortField; dir: SortDir }>(readStoredSort)
+
+  useEffect(() => {
+    try { localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify(sort)) } catch { /* ignore */ }
+  }, [sort])
+
+  const toggleSort = useCallback((field: SortField) => {
+    setSort(prev => prev.field === field
+      ? { field, dir: prev.dir === "asc" ? "desc" : "asc" }
+      : { field, dir: field === "total" ? "desc" : "asc" }
+    )
+  }, [])
 
   // Cargar datos
   const loadFacturas = useCallback(async () => {
@@ -133,9 +174,9 @@ export function FacturasListContent() {
     }
   }, [openPdfId, facturas.length])
 
-  // Filtrado local (búsqueda y estado)
+  // Filtrado local (búsqueda y estado) + ordenación
   useEffect(() => {
-    let result = facturas
+    let result = [...facturas]
 
     if (estadoFilter !== "TODOS") {
       result = result.filter(f => f.estado === estadoFilter)
@@ -150,8 +191,33 @@ export function FacturasListContent() {
       )
     }
 
+    const dir = sort.dir === "asc" ? 1 : -1
+    const pagoOrden: Record<string, number> = { pagado: 0, parcial: 1, pendiente: 2 }
+    result.sort((a, b) => {
+      switch (sort.field) {
+        case "total":
+          return (Number(a.total || 0) - Number(b.total || 0)) * dir
+        case "cliente_nombre":
+          return (a.cliente_nombre || "").localeCompare(b.cliente_nombre || "", "es", { sensitivity: "base" }) * dir
+        case "estado":
+          return (a.estado || "").localeCompare(b.estado || "") * dir
+        case "estado_pago":
+          return ((pagoOrden[getEstadoPago(a)] ?? 99) - (pagoOrden[getEstadoPago(b)] ?? 99)) * dir
+        case "numero":
+        default: {
+          // Borradores sin número: ordenar por fecha como fallback estable
+          const an = a.numero || ""
+          const bn = b.numero || ""
+          if (!an && !bn) return (new Date(a.fecha).getTime() - new Date(b.fecha).getTime()) * dir
+          if (!an) return 1 // borradores al final, independiente de la dirección
+          if (!bn) return -1
+          return an.localeCompare(bn, undefined, { numeric: true }) * dir
+        }
+      }
+    })
+
     setFilteredFacturas(result)
-  }, [facturas, estadoFilter, searchTerm])
+  }, [facturas, estadoFilter, searchTerm, sort])
 
 
   // --- ACCIONES ---
@@ -413,11 +479,11 @@ export function FacturasListContent() {
                 </button>
               </div>
             )}
-            <div className={`col-span-2 ${borradores.length > 0 ? 'md:col-span-1' : 'md:col-span-1'}`}>Estado</div>
-            <div className="col-span-3 md:col-span-2">Número / Fecha</div>
-            <div className={`col-span-4 ${borradores.length > 0 ? 'md:col-span-2' : 'md:col-span-3'}`}>Cliente</div>
-            <div className="col-span-3 md:col-span-1 text-center hidden md:block">Pago</div>
-            <div className="col-span-3 md:col-span-2 text-right">Importe</div>
+            <SortHeaderCell field="estado" label="Estado" sort={sort} onSort={toggleSort} className={`col-span-2 ${borradores.length > 0 ? 'md:col-span-1' : 'md:col-span-1'}`} />
+            <SortHeaderCell field="numero" label="Número / Fecha" sort={sort} onSort={toggleSort} className="col-span-3 md:col-span-2" />
+            <SortHeaderCell field="cliente_nombre" label="Cliente" sort={sort} onSort={toggleSort} className={`col-span-4 ${borradores.length > 0 ? 'md:col-span-2' : 'md:col-span-3'}`} />
+            <SortHeaderCell field="estado_pago" label="Pago" sort={sort} onSort={toggleSort} align="center" className="col-span-3 md:col-span-1 hidden md:flex" />
+            <SortHeaderCell field="total" label="Importe" sort={sort} onSort={toggleSort} align="right" className="col-span-3 md:col-span-2" />
             <div className="col-span-12 md:col-span-3 text-right hidden md:block">Acciones</div>
         </div>
 
@@ -898,4 +964,40 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
             </div>
         </motion.div>
     )
+}
+
+function SortHeaderCell({
+  field,
+  label,
+  sort,
+  onSort,
+  align = "left",
+  className = "",
+}: {
+  field: SortField
+  label: string
+  sort: { field: SortField; dir: SortDir }
+  onSort: (field: SortField) => void
+  align?: "left" | "center" | "right"
+  className?: string
+}) {
+  const isActive = sort.field === field
+  const justify = align === "center" ? "justify-center" : align === "right" ? "justify-end" : "justify-start"
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      className={`flex items-center gap-1 ${justify} hover:text-slate-700 transition-colors cursor-pointer select-none ${isActive ? "text-slate-900" : ""} ${className}`}
+      title={`Ordenar por ${label}`}
+    >
+      <span>{label}</span>
+      {isActive ? (
+        sort.dir === "asc"
+          ? <ChevronUp className="w-3 h-3" />
+          : <ChevronDown className="w-3 h-3" />
+      ) : (
+        <ChevronsUpDown className="w-3 h-3 opacity-40" />
+      )}
+    </button>
+  )
 }

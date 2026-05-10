@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter, useParams, usePathname } from "next/navigation"
 import { useFacturacionBasePath } from "@/hooks/useFacturacionBasePath"
 import { motion } from "framer-motion"
 import { 
@@ -78,9 +78,18 @@ interface Concepto {
 
 export default function EditarFacturaPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const basePath = useFacturacionBasePath()
   const params = useParams()
   const id = params?.id as string
+
+  // Editando desde el contexto de un cliente del asesor: volver al listado
+  // del cliente para no perder el flag asesor_empresa_id y mostrar la lista
+  // correcta tras guardar.
+  const clienteCtxMatch = pathname.match(/^\/asesor\/clientes\/([^/]+)\//)
+  const listadoPath = clienteCtxMatch
+    ? `/asesor/clientes/${clienteCtxMatch[1]}/facturas`
+    : `${basePath}/listado`
   
   // Data State
   const [loading, setLoading] = useState(true)
@@ -119,13 +128,13 @@ export default function EditarFacturaPage() {
 
         if (!f) {
            toast.error("Factura no encontrada")
-           router.push(`${basePath}/listado`)
+           router.push(listadoPath)
            return
         }
 
         if (f.estado !== 'BORRADOR') {
             toast.warning("Solo se pueden editar facturas en estado BORRADOR")
-            router.push(`${basePath}/listado`)
+            router.push(listadoPath)
             return
         }
 
@@ -343,7 +352,7 @@ export default function EditarFacturaPage() {
 
       await api.put(`/admin/facturacion/facturas/${id}`, payload)
       toast.success("Factura actualizada correctamente")
-      router.push(`${basePath}/listado`)
+      router.push(listadoPath)
     } catch (error: any) {
       console.error(error)
       toast.error(error.response?.data?.error || "Error al actualizar factura")

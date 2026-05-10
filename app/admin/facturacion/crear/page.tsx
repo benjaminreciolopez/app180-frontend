@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useFacturacionBasePath } from "@/hooks/useFacturacionBasePath"
 import { motion } from "framer-motion"
 import {
@@ -113,7 +113,17 @@ const LEGAL_IVA_TEXTS: Record<number, string> = {
 
 export default function CrearFacturaPage() {
     const router = useRouter()
+    const pathname = usePathname()
     const basePath = useFacturacionBasePath()
+
+    // Si estamos creando la factura desde el contexto de un cliente
+    // (/asesor/clientes/[empresa_id]/facturas/crear), al guardar volvemos al
+    // listado del cliente, no al del despacho del asesor — que vaciaría el
+    // flag asesor_empresa_id y mostraría una lista vacía.
+    const clienteCtxMatch = pathname.match(/^\/asesor\/clientes\/([^/]+)\//)
+    const listadoPath = clienteCtxMatch
+        ? `/asesor/clientes/${clienteCtxMatch[1]}/facturas`
+        : `${basePath}/listado`
 
     // Data State
     const [clientes, setClientes] = useState<Cliente[]>([])
@@ -507,7 +517,7 @@ export default function CrearFacturaPage() {
             toast.success("Borrador creado correctamente")
 
             // Opcional: Redirigir a listado o a vista detalle
-            router.push(`${basePath}/listado`)
+            router.push(listadoPath)
 
         } catch (error: any) {
             console.error(error)
