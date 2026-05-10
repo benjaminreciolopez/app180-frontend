@@ -249,7 +249,7 @@ export default function AdminClientesPage() {
                 label="Exportar"
             />
             <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
-              <FileSpreadsheet size={16} /> Importar CSV
+              <FileSpreadsheet size={16} /> Importar CSV/Excel
             </Button>
             <Button onClick={openCreate} className="gap-2">
             <Plus size={18} /> Nuevo cliente
@@ -260,8 +260,8 @@ export default function AdminClientesPage() {
       <ImportCsvDialog
         open={importOpen}
         onOpenChange={setImportOpen}
-        titulo="Importar clientes desde CSV"
-        descripcion="Sube un fichero con la cabecera de la plantilla. Te mostraremos un resumen antes de aplicar los cambios."
+        titulo="Importar clientes (CSV o Excel)"
+        descripcion="Sube un fichero CSV o XLSX con la cabecera de la plantilla. Te mostraremos un resumen antes de aplicar los cambios."
         plantillaUrl="/api/admin/import/clientes/plantilla"
         previewUrl="/api/admin/import/clientes/preview"
         confirmUrl="/api/admin/import/clientes/confirmar"

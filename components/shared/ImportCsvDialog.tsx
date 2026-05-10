@@ -157,15 +157,17 @@ export default function ImportCsvDialog({
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Formato CSV con cabecera. Separadores soportados: ; , tab. Números
-                con , o . decimal. Fechas DD/MM/YYYY o YYYY-MM-DD.
+                Formatos soportados: <strong>CSV</strong> (separadores ; , tab) y{" "}
+                <strong>XLSX</strong> (Excel moderno). La cabecera debe estar en la
+                primera fila. Números con , o . decimal y fechas DD/MM/YYYY o
+                YYYY-MM-DD.
               </p>
             </div>
 
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
               <input
                 type="file"
-                accept=".csv,text/csv,application/vnd.ms-excel"
+                accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                 onChange={(e) => { setFile(e.target.files?.[0] || null); setPreview(null); }}
                 className="block w-full text-sm"
               />

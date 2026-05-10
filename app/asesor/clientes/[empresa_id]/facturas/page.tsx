@@ -8,9 +8,10 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, X, RefreshCw, FileSignature, Plus, FileSpreadsheet, Inbox } from "lucide-react";
+import { FileText, X, RefreshCw, FileSignature, Plus, FileSpreadsheet, Inbox, FileUp, UserCog } from "lucide-react";
 import Link from "next/link";
 import ImportCsvDialog, { ResumenFacturas, ResultadoFacturas } from "@/components/shared/ImportCsvDialog";
+import ImportPdfFacturaDialog from "@/components/shared/ImportPdfFacturaDialog";
 
 interface Factura {
   id: string;
@@ -21,6 +22,7 @@ interface Factura {
   total: number;
   estado: string;
   importada?: boolean;
+  creada_por_asesor_id?: string | null;
 }
 
 const formatCurrency = (amount: number) =>
@@ -30,6 +32,7 @@ export default function AsesorClienteFacturasPage() {
   const params = useParams();
   const empresaId = params.empresa_id as string;
   const [importOpen, setImportOpen] = useState(false);
+  const [importPdfOpen, setImportPdfOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [facturas, setFacturas] = useState<Factura[]>([]);
@@ -98,7 +101,15 @@ export default function AsesorClienteFacturasPage() {
             className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
           >
             <FileSpreadsheet size={13} />
-            Importar CSV
+            Importar CSV/Excel
+          </button>
+          <button
+            type="button"
+            onClick={() => setImportPdfOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
+          >
+            <FileUp size={13} />
+            Importar PDF
           </button>
           <Link
             href={`/asesor/clientes/${empresaId}/facturas/crear`}
@@ -148,11 +159,23 @@ export default function AsesorClienteFacturasPage() {
         </Card>
       ) : null}
 
+      <ImportPdfFacturaDialog
+        open={importPdfOpen}
+        onOpenChange={setImportPdfOpen}
+        onCreated={async () => {
+          try {
+            const res = await api.get("/admin/facturacion/facturas");
+            const arr = res.data?.data ?? res.data?.facturas ?? res.data;
+            setFacturas(Array.isArray(arr) ? arr : []);
+          } catch { /* silent */ }
+        }}
+      />
+
       <ImportCsvDialog
         open={importOpen}
         onOpenChange={setImportOpen}
         titulo="Importar facturas históricas"
-        descripcion="Sube un CSV con las facturas que el cliente ya tenía emitidas antes de gestionarlas con la app. Auto-creará los clientes finales que no existan y vinculará a asientos contables si los encuentra."
+        descripcion="Sube un CSV o XLSX con las facturas que el cliente ya tenía emitidas antes de gestionarlas con la app. Auto-creará los clientes finales que no existan y vinculará a asientos contables si los encuentra."
         plantillaUrl="/api/admin/import/facturas/plantilla"
         previewUrl="/api/admin/import/facturas/preview"
         confirmUrl="/api/admin/import/facturas/confirmar"
@@ -189,6 +212,11 @@ export default function AsesorClienteFacturasPage() {
                       {f.importada && (
                         <Badge variant="outline" className="text-[10px] border-purple-300 text-purple-700 bg-purple-50">
                           <Inbox size={10} className="mr-0.5" /> Importada
+                        </Badge>
+                      )}
+                      {f.creada_por_asesor_id && (
+                        <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50">
+                          <UserCog size={10} className="mr-0.5" /> Emitida por gestor
                         </Badge>
                       )}
                     </div>
