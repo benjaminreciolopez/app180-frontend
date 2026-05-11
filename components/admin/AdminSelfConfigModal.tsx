@@ -72,6 +72,12 @@ export default function AdminSelfConfigModal({
     numeracion: 0, identidad: 0, economicos: 0
   });
 
+  // Tipos de IVA configurables por empresa
+  const [ivaList, setIvaList] = useState<Array<{ id: number; porcentaje: number | string; descripcion?: string }>>([]);
+  const [nuevoIvaPct, setNuevoIvaPct] = useState<string>("");
+  const [nuevoIvaDesc, setNuevoIvaDesc] = useState<string>("");
+  const [savingIva, setSavingIva] = useState(false);
+
   const [generatingAiField, setGeneratingAiField] = useState<string | null>(null);
 
   // Configuración de Dashboard (Widgets)
@@ -155,12 +161,57 @@ export default function AdminSelfConfigModal({
   // Cuando el asesor abre SU configuración, las llamadas no deben llevar X-Empresa-Id del cliente
   const selfHeaders = isAsesor ? { "X-Empresa-Id": "SELF" } : {};
 
+  // ---------- Tipos de IVA ----------
+  async function addIva() {
+    const pct = parseFloat(nuevoIvaPct.replace(",", "."));
+    if (Number.isNaN(pct) || pct < 0 || pct > 100) {
+      return showError("Introduce un porcentaje válido entre 0 y 100");
+    }
+    if (ivaList.some(i => Number(i.porcentaje) === pct)) {
+      return showError("Ese porcentaje ya está configurado");
+    }
+    setSavingIva(true);
+    try {
+      const res = await api.post(
+        "/admin/facturacion/iva",
+        { porcentaje: pct, descripcion: nuevoIvaDesc || undefined },
+        { headers: selfHeaders }
+      );
+      const nuevo = res.data?.data || res.data;
+      setIvaList(prev => [...prev, nuevo].sort((a, b) => Number(a.porcentaje) - Number(b.porcentaje)));
+      setNuevoIvaPct("");
+      setNuevoIvaDesc("");
+      showSuccess("Tipo de IVA añadido");
+    } catch (e: any) {
+      showError(e?.response?.data?.error || "Error añadiendo tipo de IVA");
+    } finally {
+      setSavingIva(false);
+    }
+  }
+
+  async function deleteIva(id: number) {
+    const ok = await confirm({
+      title: "Eliminar tipo de IVA",
+      description: "Las facturas que ya usen este tipo no cambian. ¿Eliminar?",
+      confirmLabel: "Eliminar",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/admin/facturacion/iva/${id}`, { headers: selfHeaders });
+      setIvaList(prev => prev.filter(i => i.id !== id));
+      showSuccess("Tipo de IVA eliminado");
+    } catch (e: any) {
+      showError(e?.response?.data?.error || "Error eliminando tipo de IVA");
+    }
+  }
+
   async function loadData() {
     setLoading(true);
     try {
       const widgetEndpoint = isAsesor ? "/asesor/configuracion/widgets" : "/admin/configuracion/widgets";
 
-      const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes, verifactuRes] = await Promise.all([
+      const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes, verifactuRes, ivaRes] = await Promise.all([
         api.get("/employees", { headers: selfHeaders }).catch(() => ({ data: [] })),
         api.get("/admin/plantillas", { headers: selfHeaders }).catch(() => ({ data: [] })),
         api.get("/admin/facturacion/configuracion/emisor", { headers: selfHeaders }).catch(() => ({ status: 403, data: { data: {} } })),
@@ -169,8 +220,10 @@ export default function AdminSelfConfigModal({
         api.get("/api/admin/calendar-config", { headers: selfHeaders }).catch(() => ({ data: {} })),
         api.get("/admin/email-config", { headers: selfHeaders }).catch(() => ({ data: {} })),
         api.get(widgetEndpoint, { headers: selfHeaders }).catch(() => ({ data: { widgets: [], widgets_mobile: [] } })),
-        api.get("/admin/facturacion/configuracion/verifactu/status", { headers: selfHeaders }).catch(() => ({ data: { data: null } }))
+        api.get("/admin/facturacion/configuracion/verifactu/status", { headers: selfHeaders }).catch(() => ({ data: { data: null } })),
+        api.get("/admin/facturacion/iva", { headers: selfHeaders }).catch(() => ({ data: [] })),
       ]);
+      setIvaList(Array.isArray(ivaRes.data) ? ivaRes.data : []);
 
       const employees = empRes.data || [];
       const me = employees.find((e: any) => String(e.user_id) === String(adminId));
@@ -1459,6 +1512,84 @@ export default function AdminSelfConfigModal({
                                       value={facturacionData.texto_exento}
                                       onChange={(e) => setFacturacionData({ ...facturacionData, texto_exento: e.target.value })}
                                     />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* --- TIPOS DE IVA --- */}
+                              <div className="space-y-4 pt-2">
+                                <div className="flex items-center gap-2 text-primary">
+                                  <Calculator size={18} />
+                                  <h3 className="font-bold uppercase tracking-wider text-xs">Tipos de IVA</h3>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground -mt-2">
+                                  Porcentajes disponibles al crear facturas. España estándar: 0%, 4%, 10%, 21%.
+                                </p>
+
+                                <div className="rounded-lg border bg-card p-3 space-y-2">
+                                  {ivaList.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground py-2 text-center">
+                                      No hay tipos de IVA configurados. Añade al menos uno para poder crear facturas.
+                                    </p>
+                                  ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      {ivaList.map((iva) => (
+                                        <div
+                                          key={iva.id}
+                                          className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2"
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <span className="font-mono font-semibold text-sm">
+                                              {Number(iva.porcentaje).toFixed(2)}%
+                                            </span>
+                                            {iva.descripcion && (
+                                              <span className="text-[11px] text-muted-foreground truncate">
+                                                {iva.descripcion}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                                            onClick={() => deleteIva(iva.id)}
+                                            title="Eliminar tipo de IVA"
+                                          >
+                                            <Trash2 size={14} />
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t">
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      max="100"
+                                      placeholder="% (ej: 4)"
+                                      className="text-xs sm:w-28"
+                                      value={nuevoIvaPct}
+                                      onChange={(e) => setNuevoIvaPct(e.target.value)}
+                                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addIva(); } }}
+                                    />
+                                    <Input
+                                      type="text"
+                                      placeholder="Descripción opcional (ej: superreducido)"
+                                      className="text-xs flex-1"
+                                      value={nuevoIvaDesc}
+                                      onChange={(e) => setNuevoIvaDesc(e.target.value)}
+                                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addIva(); } }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      className="gap-1"
+                                      onClick={addIva}
+                                      disabled={savingIva || !nuevoIvaPct.trim()}
+                                    >
+                                      {savingIva ? <Loader2 size={14} className="animate-spin" /> : "Añadir"}
+                                    </Button>
                                   </div>
                                 </div>
                               </div>
