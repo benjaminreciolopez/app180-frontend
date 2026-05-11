@@ -78,6 +78,10 @@ export default function AdminSelfConfigModal({
   const [nuevoIvaDesc, setNuevoIvaDesc] = useState<string>("");
   const [savingIva, setSavingIva] = useState(false);
 
+  // Previsualización de número real (calculado en backend desde factura_180)
+  const [previewNumero, setPreviewNumero] = useState<string | null>(null);
+  const [previewEsTest, setPreviewEsTest] = useState(false);
+
   const [generatingAiField, setGeneratingAiField] = useState<string | null>(null);
 
   // Configuración de Dashboard (Widgets)
@@ -211,7 +215,7 @@ export default function AdminSelfConfigModal({
     try {
       const widgetEndpoint = isAsesor ? "/asesor/configuracion/widgets" : "/admin/configuracion/widgets";
 
-      const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes, verifactuRes, ivaRes] = await Promise.all([
+      const [empRes, plantRes, emisorRes, sistemaFactRes, globalConfigRes, calendarRes, emailRes, widgetRes, verifactuRes, ivaRes, previewRes] = await Promise.all([
         api.get("/employees", { headers: selfHeaders }).catch(() => ({ data: [] })),
         api.get("/admin/plantillas", { headers: selfHeaders }).catch(() => ({ data: [] })),
         api.get("/admin/facturacion/configuracion/emisor", { headers: selfHeaders }).catch(() => ({ status: 403, data: { data: {} } })),
@@ -222,8 +226,11 @@ export default function AdminSelfConfigModal({
         api.get(widgetEndpoint, { headers: selfHeaders }).catch(() => ({ data: { widgets: [], widgets_mobile: [] } })),
         api.get("/admin/facturacion/configuracion/verifactu/status", { headers: selfHeaders }).catch(() => ({ data: { data: null } })),
         api.get("/admin/facturacion/iva", { headers: selfHeaders }).catch(() => ({ data: [] })),
+        api.get("/admin/facturacion/facturas/preview-numero", { headers: selfHeaders }).catch(() => ({ data: { numero: null, esTest: false } })),
       ]);
       setIvaList(Array.isArray(ivaRes.data) ? ivaRes.data : []);
+      setPreviewNumero(previewRes.data?.numero || null);
+      setPreviewEsTest(!!previewRes.data?.esTest);
 
       const employees = empRes.data || [];
       const me = employees.find((e: any) => String(e.user_id) === String(adminId));
@@ -1281,19 +1288,27 @@ export default function AdminSelfConfigModal({
                                     <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
                                       <div className="flex justify-between items-center mb-1">
                                         <span className="text-[9px] font-bold text-blue-600 uppercase">Previsualización</span>
-                                        <span className="text-[9px] text-muted-foreground italic">Próxima factura</span>
+                                        <span className="text-[9px] text-muted-foreground italic">
+                                          {previewEsTest ? "Próxima factura (modo TEST)" : "Próxima factura"}
+                                        </span>
                                       </div>
                                       <p className="font-mono text-xs font-bold text-blue-700">
-                                        {facturacionData.numeracion_tipo === 'STANDARD' ? `${facturacionData.serie || 'F'}-` : ''}
-                                        {facturacionData.numeracion_tipo === 'BY_YEAR' ? `${facturacionData.serie || 'F'}-${new Date().getFullYear()}-` : ''}
-                                        {facturacionData.numeracion_tipo === 'PREFIXED' ?
-                                          (facturacionData.numeracion_formato || '')
-                                            .replace('{YEAR}', new Date().getFullYear().toString())
-                                            .replace('{MONTH}', (new Date().getMonth() + 1).toString().padStart(2, '0'))
-                                            .replace('{DAY}', new Date().getDate().toString().padStart(2, '0'))
-                                          : ''
-                                        }
-                                        {(facturacionData.siguiente_numero || 1).toString().padStart(4, '0')}
+                                        {previewNumero
+                                          ? previewNumero
+                                          : (
+                                            <>
+                                              {facturacionData.numeracion_tipo === 'STANDARD' ? `${facturacionData.serie || 'F'}-` : ''}
+                                              {facturacionData.numeracion_tipo === 'BY_YEAR' ? `${facturacionData.serie || 'F'}-${new Date().getFullYear()}-` : ''}
+                                              {facturacionData.numeracion_tipo === 'PREFIXED' ?
+                                                (facturacionData.numeracion_formato || '')
+                                                  .replace('{YEAR}', new Date().getFullYear().toString())
+                                                  .replace('{MONTH}', (new Date().getMonth() + 1).toString().padStart(2, '0'))
+                                                  .replace('{DAY}', new Date().getDate().toString().padStart(2, '0'))
+                                                : ''
+                                              }
+                                              0001
+                                            </>
+                                          )}
                                       </p>
                                     </div>
 
