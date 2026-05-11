@@ -190,13 +190,13 @@ export default function AdminSelfConfigModal({
   }
 
   async function deleteIva(id: number) {
-    const ok = await confirm({
-      title: "Eliminar tipo de IVA",
-      description: "Las facturas que ya usen este tipo no cambian. ¿Eliminar?",
-      confirmLabel: "Eliminar",
-      variant: "destructive",
-    });
-    if (!ok) return;
+    const iva = ivaList.find(i => i.id === id);
+    const pctLabel = iva ? `${Number(iva.porcentaje).toFixed(2)}%` : "este tipo";
+    // window.confirm en lugar del Radix confirm: el AlertDialog anidado dentro
+    // del Dialog padre se quedaba bloqueado (la capa modal del padre tapaba los botones).
+    if (!window.confirm(`¿Eliminar el IVA ${pctLabel}? Las facturas existentes no se ven afectadas.`)) {
+      return;
+    }
     try {
       await api.delete(`/admin/facturacion/iva/${id}`, { headers: selfHeaders });
       setIvaList(prev => prev.filter(i => i.id !== id));
