@@ -1,5 +1,5 @@
 
-import { Briefcase, Clock, Euro, RefreshCw } from "lucide-react";
+import { Briefcase, Clock, Euro } from "lucide-react";
 import Image from "next/image";
 
 function hora(d: string) {
@@ -91,14 +91,12 @@ export function ListFichajes({ data }: { data: { id: string; empleado_nombre: st
 
 export function ListFacturas({
     data,
-    loadingPdfId,
-    onPreview,
-    onEdit
+    onOpenInvoice,
+    onRegistrarCobro
 }: {
-    data: { id: string; numero: string; total: string; fecha_emision: string; cliente_nombre: string | null; estado_pago: string; estado: string }[],
-    loadingPdfId: string | null,
-    onPreview: (id: string, numero: string) => void,
-    onEdit: (id: string) => void
+    data: { id: string; numero: string; total: string; pagado: string | number | null; fecha_emision: string; cliente_id: string; cliente_nombre: string | null; estado_pago: string; estado: string }[],
+    onOpenInvoice: (id: string) => void,
+    onRegistrarCobro: (clienteId: string, facturaId: string) => void
 }) {
     return (
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden lg:col-span-2">
@@ -126,28 +124,25 @@ export function ListFacturas({
                                 <tr key={f.id} className="hover:bg-gray-50">
                                     <td className="px-4 md:px-6 py-3 font-medium text-blue-600">
                                         <button
-                                            onClick={() => {
-                                                if (f.estado === 'BORRADOR') {
-                                                    onEdit(f.id);
-                                                } else {
-                                                    onPreview(f.id, f.numero);
-                                                }
-                                            }}
-                                            className="text-blue-600 hover:underline font-medium flex items-center gap-2 cursor-pointer"
-                                            disabled={loadingPdfId === f.id}
+                                            type="button"
+                                            onClick={() => onOpenInvoice(f.id)}
+                                            className="text-blue-600 hover:underline font-medium cursor-pointer"
+                                            title="Ver factura"
                                         >
-                                            {loadingPdfId === f.id ? (
-                                                <RefreshCw className="w-3 h-3 animate-spin" />
-                                            ) : null}
                                             {f.numero}
                                         </button>
                                     </td>
                                     <td className="px-4 md:px-6 py-3">{f.cliente_nombre || "—"}</td>
                                     <td className="px-4 md:px-6 py-3 text-gray-500">{fecha(f.fecha_emision)}</td>
                                     <td className="px-4 md:px-6 py-3">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${f.estado_pago === 'parcial' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                                        <button
+                                            type="button"
+                                            onClick={() => onRegistrarCobro(f.cliente_id, f.id)}
+                                            className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${f.estado_pago === 'parcial' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
+                                            title="Registrar cobro de esta factura"
+                                        >
                                             {f.estado_pago === 'parcial' ? 'PARCIAL' : 'PENDIENTE'}
-                                        </span>
+                                        </button>
                                     </td>
                                     <td className="px-4 md:px-6 py-3 font-bold text-right">{Number(f.total).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</td>
                                 </tr>

@@ -11,7 +11,7 @@ export interface DashboardData {
     sospechososHoy: number;
     trabajandoAhora: { id: string; empleado_nombre: string; cliente_nombre: string | null; estado: string; desde: string }[];
     ultimosFichajes: { id: string; empleado_nombre: string; cliente_nombre: string | null; tipo: string; fecha: string }[];
-    facturasPendientesList?: { id: string; numero: string; total: string; fecha_emision: string; cliente_nombre: string | null; estado_pago: string; estado: string }[];
+    facturasPendientesList?: { id: string; numero: string; total: string; pagado: string | number | null; fecha_emision: string; cliente_id: string; cliente_nombre: string | null; estado_pago: string; estado: string }[];
     clientesActivos: number;
     clientesNuevos: number;
     facturasPendientes: number;

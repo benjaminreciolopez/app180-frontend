@@ -3,11 +3,9 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/services/api";
 import {
-  RefreshCw, Euro, X
+  RefreshCw
 } from "lucide-react";
-import { saveAs } from "file-saver";
 
 // --- Imported Types & Widgets ---
 import { BeneficioRealCard } from "@/components/admin/dashboard/BeneficioRealCard";
@@ -50,27 +48,7 @@ export default function DashboardPage() {
   const refreshingRef = useRef(false);
   const refetchRef = useRef(refetch);
 
-  // Estados para previsualización PDF
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [loadingPdfId, setLoadingPdfId] = useState<string | null>(null);
-  const [previewFacturaNum, setPreviewFacturaNum] = useState<string>("");
   const [isTrabajosModalOpen, setIsTrabajosModalOpen] = useState(false);
-
-  const handleOpenPreview = async (id: string, numero: string) => {
-    try {
-      setLoadingPdfId(id);
-      setPreviewFacturaNum(numero);
-      const res = await api.get(`/admin/facturacion/facturas/${id}/pdf`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-      setPreviewUrl(url);
-      setIsPreviewOpen(true);
-    } catch (e) {
-      console.error("Error al cargar PDF", e);
-    } finally {
-      setLoadingPdfId(null);
-    }
-  };
 
   const hasModule = (name: string) => {
     if (!modulos) return false;
@@ -206,41 +184,6 @@ export default function DashboardPage() {
         <p className="text-gray-500 mt-1">Visión general y métricas clave.</p>
       </div>
 
-      {isPreviewOpen && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
-            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <Euro className="w-5 h-5 text-gray-500" /> Previsualizar Factura {previewFacturaNum}
-              </h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => previewUrl && saveAs(previewUrl, `Factura_${previewFacturaNum}.pdf`)}
-                  className="text-sm text-blue-600 hover:underline px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
-                >
-                  Descargar
-                </button>
-                <button
-                  onClick={() => { setPreviewUrl(null); setIsPreviewOpen(false); }}
-                  className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 bg-gray-100 p-4">
-              {previewUrl ? (
-                <iframe src={previewUrl} className="w-full h-full rounded-lg border shadow-sm bg-white" />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <RefreshCw className="w-8 h-8 animate-spin text-gray-400" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {shouldShowWidget("kpi_beneficio", "facturacion") && data.beneficioReal && (
@@ -309,9 +252,10 @@ export default function DashboardPage() {
         {shouldShowWidget("list_facturas", "facturacion") && data.facturasPendientesList && (
           <ListFacturas
             data={data.facturasPendientesList}
-            loadingPdfId={loadingPdfId}
-            onPreview={handleOpenPreview}
-            onEdit={(id) => router.push(`/admin/facturacion/editar/${id}`)}
+            onOpenInvoice={(id) => router.push(`/admin/facturacion/editar/${id}`)}
+            onRegistrarCobro={(clienteId, facturaId) =>
+              router.push(`/admin/cobros-pagos?cliente_id=${encodeURIComponent(clienteId)}&factura_id=${encodeURIComponent(facturaId)}`)
+            }
           />
         )}
       </div>
