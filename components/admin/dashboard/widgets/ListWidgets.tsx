@@ -1,6 +1,8 @@
 
-import { Briefcase, Clock, Euro } from "lucide-react";
+import { Briefcase, Clock, Euro, Loader2 } from "lucide-react";
 import Image from "next/image";
+
+type FacturaPendienteRow = { id: string; numero: string; total: string; pagado: string | number | null; fecha_emision: string; cliente_id: string; cliente_nombre: string | null; estado_pago: string; estado: string };
 
 function hora(d: string) {
     return new Date(d).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
@@ -91,12 +93,14 @@ export function ListFichajes({ data }: { data: { id: string; empleado_nombre: st
 
 export function ListFacturas({
     data,
+    loadingPdfId,
     onOpenInvoice,
     onRegistrarCobro
 }: {
-    data: { id: string; numero: string; total: string; pagado: string | number | null; fecha_emision: string; cliente_id: string; cliente_nombre: string | null; estado_pago: string; estado: string }[],
-    onOpenInvoice: (id: string) => void,
-    onRegistrarCobro: (clienteId: string, facturaId: string) => void
+    data: FacturaPendienteRow[],
+    loadingPdfId: string | null,
+    onOpenInvoice: (id: string, numero: string) => void,
+    onRegistrarCobro: (factura: FacturaPendienteRow) => void
 }) {
     return (
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden lg:col-span-2">
@@ -125,10 +129,12 @@ export function ListFacturas({
                                     <td className="px-4 md:px-6 py-3 font-medium text-blue-600">
                                         <button
                                             type="button"
-                                            onClick={() => onOpenInvoice(f.id)}
-                                            className="text-blue-600 hover:underline font-medium cursor-pointer"
+                                            onClick={() => onOpenInvoice(f.id, f.numero)}
+                                            disabled={loadingPdfId === f.id}
+                                            className="text-blue-600 hover:underline font-medium cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
                                             title="Ver factura"
                                         >
+                                            {loadingPdfId === f.id && <Loader2 className="w-3 h-3 animate-spin" />}
                                             {f.numero}
                                         </button>
                                     </td>
@@ -137,7 +143,7 @@ export function ListFacturas({
                                     <td className="px-4 md:px-6 py-3">
                                         <button
                                             type="button"
-                                            onClick={() => onRegistrarCobro(f.cliente_id, f.id)}
+                                            onClick={() => onRegistrarCobro(f)}
                                             className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${f.estado_pago === 'parcial' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
                                             title="Registrar cobro de esta factura"
                                         >

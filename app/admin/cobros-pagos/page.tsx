@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Plus,
@@ -109,11 +109,6 @@ type DeudaConsolidada = {
 
 export default function CobrosPagosPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const preselectClienteId = searchParams.get("cliente_id");
-  const preselectFacturaId = searchParams.get("factura_id");
-  const preselectAppliedRef = useRef(false);
-  const facturaPreselectAppliedRef = useRef(false);
 
   const [pagos, setPagos] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,34 +263,6 @@ export default function CobrosPagosPage() {
         loadPendientes(newPay.cliente_id);
     }
   }, [newPay.cliente_id]);
-
-  // Abrir drawer con cliente preseleccionado al llegar desde el dashboard
-  useEffect(() => {
-    if (preselectClienteId && !preselectAppliedRef.current) {
-      preselectAppliedRef.current = true;
-      setNewPay(prev => ({ ...prev, cliente_id: preselectClienteId }));
-      setDrawerOpen(true);
-    }
-  }, [preselectClienteId]);
-
-  // Una vez cargados los pendientes, autoseleccionar la factura indicada en la URL (solo la primera vez)
-  useEffect(() => {
-    if (facturaPreselectAppliedRef.current) return;
-    if (!preselectFacturaId || pendientes.length === 0) return;
-    const target = pendientes.find(p => p.tipo === 'factura' && (p.original_id === preselectFacturaId));
-    if (!target) return;
-    const saldoPendiente = Number(target.saldo ?? (Number(target.valor) - Number(target.pagado || 0)));
-    if (saldoPendiente <= 0) return;
-    facturaPreselectAppliedRef.current = true;
-    setSelectedItems({
-      [target.id]: {
-        importe: Number(saldoPendiente.toFixed(2)),
-        tipo: 'factura',
-        originalId: target.original_id || target.id,
-      },
-    });
-    setNewPay(prev => prev.importe ? prev : { ...prev, importe: saldoPendiente.toFixed(2) });
-  }, [pendientes, preselectFacturaId]);
 
   // Auto-distribute logic
   const autoDistribute = () => {
