@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { api } from "@/services/api"
 import { showSuccess, showError } from "@/lib/toast"
+import { onFormError } from "@/lib/formErrors"
 import { formatCurrency, cn } from "@/lib/utils"
 import IOSDrawer from "@/components/ui/IOSDrawer"
 import { Button } from "@/components/ui/button"
@@ -42,9 +43,9 @@ import {
 } from "@/components/ui/command"
 
 const lineaSchema = z.object({
-  descripcion: z.string().min(1, "Requerido"),
-  cantidad: z.coerce.number().min(0.01, "Min 0.01"),
-  precio_unitario: z.coerce.number().min(0),
+  descripcion: z.string().min(1, "La descripción es obligatoria"),
+  cantidad: z.coerce.number().min(0.01, "La cantidad debe ser mayor que 0"),
+  precio_unitario: z.coerce.number().min(0, "El precio no puede ser negativo"),
   iva: z.coerce.number().min(0),
 })
 
@@ -53,7 +54,7 @@ const schema = z.object({
   cliente_id: z.string().min(1, "Selecciona un cliente"),
   iva_global: z.coerce.number().min(0),
   mensaje_iva: z.string().optional(),
-  metodo_pago: z.string().min(1),
+  metodo_pago: z.string().min(1, "Selecciona un método de pago"),
   retencion_porcentaje: z.coerce.number().min(0),
   dia_generacion: z.coerce.number().min(1).max(28),
   lineas: z.array(lineaSchema).min(1, "Añade al menos una línea"),
@@ -221,11 +222,11 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
       }}
       width="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 p-4">
+      <form onSubmit={handleSubmit(onSubmit, onFormError)} className="space-y-5 p-4">
         {/* Nombre */}
         <div>
           <Label className="mb-1.5 block">Nombre de la plantilla *</Label>
-          <Input {...register("nombre")} placeholder="Ej: Mensualidad Empresa X" />
+          <Input {...register("nombre")} aria-invalid={!!errors.nombre} placeholder="Ej: Mensualidad Empresa X" />
           {errors.nombre && <p className="text-xs text-red-500 mt-1">{errors.nombre.message}</p>}
         </div>
 
@@ -360,6 +361,7 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
                     <div className="flex-1 relative group/desc">
                       <Input
                         {...register(`lineas.${index}.descripcion`)}
+                        aria-invalid={!!errors.lineas?.[index]?.descripcion}
                         placeholder="Descripción del concepto"
                         className="bg-white pr-10"
                       />
@@ -419,11 +421,11 @@ export default function DrawerFacturaRecurrente({ isOpen, onClose, onSuccess, ed
                   <div className="grid grid-cols-4 gap-2">
                     <div>
                       <Label className="text-xs text-slate-500">Cantidad</Label>
-                      <Input type="number" step="0.01" {...register(`lineas.${index}.cantidad`)} className="bg-white" />
+                      <Input type="number" step="0.01" aria-invalid={!!errors.lineas?.[index]?.cantidad} {...register(`lineas.${index}.cantidad`)} className="bg-white" />
                     </div>
                     <div>
                       <Label className="text-xs text-slate-500">Precio unit.</Label>
-                      <Input type="number" step="0.01" {...register(`lineas.${index}.precio_unitario`)} className="bg-white" />
+                      <Input type="number" step="0.01" aria-invalid={!!errors.lineas?.[index]?.precio_unitario} {...register(`lineas.${index}.precio_unitario`)} className="bg-white" />
                     </div>
                     <div>
                       <Label className="text-xs text-slate-500">IVA %</Label>

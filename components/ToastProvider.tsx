@@ -2,6 +2,11 @@
 
 import { Toaster as HotToaster } from "react-hot-toast";
 import { Toaster as SonnerToaster } from "sonner";
+import { configureZodSpanish } from "@/lib/zodLocale";
+
+// Registra el locale español de Zod en el primer render del cliente,
+// antes de que se monte ningún formulario.
+configureZodSpanish();
 
 export default function ToastProvider() {
   return (

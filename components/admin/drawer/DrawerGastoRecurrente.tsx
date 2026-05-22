@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { api } from "@/services/api";
 import { showSuccess, showError, showInfo } from "@/lib/toast";
+import { onFormError } from "@/lib/formErrors";
 import IOSDrawer from "@/components/ui/IOSDrawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -262,13 +263,13 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                 onClose,
             }}
         >
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
+            <form onSubmit={handleSubmit(onSubmit, onFormError)} className="space-y-4 p-4">
                 {/* Nombre */}
                 <div>
                     <Label className="flex items-center gap-1.5 mb-1">
                         <AlignLeft size={14} /> Nombre *
                     </Label>
-                    <Input {...register("nombre")} placeholder="Ej: Cuota autónomo, Alquiler oficina" />
+                    <Input {...register("nombre")} aria-invalid={!!errors.nombre} placeholder="Ej: Cuota autónomo, Alquiler oficina" />
                     {errors.nombre && <p className="text-xs text-red-500 mt-1">{errors.nombre.message}</p>}
                 </div>
 
@@ -292,7 +293,7 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                         <Label className="flex items-center gap-1.5 mb-1">
                             <ReceiptEuro size={14} /> Base imponible *
                         </Label>
-                        <Input type="number" step="0.01" {...register("base_imponible")} />
+                        <Input type="number" step="0.01" aria-invalid={!!errors.base_imponible} {...register("base_imponible")} />
                         {errors.base_imponible && <p className="text-xs text-red-500 mt-1">{errors.base_imponible.message}</p>}
                     </div>
                     <div>
@@ -319,7 +320,7 @@ export default function DrawerGastoRecurrente({ isOpen, onClose, onSuccess, edit
                     </div>
                     <div>
                         <Label className="mb-1 font-semibold">Total</Label>
-                        <Input type="number" step="0.01" {...register("total")} readOnly className="bg-muted font-semibold" />
+                        <Input type="number" step="0.01" aria-invalid={!!errors.total} {...register("total")} readOnly className="bg-muted font-semibold" />
                         {errors.total && <p className="text-xs text-red-500 mt-1">{errors.total.message}</p>}
                     </div>
                 </div>

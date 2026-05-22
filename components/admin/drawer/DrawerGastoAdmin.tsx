@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { api } from "@/services/api";
 import { showSuccess, showError, showInfo } from "@/lib/toast";
+import { onFormError } from "@/lib/formErrors";
 import IOSDrawer from "@/components/ui/IOSDrawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -610,7 +611,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                 onClose,
             }}
         >
-            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit(onSubmit, onFormError)} className="p-6 space-y-6">
 
                 {/* Upload Section */}
                 <div className="space-y-3">
@@ -736,6 +737,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                             id="descripcion"
                             placeholder="¿Qué has comprado?"
                             {...register("descripcion")}
+                            aria-invalid={!!errors.descripcion}
                             className="bg-slate-50/10 resize-none rounded-xl"
                             rows={2}
                         />
@@ -756,6 +758,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                 type="number"
                                 step="0.01"
                                 {...register("base_imponible", { valueAsNumber: true })}
+                                aria-invalid={!!errors.base_imponible}
                                 className="bg-slate-50/10 h-11 rounded-xl"
                             />
                         </div>
@@ -810,6 +813,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                 step="0.01"
                                 placeholder="0.00"
                                 {...register("total", { valueAsNumber: true })}
+                                aria-invalid={!!errors.total}
                                 className="bg-blue-50 border-blue-100 h-11 rounded-xl font-mono text-lg font-black text-blue-700 shadow-sm"
                             />
                             {errors.total && (
@@ -827,6 +831,7 @@ export default function DrawerGastoAdmin({ isOpen, onClose, onSuccess, editingGa
                                 id="fecha_compra"
                                 type="date"
                                 {...register("fecha_compra")}
+                                aria-invalid={!!errors.fecha_compra}
                                 className="bg-slate-50/10 h-11 rounded-xl"
                             />
                             {errors.fecha_compra && (
