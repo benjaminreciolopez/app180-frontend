@@ -29,6 +29,7 @@ import {
   Boxes,
   Plug,
   Inbox,
+  Shield,
 } from "lucide-react";
 import { authenticatedFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,12 @@ const tabs = [
     label: "Sociedades",
     icon: Building,
     segment: "sociedades",
+  },
+  {
+    label: "RETA",
+    icon: Shield,
+    segment: "reta",
+    badgeKey: "reta" as const,
   },
   {
     label: "Inmovilizado",
@@ -284,6 +291,31 @@ function AsesorClienteLayoutInner({
     },
     enabled: !!empresaId,
   });
+
+  // Resumen de alertas RETA del cliente para mostrar badge en el tab "RETA"
+  // (visible sin necesidad de entrar a la funcionalidad). Se refresca cada
+  // 60s mientras la pestaña esté visible.
+  const { data: retaAlertas } = useQuery<{
+    alertasPendientes: number;
+    alertasNoLeidas: number;
+    cambiosPendientes: number;
+  } | null>({
+    queryKey: ["asesor", "reta-alertas-resumen", empresaId],
+    queryFn: async () => {
+      const res = await authenticatedFetch(`/asesor/reta/clientes/${empresaId}/alertas-resumen`);
+      if (!res.ok) return null;
+      return await res.json();
+    },
+    enabled: !!empresaId && !isEmbedded,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+  });
+
+  // Badge = alertas no leídas + cambios de base pendientes de acción.
+  // Coincide con la noción de "pendientes" del dashboard cross-cliente.
+  const retaBadgeCount =
+    (retaAlertas?.alertasNoLeidas || 0) + (retaAlertas?.cambiosPendientes || 0);
 
   // Multi-tab: registrar/actualizar la pestaña en cuanto se conozca el nombre del cliente.
   // No se ejecuta en modo popup/quickview para no contaminar el estado de tabs.
@@ -497,6 +529,19 @@ function AsesorClienteLayoutInner({
                       )}
                     />
                     {tab.label}
+                    {/* Badge por tab — alertas/notificaciones pendientes */}
+                    {(tab as any).badgeKey === "reta" && retaBadgeCount > 0 && (
+                      <span
+                        className="ml-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold leading-none"
+                        title={`${retaAlertas?.alertasNoLeidas || 0} alerta(s) RETA sin leer${
+                          (retaAlertas?.cambiosPendientes || 0) > 0
+                            ? ` · ${retaAlertas?.cambiosPendientes} cambio(s) de base pendiente(s)`
+                            : ""
+                        }`}
+                      >
+                        {retaBadgeCount > 9 ? "9+" : retaBadgeCount}
+                      </span>
+                    )}
                     {/* Botón para abrir en nueva ventana (oculto si el tab tiene sus propios popups en cards) */}
                     {!tab.noPopup && (
                       <span

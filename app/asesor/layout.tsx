@@ -136,7 +136,6 @@ const misClientesSections = [
   {
     title: "ESPECIALIZADO",
     items: [
-      { path: "/asesor/reta", label: "RETA Autónomos", module: "fiscal" },
       { path: "/asesor/certificados-clientes", label: "Certificados Digitales", module: null },
     ],
   },
@@ -262,7 +261,6 @@ function AsesorLayoutInner({
       "/asesor/fiscal/reglas": "Reglas Fiscales",
       "/asesor/fiscal": "Fiscal",
       "/asesor/sii": "SII",
-      "/asesor/reta": "RETA Autónomos",
       "/asesor/exportar": "Exportar",
       "/asesor/configuracion": "Configuración",
       "/asesor/certificados": "Certificados",

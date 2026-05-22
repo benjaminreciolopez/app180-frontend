@@ -291,8 +291,8 @@ export default function RetaDashboardPage() {
                       className="border-b hover:bg-muted/50 cursor-pointer transition-colors"
                       onClick={() => router.push(
                         c.titularId
-                          ? `/asesor/reta/clientes/${c.empresaId}?titular_id=${c.titularId}`
-                          : `/asesor/reta/clientes/${c.empresaId}`
+                          ? `/asesor/clientes/${c.empresaId}/reta?titular_id=${c.titularId}`
+                          : `/asesor/clientes/${c.empresaId}/reta`
                       )}
                     >
                       <td className="py-3 px-3">
