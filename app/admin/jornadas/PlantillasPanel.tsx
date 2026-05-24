@@ -276,11 +276,17 @@ export default function PlantillasPanel() {
       return;
     }
 
-    const hayBloques = bloquesDia.length > 0;
+    // ¿El rango realmente cambió respecto al valor persistido?
+    const rangoCambiado =
+      fromHHMMSS(diaSel?.hora_inicio ?? "") !== diaHoraInicio ||
+      fromHHMMSS(diaSel?.hora_fin ?? "") !== diaHoraFin;
 
-    if (hayBloques) {
+    // Solo avisar si el rango cambió Y ya hay bloques guardados en BD (día con id).
+    // El aviso es informativo: NO borramos bloques. Si quedan fuera del nuevo
+    // rango el backend los rechazará al guardar bloques y el usuario los corrige.
+    if (rangoCambiado && diaSel?.id && bloquesDia.length > 0) {
       const ok = window.confirm(
-        "Has cambiado el rango del día. Los bloques actuales pueden quedar fuera de rango o no ser contiguos.\n\n¿Quieres resetear los bloques y continuar?",
+        "Has cambiado el rango del día. Los bloques actuales pueden quedar fuera del nuevo rango.\n\n¿Continuar? Los bloques NO se borran — revísalos manualmente si dan error al guardarlos.",
       );
       if (!ok) return;
     }
@@ -289,7 +295,7 @@ export default function PlantillasPanel() {
     setError(null);
 
     try {
-      await api.put(
+      const res = await api.put(
         `/admin/plantillas/${detalle.plantilla.id}/dias/${diaSemanaSel}`,
         {
           hora_inicio: toHHMMSS(diaHoraInicio),
@@ -298,12 +304,21 @@ export default function PlantillasPanel() {
         },
       );
 
-      // Si había bloques y el usuario aceptó, los borramos
-      if (hayBloques && diaSel?.id) {
-        await api.put(`/admin/plantillas/dias/${diaSel.id}/bloques`, {
-          bloques: [],
-        });
-        setBloquesDia([]);
+      // Si el día acaba de crearse ahora (no tenía id antes) y el usuario tenía
+      // bloques pendientes en estado local, los enviamos AHORA que ya hay
+      // plantilla_dia_id. Sin esto, el useEffect de recarga (cuando loadDetalle
+      // actualiza diaSel.id) los machacaría con un GET vacío.
+      const newDiaId = res.data?.id;
+      if (!diaSel?.id && newDiaId && bloquesDia.length > 0) {
+        try {
+          await api.put(`/admin/plantillas/dias/${newDiaId}/bloques`, {
+            bloques: bloquesDia,
+          });
+        } catch (blokE) {
+          const msg = apiErrorMessage(blokE);
+          setError(`Rango guardado, pero los bloques no se guardaron: ${msg}`);
+          showError(`Bloques pendientes: ${msg}`);
+        }
       }
 
       await loadDetalle(detalle.plantilla.id);
