@@ -165,20 +165,16 @@ export default function EditarPlantillaPage() {
 
   // ---- BLOQUES (día seleccionado) ----
   async function loadBloquesDia(plantillaDiaId: string) {
-    // No existe endpoint "get bloques" en tu controller; por eso:
-    // estrategia: los bloques los gestionamos con "upsertBloquesDia" (borrar+insertar).
-    // Para poder cargarlos, NECESITAMOS endpoint GET.
-    //
-    // Para no frenarte: implemento modo "solo edición" (empieza vacío) hasta que añadas:
-    // GET /admin/plantillas/dias/:plantilla_dia_id/bloques
-    //
-    // Si ya lo tienes, cámbialo aquí.
+    // Usamos el endpoint real getBloquesDia del backend (existe desde el
+    // principio en plantillasJornadaController). Si falla la red, dejamos
+    // la lista vacía para no romper la UI.
     setLoadingBloques(true);
     try {
-      // si tienes endpoint:
-      // const res = await api.get(`/admin/plantillas/dias/${plantillaDiaId}/bloques`);
-      // setBloques(res.data || []);
-      setBloques([]); // fallback
+      const res = await api.get(`/admin/plantillas/dias/${plantillaDiaId}/bloques`);
+      setBloques(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      console.error(e);
+      setBloques([]);
     } finally {
       setLoadingBloques(false);
     }
@@ -222,11 +218,47 @@ export default function EditarPlantillaPage() {
         hora_fin: diaObj?.hora_fin ?? "15:00:00",
         activo: diaObj?.activo ?? true,
       });
-      // refresca días
-      await loadDetalle();
 
-      // si tu backend devuelve el día actualizado, puedes hacer:
-      // const dia = res.data; ...
+      // Si el usuario añadió bloques en la UI ANTES de que el día existiera
+      // en BBDD, ahora ya tenemos el plantilla_dia_id y los guardamos en la
+      // misma operación. Sin esto, loadDetalle() de abajo dispararía el
+      // useEffect que recarga bloques desde server (vacíos para un día
+      // recién creado) y perderíamos los locales del usuario.
+      const localBloques = bloques;
+      const newDiaId = res.data?.id;
+      if (localBloques.length > 0 && newDiaId) {
+        let bloquesValidos = true;
+        for (const b of localBloques) {
+          if (!b.tipo || !b.hora_inicio || !b.hora_fin) {
+            alert("Día guardado, pero hay bloques incompletos (tipo/horas).");
+            bloquesValidos = false;
+            break;
+          }
+          if (b.hora_inicio >= b.hora_fin) {
+            alert("Día guardado, pero un bloque tiene hora_inicio >= hora_fin.");
+            bloquesValidos = false;
+            break;
+          }
+        }
+        if (bloquesValidos) {
+          try {
+            await api.put(`/admin/plantillas/dias/${newDiaId}/bloques`, {
+              bloques: localBloques.map((b) => ({
+                tipo: b.tipo,
+                hora_inicio: b.hora_inicio,
+                hora_fin: b.hora_fin,
+                obligatorio: b.obligatorio ?? true,
+              })),
+            });
+          } catch (blokE) {
+            console.error(blokE);
+            alert("Día guardado, pero los bloques no se pudieron guardar.");
+          }
+        }
+      }
+
+      // refresca días (el useEffect dispará loadBloquesDia con el GET real)
+      await loadDetalle();
     } catch (e) {
       console.error(e);
       alert("No se pudo guardar el día");
