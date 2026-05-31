@@ -718,6 +718,7 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
     const isAnulada = factura.estado === "ANULADA"
     const isProforma = factura.tipo_factura === "PROFORMA"
     const isTest = factura.es_test === true || factura.serie === "TEST"
+    const isRectificativa = factura.rectificativa === true
 
     // Determinar estado de pago
     const pagado = Number(factura.pagado || 0)
@@ -731,15 +732,16 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
             {isAnulada && <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0">Anulada</Badge>}
             {isTest && <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 shadow-none border-0 text-xs">Ficticia</Badge>}
             {isProforma && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 shadow-none border-0 text-xs">Proforma</Badge>}
+            {isRectificativa && <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 shadow-none border-0 text-xs">Rectificativa</Badge>}
         </>
     )
 
     const pagoBadge = (
         <>
             {isTest && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-0 text-xs">Test</Badge>}
-            {isValidada && !isTest && estadoPago === 'pagado' && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 shadow-none border-0 text-xs">Pagada</Badge>}
-            {isValidada && !isTest && estadoPago === 'parcial' && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 shadow-none border-0 text-xs">Parcial</Badge>}
-            {isValidada && !isTest && estadoPago === 'pendiente' && <Badge className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0 text-xs">Pendiente</Badge>}
+            {isValidada && !isTest && !isRectificativa && estadoPago === 'pagado' && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 shadow-none border-0 text-xs">Pagada</Badge>}
+            {isValidada && !isTest && !isRectificativa && estadoPago === 'parcial' && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 shadow-none border-0 text-xs">Parcial</Badge>}
+            {isValidada && !isTest && !isRectificativa && estadoPago === 'pendiente' && <Badge className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-0 text-xs">Pendiente</Badge>}
         </>
     )
 
@@ -908,6 +910,11 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
                         Proforma
                     </Badge>
                 )}
+                {isRectificativa && (
+                    <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 shadow-none border-0 text-xs">
+                        Rectificativa
+                    </Badge>
+                )}
             </div>
 
             {/* Número y Fecha */}
@@ -938,7 +945,7 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
                         Test
                     </Badge>
                 )}
-                {isValidada && !isTest && (
+                {isValidada && !isTest && !isRectificativa && (
                     <>
                         {estadoPago === 'pagado' && (
                             <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 shadow-none border-0 text-xs">
@@ -957,7 +964,7 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
                         )}
                     </>
                 )}
-                {(isBorrador || isAnulada) && !isTest && (
+                {(isBorrador || isAnulada || isRectificativa) && !isTest && (
                     <span className="text-xs text-slate-400">—</span>
                 )}
             </div>
