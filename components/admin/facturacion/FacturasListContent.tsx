@@ -806,9 +806,24 @@ function FacturaRow({ factura, onValidar, onGenerar, onOpen, onPreview, onAnular
                 </>
             )}
             {isAnulada && (
-                <Button size="sm" variant="ghost" disabled>
-                    <AlertCircle className="w-4 h-4 mr-2" /> Anulada
-                </Button>
+                <>
+                    {factura.storage_record_id ? (
+                        <div className="flex gap-1">
+                            <Button size="sm" variant="outline" className="h-8 hover:bg-blue-50 text-blue-600 border-blue-200 shadow-sm transition-all active:scale-95" onClick={onPreview} title="Vista Previa Rápida" disabled={isGlobalBusy}>
+                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4 mr-1" />}
+                                VER
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-500" onClick={onOpen} title="Descargar PDF" disabled={isGlobalBusy}>
+                                <Download className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    ) : (
+                        <Button size="sm" variant="outline" className="h-8 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border-blue-200 shadow-sm transition-all active:scale-95" onClick={onGenerar} disabled={isGlobalBusy} title="Generar PDF de la factura anulada">
+                            {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+                            {isDownloading ? "CREANDO..." : "CREAR PDF"}
+                        </Button>
+                    )}
+                </>
             )}
         </>
     )
